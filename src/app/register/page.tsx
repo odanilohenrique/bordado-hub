@@ -36,22 +36,24 @@ export default function Register() {
             if (authError) throw authError
             if (!authData.user) throw new Error('Erro ao criar usuário')
 
-            // 2. Create Profile in public.users
-            const { error: profileError } = await supabase
-                .from('users')
-                .insert([
-                    {
-                        supabase_user_id: authData.user.id,
-                        name,
-                        email,
-                        role,
-                    },
-                ])
+            // 2. Create Profile in public.users via API (Bypass RLS)
+            const response = await fetch('/api/create-profile', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    userId: authData.user.id,
+                    name,
+                    email,
+                    role,
+                }),
+            })
 
-            if (profileError) {
-                // Optional: rollback auth user if profile creation fails? 
-                // For MVP, just show error.
-                throw profileError
+            const result = await response.json()
+
+            if (!response.ok) {
+                throw new Error(result.error || 'Erro ao criar perfil')
             }
 
             router.push('/dashboard')
