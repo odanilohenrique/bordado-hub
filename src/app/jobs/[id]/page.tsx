@@ -1,226 +1,313 @@
 'use client'
 
-import { useEffect, useState, use } from 'react'
+import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { useRouter } from 'next/navigation'
-import { formatCurrency, formatDate } from '@/lib/helpers'
+import { formatDate } from '@/lib/helpers'
+import Link from 'next/link'
 
-export default function JobDetails({ params }: { params: Promise<{ id: string }> }) {
-    // Unwrap params using React.use() or await in async component. 
-    // Since this is a client component, we can use `use(params)` if React 19, or just await it?
-    // In Next 15 client components, params is a promise.
-    // But `use` hook is available in React 19.
-    // Let's try to handle it safely.
-    const [jobId, setJobId] = useState<string | null>(null)
+interface Job {
+    id: string
+    title: string
+    description: string
+    image_urls: string[]
+    formats: string[]
+    fabric_type: string
+    urgency: string
+    status: string
+    created_at: string
+}
 
-    useEffect(() => {
-        params.then(p => setJobId(p.id))
-    }, [params])
+interface Proposal {
+    id: string
+    amount: number
+    message: string
+    deadline_text: string
+    status: string
+    created_at: string
+    criador_id: string
+}
 
-    const [job, setJob] = useState<any>(null)
-    const [user, setUser] = useState<any>(null)
-    const [profile, setProfile] = useState<any>(null)
-    const [proposals, setProposals] = useState<any[]>([])
-    const [myProposal, setMyProposal] = useState<any>(null)
+export default function JobDetail({ params }: { params: { id: string } }) {
+    const [job, setJob] = useState<Job | null>(null)
+    const [proposals, setProposals] = useState<Proposal[]>([])
+    const [currentUser, setCurrentUser] = useState<any>(null)
+    const [isCreator, setIsCreator] = useState(false)
     const [loading, setLoading] = useState(true)
-    const [proposalAmount, setProposalAmount] = useState('')
-    const [proposalMessage, setProposalMessage] = useState('')
+
+    // Proposal form
+    const [amount, setAmount] = useState('')
+    const [message, setMessage] = useState('')
+    const [deadline, setDeadline] = useState('')
+    const [submitting, setSubmitting] = useState(false)
+
     const router = useRouter()
 
     useEffect(() => {
-        if (!jobId) return
-
-        async function fetchData() {
+        async function loadData() {
+            // Get current user
             const { data: { user } } = await supabase.auth.getUser()
-            setUser(user)
-
-            if (user) {
-                const { data: prof } = await supabase.from('users').select('*').eq('supabase_user_id', user.id).single()
-                setProfile(prof)
+            if (!user) {
+                router.push('/login')
+                return
             }
 
-            const { data: jobData } = await supabase.from('jobs').select('*, users(name)').eq('id', jobId).single()
+            // Get user profile
+            const { data: profile } = await supabase
+                .from('users')
+                .select('*')
+                .eq('supabase_user_id', user.id)
+                .single()
+
+            setCurrentUser(profile)
+            setIsCreator(profile?.role === 'criador')
+
+            // Get job details
+            const { data: jobData } = await supabase
+                .from('jobs')
+                .select('*')
+                .eq('id', params.id)
+                .single()
+
             setJob(jobData)
 
-            if (jobData) {
-                // Fetch proposals
-                const { data: props } = await supabase.from('proposals').select('*, users(name)').eq('job_id', jobId)
-                setProposals(props || [])
+            // Get proposals
+            const { data: proposalsData } = await supabase
+                .from('proposals')
+                .select('*')
+                .eq('job_id', params.id)
+                .order('created_at', { ascending: false })
 
-                if (user) {
-                    const myProp = props?.find((p: any) => p.users?.supabase_user_id === user.id || p.criador_id === (profile?.id))
-                    // Wait, profile might not be set yet in this closure.
-                    // Better to filter by criador_id if we have profile, or fetch specifically.
-                }
-            }
+            setProposals(proposalsData || [])
             setLoading(false)
         }
 
-        fetchData()
-    }, [jobId]) // We should also depend on profile but it's set inside.
+        loadData()
+    }, [params.id, router])
 
-    // Effect to find my proposal once profile and proposals are loaded
-    useEffect(() => {
-        if (profile && proposals.length > 0) {
-            const my = proposals.find(p => p.criador_id === profile.id)
-            setMyProposal(my)
-        }
-    }, [profile, proposals])
-
-    const handleSendProposal = async (e: React.FormEvent) => {
+    const handleSubmitProposal = async (e: React.FormEvent) => {
         e.preventDefault()
-        if (!profile || profile.role !== 'criador') return
+        setSubmitting(true)
 
-        const { error } = await supabase.from('proposals').insert([
-            {
-                job_id: jobId,
-                criador_id: profile.id,
-                amount: parseFloat(proposalAmount),
-                message: proposalMessage,
-            }
-        ])
+        try {
+            const { error } = await supabase
+                .from('proposals')
+                .insert([{
+                    job_id: params.id,
+                    criador_id: currentUser.id,
+                    amount: parseFloat(amount),
+                    message,
+                    deadline_text: deadline,
+                    status: 'pendente'
+                }])
 
-        if (error) {
-            alert('Erro ao enviar proposta')
-        } else {
-            alert('Proposta enviada!')
+            if (error) throw error
+
+            alert('Proposta enviada com sucesso!')
+            router.refresh()
             window.location.reload()
+        } catch (err: any) {
+            alert('Erro ao enviar proposta: ' + err.message)
+        } finally {
+            setSubmitting(false)
         }
     }
 
-    const handleAcceptProposal = async (proposalId: string, amount: number) => {
-        // Create transaction and redirect to payment
-        // For MVP, we just create transaction and redirect to a payment page
-        const { data: transaction, error } = await supabase.from('transactions').insert([
-            {
-                job_id: jobId,
-                cliente_id: profile.id,
-                criador_id: proposals.find(p => p.id === proposalId).criador_id,
-                amount: amount,
-                status: 'pendente'
-            }
-        ]).select().single()
+    const handleAcceptProposal = async (proposalId: string) => {
+        if (!confirm('Aceitar esta proposta e ir para o pagamento?')) return
 
-        if (error) {
-            alert('Erro ao iniciar transação: ' + error.message)
-            return
+        try {
+            // Update proposal status
+            await supabase
+                .from('proposals')
+                .update({ status: 'aceita' })
+                .eq('id', proposalId)
+
+            // Update job status
+            await supabase
+                .from('jobs')
+                .update({ status: 'em_progresso' })
+                .eq('id', params.id)
+
+            router.push(`/checkout/${proposalId}`)
+        } catch (err: any) {
+            alert('Erro: ' + err.message)
         }
-
-        // Update proposal status
-        await supabase.from('proposals').update({ status: 'aceita' }).eq('id', proposalId)
-        // Update job status
-        await supabase.from('jobs').update({ status: 'em_progresso' }).eq('id', jobId)
-
-        router.push(`/checkout/${transaction.id}`)
     }
 
-    if (loading || !jobId) return <div className="p-8">Carregando...</div>
+    if (loading) return <div className="p-8">Carregando...</div>
     if (!job) return <div className="p-8">Job não encontrado</div>
 
+    const urgencyLabels: Record<string, string> = {
+        'urgente': '🔥 Urgente',
+        'prazo_curto': '⏱️ Prazo Curto',
+        'sem_pressa': '✅ Sem Pressa'
+    }
+
     return (
-        <div className="max-w-4xl mx-auto bg-white shadow overflow-hidden sm:rounded-lg">
-            <div className="px-4 py-5 sm:px-6">
-                <h3 className="text-lg leading-6 font-medium text-gray-900">
-                    {job.title}
-                </h3>
-                <p className="mt-1 max-w-2xl text-sm text-gray-500">
-                    Postado por {job.users?.name} em {formatDate(job.created_at)}
-                </p>
-                <span className="inline-flex mt-2 items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                    {job.status}
-                </span>
-            </div>
-            <div className="border-t border-gray-200 px-4 py-5 sm:p-0">
-                <dl className="sm:divide-y sm:divide-gray-200">
-                    <div className="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                        <dt className="text-sm font-medium text-gray-500">Descrição</dt>
-                        <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                            {job.description}
-                        </dd>
+        <div className="max-w-4xl mx-auto py-8 px-4">
+            <Link href="/dashboard" className="text-indigo-600 hover:underline mb-4 inline-block">
+                ← Voltar
+            </Link>
+
+            <div className="bg-white rounded-lg shadow-lg p-6">
+                <h1 className="text-3xl font-bold mb-4">{job.title}</h1>
+
+                <div className="flex gap-2 mb-4">
+                    <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
+                        {urgencyLabels[job.urgency] || job.urgency}
+                    </span>
+                    <span className="px-3 py-1 bg-gray-100 text-gray-800 rounded-full text-sm">
+                        {job.status}
+                    </span>
+                </div>
+
+                {/* Image Gallery */}
+                {job.image_urls && job.image_urls.length > 0 && (
+                    <div className="mb-6">
+                        <h3 className="font-semibold mb-2">Imagens de Referência:</h3>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                            {job.image_urls.map((url, idx) => (
+                                <img
+                                    key={idx}
+                                    src={url}
+                                    alt={`Ref ${idx + 1}`}
+                                    className="w-full h-48 object-cover rounded-lg border"
+                                />
+                            ))}
+                        </div>
                     </div>
-                    {job.deadline && (
-                        <div className="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                            <dt className="text-sm font-medium text-gray-500">Prazo</dt>
-                            <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                                {formatDate(job.deadline)}
-                            </dd>
+                )}
+
+                <div className="space-y-4">
+                    <div>
+                        <h3 className="font-semibold">Descrição:</h3>
+                        <p className="text-gray-700 whitespace-pre-wrap">{job.description}</p>
+                    </div>
+
+                    {job.formats && job.formats.length > 0 && (
+                        <div>
+                            <h3 className="font-semibold">Formatos Desejados:</h3>
+                            <div className="flex gap-2 flex-wrap">
+                                {job.formats.map((fmt, idx) => (
+                                    <span key={idx} className="px-2 py-1 bg-indigo-50 text-indigo-700 rounded text-sm">
+                                        {fmt}
+                                    </span>
+                                ))}
+                            </div>
                         </div>
                     )}
-                </dl>
+
+                    {job.fabric_type && (
+                        <div>
+                            <h3 className="font-semibold">Tipo de Tecido:</h3>
+                            <p className="text-gray-700">{job.fabric_type}</p>
+                        </div>
+                    )}
+
+                    <div>
+                        <h3 className="font-semibold">Criado em:</h3>
+                        <p className="text-gray-700">{formatDate(job.created_at)}</p>
+                    </div>
+                </div>
             </div>
 
             {/* Proposals Section */}
-            <div className="border-t border-gray-200 px-4 py-5 sm:px-6">
-                <h4 className="text-lg font-medium text-gray-900 mb-4">Propostas</h4>
+            <div className="mt-8">
+                <h2 className="text-2xl font-bold mb-4">Propostas</h2>
 
-                {/* If Client */}
-                {profile?.role === 'cliente' && profile.id === job.cliente_id && (
-                    <div className="space-y-4">
-                        {proposals.length === 0 ? (
-                            <p className="text-gray-500">Nenhuma proposta recebida ainda.</p>
-                        ) : (
-                            proposals.map(prop => (
-                                <div key={prop.id} className="border rounded-md p-4 flex justify-between items-center">
-                                    <div>
-                                        <p className="font-medium">{prop.users?.name}</p>
-                                        <p className="text-gray-600">{prop.message}</p>
-                                        <p className="text-indigo-600 font-bold">{formatCurrency(prop.amount)}</p>
-                                    </div>
-                                    {job.status === 'aberto' && (
-                                        <button
-                                            onClick={() => handleAcceptProposal(prop.id, prop.amount)}
-                                            className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
-                                        >
-                                            Aceitar
-                                        </button>
-                                    )}
-                                </div>
-                            ))
-                        )}
-                    </div>
-                )}
-
-                {/* If Creator */}
-                {profile?.role === 'criador' && (
-                    <div>
-                        {myProposal ? (
-                            <div className="bg-gray-50 p-4 rounded-md">
-                                <p className="font-medium">Sua Proposta:</p>
-                                <p>{myProposal.message}</p>
-                                <p className="font-bold">{formatCurrency(myProposal.amount)}</p>
-                                <p className="text-sm text-gray-500 mt-2">Status: {myProposal.status}</p>
+                {isCreator && job.status === 'aberto' && (
+                    <div className="bg-white rounded-lg shadow p-6 mb-6">
+                        <h3 className="text-lg font-semibold mb-4">Enviar Proposta</h3>
+                        <form onSubmit={handleSubmitProposal} className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">Valor (R$)</label>
+                                <input
+                                    type="number"
+                                    step="0.01"
+                                    required
+                                    value={amount}
+                                    onChange={e => setAmount(e.target.value)}
+                                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3"
+                                    placeholder="150.00"
+                                />
                             </div>
-                        ) : job.status === 'aberto' ? (
-                            <form onSubmit={handleSendProposal} className="space-y-4 bg-gray-50 p-4 rounded-md">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700">Valor (R$)</label>
-                                    <input
-                                        type="number"
-                                        step="0.01"
-                                        required
-                                        value={proposalAmount}
-                                        onChange={e => setProposalAmount(e.target.value)}
-                                        className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm p-2 border"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700">Mensagem</label>
-                                    <textarea
-                                        required
-                                        value={proposalMessage}
-                                        onChange={e => setProposalMessage(e.target.value)}
-                                        className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm p-2 border"
-                                    />
-                                </div>
-                                <button type="submit" className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">
-                                    Enviar Proposta
-                                </button>
-                            </form>
-                        ) : (
-                            <p className="text-gray-500">Este job não está mais aceitando propostas.</p>
-                        )}
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">Prazo de Entrega</label>
+                                <input
+                                    type="text"
+                                    required
+                                    value={deadline}
+                                    onChange={e => setDeadline(e.target.value)}
+                                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3"
+                                    placeholder="Ex: 3 dias úteis"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">Mensagem</label>
+                                <textarea
+                                    required
+                                    rows={4}
+                                    value={message}
+                                    onChange={e => setMessage(e.target.value)}
+                                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3"
+                                    placeholder="Descreva sua experiência e como vai realizar o trabalho..."
+                                />
+                            </div>
+
+                            <button
+                                type="submit"
+                                disabled={submitting}
+                                className="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 disabled:opacity-50"
+                            >
+                                {submitting ? 'Enviando...' : 'Enviar Proposta'}
+                            </button>
+                        </form>
                     </div>
                 )}
+
+                {/* List of Proposals */}
+                <div className="space-y-4">
+                    {proposals.length === 0 ? (
+                        <div className="bg-white rounded-lg shadow p-6 text-center text-gray-500">
+                            Nenhuma proposta ainda
+                        </div>
+                    ) : (
+                        proposals.map(proposal => (
+                            <div key={proposal.id} className="bg-white rounded-lg shadow p-6">
+                                <div className="flex justify-between items-start mb-4">
+                                    <div>
+                                        <p className="text-2xl font-bold text-indigo-600">
+                                            R$ {proposal.amount.toFixed(2)}
+                                        </p>
+                                        <p className="text-sm text-gray-500">
+                                            Prazo: {proposal.deadline_text}
+                                        </p>
+                                    </div>
+                                    <span className={`px-3 py-1 rounded-full text-sm ${proposal.status === 'aceita'
+                                            ? 'bg-green-100 text-green-800'
+                                            : 'bg-yellow-100 text-yellow-800'
+                                        }`}>
+                                        {proposal.status}
+                                    </span>
+                                </div>
+
+                                <p className="text-gray-700 mb-4 whitespace-pre-wrap">{proposal.message}</p>
+
+                                {!isCreator && proposal.status === 'pendente' && (
+                                    <button
+                                        onClick={() => handleAcceptProposal(proposal.id)}
+                                        className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700"
+                                    >
+                                        Fechado 🤝
+                                    </button>
+                                )}
+                            </div>
+                        ))
+                    )}
+                </div>
             </div>
         </div>
     )
