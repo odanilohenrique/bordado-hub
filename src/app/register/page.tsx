@@ -9,6 +9,7 @@ export default function Register() {
     const [name, setName] = useState('')
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
+    const [confirmPassword, setConfirmPassword] = useState('')
     const [role, setRole] = useState<'cliente' | 'criador'>('cliente')
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
@@ -18,6 +19,12 @@ export default function Register() {
         e.preventDefault()
         setLoading(true)
         setError(null)
+
+        if (password !== confirmPassword) {
+            setError('As senhas não coincidem.')
+            setLoading(false)
+            return
+        }
 
         try {
             // 1. Create Auth User
@@ -116,6 +123,25 @@ export default function Register() {
                                     minLength={6}
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
+                                    className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                />
+                            </div>
+                        </div>
+
+                        <div>
+                            <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
+                                Confirmar Senha
+                            </label>
+                            <div className="mt-1">
+                                <input
+                                    id="confirmPassword"
+                                    name="confirmPassword"
+                                    type="password"
+                                    autoComplete="new-password"
+                                    required
+                                    minLength={6}
+                                    value={confirmPassword}
+                                    onChange={(e) => setConfirmPassword(e.target.value)}
                                     className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                                 />
                             </div>
