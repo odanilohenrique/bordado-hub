@@ -15,11 +15,6 @@ export default function ClientDashboard() {
             const { data: { user } } = await supabase.auth.getUser()
             if (!user) return
 
-            // Get profile ID first (since jobs link to users table id, not auth id directly? 
-            // Wait, my schema says cliente_id references users(id). 
-            // users table has supabase_user_id.
-            // So I need to join or get user id first.
-
             const { data: profile } = await supabase
                 .from('users')
                 .select('id')
@@ -46,7 +41,7 @@ export default function ClientDashboard() {
             <div className="flex justify-between items-center mb-6">
                 <h1 className="text-2xl font-bold text-gray-900">Meus Pedidos</h1>
                 <Link
-                    href="/dashboard/client/create-job"
+                    href="/jobs/new"
                     className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700"
                 >
                     <Plus className="-ml-1 mr-2 h-5 w-5" />
@@ -59,7 +54,7 @@ export default function ClientDashboard() {
             ) : jobs.length === 0 ? (
                 <div className="text-center py-12 bg-white rounded-lg shadow">
                     <p className="text-gray-500">Você ainda não tem nenhum pedido.</p>
-                    <Link href="/dashboard/client/create-job" className="text-indigo-600 hover:text-indigo-500 mt-2 inline-block">
+                    <Link href="/jobs/new" className="text-indigo-600 hover:text-indigo-500 mt-2 inline-block">
                         Criar meu primeiro pedido
                     </Link>
                 </div>
