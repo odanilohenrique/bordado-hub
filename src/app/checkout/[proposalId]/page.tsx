@@ -4,7 +4,18 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { useRouter } from 'next/navigation'
 
-export default function Checkout({ params }: { params: { proposalId: string } }) {
+import { useParams } from 'next/navigation'
+
+export default function Checkout() {
+    const params = useParams()
+    const proposalId = params?.proposalId as string
+
+    if (!proposalId) return <div>Carregando...</div>
+
+    return <CheckoutClient proposalId={proposalId} />
+}
+
+function CheckoutClient({ proposalId }: { proposalId: string }) {
     const [proposal, setProposal] = useState<any>(null)
     const [job, setJob] = useState<any>(null)
     const [loading, setLoading] = useState(true)
@@ -17,7 +28,7 @@ export default function Checkout({ params }: { params: { proposalId: string } })
             const { data: proposalData } = await supabase
                 .from('proposals')
                 .select('*')
-                .eq('id', params.proposalId)
+                .eq('id', proposalId)
                 .single()
 
             if (!proposalData) {
@@ -40,7 +51,7 @@ export default function Checkout({ params }: { params: { proposalId: string } })
         }
 
         loadData()
-    }, [params.proposalId, router])
+    }, [proposalId, router])
 
     const handlePayment = async () => {
         setProcessing(true)

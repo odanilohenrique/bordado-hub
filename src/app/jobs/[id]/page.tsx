@@ -28,7 +28,18 @@ interface Proposal {
     criador_id: string
 }
 
-export default function JobDetail({ params }: { params: { id: string } }) {
+import { useParams } from 'next/navigation'
+
+export default function JobDetail() {
+    const params = useParams()
+    const id = params?.id as string
+
+    if (!id) return <div>Carregando...</div>
+
+    return <JobDetailClient jobId={id} />
+}
+
+function JobDetailClient({ jobId }: { jobId: string }) {
     const [job, setJob] = useState<Job | null>(null)
     const [proposals, setProposals] = useState<Proposal[]>([])
     const [currentUser, setCurrentUser] = useState<any>(null)
@@ -66,7 +77,7 @@ export default function JobDetail({ params }: { params: { id: string } }) {
             const { data: jobData } = await supabase
                 .from('jobs')
                 .select('*')
-                .eq('id', params.id)
+                .eq('id', jobId)
                 .single()
 
             setJob(jobData)
@@ -75,7 +86,7 @@ export default function JobDetail({ params }: { params: { id: string } }) {
             const { data: proposalsData } = await supabase
                 .from('proposals')
                 .select('*')
-                .eq('job_id', params.id)
+                .eq('job_id', jobId)
                 .order('created_at', { ascending: false })
 
             setProposals(proposalsData || [])
@@ -83,7 +94,7 @@ export default function JobDetail({ params }: { params: { id: string } }) {
         }
 
         loadData()
-    }, [params.id, router])
+    }, [jobId, router])
 
     const handleSubmitProposal = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -93,7 +104,7 @@ export default function JobDetail({ params }: { params: { id: string } }) {
             const { error } = await supabase
                 .from('proposals')
                 .insert([{
-                    job_id: params.id,
+                    job_id: jobId,
                     criador_id: currentUser.id,
                     amount: parseFloat(amount),
                     message,
@@ -127,7 +138,7 @@ export default function JobDetail({ params }: { params: { id: string } }) {
             await supabase
                 .from('jobs')
                 .update({ status: 'em_progresso' })
-                .eq('id', params.id)
+                .eq('id', jobId)
 
             router.push(`/checkout/${proposalId}`)
         } catch (err: any) {
@@ -287,8 +298,8 @@ export default function JobDetail({ params }: { params: { id: string } }) {
                                         </p>
                                     </div>
                                     <span className={`px-3 py-1 rounded-full text-sm ${proposal.status === 'aceita'
-                                            ? 'bg-green-100 text-green-800'
-                                            : 'bg-yellow-100 text-yellow-800'
+                                        ? 'bg-green-100 text-green-800'
+                                        : 'bg-yellow-100 text-yellow-800'
                                         }`}>
                                         {proposal.status}
                                     </span>
