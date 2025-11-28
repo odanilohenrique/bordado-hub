@@ -55,6 +55,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
             .eq('id', id)
 
         return NextResponse.json({ success: true, delivery })
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
         console.error(error)
         return NextResponse.json({ error: error.message }, { status: 500 })

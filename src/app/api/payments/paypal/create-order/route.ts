@@ -29,6 +29,7 @@ export async function POST(request: Request) {
             orderID: 'PAYPAL_ORDER_' + transaction.id,
             message: 'PayPal integration ready for implementation'
         })
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
         console.error(error)
         return NextResponse.json({ error: error.message }, { status: 500 })

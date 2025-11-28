@@ -16,7 +16,9 @@ export default function Checkout() {
 }
 
 function CheckoutClient({ proposalId }: { proposalId: string }) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [proposal, setProposal] = useState<any>(null)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [job, setJob] = useState<any>(null)
     const [loading, setLoading] = useState(true)
     const [processing, setProcessing] = useState(false)
@@ -91,6 +93,7 @@ function CheckoutClient({ proposalId }: { proposalId: string }) {
             alert(`Pagamento simulado!\n\nValor do trabalho: R$ ${baseAmount.toFixed(2)}\nTaxa (5%): R$ ${clientFee.toFixed(2)}\nTotal: R$ ${totalAmount.toFixed(2)}\n\nEm produção, aqui seria redirecionado para o Mercado Pago.`)
 
             router.push('/dashboard')
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (err: any) {
             alert('Erro: ' + err.message)
         } finally {

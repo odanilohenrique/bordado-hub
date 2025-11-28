@@ -34,8 +34,9 @@ export async function POST(request: Request) {
         }
 
         return NextResponse.json({ data }, { status: 200 })
-    } catch (err: any) {
-        console.error('Server error:', err)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (error: any) {
+        console.error('Server error:', error)
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
     }
 }

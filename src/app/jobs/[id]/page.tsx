@@ -42,6 +42,7 @@ export default function JobDetail() {
 function JobDetailClient({ jobId }: { jobId: string }) {
     const [job, setJob] = useState<Job | null>(null)
     const [proposals, setProposals] = useState<Proposal[]>([])
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [currentUser, setCurrentUser] = useState<any>(null)
     const [isCreator, setIsCreator] = useState(false)
     const [loading, setLoading] = useState(true)
@@ -117,6 +118,7 @@ function JobDetailClient({ jobId }: { jobId: string }) {
             alert('Proposta enviada com sucesso!')
             router.refresh()
             window.location.reload()
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (err: any) {
             alert('Erro ao enviar proposta: ' + err.message)
         } finally {
@@ -141,6 +143,7 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                 .eq('id', jobId)
 
             router.push(`/checkout/${proposalId}`)
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (err: any) {
             alert('Erro: ' + err.message)
         }

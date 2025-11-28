@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabaseClient'
 import JobCard from '@/components/JobCard'
 
 export default function JobsPage() {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [jobs, setJobs] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
     const [filter, setFilter] = useState<string>('all')

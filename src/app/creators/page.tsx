@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabaseClient'
 import Link from 'next/link'
 
 export default function CreatorsPage() {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [creators, setCreators] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
 

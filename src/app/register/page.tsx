@@ -58,6 +58,7 @@ export default function Register() {
 
             router.push('/dashboard')
             router.refresh()
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (err: any) {
             setError(err.message)
         } finally {
