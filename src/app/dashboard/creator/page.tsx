@@ -38,7 +38,7 @@ export default function CreatorDashboard() {
             ) : (
                 <div className="space-y-4">
                     {jobs.map((job) => (
-                        <JobCard key={job.id} job={job} isCreator />
+                        <JobCard key={job.id} job={job} />
                     ))}
                 </div>
             )}
