@@ -2,18 +2,18 @@ import { Upload, UserCheck, ShieldCheck } from 'lucide-react'
 
 const steps = [
     {
-        title: 'Publique uma vaga',
-        description: 'Publique a sua vaga para milhares de profissionais. Você irá receber propostas de criadores talentosos em poucos minutos.',
+        title: 'Peça uma Matriz',
+        description: 'Descreva o bordado que você precisa: envie imagens, cores, tamanho. Você receberá propostas de programadores especializados em minutos.',
         icon: Upload,
     },
     {
-        title: 'Contrate',
-        description: 'Reveja o histórico de trabalho, feedback de clientes e portfólio. Converse pelo chat e escolha o melhor profissional.',
+        title: 'Escolha o Melhor Criador',
+        description: 'Compare propostas, veja avaliações de outros clientes, portfólios e histórico. Converse pelo chat e escolha quem melhor atende suas necessidades.',
         icon: UserCheck,
     },
     {
-        title: 'Pague com segurança',
-        description: 'Com o pagamento seguro do BordadoHub, o valor só é repassado para o freelancer quando você aprovar o serviço.',
+        title: 'Pagamento Protegido',
+        description: 'Seu dinheiro fica seguro na plataforma. O programador só recebe quando você aprovar a matriz entregue. Segurança total para ambas as partes.',
         icon: ShieldCheck,
     },
 ]
