@@ -12,7 +12,7 @@ interface Job {
     description?: string
 }
 
-export default function JobCard({ job, isCreator = false }: { job: Job, isCreator?: boolean }) {
+export default function JobCard({ job }: { job: Job }) {
     const statusColors: Record<string, string> = {
         aberto: 'bg-green-100 text-green-800',
         em_progresso: 'bg-blue-100 text-blue-800',

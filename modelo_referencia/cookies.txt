@@ -1,0 +1,33 @@
+# HTTrack Website Copier Cookie File
+# This file format is compatible with Netscape cookies
+www.99freelas.com.br	TRUE	/	FALSE	1999999999	sgcn	a6bb9405-5ed1-4e2a-b611-3cfc78e48206
+www.99freelas.com.br	TRUE	/	FALSE	1999999999	SameSite	Lax
+www.99freelas.com.br	TRUE	/	FALSE	1999999999	JSESSIONID	aTduK7bVnBe1vDhlHQIMp51Z6TteyHxk1olmguhL.0bf44f761c08
+.challenges.cloudflare.com	TRUE	/	FALSE	1999999999	_cfuvid	PMXwT1qzWZ7XXWi._h3dr20hZ._EApvenisZx_1nNIc-1764762586211-0.0.1.1-604800000
+challenges.cloudflare.com	TRUE	/	FALSE	1999999999	SameSite	None
+.linkedin.com	TRUE	/	FALSE	1999999999	__cf_bm	bOeWUmQCrP8BTr8i3.yeH8_DN1sbnDId613A7gcOYKI-1764765898-1.0.1.1-TDGQDNLeep6GjVGfvUireynxEiipIQ68znd0MibYwEo4WWyBEyiNX.._gszZa6.j7JzDAnDxSp1h8TQnh6xQIdaaY0jngDDrK3LReU_sRcw
+www.linkedin.com	TRUE	/	FALSE	1999999999	JSESSIONID	ajax:3649911607937434906
+www.linkedin.com	TRUE	/	FALSE	1999999999	lang	v=2&lang=en-us
+.linkedin.com	TRUE	/	FALSE	1999999999	lidc	b=TGST06:s=T:r=T:a=T:p=T:g=3300:u=1:x=1:i=1764765899:t=1764852299:v=2:sig=AQHPD6UjuasWX-Nwfcr8M9dxLwrE1XDN"
+www.linkedin.com	TRUE	/	FALSE	1999999999	li_rm	AQEomwPMP0dCTAAAAZrkPprGiEwVSW1PUoCNOAPIvwFvHNNGvuWMrQIuZWg0xxSiWXmdzlvsuKYnQxd9W8eUcI2LTQxD6Y5VvOmKNZwaJf5JqWKnTOdGhaNa
+.www.linkedin.com	TRUE	/	FALSE	1999999999	SameSite	None
+.facebook.com	TRUE	/	FALSE	1999999999	sb	zTAwaRIRwiWiPr2rNzwRHhgU
+www.facebook.com	TRUE	/	FALSE	1999999999	SameSite	deleted
+.facebook.com	TRUE	/	FALSE	1999999999	fr	0XcctevcwzX3wkOsy..BpMDDN..AAA.0.0.BpMDDO.AWdK1kd9agGSkAiBwu3CPDNYGDs
+www.facebook.com	TRUE	/	FALSE	1999999999	SameSite	None
+www.linkedin.com	TRUE	/	FALSE	1999999999	PLAY_SESSION	eyJhbGciOiJIUzI1NiJ9.eyJkYXRhIjp7ImZsb3dUcmFja2luZ0lkIjoiVXMxYVUrd2lSWVdWM2dLTW5BbS9RZz09In0sIm5iZiI6MTc2NDc2NTkwMywiaWF0IjoxNzY0NzY1OTAzfQ.HV2RUdcpzLBFa1banRIY1bUTQlOJIVfFSyLpDs7Ne-o
+accounts.google.com	TRUE	/	FALSE	1999999999	__Host-GAPS	1:eqFbZinQd-oBIkSnIjW2ve0MjTftWA:MBQwa2R9WTO4osTy
+accounts.google.com	TRUE	/	FALSE	1999999999	Priority	HIGH
+.99freelas.zendesk.com	TRUE	/	FALSE	1999999999	__cf_bm	Gh3ECHykM497X.E2iufkmV89IujIqi4Gt1jBoxatpzE-1764765909-1.0.1.1-WOOA1cQuFCf4SUxlejTI8KTNcm8iXLq6rGuIvOibRHQZIBLgLFt3e1IOYVhHDpokNlbXKCSQnymUVsq2KCtR4lT8FqURWr0sAK2BKcOzOoY
+.99freelas.zendesk.com	TRUE	/	FALSE	1999999999	_cfuvid	nOTpSp5OC.jjdyUebYcxqAberroosVXkYzy1b0KZS5g-1764765909173-0.0.1.1-604800000
+99freelas.zendesk.com	TRUE	/	FALSE	1999999999	SameSite	None
+.twitter.com	TRUE	/	FALSE	1999999999	guest_id_marketing	v1%3A176476590998147878
+.twitter.com	TRUE	/	FALSE	1999999999	guest_id_ads	v1%3A176476590998147878
+.twitter.com	TRUE	/	FALSE	1999999999	personalization_id	v1_IIRSH9zUbEcaeDp6dlGwLg=="
+.twitter.com	TRUE	/	FALSE	1999999999	guest_id	v1%3A176476590998147878
+twitter.com	TRUE	/	FALSE	1999999999	SameSite	None
+twitter.com	TRUE	/	FALSE	1999999999	__cf_bm	KgGqF2v.99odtx4sxnFREuigkWVfVY5Y9UO.Rq6rUAI-1764765909.9032614-1.0.1.1-f8Yi8FgsXvHmmZ7JBnidZNHGm59GcdPNC.WxVSsx1PcpW1YXLyItK_MtOjJs67OwJmMtDtq3Of05oUpz2hzBqGuS11Clsa_qJs8BAKHSdqeY1F_1tjSXxwROgetcTYFP
+.linkedin.com	TRUE	/	FALSE	1999999999	bcookie	v=2&9dbe88b2-02e4-4cc8-83fe-be75bccb9bab"
+.www.linkedin.com	TRUE	/	FALSE	1999999999	bscookie	v=1&20251203124510c4f5b04c-041c-41d3-843f-1600db383a85AQGEXHkhtmXwvIPWoVz3WyH9QPjNG6qo"
+www.linkedin.com	TRUE	/	FALSE	1999999999	SameSite	None
+

@@ -33,7 +33,7 @@ export default function HowItWorks() {
 
                 <div className="mt-16">
                     <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
-                        {steps.map((step, index) => (
+                        {steps.map((step) => (
                             <div key={step.title} className="relative text-center">
                                 <div className="flex items-center justify-center h-20 w-20 rounded-full bg-indigo-100 text-indigo-600 mx-auto mb-6">
                                     <step.icon className="h-10 w-10" aria-hidden="true" />

@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { User } from '@supabase/supabase-js'
-import { Menu, X, User as UserIcon, LogOut } from 'lucide-react'
+import { Menu, X, LogOut } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
 export default function Navbar() {

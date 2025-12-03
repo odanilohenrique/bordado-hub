@@ -52,7 +52,7 @@ export default function Testimonials() {
                                     ))}
                                 </div>
                                 <p className="text-xl sm:text-2xl font-medium text-white italic mb-6">
-                                    "{testimonial.content}"
+                                    &quot;{testimonial.content}&quot;
                                 </p>
                                 <footer className="text-indigo-200">
                                     <div className="font-semibold text-white">{testimonial.author}</div>
