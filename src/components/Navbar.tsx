@@ -35,11 +35,14 @@ export default function Navbar() {
                             <span className="text-2xl font-bold text-indigo-600">BordadoHub</span>
                         </Link>
                         <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
-                            <Link href="/jobs" className="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
-                                Jobs
+                            <Link href="/how-it-works" className="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                                Como Funciona
                             </Link>
                             <Link href="/creators" className="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
-                                Criadores
+                                Encontrar Criadores
+                            </Link>
+                            <Link href="/jobs" className="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                                Encontrar Jobs
                             </Link>
                         </div>
                     </div>
@@ -58,12 +61,15 @@ export default function Navbar() {
                                 </button>
                             </div>
                         ) : (
-                            <div className="space-x-4">
+                            <div className="space-x-4 flex items-center">
                                 <Link href="/login" className="text-gray-500 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
                                     Entrar
                                 </Link>
-                                <Link href="/register" className="bg-indigo-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-700">
-                                    Cadastrar
+                                <Link href="/register" className="text-gray-500 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
+                                    Cadastre-se
+                                </Link>
+                                <Link href="/jobs/new" className="bg-indigo-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-700 shadow-sm">
+                                    Publicar Projeto
                                 </Link>
                             </div>
                         )}

@@ -1,49 +1,53 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { supabase } from '@/lib/supabaseClient'
-import { useRouter } from 'next/navigation'
+import { useState } from 'react'
+import ClientDashboard from './client/page'
+import CreatorDashboard from './creator/page'
+import { ShoppingBag, Palette } from 'lucide-react'
 
 export default function Dashboard() {
-    const router = useRouter()
-    const [loading, setLoading] = useState(true)
-
-    useEffect(() => {
-        async function checkUser() {
-            const { data: { user } } = await supabase.auth.getUser()
-            if (!user) {
-                router.push('/login')
-                return
-            }
-
-            const { data: profile } = await supabase
-                .from('users')
-                .select('role')
-                .eq('supabase_user_id', user.id)
-                .single()
-
-            if (profile) {
-                if (profile.role === 'cliente') {
-                    router.push('/dashboard/client')
-                } else if (profile.role === 'criador') {
-                    router.push('/dashboard/creator')
-                }
-            } else {
-                // Handle case where profile doesn't exist (shouldn't happen if register flow works)
-                setLoading(false)
-            }
-        }
-
-        checkUser()
-    }, [router])
-
-    if (loading) {
-        return <div className="flex justify-center items-center h-64">Carregando...</div>
-    }
+    const [activeTab, setActiveTab] = useState<'client' | 'creator'>('client')
 
     return (
-        <div className="text-center mt-10">
-            <h2 className="text-xl font-semibold">Perfil não encontrado ou erro ao carregar.</h2>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            {/* Context Switcher */}
+            <div className="flex justify-center mb-8">
+                <div className="bg-gray-100 p-1 rounded-xl inline-flex shadow-inner">
+                    <button
+                        onClick={() => setActiveTab('client')}
+                        className={`flex items-center px-6 py-3 rounded-lg text-sm font-medium transition-all duration-200 ${activeTab === 'client'
+                                ? 'bg-white text-indigo-600 shadow-sm ring-1 ring-black/5'
+                                : 'text-gray-500 hover:text-gray-700'
+                            }`}
+                    >
+                        <ShoppingBag className="w-4 h-4 mr-2" />
+                        Modo Cliente (Comprar)
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('creator')}
+                        className={`flex items-center px-6 py-3 rounded-lg text-sm font-medium transition-all duration-200 ${activeTab === 'creator'
+                                ? 'bg-white text-violet-600 shadow-sm ring-1 ring-black/5'
+                                : 'text-gray-500 hover:text-gray-700'
+                            }`}
+                    >
+                        <Palette className="w-4 h-4 mr-2" />
+                        Modo Criador (Vender)
+                    </button>
+                </div>
+            </div>
+
+            {/* Content Area */}
+            <div className="transition-opacity duration-300 ease-in-out">
+                {activeTab === 'client' ? (
+                    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        <ClientDashboard />
+                    </div>
+                ) : (
+                    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        <CreatorDashboard />
+                    </div>
+                )}
+            </div>
         </div>
     )
 }

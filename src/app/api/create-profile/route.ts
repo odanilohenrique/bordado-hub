@@ -10,7 +10,7 @@ const supabase = createClient(
 export async function POST(request: Request) {
     try {
         const body = await request.json()
-        const { userId, name, email, role } = body
+        const { userId, name, email } = body
 
         if (!userId || !email) {
             return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
@@ -23,7 +23,7 @@ export async function POST(request: Request) {
                     supabase_user_id: userId,
                     name,
                     email,
-                    role,
+                    // role removed for unified account
                 },
             ])
             .select()

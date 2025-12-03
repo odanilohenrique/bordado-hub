@@ -10,7 +10,7 @@ export default function Register() {
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
     const [confirmPassword, setConfirmPassword] = useState('')
-    const [role, setRole] = useState<'cliente' | 'criador'>('cliente')
+    // Role state removed
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const router = useRouter()
@@ -46,7 +46,7 @@ export default function Register() {
                     userId: authData.user.id,
                     name,
                     email,
-                    role,
+                    // role removed
                 }),
             })
 
@@ -150,37 +150,7 @@ export default function Register() {
                             </div>
                         </div>
 
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700">Eu sou:</label>
-                            <div className="mt-2 flex space-x-4">
-                                <div className="flex items-center">
-                                    <input
-                                        id="cliente"
-                                        name="role"
-                                        type="radio"
-                                        checked={role === 'cliente'}
-                                        onChange={() => setRole('cliente')}
-                                        className="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300"
-                                    />
-                                    <label htmlFor="cliente" className="ml-3 block text-sm font-medium text-gray-700">
-                                        Cliente (Quero comprar)
-                                    </label>
-                                </div>
-                                <div className="flex items-center">
-                                    <input
-                                        id="criador"
-                                        name="role"
-                                        type="radio"
-                                        checked={role === 'criador'}
-                                        onChange={() => setRole('criador')}
-                                        className="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300"
-                                    />
-                                    <label htmlFor="criador" className="ml-3 block text-sm font-medium text-gray-700">
-                                        Criador (Faço matrizes)
-                                    </label>
-                                </div>
-                            </div>
-                        </div>
+                        {/* Role selection removed for unified account */}
 
                         {error && (
                             <div className="text-red-600 text-sm">
