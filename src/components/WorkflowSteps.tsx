@@ -1,33 +1,49 @@
-import { ArrowRight } from 'lucide-react'
+import { ArrowRight, Image, DollarSign, CheckCircle, Download } from 'lucide-react'
 
 const steps = [
     {
         role: 'Cliente',
-        action: 'Converta esta imagem em matriz de bordado',
+        title: 'Solicita Matriz',
+        description: 'Converta esta imagem em matriz de bordado',
+        detail: 'Logo Empresa X • Formato: DST',
+        icon: Image,
         bgColor: 'bg-[#1A1D23]',
-        borderColor: 'border-[#FFAE00]/30',
+        borderColor: 'border-[#FFAE00]',
         textColor: 'text-[#FFAE00]',
+        iconBg: 'bg-[#FFAE00]/10',
     },
     {
         role: 'Programador',
-        action: 'Cobro R$35 para criar essa matriz',
+        title: 'Envia Proposta',
+        description: 'Cobro R$35 para criar essa matriz',
+        detail: '2 dias de prazo • 5⭐ avaliação',
+        icon: DollarSign,
         bgColor: 'bg-[#1A1D23]',
-        borderColor: 'border-[#2DD4BF]/30',
+        borderColor: 'border-[#2DD4BF]',
         textColor: 'text-[#2DD4BF]',
+        iconBg: 'bg-[#2DD4BF]/10',
     },
     {
         role: 'Cliente',
-        action: 'Aceito a proposta\nPedido Pago',
+        title: 'Aceita & Paga',
+        description: 'Aceito a proposta',
+        detail: 'R$35,00 • Pagamento em Garantia',
+        icon: CheckCircle,
         bgColor: 'bg-[#1A1D23]',
-        borderColor: 'border-[#FFAE00]/30',
+        borderColor: 'border-[#FFAE00]',
         textColor: 'text-[#FFAE00]',
+        iconBg: 'bg-[#FFAE00]/10',
     },
     {
         role: 'Programador',
-        action: 'Matriz entregue\nPagamento recebido',
+        title: 'Entrega Concluída',
+        description: 'Matriz entregue',
+        detail: 'Cliente aprovou • Pagamento liberado',
+        icon: Download,
         bgColor: 'bg-[#1A1D23]',
-        borderColor: 'border-[#2DD4BF]/30',
+        borderColor: 'border-[#2DD4BF]',
         textColor: 'text-[#2DD4BF]',
+        iconBg: 'bg-[#2DD4BF]/10',
     },
 ]
 
@@ -38,19 +54,39 @@ export default function WorkflowSteps() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
                     {steps.map((step, index) => (
                         <div key={index} className="relative">
-                            <div className={`${step.bgColor} ${step.borderColor} border-2 rounded-lg p-6 min-h-[160px] flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow`}>
+                            <div className={`${step.bgColor} ${step.borderColor} border-2 rounded-xl p-6 min-h-[220px] flex flex-col justify-between shadow-lg hover:shadow-2xl hover:scale-105 transition-all duration-300`}>
+                                {/* Header */}
                                 <div>
-                                    <div className={`text-sm font-semibold ${step.textColor} mb-2`}>
-                                        {step.role}
+                                    <div className="flex items-center justify-between mb-4">
+                                        <span className={`text-xs font-bold ${step.textColor} uppercase tracking-wider`}>
+                                            {step.role}
+                                        </span>
+                                        <div className={`${step.iconBg} ${step.textColor} p-2 rounded-lg`}>
+                                            <step.icon className="h-5 w-5" />
+                                        </div>
                                     </div>
-                                    <p className="text-sm text-gray-300 whitespace-pre-line">
-                                        {step.action}
+
+                                    <h4 className={`text-base font-bold ${step.textColor} mb-2`}>
+                                        {step.title}
+                                    </h4>
+
+                                    <p className="text-sm text-gray-300 mb-3">
+                                        {step.description}
+                                    </p>
+                                </div>
+
+                                {/* Footer with details */}
+                                <div className={`pt-3 border-t ${step.borderColor}/20`}>
+                                    <p className="text-xs text-gray-400 font-medium">
+                                        {step.detail}
                                     </p>
                                 </div>
                             </div>
+
+                            {/* Arrow connector */}
                             {index < steps.length - 1 && (
                                 <div className="hidden lg:block absolute top-1/2 -right-3 transform -translate-y-1/2 z-10">
-                                    <ArrowRight className="h-6 w-6 text-gray-400" />
+                                    <ArrowRight className="h-6 w-6 text-[#FFAE00]" strokeWidth={2.5} />
                                 </div>
                             )}
                         </div>

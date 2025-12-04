@@ -1,4 +1,5 @@
 import { Upload, UserCheck, ShieldCheck } from 'lucide-react'
+import WorkflowSteps from './WorkflowSteps'
 
 const steps = [
     {
@@ -22,7 +23,8 @@ export default function HowItWorks() {
     return (
         <div className="bg-[#0F1115] py-16 sm:py-24">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="text-center">
+                {/* Title Section */}
+                <div className="text-center mb-12">
                     <h2 className="text-3xl font-extrabold text-[#F3F4F6] sm:text-4xl">
                         Como Funciona?
                     </h2>
@@ -31,6 +33,10 @@ export default function HowItWorks() {
                     </p>
                 </div>
 
+                {/* Workflow Steps (4 boxes) */}
+                <WorkflowSteps />
+
+                {/* Description Cards (3 cards) */}
                 <div className="mt-16">
                     <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
                         {steps.map((step) => (
