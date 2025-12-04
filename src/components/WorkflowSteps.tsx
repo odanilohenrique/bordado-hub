@@ -4,36 +4,36 @@ const steps = [
     {
         role: 'Cliente',
         action: 'Converta esta imagem em matriz de bordado',
-        bgColor: 'bg-blue-50',
-        borderColor: 'border-blue-200',
-        textColor: 'text-blue-900',
+        bgColor: 'bg-[#1A1D23]',
+        borderColor: 'border-[#FFAE00]/30',
+        textColor: 'text-[#FFAE00]',
     },
     {
         role: 'Programador',
         action: 'Cobro R$35 para criar essa matriz',
-        bgColor: 'bg-violet-50',
-        borderColor: 'border-violet-200',
-        textColor: 'text-violet-900',
+        bgColor: 'bg-[#1A1D23]',
+        borderColor: 'border-[#2DD4BF]/30',
+        textColor: 'text-[#2DD4BF]',
     },
     {
         role: 'Cliente',
         action: 'Aceito a proposta\nPedido Pago',
-        bgColor: 'bg-blue-50',
-        borderColor: 'border-blue-200',
-        textColor: 'text-blue-900',
+        bgColor: 'bg-[#1A1D23]',
+        borderColor: 'border-[#FFAE00]/30',
+        textColor: 'text-[#FFAE00]',
     },
     {
         role: 'Programador',
         action: 'Matriz entregue\nPagamento recebido',
-        bgColor: 'bg-violet-50',
-        borderColor: 'border-violet-200',
-        textColor: 'text-violet-900',
+        bgColor: 'bg-[#1A1D23]',
+        borderColor: 'border-[#2DD4BF]/30',
+        textColor: 'text-[#2DD4BF]',
     },
 ]
 
 export default function WorkflowSteps() {
     return (
-        <div className="bg-gray-50 py-12 sm:py-16">
+        <div className="bg-[#0F1115] py-12 sm:py-16">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
                     {steps.map((step, index) => (
@@ -43,7 +43,7 @@ export default function WorkflowSteps() {
                                     <div className={`text-sm font-semibold ${step.textColor} mb-2`}>
                                         {step.role}
                                     </div>
-                                    <p className="text-sm text-gray-700 whitespace-pre-line">
+                                    <p className="text-sm text-gray-300 whitespace-pre-line">
                                         {step.action}
                                     </p>
                                 </div>

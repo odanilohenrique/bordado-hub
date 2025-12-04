@@ -32,9 +32,9 @@ export default function Testimonials() {
     }, [])
 
     return (
-        <div className="bg-indigo-700 py-16 sm:py-24">
+        <div className="bg-[#1A1D23] py-16 sm:py-24 border-y border-[#FFAE00]/10">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <h2 className="text-3xl font-extrabold text-white text-center mb-12">
+                <h2 className="text-3xl font-extrabold text-[#F3F4F6] text-center mb-12">
                     O que nossos clientes estão dizendo
                 </h2>
 
@@ -48,14 +48,14 @@ export default function Testimonials() {
                             <div className="max-w-3xl text-center">
                                 <div className="flex justify-center mb-4">
                                     {[...Array(5)].map((_, i) => (
-                                        <Star key={i} className="h-5 w-5 text-yellow-400 fill-current" />
+                                        <Star key={i} className="h-5 w-5 text-[#FFAE00] fill-current" />
                                     ))}
                                 </div>
-                                <p className="text-xl sm:text-2xl font-medium text-white italic mb-6">
+                                <p className="text-xl sm:text-2xl font-medium text-[#F3F4F6] italic mb-6">
                                     &quot;{testimonial.content}&quot;
                                 </p>
-                                <footer className="text-indigo-200">
-                                    <div className="font-semibold text-white">{testimonial.author}</div>
+                                <footer className="text-gray-400">
+                                    <div className="font-semibold text-[#F3F4F6]">{testimonial.author}</div>
                                     <div className="text-sm">{testimonial.role}</div>
                                 </footer>
                             </div>

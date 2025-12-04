@@ -27,21 +27,21 @@ export default function Navbar() {
     }
 
     return (
-        <nav className="bg-white shadow-sm border-b border-gray-100">
+        <nav className="bg-[#0F1115] shadow-sm border-b border-[#FFAE00]/10">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex justify-between h-16">
                     <div className="flex">
                         <Link href="/" className="flex-shrink-0 flex items-center">
-                            <span className="text-2xl font-bold text-indigo-600">BordadoHub</span>
+                            <span className="text-2xl font-bold text-[#FFAE00]">BordadoHub</span>
                         </Link>
                         <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
-                            <Link href="/how-it-works" className="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                            <Link href="/how-it-works" className="border-transparent text-gray-300 hover:border-[#FFAE00] hover:text-[#FFAE00] inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-colors">
                                 Como Funciona
                             </Link>
-                            <Link href="/creators" className="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                            <Link href="/creators" className="border-transparent text-gray-300 hover:border-[#FFAE00] hover:text-[#FFAE00] inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-colors">
                                 Encontrar Criadores
                             </Link>
-                            <Link href="/jobs" className="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                            <Link href="/jobs" className="border-transparent text-gray-300 hover:border-[#FFAE00] hover:text-[#FFAE00] inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-colors">
                                 Encontrar Jobs
                             </Link>
                         </div>
@@ -49,12 +49,12 @@ export default function Navbar() {
                     <div className="hidden sm:ml-6 sm:flex sm:items-center">
                         {user ? (
                             <div className="flex items-center space-x-4">
-                                <Link href="/dashboard" className="text-gray-500 hover:text-gray-700 px-3 py-2 rounded-md text-sm font-medium">
+                                <Link href="/dashboard" className="text-gray-300 hover:text-[#FFAE00] px-3 py-2 rounded-md text-sm font-medium transition-colors">
                                     Dashboard
                                 </Link>
                                 <button
                                     onClick={handleLogout}
-                                    className="flex items-center text-gray-500 hover:text-gray-700 px-3 py-2 rounded-md text-sm font-medium"
+                                    className="flex items-center text-gray-300 hover:text-[#FFAE00] px-3 py-2 rounded-md text-sm font-medium transition-colors"
                                 >
                                     <LogOut className="h-4 w-4 mr-2" />
                                     Sair
@@ -62,13 +62,13 @@ export default function Navbar() {
                             </div>
                         ) : (
                             <div className="space-x-4 flex items-center">
-                                <Link href="/login" className="text-gray-500 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
+                                <Link href="/login" className="text-gray-300 hover:text-[#FFAE00] px-3 py-2 rounded-md text-sm font-medium transition-colors">
                                     Entrar
                                 </Link>
-                                <Link href="/register" className="text-gray-500 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
+                                <Link href="/register" className="text-gray-300 hover:text-[#FFAE00] px-3 py-2 rounded-md text-sm font-medium transition-colors">
                                     Cadastre-se
                                 </Link>
-                                <Link href="/jobs/new" className="bg-indigo-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-700 shadow-sm">
+                                <Link href="/jobs/new" className="bg-[#FFAE00] text-[#0F1115] px-4 py-2 rounded-md text-sm font-medium hover:bg-[#D97706] shadow-sm transition-colors">
                                     Publicar Projeto
                                 </Link>
                             </div>

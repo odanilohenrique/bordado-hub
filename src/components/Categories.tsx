@@ -29,13 +29,13 @@ const categories = [
 
 export default function Categories() {
     return (
-        <div className="bg-gray-50 py-12 sm:py-16 lg:py-20">
+        <div className="bg-[#0F1115] py-12 sm:py-16 lg:py-20">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="text-center">
-                    <h2 className="text-3xl font-extrabold text-gray-900 sm:text-4xl">
-                        Encontre freelancers talentosos para...
+                    <h2 className="text-3xl font-extrabold text-[#F3F4F6] sm:text-4xl">
+                        Encontre programadores talentosos para...
                     </h2>
-                    <p className="mt-4 text-lg text-gray-500">
+                    <p className="mt-4 text-lg text-gray-300">
                         Qualquer tipo de serviço relacionado a bordados computadorizados.
                     </p>
                 </div>
@@ -43,7 +43,7 @@ export default function Categories() {
                     {categories.map((category) => (
                         <div
                             key={category.name}
-                            className="bg-white overflow-hidden shadow rounded-lg hover:shadow-md transition-shadow duration-300"
+                            className="bg-[#1A1D23] overflow-hidden shadow-md rounded-lg hover:shadow-xl hover:border hover:border-[#FFAE00]/30 transition-all duration-300"
                         >
                             <div className="p-5">
                                 <div className="flex items-center">
@@ -51,13 +51,13 @@ export default function Categories() {
                                         <category.icon className="h-6 w-6 text-white" aria-hidden="true" />
                                     </div>
                                     <div className="ml-5 w-0 flex-1">
-                                        <h3 className="text-lg font-medium text-gray-900 truncate">
+                                        <h3 className="text-lg font-medium text-[#F3F4F6] truncate">
                                             {category.name}
                                         </h3>
                                     </div>
                                 </div>
                                 <div className="mt-4">
-                                    <p className="text-sm text-gray-500">
+                                    <p className="text-sm text-gray-300">
                                         {category.description}
                                     </p>
                                 </div>
