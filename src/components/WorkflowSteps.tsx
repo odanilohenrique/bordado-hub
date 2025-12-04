@@ -1,4 +1,5 @@
-import { ArrowRight, Image, DollarSign, CheckCircle, Download } from 'lucide-react'
+import { ArrowRight, Image as ImageIcon, DollarSign, CheckCircle, Download } from 'lucide-react'
+import Image from 'next/image'
 
 const steps = [
     {
@@ -6,7 +7,8 @@ const steps = [
         title: 'Solicita Matriz',
         description: 'Converta esta imagem em matriz de bordado',
         detail: 'Logo Empresa X • Formato: DST',
-        icon: Image,
+        icon: ImageIcon,
+        image: '/assets/workflow/step1-request.png',
         bgColor: 'bg-[#1A1D23]',
         borderColor: 'border-[#FFAE00]',
         textColor: 'text-[#FFAE00]',
@@ -16,8 +18,9 @@ const steps = [
         role: 'Programador',
         title: 'Envia Proposta',
         description: 'Cobro R$35 para criar essa matriz',
-        detail: '2 dias de prazo • 5⭐ avaliação',
+        detail: '2 dias de prazo',
         icon: DollarSign,
+        image: '/assets/workflow/step2-proposal.png',
         bgColor: 'bg-[#1A1D23]',
         borderColor: 'border-[#2DD4BF]',
         textColor: 'text-[#2DD4BF]',
@@ -29,6 +32,7 @@ const steps = [
         description: 'Aceito a proposta',
         detail: 'R$35,00 • Pagamento em Garantia',
         icon: CheckCircle,
+        image: '/assets/workflow/step3-payment.png',
         bgColor: 'bg-[#1A1D23]',
         borderColor: 'border-[#FFAE00]',
         textColor: 'text-[#FFAE00]',
@@ -40,6 +44,7 @@ const steps = [
         description: 'Matriz entregue',
         detail: 'Cliente aprovou • Pagamento liberado',
         icon: Download,
+        image: '/assets/workflow/step4-delivery.png',
         bgColor: 'bg-[#1A1D23]',
         borderColor: 'border-[#2DD4BF]',
         textColor: 'text-[#2DD4BF]',
@@ -54,7 +59,7 @@ export default function WorkflowSteps() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
                     {steps.map((step, index) => (
                         <div key={index} className="relative">
-                            <div className={`${step.bgColor} ${step.borderColor} border-2 rounded-xl p-6 min-h-[220px] flex flex-col justify-between shadow-lg hover:shadow-2xl hover:scale-105 transition-all duration-300`}>
+                            <div className={`${step.bgColor} ${step.borderColor} border-2 rounded-xl p-4 min-h-[320px] flex flex-col justify-between shadow-lg hover:shadow-2xl hover:scale-105 transition-all duration-300 group`}>
                                 {/* Header */}
                                 <div>
                                     <div className="flex items-center justify-between mb-4">
@@ -64,6 +69,16 @@ export default function WorkflowSteps() {
                                         <div className={`${step.iconBg} ${step.textColor} p-2 rounded-lg`}>
                                             <step.icon className="h-5 w-5" />
                                         </div>
+                                    </div>
+
+                                    {/* Illustration */}
+                                    <div className="relative w-full h-32 mb-4 rounded-lg overflow-hidden bg-black/20 border border-white/5 group-hover:border-white/10 transition-colors">
+                                        <Image
+                                            src={step.image}
+                                            alt={step.title}
+                                            fill
+                                            className="object-cover object-center opacity-90 group-hover:opacity-100 transition-opacity"
+                                        />
                                     </div>
 
                                     <h4 className={`text-base font-bold ${step.textColor} mb-2`}>
@@ -96,3 +111,4 @@ export default function WorkflowSteps() {
         </div>
     )
 }
+
