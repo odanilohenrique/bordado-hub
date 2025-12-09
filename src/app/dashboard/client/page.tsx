@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import JobCard from '@/components/JobCard'
 import Link from 'next/link'
-import { Plus } from 'lucide-react'
+import { Plus, Inbox } from 'lucide-react'
 
 export default function ClientDashboard() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -39,28 +39,52 @@ export default function ClientDashboard() {
 
     return (
         <div>
-            <div className="flex justify-between items-center mb-6">
-                <h1 className="text-2xl font-bold text-gray-900">Meus Pedidos</h1>
+            {/* Header */}
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8">
+                <div>
+                    <h2 className="text-2xl font-bold text-[#F3F4F6]">Meus Pedidos</h2>
+                    <p className="text-gray-400 text-sm mt-1">
+                        Acompanhe o status dos seus pedidos de matrizes
+                    </p>
+                </div>
                 <Link
                     href="/jobs/new"
-                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700"
+                    className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-[#FFAE00] text-[#0F1115] rounded-lg hover:bg-[#D97706] transition-all font-bold shadow-lg shadow-[#FFAE00]/20"
                 >
-                    <Plus className="-ml-1 mr-2 h-5 w-5" />
+                    <Plus className="w-5 h-5" />
                     Novo Pedido
                 </Link>
             </div>
 
+            {/* Content */}
             {loading ? (
-                <p>Carregando...</p>
+                <div className="flex items-center justify-center py-20">
+                    <div className="text-center">
+                        <div className="w-16 h-16 border-4 border-[#FFAE00]/30 border-t-[#FFAE00] rounded-full animate-spin mx-auto mb-4" />
+                        <p className="text-gray-400">Carregando pedidos...</p>
+                    </div>
+                </div>
             ) : jobs.length === 0 ? (
-                <div className="text-center py-12 bg-white rounded-lg shadow">
-                    <p className="text-gray-500">Você ainda não tem nenhum pedido.</p>
-                    <Link href="/jobs/new" className="text-indigo-600 hover:text-indigo-500 mt-2 inline-block">
-                        Criar meu primeiro pedido
+                <div className="bg-[#1A1D23] border border-[#FFAE00]/20 rounded-xl p-12 text-center">
+                    <div className="bg-[#FFAE00]/10 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <Inbox className="w-10 h-10 text-[#FFAE00]" />
+                    </div>
+                    <h3 className="text-xl font-bold text-[#F3F4F6] mb-2">
+                        Nenhum pedido ainda
+                    </h3>
+                    <p className="text-gray-400 mb-6 max-w-md mx-auto">
+                        Você ainda não criou nenhum pedido de matriz. Comece agora e receba propostas de programadores profissionais!
+                    </p>
+                    <Link
+                        href="/jobs/new"
+                        className="inline-flex items-center gap-2 px-6 py-3 bg-[#FFAE00] text-[#0F1115] rounded-lg hover:bg-[#D97706] transition-all font-bold shadow-lg shadow-[#FFAE00]/20"
+                    >
+                        <Plus className="w-5 h-5" />
+                        Criar Primeiro Pedido
                     </Link>
                 </div>
             ) : (
-                <div className="space-y-4">
+                <div className="grid gap-4">
                     {jobs.map((job) => (
                         <JobCard key={job.id} job={job} />
                     ))}

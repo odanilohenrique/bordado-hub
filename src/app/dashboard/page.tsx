@@ -9,44 +9,56 @@ export default function Dashboard() {
     const [activeTab, setActiveTab] = useState<'client' | 'creator'>('client')
 
     return (
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            {/* Context Switcher */}
-            <div className="flex justify-center mb-8">
-                <div className="bg-gray-100 p-1 rounded-xl inline-flex shadow-inner">
-                    <button
-                        onClick={() => setActiveTab('client')}
-                        className={`flex items-center px-6 py-3 rounded-lg text-sm font-medium transition-all duration-200 ${activeTab === 'client'
-                                ? 'bg-white text-indigo-600 shadow-sm ring-1 ring-black/5'
-                                : 'text-gray-500 hover:text-gray-700'
-                            }`}
-                    >
-                        <ShoppingBag className="w-4 h-4 mr-2" />
-                        Modo Cliente (Comprar)
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('creator')}
-                        className={`flex items-center px-6 py-3 rounded-lg text-sm font-medium transition-all duration-200 ${activeTab === 'creator'
-                                ? 'bg-white text-violet-600 shadow-sm ring-1 ring-black/5'
-                                : 'text-gray-500 hover:text-gray-700'
-                            }`}
-                    >
-                        <Palette className="w-4 h-4 mr-2" />
-                        Modo Criador (Vender)
-                    </button>
+        <div className="min-h-screen bg-[#0F1115] py-8">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                {/* Header */}
+                <div className="text-center mb-8">
+                    <h1 className="text-4xl font-extrabold text-[#F3F4F6] mb-2">
+                        Dashboard
+                    </h1>
+                    <p className="text-gray-400">
+                        Gerencie seus pedidos e encontre oportunidades
+                    </p>
                 </div>
-            </div>
 
-            {/* Content Area */}
-            <div className="transition-opacity duration-300 ease-in-out">
-                {activeTab === 'client' ? (
-                    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                        <ClientDashboard />
+                {/* Tab Switcher */}
+                <div className="flex justify-center mb-10">
+                    <div className="bg-[#1A1D23] p-1.5 rounded-xl inline-flex border border-[#FFAE00]/20 shadow-lg">
+                        <button
+                            onClick={() => setActiveTab('client')}
+                            className={`flex items-center gap-2 px-6 py-3 rounded-lg text-sm font-medium transition-all duration-300 ${activeTab === 'client'
+                                    ? 'bg-[#FFAE00] text-[#0F1115] shadow-lg shadow-[#FFAE00]/30'
+                                    : 'text-gray-400 hover:text-[#F3F4F6]'
+                                }`}
+                        >
+                            <ShoppingBag className="w-4 h-4" />
+                            Modo Cliente
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('creator')}
+                            className={`flex items-center gap-2 px-6 py-3 rounded-lg text-sm font-medium transition-all duration-300 ${activeTab === 'creator'
+                                    ? 'bg-[#FFAE00] text-[#0F1115] shadow-lg shadow-[#FFAE00]/30'
+                                    : 'text-gray-400 hover:text-[#F3F4F6]'
+                                }`}
+                        >
+                            <Palette className="w-4 h-4" />
+                            Modo Programador
+                        </button>
                     </div>
-                ) : (
-                    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                        <CreatorDashboard />
-                    </div>
-                )}
+                </div>
+
+                {/* Content Area */}
+                <div className="transition-opacity duration-300 ease-in-out">
+                    {activeTab === 'client' ? (
+                        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                            <ClientDashboard />
+                        </div>
+                    ) : (
+                        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                            <CreatorDashboard />
+                        </div>
+                    )}
+                </div>
             </div>
         </div>
     )
