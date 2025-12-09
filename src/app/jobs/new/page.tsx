@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { useRouter } from 'next/navigation'
 import { Upload, FileText, Image as ImageIcon, Zap, Clock, Package } from 'lucide-react'
@@ -16,7 +16,33 @@ export default function NewJob() {
     const [imagePreviews, setImagePreviews] = useState<string[]>([])
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
+    const [checkingAuth, setCheckingAuth] = useState(true)
     const router = useRouter()
+
+    // Check authentication on page load
+    useEffect(() => {
+        const checkAuth = async () => {
+            const { data: { user } } = await supabase.auth.getUser()
+            if (!user) {
+                router.push('/login?redirect=/jobs/new')
+            } else {
+                setCheckingAuth(false)
+            }
+        }
+        checkAuth()
+    }, [router])
+
+    // Show loading while checking auth
+    if (checkingAuth) {
+        return (
+            <div className="min-h-screen bg-[#0F1115] flex items-center justify-center">
+                <div className="text-center">
+                    <div className="w-16 h-16 border-4 border-[#FFAE00]/30 border-t-[#FFAE00] rounded-full animate-spin mx-auto mb-4" />
+                    <p className="text-gray-400">Verificando autenticação...</p>
+                </div>
+            </div>
+        )
+    }
 
     const availableFormats = ['.PES', '.DST', '.JEF', '.XXX', '.EXP']
 
@@ -234,8 +260,8 @@ export default function NewJob() {
                                 <label
                                     key={fmt}
                                     className={`flex items-center justify-center gap-2 px-4 py-3 rounded-lg border-2 cursor-pointer transition-all ${formats.includes(fmt)
-                                            ? 'bg-[#FFAE00]/10 border-[#FFAE00] text-[#FFAE00]'
-                                            : 'bg-[#0F1115] border-[#FFAE00]/20 text-gray-400 hover:border-[#FFAE00]/50'
+                                        ? 'bg-[#FFAE00]/10 border-[#FFAE00] text-[#FFAE00]'
+                                        : 'bg-[#0F1115] border-[#FFAE00]/20 text-gray-400 hover:border-[#FFAE00]/50'
                                         }`}
                                 >
                                     <input
