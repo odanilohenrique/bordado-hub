@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { Mail, Lock, LogIn, AlertCircle } from 'lucide-react'
 
 export default function Login() {
     const [email, setEmail] = useState('')
@@ -23,7 +24,7 @@ export default function Login() {
         })
 
         if (error) {
-            setError(error.message)
+            setError('Email ou senha incorretos.')
             setLoading(false)
         } else {
             router.push('/dashboard')
@@ -32,76 +33,102 @@ export default function Login() {
     }
 
     return (
-        <div className="min-h-full flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+        <div className="min-h-screen bg-[#0F1115] flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8">
             <div className="sm:mx-auto sm:w-full sm:max-w-md">
-                <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-                    Entrar na sua conta
-                </h2>
-            </div>
+                {/* Header */}
+                <div className="text-center mb-8">
+                    <div className="flex justify-center mb-4">
+                        <div className="bg-[#FFAE00]/10 p-4 rounded-full border border-[#FFAE00]/20">
+                            <LogIn className="w-12 h-12 text-[#FFAE00]" />
+                        </div>
+                    </div>
+                    <h2 className="text-4xl font-extrabold text-[#F3F4F6] mb-2">
+                        Bem-vindo de volta
+                    </h2>
+                    <p className="text-gray-400 text-lg">
+                        Acesse sua conta para continuar
+                    </p>
+                </div>
 
-            <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-                <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+                {/* Form Card */}
+                <div className="bg-[#1A1D23] py-8 px-6 shadow-2xl rounded-xl border border-[#FFAE00]/20 sm:px-10">
                     <form className="space-y-6" onSubmit={handleLogin}>
-                        <div>
-                            <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                        {/* Email */}
+                        <div className="space-y-2">
+                            <label htmlFor="email" className="flex items-center gap-2 text-sm font-medium text-gray-300">
+                                <Mail className="w-4 h-4 text-[#FFAE00]" />
                                 Email
                             </label>
-                            <div className="mt-1">
-                                <input
-                                    id="email"
-                                    name="email"
-                                    type="email"
-                                    autoComplete="email"
-                                    required
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
-                                    className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                                />
-                            </div>
+                            <input
+                                id="email"
+                                name="email"
+                                type="email"
+                                autoComplete="email"
+                                required
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                placeholder="seu@email.com"
+                                className="w-full bg-[#0F1115] border border-[#FFAE00]/20 rounded-lg px-4 py-3 text-[#F3F4F6] placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#FFAE00] focus:border-transparent transition-all"
+                            />
                         </div>
 
-                        <div>
-                            <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+                        {/* Password */}
+                        <div className="space-y-2">
+                            <label htmlFor="password" className="flex items-center gap-2 text-sm font-medium text-gray-300">
+                                <Lock className="w-4 h-4 text-[#FFAE00]" />
                                 Senha
                             </label>
-                            <div className="mt-1">
-                                <input
-                                    id="password"
-                                    name="password"
-                                    type="password"
-                                    autoComplete="current-password"
-                                    required
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
-                                    className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                                />
-                            </div>
+                            <input
+                                id="password"
+                                name="password"
+                                type="password"
+                                autoComplete="current-password"
+                                required
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                placeholder="Sua senha"
+                                className="w-full bg-[#0F1115] border border-[#FFAE00]/20 rounded-lg px-4 py-3 text-[#F3F4F6] placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#FFAE00] focus:border-transparent transition-all"
+                            />
                         </div>
 
+                        {/* Error Message */}
                         {error && (
-                            <div className="text-red-600 text-sm">
-                                {error}
+                            <div className="bg-red-500/10 border border-red-500/50 text-red-400 px-4 py-3 rounded-lg flex items-start gap-3">
+                                <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                                <p className="text-sm">{error}</p>
                             </div>
                         )}
 
-                        <div>
+                        {/* Submit Button */}
+                        <div className="pt-2">
                             <button
                                 type="submit"
                                 disabled={loading}
-                                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+                                className="w-full flex items-center justify-center gap-2 py-4 px-4 bg-[#FFAE00] text-[#0F1115] rounded-lg hover:bg-[#D97706] transition-all font-bold shadow-lg shadow-[#FFAE00]/20 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
-                                {loading ? 'Entrando...' : 'Entrar'}
+                                {loading ? (
+                                    <>
+                                        <div className="w-5 h-5 border-2 border-[#0F1115]/30 border-t-[#0F1115] rounded-full animate-spin" />
+                                        Entrando...
+                                    </>
+                                ) : (
+                                    <>
+                                        <LogIn className="w-5 h-5" />
+                                        Entrar
+                                    </>
+                                )}
                             </button>
                         </div>
                     </form>
 
-                    <div className="mt-6">
+                    {/* Divider and Register Link */}
+                    <div className="mt-8">
                         <div className="relative">
                             <div className="absolute inset-0 flex items-center">
-                                <div className="w-full border-t border-gray-300" />
+                                <div className="w-full border-t border-[#FFAE00]/10" />
                             </div>
                             <div className="relative flex justify-center text-sm">
-                                <span className="px-2 bg-white text-gray-500">
+                                <span className="px-4 bg-[#1A1D23] text-gray-400">
                                     Não tem uma conta?
                                 </span>
                             </div>
@@ -110,9 +137,9 @@ export default function Login() {
                         <div className="mt-6">
                             <Link
                                 href="/register"
-                                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100"
+                                className="w-full flex items-center justify-center gap-2 py-3 px-4 border border-[#FFAE00]/20 rounded-lg text-[#F3F4F6] hover:bg-[#FFAE00]/10 hover:border-[#FFAE00]/50 transition-all font-medium"
                             >
-                                Cadastre-se
+                                Criar Conta Grátis
                             </Link>
                         </div>
                     </div>
