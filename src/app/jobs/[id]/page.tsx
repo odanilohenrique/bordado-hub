@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
-import { useRouter }
-import 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { formatDate } from '@/lib/helpers'
 import Link from 'next/link'
 import { ArrowLeft, Clock, Calendar, MessageSquare, AlertCircle, CheckCircle, Package, Zap } from 'lucide-react'
