@@ -52,6 +52,7 @@ export default function Register() {
                     userId: authData.user.id,
                     name,
                     email,
+                    role: 'criador' // Explicitly set role for this page
                 }),
             })
 

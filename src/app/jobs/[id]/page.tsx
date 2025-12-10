@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
-import { useRouter } from 'next/navigation'
+import { useRouter }
+import 'next/navigation'
 import { formatDate } from '@/lib/helpers'
 import Link from 'next/link'
 import { ArrowLeft, Clock, Calendar, MessageSquare, AlertCircle, CheckCircle, Package, Zap } from 'lucide-react'
@@ -10,6 +11,7 @@ import { useParams } from 'next/navigation'
 
 interface Job {
     id: string
+    cliente_id: string // Added for owner check
     title: string
     description: string
     image_urls: string[]
@@ -48,7 +50,6 @@ function JobDetailClient({ jobId }: { jobId: string }) {
     const [proposals, setProposals] = useState<Proposal[]>([])
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [currentUser, setCurrentUser] = useState<any>(null)
-    const [isCreator, setIsCreator] = useState(false)
     const [loading, setLoading] = useState(true)
 
     // Proposal form
@@ -75,9 +76,6 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                 .eq('supabase_user_id', user.id)
                 .single()
 
-            setCurrentUser(profile)
-            setIsCreator(profile?.role === 'criador')
-
             // Get job details
             const { data: jobData } = await supabase
                 .from('jobs')
@@ -86,6 +84,7 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                 .single()
 
             setJob(jobData)
+            setCurrentUser(profile)
 
             // Get proposals
             const { data: proposalsData } = await supabase
@@ -165,6 +164,9 @@ function JobDetailClient({ jobId }: { jobId: string }) {
         </div>
     )
 
+    const isOwner = currentUser?.id === job.cliente_id
+    const showProposalForm = !isOwner && job.status === 'aberto'
+
     const urgencyLabels: Record<string, string> = {
         'urgente': '🔥 Urgente',
         'prazo_curto': '⏱️ Prazo Curto',
@@ -189,9 +191,16 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                             {/* Header */}
                             <div className="flex justify-between items-start mb-6">
                                 <h1 className="text-3xl font-bold text-[#F3F4F6]">{job.title}</h1>
-                                <span className="px-3 py-1 bg-[#FFAE00]/10 text-[#FFAE00] border border-[#FFAE00]/20 rounded-full text-sm font-medium">
-                                    {job.status.replace('_', ' ').toUpperCase()}
-                                </span>
+                                <div className="flex flex-col items-end gap-2">
+                                    <span className="px-3 py-1 bg-[#FFAE00]/10 text-[#FFAE00] border border-[#FFAE00]/20 rounded-full text-sm font-medium">
+                                        {job.status.replace('_', ' ').toUpperCase()}
+                                    </span>
+                                    {isOwner && (
+                                        <span className="text-xs text-gray-500 bg-black/30 px-2 py-1 rounded">
+                                            Você é o dono deste pedido
+                                        </span>
+                                    )}
+                                </div>
                             </div>
 
                             {/* Tags */}
@@ -263,7 +272,7 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                 Propostas
                             </h2>
 
-                            {isCreator && job.status === 'aberto' && (
+                            {showProposalForm && (
                                 <div className="mb-8 bg-[#0F1115] p-4 rounded-lg border border-gray-800">
                                     <h3 className="text-sm font-medium text-[#F3F4F6] mb-4">Enviar Nova Proposta</h3>
                                     <form onSubmit={handleSubmitProposal} className="space-y-4">
@@ -344,7 +353,7 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                                 {proposal.message}
                                             </p>
 
-                                            {!isCreator && proposal.status === 'pendente' && (
+                                            {isOwner && proposal.status === 'pendente' && (
                                                 <button
                                                     onClick={() => handleAcceptProposal(proposal.id)}
                                                     className="w-full bg-green-600 hover:bg-green-700 text-white text-sm font-medium py-2 rounded-lg transition-colors flex items-center justify-center gap-2"

@@ -24,9 +24,11 @@ export default function Login() {
         })
 
         if (error) {
-            setError('Email ou senha incorretos.')
+            console.error('Login error:', error)
+            setError(error.message) // Show actual error
             setLoading(false)
         } else {
+            console.log('Login successful')
             router.push('/dashboard')
             router.refresh()
         }

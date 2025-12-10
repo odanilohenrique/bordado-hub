@@ -22,10 +22,13 @@ export default function NewJob() {
     // Check authentication on page load
     useEffect(() => {
         const checkAuth = async () => {
-            const { data: { user } } = await supabase.auth.getUser()
-            if (!user) {
+            // Use getSession for faster client-side check that reads from local storage
+            const { data: { session } } = await supabase.auth.getSession()
+            if (!session) {
+                console.log('No session found, redirecting to login')
                 router.push('/login?redirect=/jobs/new')
             } else {
+                console.log('Session found:', session.user.email)
                 setCheckingAuth(false)
             }
         }
