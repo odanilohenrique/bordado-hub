@@ -29,6 +29,8 @@ interface Proposal {
     status: string
     created_at: string
     criador_id: string
+    counter_amount?: number
+    counter_message?: string
 }
 
 export default function JobDetail() {
@@ -56,6 +58,11 @@ function JobDetailClient({ jobId }: { jobId: string }) {
     const [message, setMessage] = useState('')
     const [deadline, setDeadline] = useState('')
     const [submitting, setSubmitting] = useState(false)
+
+    // Negotiation state
+    const [negotiatingProposalId, setNegotiatingProposalId] = useState<string | null>(null)
+    const [counterAmount, setCounterAmount] = useState('')
+    const [counterMessage, setCounterMessage] = useState('')
 
     const router = useRouter()
 
@@ -127,6 +134,116 @@ function JobDetailClient({ jobId }: { jobId: string }) {
             setSubmitting(false)
         }
     }
+
+    const handleNegotiate = (proposalId: string) => {
+        setNegotiatingProposalId(proposalId)
+        setCounterAmount('')
+        setCounterMessage('')
+    }
+
+    const submitCounterProposal = async () => {
+        if (!negotiatingProposalId) return
+
+        try {
+            const { error } = await supabase
+                .from('proposals')
+                .update({
+                    status: 'contraproposta',
+                    counter_amount: parseFloat(counterAmount),
+                    counter_message: counterMessage
+                })
+                .eq('id', negotiatingProposalId)
+
+            if (error) throw error
+
+            alert('Contraproposta enviada!')
+            setNegotiatingProposalId(null)
+            router.refresh()
+            window.location.reload()
+        } catch (err: any) {
+            alert('Erro: ' + err.message)
+        }
+    }
+
+    const handleProgrammerResponse = async (proposalId: string, action: 'accept_counter' | 'reject_counter', proposal: Proposal) => {
+        try {
+            if (action === 'accept_counter') {
+                // Programmer accepts the counter -> Update amount to counter_amount, clear negotiation
+                const { error } = await supabase
+                    .from('proposals')
+                    .update({
+                        amount: proposal.counter_amount,
+                        message: `${proposal.message}\n\n[Atualização: Aceitei sua oferta de R$ ${proposal.counter_amount}]`,
+                        status: 'pendente', // Back to pending so Client can pay
+                        counter_amount: null,
+                        counter_message: null
+                    })
+                    .eq('id', proposalId)
+
+                if (error) throw error
+                alert('Oferta aceita! O valor foi atualizado. Aguarde o pagamento do cliente.')
+            } else {
+                // Reject/Resend -> Just clear the counter status? Or explicit reject?
+                // For now, let's say reject clears the counter status but keeps original proposal
+                const { error } = await supabase
+                    .from('proposals')
+                    .update({
+                        status: 'pendente',
+                        counter_amount: null,
+                        counter_message: null
+                    })
+                    .eq('id', proposalId)
+
+                if (error) throw error
+                alert('Contraproposta recusada. Sua proposta original continua ativa.')
+            }
+            router.refresh()
+            window.location.reload()
+        } catch (err: any) {
+            alert('Erro: ' + err.message)
+        }
+    }
+
+    // ... handleAcceptProposal ...
+
+    // ... renders ...
+
+    // UI inside proposals.map:
+    /*
+        {isOwner && proposal.status === 'pendente' && (
+            <div className="flex gap-2">
+                <button Accept...>Aceitar & Pagar</button>
+                <button onClick={() => handleNegotiate(proposal.id)} ...>Negociar</button>
+            </div>
+        )}
+        
+        {!isOwner && proposal.status === 'contraproposta' && (
+             <div className="bg-[#FFAE00]/10 border border-[#FFAE00] p-3 rounded mt-2">
+                <p className="text-[#FFAE00] font-bold">O cliente ofertou: R$ {proposal.counter_amount}</p>
+                <p className="text-sm text-gray-300">"{proposal.counter_message}"</p>
+                <div className="flex gap-2 mt-2">
+                     <button onClick={() => handleProgrammerResponse(proposal.id, 'accept_counter', proposal)} ...>Aceitar Oferta</button>
+                     <button onClick={() => handleProgrammerResponse(proposal.id, 'reject_counter', proposal)} ...>Recusar</button>
+                </div>
+             </div>
+        )}
+
+        {negotiatingProposalId === proposal.id && (
+             // Render Modal/Form Overlay
+             <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+                  <div className="bg-[#1A1D23] border border-[#FFAE00] p-6 rounded-xl w-full max-w-md">
+                       <h3 className="text-xl font-bold text-white mb-4">Enviar Contraproposta</h3>
+                       <input type="number" ... SetCounterAmount />
+                       <textarea ... SetCounterMessage />
+                       <div className="flex justify-end gap-2 mt-4">
+                           <button onClick={() => setNegotiatingProposalId(null)} className="text-gray-400 hover:text-white">Cancelar</button>
+                           <button onClick={submitCounterProposal} className="bg-[#FFAE00] text-black px-4 py-2 rounded">Enviar</button>
+                       </div>
+                  </div>
+             </div>
+        )}
+    */
+
 
     const handleAcceptProposal = async (proposalId: string) => {
         if (!confirm('Aceitar esta proposta e ir para o pagamento?')) return
@@ -353,13 +470,50 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                             </p>
 
                                             {isOwner && proposal.status === 'pendente' && (
-                                                <button
-                                                    onClick={() => handleAcceptProposal(proposal.id)}
-                                                    className="w-full bg-green-600 hover:bg-green-700 text-white text-sm font-medium py-2 rounded-lg transition-colors flex items-center justify-center gap-2"
-                                                >
-                                                    <Zap className="w-4 h-4" />
-                                                    Aceitar & Pagar
-                                                </button>
+                                                <div className="flex gap-2">
+                                                    <button
+                                                        onClick={() => handleAcceptProposal(proposal.id)}
+                                                        className="flex-1 bg-green-600 hover:bg-green-700 text-white text-sm font-medium py-2 rounded-lg transition-colors flex items-center justify-center gap-2"
+                                                    >
+                                                        <Zap className="w-4 h-4" />
+                                                        Aceitar & Pagar
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleNegotiate(proposal.id)}
+                                                        className="flex-1 bg-[#FFAE00]/10 hover:bg-[#FFAE00]/20 text-[#FFAE00] border border-[#FFAE00]/30 text-sm font-medium py-2 rounded-lg transition-colors flex items-center justify-center gap-2"
+                                                    >
+                                                        <MessageSquare className="w-4 h-4" />
+                                                        Negociar
+                                                    </button>
+                                                </div>
+                                            )}
+
+                                            {!isOwner && proposal.status === 'contraproposta' && (
+                                                <div className="bg-[#FFAE00]/10 border border-[#FFAE00] p-4 rounded-lg mt-4">
+                                                    <p className="text-[#FFAE00] font-bold mb-1 flex items-center gap-2">
+                                                        <AlertCircle className="w-4 h-4" />
+                                                        O cliente enviou uma contraproposta:
+                                                    </p>
+                                                    <p className="text-xl text-white font-bold mb-2">R$ {proposal.counter_amount}</p>
+                                                    {proposal.counter_message && (
+                                                        <p className="text-sm text-gray-300 italic mb-4">"{proposal.counter_message}"</p>
+                                                    )}
+
+                                                    <div className="flex gap-2">
+                                                        <button
+                                                            onClick={() => handleProgrammerResponse(proposal.id, 'accept_counter', proposal)}
+                                                            className="flex-1 bg-[#FFAE00] hover:bg-[#D97706] text-black text-sm font-bold py-2 rounded-lg transition-colors"
+                                                        >
+                                                            Aceitar Oferta
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleProgrammerResponse(proposal.id, 'reject_counter', proposal)}
+                                                            className="flex-1 bg-transparent border border-gray-600 hover:bg-gray-800 text-gray-300 text-sm font-medium py-2 rounded-lg transition-colors"
+                                                        >
+                                                            Recusar
+                                                        </button>
+                                                    </div>
+                                                </div>
                                             )}
                                         </div>
                                     ))
@@ -368,6 +522,54 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                         </div>
                     </div>
                 </div>
+
+                {negotiatingProposalId && (
+                    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+                        <div className="bg-[#1A1D23] border border-[#FFAE00] p-6 rounded-xl w-full max-w-md shadow-2xl relative animate-in fade-in zoom-in duration-200">
+                            <h3 className="text-xl font-bold text-[#F3F4F6] mb-4">Enviar Contraproposta</h3>
+
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-xs text-gray-400 mb-1">Novo Valor (R$)</label>
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        autoFocus
+                                        value={counterAmount}
+                                        onChange={e => setCounterAmount(e.target.value)}
+                                        className="w-full bg-[#0F1115] border border-gray-700 rounded-lg px-3 py-2 text-[#F3F4F6] focus:ring-1 focus:ring-[#FFAE00] outline-none"
+                                        placeholder="0.00"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs text-gray-400 mb-1">Mensagem (Opcional)</label>
+                                    <textarea
+                                        rows={3}
+                                        value={counterMessage}
+                                        onChange={e => setCounterMessage(e.target.value)}
+                                        className="w-full bg-[#0F1115] border border-gray-700 rounded-lg px-3 py-2 text-[#F3F4F6] focus:ring-1 focus:ring-[#FFAE00] outline-none text-sm"
+                                        placeholder="Ex: Posso fechar por este valor se..."
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="flex justify-end gap-2 mt-6">
+                                <button
+                                    onClick={() => setNegotiatingProposalId(null)}
+                                    className="px-4 py-2 text-gray-400 hover:text-white transition-colors"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    onClick={submitCounterProposal}
+                                    className="bg-[#FFAE00] hover:bg-[#D97706] text-[#0F1115] font-bold px-4 py-2 rounded-lg transition-colors"
+                                >
+                                    Enviar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     )
