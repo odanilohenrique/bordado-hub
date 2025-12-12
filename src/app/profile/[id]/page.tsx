@@ -41,10 +41,11 @@ export default function ProfilePage() {
             if (!id) return
 
             // Load profile from public table
+            // We check both 'id' (public ID) and 'supabase_user_id' (auth ID) to handle different navigation sources
             const { data, error } = await supabase
                 .from('users')
                 .select('*')
-                .eq('id', id)
+                .or(`id.eq.${id},supabase_user_id.eq.${id}`)
                 .single()
 
             if (error) {

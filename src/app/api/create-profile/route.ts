@@ -23,14 +23,14 @@ export async function POST(request: Request) {
 
         const { data, error } = await supabase
             .from('users')
-            .insert([
+            .upsert([
                 {
                     supabase_user_id: userId,
                     name,
                     email,
                     role: role || 'cliente'
                 },
-            ])
+            ], { onConflict: 'supabase_user_id' })
             .select()
 
         if (error) {
