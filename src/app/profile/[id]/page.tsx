@@ -73,12 +73,13 @@ export default function ProfilePage() {
                 })
             })
 
-            if (!res.ok) throw new Error('Falha ao criar perfil')
+            const data = await res.json()
+            if (!res.ok) throw new Error(data.error || 'Falha ao criar perfil')
 
             window.location.reload()
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (error: any) {
-            alert(error.message)
+            alert('Falha: ' + error.message)
         } finally {
             setIsCreating(false)
         }
@@ -109,8 +110,8 @@ export default function ProfilePage() {
                             <button
                                 onClick={() => setNewRole('cliente')}
                                 className={`p-3 rounded-lg border text-sm font-bold transition-all ${newRole === 'cliente'
-                                        ? 'bg-[#FFAE00] text-black border-[#FFAE00]'
-                                        : 'bg-[#0F1115] text-gray-400 border-gray-700 hover:border-[#FFAE00]'
+                                    ? 'bg-[#FFAE00] text-black border-[#FFAE00]'
+                                    : 'bg-[#0F1115] text-gray-400 border-gray-700 hover:border-[#FFAE00]'
                                     }`}
                             >
                                 Contratar Matrizes
@@ -118,8 +119,8 @@ export default function ProfilePage() {
                             <button
                                 onClick={() => setNewRole('criador')}
                                 className={`p-3 rounded-lg border text-sm font-bold transition-all ${newRole === 'criador'
-                                        ? 'bg-[#FFAE00] text-black border-[#FFAE00]'
-                                        : 'bg-[#0F1115] text-gray-400 border-gray-700 hover:border-[#FFAE00]'
+                                    ? 'bg-[#FFAE00] text-black border-[#FFAE00]'
+                                    : 'bg-[#0F1115] text-gray-400 border-gray-700 hover:border-[#FFAE00]'
                                     }`}
                             >
                                 Trabalhar como Programador

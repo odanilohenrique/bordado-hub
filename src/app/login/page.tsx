@@ -64,6 +64,10 @@ export default function Login() {
                                         ? window.location.origin
                                         : ''
 
+                                    console.log('Login Initiated. Origin detected:', origin)
+                                    // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
+                                    console.log('Redirecting to:', `${origin}/auth/callback`)
+
                                     await supabase.auth.signInWithOAuth({
                                         provider: 'google',
                                         options: {
