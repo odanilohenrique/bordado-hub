@@ -1,11 +1,10 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
 import { User, Star, MapPin, Calendar, Award, Package, Code } from 'lucide-react'
 import Image from 'next/image'
-import Link from 'next/link'
 
 interface UserProfile {
     id: string
@@ -27,10 +26,21 @@ export default function ProfilePage() {
     const [profile, setProfile] = useState<UserProfile | null>(null)
     const [loading, setLoading] = useState(true)
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const [currentUser, setCurrentUser] = useState<any>(null)
+    const [isCreating, setIsCreating] = useState(false)
+    const [newRole, setNewRole] = useState('cliente')
+    const router = useRouter()
+
     useEffect(() => {
-        async function loadProfile() {
+        async function loadData() {
+            // Get current auth user
+            const { data: { user } } = await supabase.auth.getUser()
+            setCurrentUser(user)
+
             if (!id) return
 
+            // Load profile from public table
             const { data, error } = await supabase
                 .from('users')
                 .select('*')
@@ -38,20 +48,93 @@ export default function ProfilePage() {
                 .single()
 
             if (error) {
-                console.error('Error loading profile:', error)
+                // If error is 406/Not Found, profile is null. 
             } else {
                 setProfile(data)
             }
             setLoading(false)
         }
 
-        loadProfile()
+        loadData()
     }, [id])
+
+    const handleCreateProfile = async () => {
+        if (!currentUser) return
+        setIsCreating(true)
+        try {
+            const res = await fetch('/api/create-profile', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    userId: currentUser.id,
+                    name: currentUser.user_metadata?.full_name || currentUser.email?.split('@')[0] || 'Usuário',
+                    email: currentUser.email,
+                    role: newRole
+                })
+            })
+
+            if (!res.ok) throw new Error('Falha ao criar perfil')
+
+            window.location.reload()
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } catch (error: any) {
+            alert(error.message)
+        } finally {
+            setIsCreating(false)
+        }
+    }
 
     if (loading) {
         return (
             <div className="min-h-screen bg-[#0F1115] flex items-center justify-center">
                 <div className="w-16 h-16 border-4 border-[#FFAE00]/30 border-t-[#FFAE00] rounded-full animate-spin" />
+            </div>
+        )
+    }
+
+    // If profile missing BUT it's the current user -> Show Create Form
+    if (!profile && currentUser && currentUser.id === id) {
+        return (
+            <div className="min-h-screen bg-[#0F1115] flex items-center justify-center p-4">
+                <div className="bg-[#1A1D23] border border-[#FFAE00] p-8 rounded-xl max-w-md w-full text-center">
+                    <div className="w-16 h-16 bg-[#FFAE00]/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <User className="w-8 h-8 text-[#FFAE00]" />
+                    </div>
+                    <h2 className="text-2xl font-bold text-white mb-2">Complete seu Perfil</h2>
+                    <p className="text-gray-400 mb-6">Parece que você ainda não finalizou seu cadastro.</p>
+
+                    <div className="text-left mb-6">
+                        <label className="block text-sm font-medium text-gray-300 mb-2">Eu quero:</label>
+                        <div className="grid grid-cols-2 gap-4">
+                            <button
+                                onClick={() => setNewRole('cliente')}
+                                className={`p-3 rounded-lg border text-sm font-bold transition-all ${newRole === 'cliente'
+                                        ? 'bg-[#FFAE00] text-black border-[#FFAE00]'
+                                        : 'bg-[#0F1115] text-gray-400 border-gray-700 hover:border-[#FFAE00]'
+                                    }`}
+                            >
+                                Contratar Matrizes
+                            </button>
+                            <button
+                                onClick={() => setNewRole('criador')}
+                                className={`p-3 rounded-lg border text-sm font-bold transition-all ${newRole === 'criador'
+                                        ? 'bg-[#FFAE00] text-black border-[#FFAE00]'
+                                        : 'bg-[#0F1115] text-gray-400 border-gray-700 hover:border-[#FFAE00]'
+                                    }`}
+                            >
+                                Trabalhar como Programador
+                            </button>
+                        </div>
+                    </div>
+
+                    <button
+                        onClick={handleCreateProfile}
+                        disabled={isCreating}
+                        className="w-full bg-[#FFAE00] text-black font-bold py-3 rounded-lg hover:bg-[#D97706] transition-colors disabled:opacity-50"
+                    >
+                        {isCreating ? 'Finalizando...' : 'Concluir Cadastro'}
+                    </button>
+                </div>
             </div>
         )
     }
