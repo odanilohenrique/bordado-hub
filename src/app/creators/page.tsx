@@ -25,41 +25,84 @@ export default function CreatorsPage() {
     }, [])
 
     return (
-        <div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-6">Criadores de Matrizes</h1>
-
-            {loading ? (
-                <p>Carregando...</p>
-            ) : creators.length === 0 ? (
-                <div className="text-center py-12 bg-white rounded-lg shadow">
-                    <p className="text-gray-500">Nenhum criador cadastrado ainda.</p>
+        <div className="min-h-screen bg-[#0F1115] py-12 px-4 sm:px-6 lg:px-8">
+            <div className="max-w-7xl mx-auto">
+                <div className="text-center mb-12">
+                    <h1 className="text-4xl font-extrabold text-[#F3F4F6] mb-4">
+                        Encontrar Programadores
+                    </h1>
+                    <p className="text-gray-400 max-w-2xl mx-auto">
+                        Explore nosso time de elite. Profissionais qualificados prontos para transformar sua arte em matrizes perfeitas.
+                    </p>
                 </div>
-            ) : (
-                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                    {creators.map((creator) => (
-                        <div key={creator.id} className="bg-white overflow-hidden shadow rounded-lg">
-                            <div className="px-4 py-5 sm:p-6">
-                                <h3 className="text-lg leading-6 font-medium text-gray-900">
-                                    {creator.name}
-                                </h3>
-                                {creator.bio && (
-                                    <p className="mt-2 text-sm text-gray-500 line-clamp-3">
-                                        {creator.bio}
-                                    </p>
-                                )}
-                                <div className="mt-4">
-                                    <Link
-                                        href={`/creators/${creator.id}`}
-                                        className="text-indigo-600 hover:text-indigo-900 text-sm font-medium"
-                                    >
-                                        Ver Perfil &rarr;
-                                    </Link>
+
+                {loading ? (
+                    <div className="flex justify-center py-20">
+                        <div className="w-12 h-12 border-4 border-[#FFAE00]/30 border-t-[#FFAE00] rounded-full animate-spin" />
+                    </div>
+                ) : creators.length === 0 ? (
+                    <div className="text-center py-20 bg-[#1A1D23] rounded-xl border border-[#FFAE00]/10">
+                        <p className="text-gray-400 text-lg">Nenhum programador encontrado.</p>
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
+                        {creators.map((creator) => (
+                            <div key={creator.id} className="group bg-[#1A1D23] border border-[#FFAE00]/10 rounded-xl overflow-hidden hover:border-[#FFAE00]/50 hover:shadow-lg hover:shadow-[#FFAE00]/10 transition-all duration-300 transform hover:-translate-y-1">
+                                <div className="p-6">
+                                    <div className="flex items-center gap-4 mb-4">
+                                        <div className="relative">
+                                            {/* Avatar Area */}
+                                            {creator.avatar_url ? (
+                                                <img
+                                                    src={creator.avatar_url}
+                                                    alt={creator.name}
+                                                    className="w-16 h-16 rounded-full object-cover border-2 border-[#FFAE00]/20 group-hover:border-[#FFAE00]"
+                                                />
+                                            ) : (
+                                                <div className="w-16 h-16 rounded-full bg-[#0F1115] border-2 border-[#FFAE00]/20 flex items-center justify-center text-[#FFAE00] font-bold text-xl group-hover:border-[#FFAE00]">
+                                                    {creator.name?.charAt(0) || 'P'}
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div>
+                                            <h3 className="text-xl font-bold text-[#F3F4F6] group-hover:text-[#FFAE00] transition-colors">
+                                                {creator.name}
+                                            </h3>
+                                            <p className="text-sm text-gray-500">Programador</p>
+                                        </div>
+                                    </div>
+
+                                    {creator.bio && (
+                                        <p className="text-gray-400 text-sm mb-6 line-clamp-3">
+                                            {creator.bio}
+                                        </p>
+                                    )}
+
+                                    <div className="pt-4 border-t border-gray-800 flex items-center justify-between">
+                                        <div className="flex gap-4 text-sm text-gray-500">
+                                            <div className="flex items-center gap-1">
+                                                <span className="text-[#FFAE00]">★</span>
+                                                <span className="text-[#F3F4F6] font-medium">{creator.rating?.toFixed(1) || '5.0'}</span>
+                                            </div>
+                                            <div className="flex items-center gap-1">
+                                                <span>📦</span>
+                                                <span>{creator.matrices_count || 0} matrizes</span>
+                                            </div>
+                                        </div>
+                                        <Link
+                                            href={`/profile/${creator.id}`}
+                                            className="text-[#FFAE00] text-sm font-bold hover:underline flex items-center gap-1"
+                                        >
+                                            Ver Perfil
+                                            <span className="text-lg">→</span>
+                                        </Link>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    ))}
-                </div>
-            )}
+                        ))}
+                    </div>
+                )}
+            </div>
         </div>
     )
 }

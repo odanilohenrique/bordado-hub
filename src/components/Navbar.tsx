@@ -39,10 +39,10 @@ export default function Navbar() {
                                 Como Funciona
                             </Link>
                             <Link href="/creators" className="border-transparent text-gray-300 hover:border-[#FFAE00] hover:text-[#FFAE00] inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-colors">
-                                Encontrar Criadores
+                                Encontrar Programadores
                             </Link>
                             <Link href="/jobs" className="border-transparent text-gray-300 hover:border-[#FFAE00] hover:text-[#FFAE00] inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-colors">
-                                Encontrar Jobs
+                                Mural de Pedidos
                             </Link>
                         </div>
                     </div>
@@ -90,10 +90,10 @@ export default function Navbar() {
                 <div className="sm:hidden">
                     <div className="pt-2 pb-3 space-y-1">
                         <Link href="/jobs" className="bg-indigo-50 border-indigo-500 text-indigo-700 block pl-3 pr-4 py-2 border-l-4 text-base font-medium">
-                            Jobs
+                            Mural de Pedidos
                         </Link>
                         <Link href="/creators" className="border-transparent text-gray-500 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-700 block pl-3 pr-4 py-2 border-l-4 text-base font-medium">
-                            Criadores
+                            Programadores
                         </Link>
                     </div>
                     <div className="pt-4 pb-4 border-t border-gray-200">

@@ -5,8 +5,9 @@ import { supabase } from '@/lib/supabaseClient'
 import { useRouter } from 'next/navigation'
 import { formatDate } from '@/lib/helpers'
 import Link from 'next/link'
-import { ArrowLeft, Clock, Calendar, MessageSquare, AlertCircle, CheckCircle, Package, Zap } from 'lucide-react'
+import { ArrowLeft, Clock, Calendar, MessageSquare, AlertCircle, CheckCircle, Package, Zap, User, X } from 'lucide-react'
 import { useParams } from 'next/navigation'
+import NegotiationChat from '@/components/NegotiationChat'
 
 interface Job {
     id: string
@@ -92,13 +93,28 @@ function JobDetailClient({ jobId }: { jobId: string }) {
             setJob(jobData)
             setCurrentUser(profile)
 
-            // Get proposals
-            const { data: proposalsData } = await supabase
+            // Get proposals with creator details
+            const { data: proposalsData, error: proposalsError } = await supabase
                 .from('proposals')
-                .select('*')
+                .select(`
+                    *,
+                    users:criador_id (
+                        id,
+                        name,
+                        avatar_url,
+                        rating
+                    )
+                `)
                 .eq('job_id', jobId)
                 .order('created_at', { ascending: false })
 
+            if (proposalsError) {
+                console.error('Error loading proposals:', proposalsError)
+            }
+
+            // Transform data to include user details in the proposal object structure if needed
+            // or just use the nested data directly in render.
+            // Check if users is an array or single object (it's a foreign key, so single object usually, but depends on relationship definition)
             setProposals(proposalsData || [])
             setLoading(false)
         }
@@ -136,9 +152,11 @@ function JobDetailClient({ jobId }: { jobId: string }) {
     }
 
     const handleNegotiate = (proposalId: string) => {
-        setNegotiatingProposalId(proposalId)
-        setCounterAmount('')
-        setCounterMessage('')
+        if (negotiatingProposalId === proposalId) {
+            setNegotiatingProposalId(null) // Toggle off
+        } else {
+            setNegotiatingProposalId(proposalId)
+        }
     }
 
     const submitCounterProposal = async () => {
@@ -214,34 +232,39 @@ function JobDetailClient({ jobId }: { jobId: string }) {
             <div className="flex gap-2">
                 <button Accept...>Aceitar & Pagar</button>
                 <button onClick={() => handleNegotiate(proposal.id)} ...>Negociar</button>
-            </div>
-        )}
-        
-        {!isOwner && proposal.status === 'contraproposta' && (
-             <div className="bg-[#FFAE00]/10 border border-[#FFAE00] p-3 rounded mt-2">
-                <p className="text-[#FFAE00] font-bold">O cliente ofertou: R$ {proposal.counter_amount}</p>
-                <p className="text-sm text-gray-300">"{proposal.counter_message}"</p>
-                <div className="flex gap-2 mt-2">
-                     <button onClick={() => handleProgrammerResponse(proposal.id, 'accept_counter', proposal)} ...>Aceitar Oferta</button>
-                     <button onClick={() => handleProgrammerResponse(proposal.id, 'reject_counter', proposal)} ...>Recusar</button>
-                </div>
-             </div>
-        )}
+            </div >
+        )
+}
 
-        {negotiatingProposalId === proposal.id && (
-             // Render Modal/Form Overlay
-             <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-                  <div className="bg-[#1A1D23] border border-[#FFAE00] p-6 rounded-xl w-full max-w-md">
-                       <h3 className="text-xl font-bold text-white mb-4">Enviar Contraproposta</h3>
-                       <input type="number" ... SetCounterAmount />
-                       <textarea ... SetCounterMessage />
-                       <div className="flex justify-end gap-2 mt-4">
-                           <button onClick={() => setNegotiatingProposalId(null)} className="text-gray-400 hover:text-white">Cancelar</button>
-                           <button onClick={submitCounterProposal} className="bg-[#FFAE00] text-black px-4 py-2 rounded">Enviar</button>
-                       </div>
-                  </div>
-             </div>
-        )}
+{
+    !isOwner && proposal.status === 'contraproposta' && (
+        <div className="bg-[#FFAE00]/10 border border-[#FFAE00] p-3 rounded mt-2">
+            <p className="text-[#FFAE00] font-bold">O cliente ofertou: R$ {proposal.counter_amount}</p>
+            <p className="text-sm text-gray-300">"{proposal.counter_message}"</p>
+            <div className="flex gap-2 mt-2">
+                <button onClick={() => handleProgrammerResponse(proposal.id, 'accept_counter', proposal)} ...>Aceitar Oferta</button>
+            <button onClick={() => handleProgrammerResponse(proposal.id, 'reject_counter', proposal)} ...>Recusar</button>
+                </div >
+             </div >
+        )
+}
+
+{
+    negotiatingProposalId === proposal.id && (
+        // Render Modal/Form Overlay
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+            <div className="bg-[#1A1D23] border border-[#FFAE00] p-6 rounded-xl w-full max-w-md">
+                <h3 className="text-xl font-bold text-white mb-4">Enviar Contraproposta</h3>
+                <input type="number" ... SetCounterAmount />
+                <textarea ... SetCounterMessage />
+                <div className="flex justify-end gap-2 mt-4">
+                    <button onClick={() => setNegotiatingProposalId(null)} className="text-gray-400 hover:text-white">Cancelar</button>
+                    <button onClick={submitCounterProposal} className="bg-[#FFAE00] text-black px-4 py-2 rounded">Enviar</button>
+                </div>
+            </div>
+        </div>
+    )
+}
     */
 
 
@@ -450,14 +473,44 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                     proposals.map(proposal => (
                                         <div key={proposal.id} className="bg-[#0F1115] rounded-lg border border-gray-800 p-4 hover:border-[#FFAE00]/30 transition-colors">
                                             <div className="flex justify-between items-start mb-3">
-                                                <div>
-                                                    <p className="text-xl font-bold text-[#FFAE00]">
-                                                        R$ {proposal.amount.toFixed(2)}
-                                                    </p>
-                                                    <p className="text-xs text-gray-400">
-                                                        Prazo: {proposal.deadline_text}
-                                                    </p>
+                                                <div className="flex gap-3">
+                                                    {/* Avatar / Link */}
+                                                    <Link href={`/profile/${proposal.criador_id}`} className="flex-shrink-0">
+                                                        <div className="w-10 h-10 rounded-full bg-gray-700 border border-gray-600 overflow-hidden relative group">
+                                                            {/* @ts-ignore */}
+                                                            {proposal.users?.avatar_url ? (
+                                                                // @ts-ignore
+                                                                <img src={proposal.users.avatar_url} alt="" className="w-full h-full object-cover" />
+                                                            ) : (
+                                                                <div className="w-full h-full flex items-center justify-center text-gray-400">
+                                                                    <User className="w-5 h-5" />
+                                                                </div>
+                                                            )}
+                                                            <div className="absolute inset-0 bg-[#FFAE00]/0 group-hover:bg-[#FFAE00]/20 transition-colors" />
+                                                        </div>
+                                                    </Link>
+
+                                                    <div>
+                                                        <Link href={`/profile/${proposal.criador_id}`} className="block hover:underline">
+                                                            {/* @ts-ignore */}
+                                                            <p className="text-sm font-bold text-gray-200 hover:text-[#FFAE00] transition-colors">
+                                                                {/* @ts-ignore */}
+                                                                {proposal.users?.name || 'Usuário'}
+                                                            </p>
+                                                        </Link>
+
+                                                        <div className="flex gap-4 mt-0.5">
+                                                            <p className="text-xl font-bold text-[#FFAE00]">
+                                                                R$ {proposal.amount.toFixed(2)}
+                                                            </p>
+                                                            <p className="text-xs text-gray-400 flex items-center">
+                                                                <Clock className="w-3 h-3 mr-1" />
+                                                                {proposal.deadline_text}
+                                                            </p>
+                                                        </div>
+                                                    </div>
                                                 </div>
+
                                                 {proposal.status === 'aceita' && (
                                                     <span className="px-2 py-0.5 bg-green-500/20 text-green-400 text-xs rounded-full border border-green-500/30 flex items-center gap-1">
                                                         <CheckCircle className="w-3 h-3" /> Aceita
@@ -469,6 +522,7 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                                 {proposal.message}
                                             </p>
 
+                                            {/* Actions for Owner (Client) */}
                                             {isOwner && proposal.status === 'pendente' && (
                                                 <div className="flex gap-2">
                                                     <button
@@ -480,11 +534,42 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                                     </button>
                                                     <button
                                                         onClick={() => handleNegotiate(proposal.id)}
-                                                        className="flex-1 bg-[#FFAE00]/10 hover:bg-[#FFAE00]/20 text-[#FFAE00] border border-[#FFAE00]/30 text-sm font-medium py-2 rounded-lg transition-colors flex items-center justify-center gap-2"
+                                                        className={`flex-1 border text-sm font-medium py-2 rounded-lg transition-colors flex items-center justify-center gap-2 ${negotiatingProposalId === proposal.id
+                                                                ? 'bg-[#FFAE00] text-black border-[#FFAE00]'
+                                                                : 'bg-[#FFAE00]/10 text-[#FFAE00] border-[#FFAE00]/30 hover:bg-[#FFAE00]/20'
+                                                            }`}
                                                     >
                                                         <MessageSquare className="w-4 h-4" />
-                                                        Negociar
+                                                        {negotiatingProposalId === proposal.id ? 'Fechar Chat' : 'Chat / Negociar'}
                                                     </button>
+                                                </div>
+                                            )}
+
+                                            {/* Actions for Creator (Programmer) - If it's my proposal */}
+                                            {!isOwner && currentUser?.id === proposal.criador_id && (
+                                                <div className="mt-2">
+                                                    <button
+                                                        onClick={() => handleNegotiate(proposal.id)}
+                                                        className={`w-full border text-sm font-medium py-2 rounded-lg transition-colors flex items-center justify-center gap-2 ${negotiatingProposalId === proposal.id
+                                                                ? 'bg-[#FFAE00] text-black border-[#FFAE00]'
+                                                                : 'bg-[#0F1115] text-gray-400 border-gray-700 hover:text-[#FFAE00] hover:border-[#FFAE00]'
+                                                            }`}
+                                                    >
+                                                        <MessageSquare className="w-4 h-4" />
+                                                        {negotiatingProposalId === proposal.id ? 'Fechar Chat' : 'Abrir Chat de Negociação'}
+                                                    </button>
+                                                </div>
+                                            )}
+
+                                            {/* Chat Component Area */}
+                                            {negotiatingProposalId === proposal.id && (
+                                                <div className="mt-4 border-t border-gray-800 pt-4 animate-in fade-in slide-in-from-top-2 duration-200">
+                                                    <NegotiationChat
+                                                        proposalId={proposal.id}
+                                                        currentUserId={currentUser?.id}
+                                                        isOwner={isOwner}
+                                                        senderName={currentUser?.name || 'Usuário'}
+                                                    />
                                                 </div>
                                             )}
 
@@ -522,54 +607,6 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                         </div>
                     </div>
                 </div>
-
-                {negotiatingProposalId && (
-                    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-                        <div className="bg-[#1A1D23] border border-[#FFAE00] p-6 rounded-xl w-full max-w-md shadow-2xl relative animate-in fade-in zoom-in duration-200">
-                            <h3 className="text-xl font-bold text-[#F3F4F6] mb-4">Enviar Contraproposta</h3>
-
-                            <div className="space-y-4">
-                                <div>
-                                    <label className="block text-xs text-gray-400 mb-1">Novo Valor (R$)</label>
-                                    <input
-                                        type="number"
-                                        step="0.01"
-                                        autoFocus
-                                        value={counterAmount}
-                                        onChange={e => setCounterAmount(e.target.value)}
-                                        className="w-full bg-[#0F1115] border border-gray-700 rounded-lg px-3 py-2 text-[#F3F4F6] focus:ring-1 focus:ring-[#FFAE00] outline-none"
-                                        placeholder="0.00"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-xs text-gray-400 mb-1">Mensagem (Opcional)</label>
-                                    <textarea
-                                        rows={3}
-                                        value={counterMessage}
-                                        onChange={e => setCounterMessage(e.target.value)}
-                                        className="w-full bg-[#0F1115] border border-gray-700 rounded-lg px-3 py-2 text-[#F3F4F6] focus:ring-1 focus:ring-[#FFAE00] outline-none text-sm"
-                                        placeholder="Ex: Posso fechar por este valor se..."
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="flex justify-end gap-2 mt-6">
-                                <button
-                                    onClick={() => setNegotiatingProposalId(null)}
-                                    className="px-4 py-2 text-gray-400 hover:text-white transition-colors"
-                                >
-                                    Cancelar
-                                </button>
-                                <button
-                                    onClick={submitCounterProposal}
-                                    className="bg-[#FFAE00] hover:bg-[#D97706] text-[#0F1115] font-bold px-4 py-2 rounded-lg transition-colors"
-                                >
-                                    Enviar
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                )}
             </div>
         </div>
     )

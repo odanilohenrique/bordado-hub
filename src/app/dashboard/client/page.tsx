@@ -25,7 +25,7 @@ export default function ClientDashboard() {
             if (profile) {
                 const { data: jobsData } = await supabase
                     .from('jobs')
-                    .select('*')
+                    .select('*, proposals(status)')
                     .eq('cliente_id', profile.id)
                     .order('created_at', { ascending: false })
 
@@ -86,7 +86,11 @@ export default function ClientDashboard() {
             ) : (
                 <div className="grid gap-4">
                     {jobs.map((job) => (
-                        <JobCard key={job.id} job={job} />
+                        <JobCard
+                            key={job.id}
+                            job={job}
+                            hasNegotiation={job.proposals?.some((p: any) => p.status === 'contraproposta')}
+                        />
                     ))}
                 </div>
             )}

@@ -27,7 +27,7 @@ export default function Footer() {
                         <ul className="mt-4 space-y-4">
                             <li><Link href="/register" className="text-base text-gray-300 hover:text-[#FFAE00] transition-colors">Cadastre-se</Link></li>
                             <li><Link href="/jobs/new" className="text-base text-gray-300 hover:text-[#FFAE00] transition-colors">Publicar Projeto</Link></li>
-                            <li><Link href="#" className="text-base text-gray-300 hover:text-[#FFAE00] transition-colors">Encontrar Criadores</Link></li>
+                            <li><Link href="#" className="text-base text-gray-300 hover:text-[#FFAE00] transition-colors">Encontrar Programadores</Link></li>
                         </ul>
                     </div>
 

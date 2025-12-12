@@ -55,6 +55,40 @@ export default function Login() {
                 {/* Form Card */}
                 <div className="bg-[#1A1D23] py-8 px-6 shadow-2xl rounded-xl border border-[#FFAE00]/20 sm:px-10">
                     <form className="space-y-6" onSubmit={handleLogin}>
+                        {/* Google Login */}
+                        <div>
+                            <button
+                                type="button"
+                                onClick={async () => {
+                                    await supabase.auth.signInWithOAuth({
+                                        provider: 'google',
+                                        options: {
+                                            redirectTo: `${window.location.origin}/auth/callback`,
+                                        },
+                                    })
+                                }}
+                                className="w-full flex justify-center items-center gap-3 px-4 py-3 border border-gray-700 rounded-lg shadow-sm bg-[#0F1115] text-sm font-medium text-gray-300 hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#FFAE00] transition-all"
+                            >
+                                <svg className="h-5 w-5" aria-hidden="true" viewBox="0 0 24 24">
+                                    <path d="M12.0003 20.45c4.65 0 8.45-3.8 8.45-8.45 0-0.65-0.1-1.3-0.2-1.9H12.0003v3.75h4.75c-0.2 1.1-0.8 2-1.6 2.65v2.2h2.6c1.5-1.4 2.4-3.5 2.4-5.95 0-0.6-0.1-1.2-0.2-1.8H12.0003V8.85h8.9c0.1 0.6 0.1 1.2 0.1 1.8 0 5.3-3.6 9.8-8.9 9.8-5.4 0-9.8-4.4-9.8-9.8s4.4-9.8 9.8-9.8c2.65 0 5.05 0.95 6.9 2.5l-2.65 2.65c-1.15-1.1-2.7-1.75-4.25-1.75-3.55 0-6.4 2.85-6.4 6.4s2.85 6.4 6.4 6.4z" fill="currentColor" />
+                                    <path d="M23.49 12.275c0-0.9-.1-1.75-.25-2.55H12v4.75h6.5c-.3 1.5-1.15 2.75-2.45 3.6v3h3.95c2.3-2.15 3.65-5.3 3.65-8.8z" fill="#4285F4" />
+                                    <path d="M12 24c3.25 0 6-1.1 8-2.95l-3.95-3c-1.1.75-2.55 1.2-4.05 1.2-3.1 0-5.75-2.1-6.7-4.95H1.3v3.1C3.35 21.5 7.35 24 12 24z" fill="#34A853" />
+                                    <path d="M5.3 14.3c-.25-.75-.4-1.55-.4-2.3s.15-1.55.4-2.3V6.6H1.3C.45 8.3 0 10.1 0 12s.45 3.7 1.3 5.4l4-3.1z" fill="#FBBC05" />
+                                    <path d="M12 4.8c1.75 0 3.35.6 4.65 1.85l3.5-3.5C17.95 1.05 15.2 0 12 0 7.35 0 3.35 2.5 1.3 6.6l4 3.1c.95-2.85 3.6-4.9 6.7-4.9z" fill="#EA4335" />
+                                </svg>
+                                Entrar com Google
+                            </button>
+                        </div>
+
+                        <div className="relative">
+                            <div className="absolute inset-0 flex items-center">
+                                <div className="w-full border-t border-gray-800"></div>
+                            </div>
+                            <div className="relative flex justify-center text-sm">
+                                <span className="px-2 bg-[#1A1D23] text-gray-400">Ou continue com email</span>
+                            </div>
+                        </div>
+
                         {/* Email */}
                         <div className="space-y-2">
                             <label htmlFor="email" className="flex items-center gap-2 text-sm font-medium text-gray-300">
