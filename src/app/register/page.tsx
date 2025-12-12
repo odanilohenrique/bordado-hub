@@ -98,10 +98,18 @@ export default function Register() {
                             <button
                                 type="button"
                                 onClick={async () => {
+                                    const origin = typeof window !== 'undefined' && window.location.origin
+                                        ? window.location.origin
+                                        : ''
+
                                     await supabase.auth.signInWithOAuth({
                                         provider: 'google',
                                         options: {
-                                            redirectTo: `${window.location.origin}/auth/callback`,
+                                            redirectTo: `${origin}/auth/callback`,
+                                            queryParams: {
+                                                access_type: 'offline',
+                                                prompt: 'consent',
+                                            },
                                         },
                                     })
                                 }}

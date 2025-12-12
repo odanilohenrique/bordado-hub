@@ -49,6 +49,9 @@ export default function Navbar() {
                     <div className="hidden sm:ml-6 sm:flex sm:items-center">
                         {user ? (
                             <div className="flex items-center space-x-4">
+                                <Link href={`/profile/${user.id}`} className="text-gray-300 hover:text-[#FFAE00] px-3 py-2 rounded-md text-sm font-medium transition-colors">
+                                    Meu Perfil
+                                </Link>
                                 <Link href="/dashboard" className="text-gray-300 hover:text-[#FFAE00] px-3 py-2 rounded-md text-sm font-medium transition-colors">
                                     Dashboard
                                 </Link>
