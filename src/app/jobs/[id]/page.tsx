@@ -178,6 +178,7 @@ function JobDetailClient({ jobId }: { jobId: string }) {
             setNegotiatingProposalId(null)
             router.refresh()
             window.location.reload()
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (err: any) {
             alert('Erro: ' + err.message)
         }
@@ -217,6 +218,7 @@ function JobDetailClient({ jobId }: { jobId: string }) {
             }
             router.refresh()
             window.location.reload()
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (err: any) {
             alert('Erro: ' + err.message)
         }
@@ -477,10 +479,15 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                                     {/* Avatar / Link */}
                                                     <Link href={`/profile/${proposal.criador_id}`} className="flex-shrink-0">
                                                         <div className="w-10 h-10 rounded-full bg-gray-700 border border-gray-600 overflow-hidden relative group">
-                                                            {/* @ts-ignore */}
-                                                            {proposal.users?.avatar_url ? (
-                                                                // @ts-ignore
-                                                                <img src={proposal.users.avatar_url} alt="" className="w-full h-full object-cover" />
+                                                            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                                                            {(proposal as any).users?.avatar_url ? (
+                                                                // eslint-disable-next-line @next/next/no-img-element
+                                                                <img
+                                                                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                                                    src={(proposal as any).users.avatar_url}
+                                                                    alt=""
+                                                                    className="w-full h-full object-cover"
+                                                                />
                                                             ) : (
                                                                 <div className="w-full h-full flex items-center justify-center text-gray-400">
                                                                     <User className="w-5 h-5" />
@@ -492,10 +499,9 @@ function JobDetailClient({ jobId }: { jobId: string }) {
 
                                                     <div>
                                                         <Link href={`/profile/${proposal.criador_id}`} className="block hover:underline">
-                                                            {/* @ts-ignore */}
                                                             <p className="text-sm font-bold text-gray-200 hover:text-[#FFAE00] transition-colors">
-                                                                {/* @ts-ignore */}
-                                                                {proposal.users?.name || 'Usuário'}
+                                                                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                                                                {(proposal as any).users?.name || 'Usuário'}
                                                             </p>
                                                         </Link>
 
@@ -535,8 +541,8 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                                     <button
                                                         onClick={() => handleNegotiate(proposal.id)}
                                                         className={`flex-1 border text-sm font-medium py-2 rounded-lg transition-colors flex items-center justify-center gap-2 ${negotiatingProposalId === proposal.id
-                                                                ? 'bg-[#FFAE00] text-black border-[#FFAE00]'
-                                                                : 'bg-[#FFAE00]/10 text-[#FFAE00] border-[#FFAE00]/30 hover:bg-[#FFAE00]/20'
+                                                            ? 'bg-[#FFAE00] text-black border-[#FFAE00]'
+                                                            : 'bg-[#FFAE00]/10 text-[#FFAE00] border-[#FFAE00]/30 hover:bg-[#FFAE00]/20'
                                                             }`}
                                                     >
                                                         <MessageSquare className="w-4 h-4" />
@@ -551,8 +557,8 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                                     <button
                                                         onClick={() => handleNegotiate(proposal.id)}
                                                         className={`w-full border text-sm font-medium py-2 rounded-lg transition-colors flex items-center justify-center gap-2 ${negotiatingProposalId === proposal.id
-                                                                ? 'bg-[#FFAE00] text-black border-[#FFAE00]'
-                                                                : 'bg-[#0F1115] text-gray-400 border-gray-700 hover:text-[#FFAE00] hover:border-[#FFAE00]'
+                                                            ? 'bg-[#FFAE00] text-black border-[#FFAE00]'
+                                                            : 'bg-[#0F1115] text-gray-400 border-gray-700 hover:text-[#FFAE00] hover:border-[#FFAE00]'
                                                             }`}
                                                     >
                                                         <MessageSquare className="w-4 h-4" />
@@ -581,7 +587,7 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                                     </p>
                                                     <p className="text-xl text-white font-bold mb-2">R$ {proposal.counter_amount}</p>
                                                     {proposal.counter_message && (
-                                                        <p className="text-sm text-gray-300 italic mb-4">"{proposal.counter_message}"</p>
+                                                        <p className="text-sm text-gray-300 italic mb-4">&quot;{proposal.counter_message}&quot;</p>
                                                     )}
 
                                                     <div className="flex gap-2">

@@ -14,6 +14,8 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Ignore reference model:
     "modelo_referencia/**",
+    // Ignore scripts:
+    "scripts/**",
   ]),
 ]);
 

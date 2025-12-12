@@ -89,7 +89,7 @@ export default function ClientDashboard() {
                         <JobCard
                             key={job.id}
                             job={job}
-                            hasNegotiation={job.proposals?.some((p: any) => p.status === 'contraproposta')}
+                            hasNegotiation={job.proposals?.some((p: { status: string }) => p.status === 'contraproposta')}
                         />
                     ))}
                 </div>
