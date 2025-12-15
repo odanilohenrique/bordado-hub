@@ -71,6 +71,7 @@ function AuthCallbackContent() {
         // 3. MANUAL CODE EXCHANGE (PKCE)
         // Only run if code exists and haven't processed yet
         if (code && !processedCode.current) {
+            // eslint-disable-next-line react-hooks/exhaustive-deps
             processedCode.current = true
             setStatus('Trocando código de acesso...')
 
