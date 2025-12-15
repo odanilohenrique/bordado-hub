@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
-import { Save, X, Upload } from 'lucide-react'
+import { Save, X, Upload, Trash2, ImageIcon } from 'lucide-react'
 import Image from 'next/image'
 
 // Comprehensive list of embroidery software
@@ -33,6 +33,7 @@ interface UserProfile {
     skills?: string[]
     formats?: string[]
     experience_level?: string
+    portfolio_urls?: string[]
 }
 
 interface ProfileEditorProps {
@@ -49,10 +50,12 @@ export default function ProfileEditor({ profile, onCancel, onSave }: ProfileEdit
         role: profile.role || 'cliente',
         skills: profile.skills || [],
         formats: profile.formats || [],
-        experience_level: profile.experience_level || 'Iniciante'
+        experience_level: profile.experience_level || 'Iniciante',
+        portfolio_urls: profile.portfolio_urls || []
     })
     const [saving, setSaving] = useState(false)
     const [uploading, setUploading] = useState(false)
+    const [portfolioUploading, setPortfolioUploading] = useState(false)
 
     // Handlers
     const handleChange = (field: string, value: string) => {
@@ -102,6 +105,53 @@ export default function ProfileEditor({ profile, onCancel, onSave }: ProfileEdit
         })
     }
 
+    // Portfolio Upload Handler
+    const handlePortfolioUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        try {
+            if (!event.target.files || event.target.files.length === 0) return
+            if (formData.portfolio_urls.length >= 12) {
+                alert('Máximo de 12 imagens no portfólio')
+                return
+            }
+
+            const file = event.target.files[0]
+            const fileExt = file.name.split('.').pop()
+            const fileName = `${profile.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${fileExt}`
+
+            setPortfolioUploading(true)
+
+            // Upload to Supabase
+            const { error: uploadError } = await supabase.storage
+                .from('portfolio')
+                .upload(fileName, file)
+
+            if (uploadError) throw uploadError
+
+            // Get Public URL
+            const { data } = supabase.storage.from('portfolio').getPublicUrl(fileName)
+
+            // Add to portfolio_urls
+            setFormData(prev => ({
+                ...prev,
+                portfolio_urls: [...prev.portfolio_urls, data.publicUrl]
+            }))
+
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } catch (error: any) {
+            alert('Erro ao fazer upload: ' + error.message)
+        } finally {
+            setPortfolioUploading(false)
+        }
+    }
+
+    // Remove Portfolio Image
+    const removePortfolioImage = (urlToRemove: string) => {
+        setFormData(prev => ({
+            ...prev,
+            portfolio_urls: prev.portfolio_urls.filter(url => url !== urlToRemove)
+        }))
+    }
+
     const handleSave = async () => {
         setSaving(true)
         try {
@@ -113,7 +163,8 @@ export default function ProfileEditor({ profile, onCancel, onSave }: ProfileEdit
                     bio: formData.bio,
                     skills: formData.skills,
                     formats: formData.formats,
-                    experience_level: formData.experience_level
+                    experience_level: formData.experience_level,
+                    portfolio_urls: formData.portfolio_urls
                 })
                 .eq('id', profile.id)
 
@@ -242,6 +293,57 @@ export default function ProfileEditor({ profile, onCancel, onSave }: ProfileEdit
                             </div>
                         </div>
                     </>
+                )}
+
+                {/* Portfolio Section (Programmer Only) */}
+                {profile.role === 'criador' && (
+                    <div className="border-t border-gray-800 pt-6">
+                        <label className="block text-sm font-medium text-gray-400 mb-3">
+                            Portfólio ({formData.portfolio_urls.length}/12 imagens)
+                        </label>
+                        <p className="text-xs text-gray-500 mb-4">
+                            Mostre seus melhores trabalhos para atrair mais clientes.
+                        </p>
+
+                        {/* Image Grid */}
+                        <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 mb-4">
+                            {formData.portfolio_urls.map((url, index) => (
+                                <div key={index} className="relative aspect-square rounded-lg overflow-hidden group border border-gray-700">
+                                    <Image
+                                        src={url}
+                                        alt={`Portfolio ${index + 1}`}
+                                        fill
+                                        className="object-cover"
+                                        unoptimized
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => removePortfolioImage(url)}
+                                        className="absolute inset-0 bg-red-600/80 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                                    >
+                                        <Trash2 className="w-6 h-6 text-white" />
+                                    </button>
+                                </div>
+                            ))}
+
+                            {/* Add Button */}
+                            {formData.portfolio_urls.length < 12 && (
+                                <label className="aspect-square rounded-lg border-2 border-dashed border-gray-600 hover:border-[#FFAE00] cursor-pointer flex flex-col items-center justify-center gap-2 transition-colors bg-[#0F1115]">
+                                    <ImageIcon className="w-6 h-6 text-gray-500" />
+                                    <span className="text-xs text-gray-500">
+                                        {portfolioUploading ? 'Enviando...' : 'Adicionar'}
+                                    </span>
+                                    <input
+                                        type="file"
+                                        className="hidden"
+                                        accept="image/*"
+                                        onChange={handlePortfolioUpload}
+                                        disabled={portfolioUploading}
+                                    />
+                                </label>
+                            )}
+                        </div>
+                    </div>
                 )}
 
                 {/* Action Buttons */}
