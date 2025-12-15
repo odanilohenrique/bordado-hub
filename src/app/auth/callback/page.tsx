@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, Suspense } from 'react'
+import { useEffect, Suspense, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
 
@@ -10,8 +10,12 @@ function AuthCallbackContent() {
     const code = searchParams.get('code')
     const next = searchParams.get('next') ?? '/dashboard'
 
+    const processedCode = useRef('')
+
     useEffect(() => {
-        if (code) {
+        if (code && processedCode.current !== code) {
+            processedCode.current = code
+
             const exchangeCodeForSession = async () => {
                 try {
                     const { data, error } = await supabase.auth.exchangeCodeForSession(code)
@@ -50,15 +54,23 @@ function AuthCallbackContent() {
                     router.refresh()
                 } catch (error) {
                     console.error('Error exchanging code for session:', error)
-                    router.push('/login?error=auth_callback_error')
+                    // If error is "AuthApiError: flow state not found" or similar, it means code is invalid/used.
+                    // We might already be logged in?
+                    // Try getting session?
+                    const { data: sessionData } = await supabase.auth.getSession()
+                    if (sessionData.session) {
+                        // We are logged in! Maybe the double-call caused error but session exists.
+                        // Just redirect to dashboard/profile as a fallback safety.
+                        router.push('/dashboard')
+                    } else {
+                        router.push('/login?error=auth_callback_error')
+                    }
                 }
             }
             exchangeCodeForSession()
-        } else {
-            // No code, redirect to login
-            //router.push('/login') 
-            // Better: Redirect to home? No, this page is specifically for callback.
-            router.push('/login')
+        } else if (!code) {
+            // No code path
+            // router.push('/login') 
         }
     }, [code, router, next])
 
