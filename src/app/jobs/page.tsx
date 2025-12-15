@@ -12,7 +12,12 @@ export default function JobsPage() {
 
     useEffect(() => {
         async function fetchJobs() {
-            let query = supabase.from('jobs').select('*').order('created_at', { ascending: false })
+            // Join with users table to get client info (name, avatar)
+            // Using 'users' referencing 'cliente_id'
+            let query = supabase
+                .from('jobs')
+                .select('*, users (name, avatar_url)')
+                .order('created_at', { ascending: false })
 
             if (filter !== 'all') {
                 query = query.eq('status', filter)
@@ -39,8 +44,8 @@ export default function JobsPage() {
                         <button
                             onClick={() => setFilter('all')}
                             className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${filter === 'all'
-                                    ? 'bg-[#FFAE00] text-[#0F1115] shadow-lg shadow-[#FFAE00]/20'
-                                    : 'text-gray-400 hover:text-white'
+                                ? 'bg-[#FFAE00] text-[#0F1115] shadow-lg shadow-[#FFAE00]/20'
+                                : 'text-gray-400 hover:text-white'
                                 }`}
                         >
                             Todos
@@ -48,8 +53,8 @@ export default function JobsPage() {
                         <button
                             onClick={() => setFilter('aberto')}
                             className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${filter === 'aberto'
-                                    ? 'bg-[#FFAE00] text-[#0F1115] shadow-lg shadow-[#FFAE00]/20'
-                                    : 'text-gray-400 hover:text-white'
+                                ? 'bg-[#FFAE00] text-[#0F1115] shadow-lg shadow-[#FFAE00]/20'
+                                : 'text-gray-400 hover:text-white'
                                 }`}
                         >
                             Abertos
@@ -57,8 +62,8 @@ export default function JobsPage() {
                         <button
                             onClick={() => setFilter('em_progresso')}
                             className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${filter === 'em_progresso'
-                                    ? 'bg-[#FFAE00] text-[#0F1115] shadow-lg shadow-[#FFAE00]/20'
-                                    : 'text-gray-400 hover:text-white'
+                                ? 'bg-[#FFAE00] text-[#0F1115] shadow-lg shadow-[#FFAE00]/20'
+                                : 'text-gray-400 hover:text-white'
                                 }`}
                         >
                             Em Progresso
