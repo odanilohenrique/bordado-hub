@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabaseClient'
-import { User, Star, MapPin, Calendar, Award, Package, Code, Edit2, Eye, FileJson, Layers } from 'lucide-react'
+import { User, Star, MapPin, Calendar, Award, Package, Code, Edit2, Eye, FileJson, Layers, Upload, Camera } from 'lucide-react'
 import Image from 'next/image'
 import ProfileEditor from '@/components/ProfileEditor'
 
@@ -39,6 +39,9 @@ export default function ProfilePage() {
 
     // Toggle for owner to preview their profile
     const [previewRole, setPreviewRole] = useState<string | null>(null)
+
+    // Quick avatar upload state
+    const [avatarUploading, setAvatarUploading] = useState(false)
 
     useEffect(() => {
         loadData()
@@ -95,6 +98,46 @@ export default function ProfilePage() {
 
     const toggleView = () => {
         setPreviewRole(prev => prev === 'criador' ? 'cliente' : 'criador')
+    }
+
+    // Quick avatar upload from profile page (without entering Edit mode)
+    const handleQuickAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        if (!event.target.files || event.target.files.length === 0 || !profile) return
+
+        const file = event.target.files[0]
+        const fileExt = file.name.split('.').pop()
+        const fileName = `${profile.id}-${Date.now()}.${fileExt}`
+        const filePath = `${fileName}`
+
+        setAvatarUploading(true)
+        try {
+            // Upload to Supabase Storage
+            const { error: uploadError } = await supabase.storage
+                .from('avatars')
+                .upload(filePath, file, { upsert: true })
+
+            if (uploadError) throw uploadError
+
+            // Get Public URL
+            const { data } = supabase.storage.from('avatars').getPublicUrl(filePath)
+
+            // Update DB
+            const { error: updateError } = await supabase
+                .from('users')
+                .update({ avatar_url: data.publicUrl })
+                .eq('id', profile.id)
+
+            if (updateError) throw updateError
+
+            // Reload data to show new avatar
+            await loadData()
+
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } catch (error: any) {
+            alert('Erro ao fazer upload: ' + error.message)
+        } finally {
+            setAvatarUploading(false)
+        }
     }
 
     if (loading) {
@@ -224,19 +267,35 @@ export default function ProfilePage() {
                             </div>
 
                             {/* Avatar */}
-                            <div className="w-32 h-32 mx-auto rounded-full border-4 border-[#0F1115] bg-[#2A2D35] flex items-center justify-center overflow-hidden mb-4 relative shadow-[0_0_20px_rgba(255,174,0,0.2)]">
+                            <div className="w-32 h-32 mx-auto rounded-full border-4 border-[#0F1115] bg-[#2A2D35] flex items-center justify-center overflow-hidden mb-2 relative shadow-[0_0_20px_rgba(255,174,0,0.2)]">
                                 {profile.avatar_url ? (
                                     <Image
                                         src={profile.avatar_url}
                                         alt={profile.name}
                                         width={128}
                                         height={128}
-                                        className="object-cover"
+                                        className="object-cover w-full h-full"
+                                        unoptimized
                                     />
                                 ) : (
                                     <User className="w-16 h-16 text-gray-500" />
                                 )}
                             </div>
+
+                            {/* Quick Edit Photo Button (Owner Only) */}
+                            {isOwner && (
+                                <label className="flex items-center justify-center gap-2 text-xs text-gray-400 hover:text-[#FFAE00] cursor-pointer transition-colors mb-4 group">
+                                    <Camera className="w-4 h-4" />
+                                    {avatarUploading ? 'Enviando...' : 'Alterar Foto'}
+                                    <input
+                                        type="file"
+                                        className="hidden"
+                                        accept="image/*"
+                                        onChange={handleQuickAvatarUpload}
+                                        disabled={avatarUploading}
+                                    />
+                                </label>
+                            )}
 
                             <h1 className="text-2xl font-bold text-[#F3F4F6] text-center mb-1">{profile.name}</h1>
 
@@ -275,11 +334,18 @@ export default function ProfilePage() {
                                 )}
                             </div>
 
-                            {!isOwner && (
+                            {/* Direct Request Button (Client visiting Programmer) */}
+                            {!isOwner && isProgrammerView && currentUser && (
                                 <div className="mt-8">
-                                    <button className="w-full bg-[#FFAE00] hover:bg-[#D97706] text-[#0F1115] font-bold py-2 rounded-lg transition-colors shadow-[0_0_15px_rgba(255,174,0,0.3)]">
-                                        Enviar Mensagem
-                                    </button>
+                                    <Link
+                                        href={`/jobs/new?programmer_id=${profile.id}`}
+                                        className="block w-full text-center bg-[#FFAE00] hover:bg-[#D97706] text-[#0F1115] font-bold py-3 rounded-lg transition-colors shadow-[0_0_15px_rgba(255,174,0,0.3)]"
+                                    >
+                                        Solicitar Matriz Direta
+                                    </Link>
+                                    <p className="text-xs text-gray-500 text-center mt-2">
+                                        Envie um pedido privado para este programador
+                                    </p>
                                 </div>
                             )}
 

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabaseClient'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Upload, FileText, Image as ImageIcon, Zap, Clock, Package } from 'lucide-react'
 import Link from 'next/link'
 
@@ -17,7 +17,10 @@ export default function NewJob() {
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [checkingAuth, setCheckingAuth] = useState(true)
+    const [directProgrammerId, setDirectProgrammerId] = useState<string | null>(null)
+    const [directProgrammerName, setDirectProgrammerName] = useState<string | null>(null)
     const router = useRouter()
+    const searchParams = useSearchParams()
 
     // Check authentication on page load
     useEffect(() => {
@@ -34,6 +37,24 @@ export default function NewJob() {
         }
         checkAuth()
     }, [router])
+
+    // Check for direct programmer ID from URL
+    useEffect(() => {
+        const programmerId = searchParams.get('programmer_id')
+        if (programmerId) {
+            setDirectProgrammerId(programmerId)
+            // Fetch programmer name for display
+            const fetchProgrammerName = async () => {
+                const { data } = await supabase
+                    .from('users')
+                    .select('name')
+                    .eq('id', programmerId)
+                    .single()
+                if (data) setDirectProgrammerName(data.name)
+            }
+            fetchProgrammerName()
+        }
+    }, [searchParams])
 
     // Show loading while checking auth
     if (checkingAuth) {
@@ -133,7 +154,9 @@ export default function NewJob() {
                         urgency,
                         formats,
                         image_urls: imageUrls,
-                        status: 'aberto'
+                        status: 'aberto',
+                        // Direct request to specific programmer (if set)
+                        ...(directProgrammerId && { direct_to_programmer_id: directProgrammerId })
                     }
                 ])
 
@@ -165,6 +188,18 @@ export default function NewJob() {
 
                 {/* Form Card */}
                 <form onSubmit={handleSubmit} className="space-y-6 bg-[#1A1D23] p-8 rounded-xl border border-[#FFAE00]/20 shadow-2xl">
+
+                    {/* Direct Request Banner */}
+                    {directProgrammerId && (
+                        <div className="bg-purple-900/20 border border-purple-500/30 p-4 rounded-lg mb-4">
+                            <p className="text-purple-300 text-sm font-medium">
+                                🎯 Solicitação Direta para: <span className="text-white font-bold">{directProgrammerName || 'Carregando...'}</span>
+                            </p>
+                            <p className="text-purple-400/70 text-xs mt-1">
+                                Este pedido será enviado apenas para este programador e não aparecerá no mural público.
+                            </p>
+                        </div>
+                    )}
 
                     {/* Title */}
                     <div className="space-y-2">
