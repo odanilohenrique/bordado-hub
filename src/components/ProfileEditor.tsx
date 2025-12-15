@@ -308,12 +308,12 @@ export default function ProfileEditor({ profile, onCancel, onSave }: ProfileEdit
                         {/* Image Grid */}
                         <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 mb-4">
                             {formData.portfolio_urls.map((url, index) => (
-                                <div key={index} className="relative aspect-square rounded-lg overflow-hidden group border border-gray-700">
+                                <div key={index} className="relative aspect-square rounded-lg overflow-hidden group border border-gray-700 bg-black">
                                     <Image
                                         src={url}
                                         alt={`Portfolio ${index + 1}`}
                                         fill
-                                        className="object-cover"
+                                        className="object-contain"
                                         unoptimized
                                     />
                                     <button

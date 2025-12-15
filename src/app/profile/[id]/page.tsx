@@ -140,6 +140,51 @@ export default function ProfilePage() {
         }
     }
 
+    // Quick portfolio upload from profile page (without entering Edit mode)
+    const handleQuickPortfolioUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        if (!event.target.files || event.target.files.length === 0 || !profile) return
+
+        const currentPortfolio = profile.portfolio_urls || []
+        if (currentPortfolio.length >= 12) {
+            alert('Máximo de 12 imagens no portfólio')
+            return
+        }
+
+        const file = event.target.files[0]
+        const fileExt = file.name.split('.').pop()
+        const fileName = `${profile.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${fileExt}`
+
+        setAvatarUploading(true) // Reuse state for loading indicator
+        try {
+            // Upload to Supabase Storage
+            const { error: uploadError } = await supabase.storage
+                .from('portfolio')
+                .upload(fileName, file)
+
+            if (uploadError) throw uploadError
+
+            // Get Public URL
+            const { data } = supabase.storage.from('portfolio').getPublicUrl(fileName)
+
+            // Update DB with new portfolio array
+            const { error: updateError } = await supabase
+                .from('users')
+                .update({ portfolio_urls: [...currentPortfolio, data.publicUrl] })
+                .eq('id', profile.id)
+
+            if (updateError) throw updateError
+
+            // Reload data to show new image
+            await loadData()
+
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } catch (error: any) {
+            alert('Erro ao fazer upload: ' + error.message)
+        } finally {
+            setAvatarUploading(false)
+        }
+    }
+
     if (loading) {
         return (
             <div className="min-h-screen bg-[#0F1115] flex items-center justify-center">
@@ -411,20 +456,35 @@ export default function ProfilePage() {
                         {/* Portfolio (Programmer Only) */}
                         {isProgrammerView && (
                             <div className="bg-[#1A1D23] rounded-xl border border-[#FFAE00]/20 p-6 shadow-xl">
-                                <h2 className="text-xl font-bold text-[#F3F4F6] mb-6 flex items-center gap-2">
-                                    <Award className="w-5 h-5 text-[#FFAE00]" />
-                                    Portfólio
-                                </h2>
+                                <div className="flex justify-between items-center mb-6">
+                                    <h2 className="text-xl font-bold text-[#F3F4F6] flex items-center gap-2">
+                                        <Award className="w-5 h-5 text-[#FFAE00]" />
+                                        Portfólio
+                                    </h2>
+                                    {isOwner && (
+                                        <label className="text-xs text-gray-400 hover:text-[#FFAE00] cursor-pointer transition-colors flex items-center gap-1 bg-[#0F1115] px-3 py-1.5 rounded-lg border border-gray-700 hover:border-[#FFAE00]">
+                                            <Upload className="w-3 h-3" />
+                                            Adicionar
+                                            <input
+                                                type="file"
+                                                className="hidden"
+                                                accept="image/*"
+                                                onChange={handleQuickPortfolioUpload}
+                                                disabled={avatarUploading}
+                                            />
+                                        </label>
+                                    )}
+                                </div>
 
                                 {profile.portfolio_urls && profile.portfolio_urls.length > 0 ? (
                                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                                         {profile.portfolio_urls.map((url, idx) => (
-                                            <div key={idx} className="aspect-square bg-[#0F1115] rounded-lg overflow-hidden border border-gray-800 hover:border-[#FFAE00] transition-colors cursor-pointer group relative">
+                                            <div key={idx} className="aspect-square bg-black rounded-lg overflow-hidden border border-gray-800 hover:border-[#FFAE00] transition-colors cursor-pointer group relative">
                                                 <Image
                                                     src={url}
                                                     alt={`Portfolio ${idx}`}
                                                     fill
-                                                    className="object-cover group-hover:scale-110 transition-transform duration-300"
+                                                    className="object-contain group-hover:scale-105 transition-transform duration-300"
                                                     unoptimized
                                                 />
                                             </div>
@@ -434,7 +494,7 @@ export default function ProfilePage() {
                                     <div className="text-center py-12 border-2 border-dashed border-gray-800 rounded-xl bg-[#0F1115]/50">
                                         <Package className="w-12 h-12 text-gray-700 mx-auto mb-3" />
                                         <p className="text-gray-500 text-sm">
-                                            {isOwner ? "Adicione fotos dos seus trabalhos no modo de edição." : "Nenhum projeto no portfólio ainda."}
+                                            {isOwner ? "Clique em 'Adicionar' acima para incluir fotos do seu trabalho." : "Nenhum projeto no portfólio ainda."}
                                         </p>
                                     </div>
                                 )}

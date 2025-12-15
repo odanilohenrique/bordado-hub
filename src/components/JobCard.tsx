@@ -53,7 +53,8 @@ export default function JobCard({ job, hasNegotiation }: { job: Job, hasNegotiat
                             src={mainImage}
                             alt={job.title}
                             fill
-                            className="object-cover"
+                            className="object-contain p-2"
+                            unoptimized
                         />
                     ) : (
                         <div className="w-full h-full flex flex-col items-center justify-center text-gray-700">
