@@ -143,7 +143,7 @@ export default function JobCard({ job, hasNegotiation }: { job: Job, hasNegotiat
                     {/* Description (Truncated) */}
                     {job.description && (
                         <p className="text-sm text-gray-500 line-clamp-2 mb-4 bg-[#0F1115]/50 p-2 rounded border border-white/5 italic">
-                            "{job.description}"
+                            &quot;{job.description}&quot;
                         </p>
                     )}
 
