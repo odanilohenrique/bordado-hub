@@ -3,16 +3,20 @@
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
-import { User, Star, MapPin, Calendar, Award, Package, Code } from 'lucide-react'
+import { User, Star, MapPin, Calendar, Award, Package, Code, Edit2, Eye, Cpu, FileJson, Layers } from 'lucide-react'
 import Image from 'next/image'
+import ProfileEditor from '@/components/ProfileEditor'
 
 interface UserProfile {
     id: string
+    supabase_user_id?: string
     name: string
     role: string
     avatar_url?: string
     bio?: string
     skills?: string[]
+    formats?: string[]
+    experience_level?: string
     portfolio_urls?: string[]
     rating?: number
     matrices_count?: number
@@ -30,34 +34,33 @@ export default function ProfilePage() {
     const [currentUser, setCurrentUser] = useState<any>(null)
     const [isCreating, setIsCreating] = useState(false)
     const [newRole, setNewRole] = useState('cliente')
-    const router = useRouter()
+    const [isEditing, setIsEditing] = useState(false)
 
     useEffect(() => {
-        async function loadData() {
-            // Get current auth user
-            const { data: { user } } = await supabase.auth.getUser()
-            setCurrentUser(user)
-
-            if (!id) return
-
-            // Load profile from public table
-            // We check both 'id' (public ID) and 'supabase_user_id' (auth ID) to handle different navigation sources
-            const { data, error } = await supabase
-                .from('users')
-                .select('*')
-                .or(`id.eq.${id},supabase_user_id.eq.${id}`)
-                .single()
-
-            if (error) {
-                // If error is 406/Not Found, profile is null. 
-            } else {
-                setProfile(data)
-            }
-            setLoading(false)
-        }
-
         loadData()
     }, [id])
+
+    async function loadData() {
+        setLoading(true)
+        // Get current auth user
+        const { data: { user } } = await supabase.auth.getUser()
+        setCurrentUser(user)
+
+        if (!id) return
+
+        // Load profile from public table
+        // We check both 'id' (public ID) and 'supabase_user_id' (auth ID) to handle different navigation sources
+        const { data, error } = await supabase
+            .from('users')
+            .select('*')
+            .or(`id.eq.${id},supabase_user_id.eq.${id}`)
+            .single()
+
+        if (!error && data) {
+            setProfile(data)
+        }
+        setLoading(false)
+    }
 
     const handleCreateProfile = async () => {
         if (!currentUser) return
@@ -94,7 +97,7 @@ export default function ProfilePage() {
         )
     }
 
-    // If profile missing BUT it's the current user -> Show Create Form
+    // 1. CREATE PROFILE FALLBACK
     if (!profile && currentUser && currentUser.id === id) {
         return (
             <div className="min-h-screen bg-[#0F1115] flex items-center justify-center p-4">
@@ -111,8 +114,8 @@ export default function ProfilePage() {
                             <button
                                 onClick={() => setNewRole('cliente')}
                                 className={`p-3 rounded-lg border text-sm font-bold transition-all ${newRole === 'cliente'
-                                    ? 'bg-[#FFAE00] text-black border-[#FFAE00]'
-                                    : 'bg-[#0F1115] text-gray-400 border-gray-700 hover:border-[#FFAE00]'
+                                        ? 'bg-[#FFAE00] text-black border-[#FFAE00]'
+                                        : 'bg-[#0F1115] text-gray-400 border-gray-700 hover:border-[#FFAE00]'
                                     }`}
                             >
                                 Contratar Matrizes
@@ -120,11 +123,11 @@ export default function ProfilePage() {
                             <button
                                 onClick={() => setNewRole('criador')}
                                 className={`p-3 rounded-lg border text-sm font-bold transition-all ${newRole === 'criador'
-                                    ? 'bg-[#FFAE00] text-black border-[#FFAE00]'
-                                    : 'bg-[#0F1115] text-gray-400 border-gray-700 hover:border-[#FFAE00]'
+                                        ? 'bg-[#FFAE00] text-black border-[#FFAE00]'
+                                        : 'bg-[#0F1115] text-gray-400 border-gray-700 hover:border-[#FFAE00]'
                                     }`}
                             >
-                                Trabalhar como Programador
+                                Trabalhar
                             </button>
                         </div>
                     </div>
@@ -141,21 +144,50 @@ export default function ProfilePage() {
         )
     }
 
-    if (!profile) {
+    if (!profile) return <div className="min-h-screen bg-[#0F1115] flex items-center justify-center text-white">Perfil não encontrado.</div>
+
+    // 2. CHECK OWNERSHIP
+    const isOwner = currentUser?.id === profile.supabase_user_id || currentUser?.id === id || currentUser?.id === profile.id
+
+    // 3. EDIT MODE
+    if (isEditing) {
         return (
-            <div className="min-h-screen bg-[#0F1115] flex items-center justify-center text-white">
-                Perfil não encontrado.
+            <div className="min-h-screen bg-[#0F1115] p-4 md:p-8">
+                <div className="max-w-3xl mx-auto">
+                    <ProfileEditor
+                        profile={profile}
+                        onCancel={() => setIsEditing(false)}
+                        onSave={() => {
+                            setIsEditing(false)
+                            loadData()
+                        }}
+                    />
+                </div>
             </div>
         )
     }
 
-    const defaultSkills = ['Wilcom', 'Embird', 'PE-Design']
+    // 4. DISPLAY LOGIC
+    const defaultSkills = ['Bordado Geral']
+
+    // Determine view type: 'criador' or 'cliente'
+    const isProgrammerView = profile.role === 'criador'
 
     return (
         <div className="min-h-screen bg-[#0F1115] pb-12">
             {/* Header / Banner */}
             <div className="h-48 bg-gradient-to-r from-[#1A1D23] to-[#0F1115] border-b border-[#FFAE00]/10 relative">
                 <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10"></div>
+                {isOwner && (
+                    <div className="absolute bottom-4 right-4 z-20 flex gap-3">
+                        <button
+                            onClick={() => setIsEditing(true)}
+                            className="bg-[#FFAE00] text-black px-4 py-2 rounded-full text-xs font-bold shadow-lg hover:bg-[#D97706] transition-all flex items-center gap-2 transform hover:scale-105"
+                        >
+                            <Edit2 className="w-3 h-3" /> Editar Perfil
+                        </button>
+                    </div>
+                )}
             </div>
 
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-20 relative z-10">
@@ -163,7 +195,17 @@ export default function ProfilePage() {
 
                     {/* Sidebar / Info Card */}
                     <div className="w-full md:w-80 flex-shrink-0">
-                        <div className="bg-[#1A1D23] rounded-xl border border-[#FFAE00]/20 p-6 shadow-2xl">
+                        <div className="bg-[#1A1D23] rounded-xl border border-[#FFAE00]/20 p-6 shadow-2xl relative overflow-hidden">
+                            {/* Role Badge */}
+                            <div className="absolute top-0 right-0 p-3">
+                                <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase tracking-widest border ${isProgrammerView
+                                        ? 'bg-blue-900/30 text-blue-400 border-blue-500/30'
+                                        : 'bg-green-900/30 text-green-400 border-green-500/30'
+                                    }`}>
+                                    {isProgrammerView ? 'Programador' : 'Cliente'}
+                                </span>
+                            </div>
+
                             {/* Avatar */}
                             <div className="w-32 h-32 mx-auto rounded-full border-4 border-[#0F1115] bg-[#2A2D35] flex items-center justify-center overflow-hidden mb-4 relative shadow-[0_0_20px_rgba(255,174,0,0.2)]">
                                 {profile.avatar_url ? (
@@ -180,22 +222,14 @@ export default function ProfilePage() {
                             </div>
 
                             <h1 className="text-2xl font-bold text-[#F3F4F6] text-center mb-1">{profile.name}</h1>
-                            <p className="text-[#FFAE00] text-center text-sm font-medium uppercase tracking-wider mb-6">
-                                {profile.role}
-                            </p>
 
-                            <div className="space-y-4 border-t border-gray-800 pt-6">
+                            <div className="space-y-4 border-t border-gray-800 pt-6 mt-6">
+                                {/* Common Stats */}
                                 <div className="flex items-center justify-between text-sm">
                                     <span className="text-gray-400 flex items-center gap-2">
                                         <Star className="w-4 h-4 text-[#FFAE00]" /> Avaliação
                                     </span>
                                     <span className="text-white font-bold">{profile.rating?.toFixed(1) || '5.0'}</span>
-                                </div>
-                                <div className="flex items-center justify-between text-sm">
-                                    <span className="text-gray-400 flex items-center gap-2">
-                                        <Package className="w-4 h-4 text-[#FFAE00]" /> Matrizes
-                                    </span>
-                                    <span className="text-white font-bold">{profile.matrices_count || 0}</span>
                                 </div>
                                 <div className="flex items-center justify-between text-sm">
                                     <span className="text-gray-400 flex items-center gap-2">
@@ -205,28 +239,50 @@ export default function ProfilePage() {
                                         {new Date(profile.created_at).toLocaleDateString('pt-BR')}
                                     </span>
                                 </div>
+
+                                {/* Role Specific Stats */}
+                                {isProgrammerView ? (
+                                    <div className="flex items-center justify-between text-sm">
+                                        <span className="text-gray-400 flex items-center gap-2">
+                                            <Package className="w-4 h-4 text-[#FFAE00]" /> Matrizes
+                                        </span>
+                                        <span className="text-white font-bold">{profile.matrices_count || 0}</span>
+                                    </div>
+                                ) : (
+                                    <div className="flex items-center justify-between text-sm">
+                                        <span className="text-gray-400 flex items-center gap-2">
+                                            <Layers className="w-4 h-4 text-[#FFAE00]" /> Nível
+                                        </span>
+                                        <span className="text-white font-bold text-xs">{profile.experience_level || 'Iniciante'}</span>
+                                    </div>
+                                )}
                             </div>
 
-                            <div className="mt-8">
-                                <button className="w-full bg-[#FFAE00] hover:bg-[#D97706] text-[#0F1115] font-bold py-2 rounded-lg transition-colors shadow-[0_0_15px_rgba(255,174,0,0.3)]">
-                                    Enviar Mensagem
-                                </button>
-                            </div>
+                            {!isOwner && (
+                                <div className="mt-8">
+                                    <button className="w-full bg-[#FFAE00] hover:bg-[#D97706] text-[#0F1115] font-bold py-2 rounded-lg transition-colors shadow-[0_0_15px_rgba(255,174,0,0.3)]">
+                                        Enviar Mensagem
+                                    </button>
+                                </div>
+                            )}
                         </div>
 
-                        {/* Skills - Mobile/Desktop Sidebar */}
+                        {/* Sidebar: Skills (Programmer) OR Formats (Client) */}
                         <div className="bg-[#1A1D23] rounded-xl border border-[#FFAE00]/20 p-6 mt-6 shadow-xl">
                             <h3 className="text-[#F3F4F6] font-bold mb-4 flex items-center gap-2">
-                                <Code className="w-4 h-4 text-[#FFAE00]" />
-                                Softwares & Habilidades
+                                {isProgrammerView ? <Code className="w-4 h-4 text-[#FFAE00]" /> : <FileJson className="w-4 h-4 text-[#FFAE00]" />}
+                                {isProgrammerView ? 'Softwares & Habilidades' : 'Formatos Utilizados'}
                             </h3>
                             <div className="flex flex-wrap gap-2">
-                                {(profile.skills && profile.skills.length > 0 ? profile.skills : defaultSkills).map((skill, index) => (
+                                {(isProgrammerView
+                                    ? (profile.skills && profile.skills.length > 0 ? profile.skills : defaultSkills)
+                                    : (profile.formats && profile.formats.length > 0 ? profile.formats : ['Não especificado'])
+                                ).map((item, index) => (
                                     <span
                                         key={index}
                                         className="px-3 py-1 bg-[#0F1115] border border-gray-700 text-gray-300 text-xs rounded-full"
                                     >
-                                        {skill}
+                                        {item}
                                     </span>
                                 ))}
                             </div>
@@ -240,42 +296,46 @@ export default function ProfilePage() {
                         <div className="bg-[#1A1D23] rounded-xl border border-[#FFAE00]/20 p-6 shadow-xl">
                             <h2 className="text-xl font-bold text-[#F3F4F6] mb-4 flex items-center gap-2">
                                 <User className="w-5 h-5 text-[#FFAE00]" />
-                                Histórico Profissional
+                                {isProgrammerView ? 'Histórico Profissional' : 'Sobre o Cliente'}
                             </h2>
-                            <p className="text-gray-300 leading-relaxed text-sm">
-                                {profile.bio || "Este usuário ainda não preencheu sua biografia profissional. Entre em contato para saber mais sobre sua experiência e trabalhos anteriores."}
+                            <p className="text-gray-300 leading-relaxed text-sm whitespace-pre-line">
+                                {profile.bio || (isOwner ? "Clique em 'Editar Perfil' para adicionar sua biografia." : "Este usuário ainda não preencheu sua biografia.")}
                             </p>
                         </div>
 
-                        {/* Portfolio Grid */}
-                        <div className="bg-[#1A1D23] rounded-xl border border-[#FFAE00]/20 p-6 shadow-xl">
-                            <h2 className="text-xl font-bold text-[#F3F4F6] mb-6 flex items-center gap-2">
-                                <Award className="w-5 h-5 text-[#FFAE00]" />
-                                Portfólio
-                            </h2>
+                        {/* Portfolio (Programmer Only) */}
+                        {isProgrammerView && (
+                            <div className="bg-[#1A1D23] rounded-xl border border-[#FFAE00]/20 p-6 shadow-xl">
+                                <h2 className="text-xl font-bold text-[#F3F4F6] mb-6 flex items-center gap-2">
+                                    <Award className="w-5 h-5 text-[#FFAE00]" />
+                                    Portfólio
+                                </h2>
 
-                            {profile.portfolio_urls && profile.portfolio_urls.length > 0 ? (
-                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                                    {profile.portfolio_urls.map((url, idx) => (
-                                        <div key={idx} className="aspect-square bg-[#0F1115] rounded-lg overflow-hidden border border-gray-800 hover:border-[#FFAE00] transition-colors cursor-pointer group relative">
-                                            <Image
-                                                src={url}
-                                                alt={`Portfolio ${idx}`}
-                                                fill
-                                                className="object-cover group-hover:scale-110 transition-transform duration-300"
-                                            />
-                                        </div>
-                                    ))}
-                                </div>
-                            ) : (
-                                <div className="text-center py-12 border-2 border-dashed border-gray-800 rounded-xl bg-[#0F1115]/50">
-                                    <Package className="w-12 h-12 text-gray-700 mx-auto mb-3" />
-                                    <p className="text-gray-500 text-sm">Nenhum projeto no portfólio ainda.</p>
-                                </div>
-                            )}
-                        </div>
+                                {profile.portfolio_urls && profile.portfolio_urls.length > 0 ? (
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                                        {profile.portfolio_urls.map((url, idx) => (
+                                            <div key={idx} className="aspect-square bg-[#0F1115] rounded-lg overflow-hidden border border-gray-800 hover:border-[#FFAE00] transition-colors cursor-pointer group relative">
+                                                <Image
+                                                    src={url}
+                                                    alt={`Portfolio ${idx}`}
+                                                    fill
+                                                    className="object-cover group-hover:scale-110 transition-transform duration-300"
+                                                />
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="text-center py-12 border-2 border-dashed border-gray-800 rounded-xl bg-[#0F1115]/50">
+                                        <Package className="w-12 h-12 text-gray-700 mx-auto mb-3" />
+                                        <p className="text-gray-500 text-sm">
+                                            {isOwner ? "Adicione fotos dos seus trabalhos no modo de edição." : "Nenhum projeto no portfólio ainda."}
+                                        </p>
+                                    </div>
+                                )}
+                            </div>
+                        )}
 
-                        {/* Reviews (Placeholder) */}
+                        {/* Reviews (Common) */}
                         <div className="bg-[#1A1D23] rounded-xl border border-[#FFAE00]/20 p-6 shadow-xl">
                             <h2 className="text-xl font-bold text-[#F3F4F6] mb-6 flex items-center gap-2">
                                 <Star className="w-5 h-5 text-[#FFAE00]" />

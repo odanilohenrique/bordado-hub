@@ -14,11 +14,19 @@ function AuthCallbackContent() {
         if (code) {
             const exchangeCodeForSession = async () => {
                 try {
-                    const { error } = await supabase.auth.exchangeCodeForSession(code)
+                    const { data, error } = await supabase.auth.exchangeCodeForSession(code)
                     if (error) throw error
 
-                    // Redirect to dashboard or next url
-                    router.push(next)
+                    // Get User ID from session
+                    const userId = data.session?.user?.id
+
+                    if (userId) {
+                        router.push(`/profile/${userId}`)
+                    } else {
+                        // Fallback if no user ID found (unlikely)
+                        router.push('/dashboard')
+                    }
+
                     router.refresh()
                 } catch (error) {
                     console.error('Error exchanging code for session:', error)
@@ -29,7 +37,7 @@ function AuthCallbackContent() {
         } else {
             router.push('/login')
         }
-    }, [code, next, router])
+    }, [code, router])
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-[#0F1115]">
