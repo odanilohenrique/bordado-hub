@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { supabase } from '@/lib/supabaseClient'
 import { User, Star, MapPin, Calendar, Award, Package, Code, Edit2, Eye, FileJson, Layers } from 'lucide-react'
 import Image from 'next/image'
@@ -121,8 +122,8 @@ export default function ProfilePage() {
                             <button
                                 onClick={() => setNewRole('cliente')}
                                 className={`p-3 rounded-lg border text-sm font-bold transition-all ${newRole === 'cliente'
-                                        ? 'bg-[#FFAE00] text-black border-[#FFAE00]'
-                                        : 'bg-[#0F1115] text-gray-400 border-gray-700 hover:border-[#FFAE00]'
+                                    ? 'bg-[#FFAE00] text-black border-[#FFAE00]'
+                                    : 'bg-[#0F1115] text-gray-400 border-gray-700 hover:border-[#FFAE00]'
                                     }`}
                             >
                                 Contratar Matrizes
@@ -130,8 +131,8 @@ export default function ProfilePage() {
                             <button
                                 onClick={() => setNewRole('criador')}
                                 className={`p-3 rounded-lg border text-sm font-bold transition-all ${newRole === 'criador'
-                                        ? 'bg-[#FFAE00] text-black border-[#FFAE00]'
-                                        : 'bg-[#0F1115] text-gray-400 border-gray-700 hover:border-[#FFAE00]'
+                                    ? 'bg-[#FFAE00] text-black border-[#FFAE00]'
+                                    : 'bg-[#0F1115] text-gray-400 border-gray-700 hover:border-[#FFAE00]'
                                     }`}
                             >
                                 Trabalhar
@@ -215,8 +216,8 @@ export default function ProfilePage() {
                             {/* Role Badge */}
                             <div className="absolute top-0 right-0 p-3">
                                 <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase tracking-widest border ${isProgrammerView
-                                        ? 'bg-blue-900/30 text-blue-400 border-blue-500/30'
-                                        : 'bg-green-900/30 text-green-400 border-green-500/30'
+                                    ? 'bg-blue-900/30 text-blue-400 border-blue-500/30'
+                                    : 'bg-green-900/30 text-green-400 border-green-500/30'
                                     }`}>
                                     {isProgrammerView ? 'Programador' : 'Cliente'}
                                 </span>
@@ -279,6 +280,28 @@ export default function ProfilePage() {
                                     <button className="w-full bg-[#FFAE00] hover:bg-[#D97706] text-[#0F1115] font-bold py-2 rounded-lg transition-colors shadow-[0_0_15px_rgba(255,174,0,0.3)]">
                                         Enviar Mensagem
                                     </button>
+                                </div>
+                            )}
+
+                            {isOwner && profile.role === 'cliente' && (
+                                <div className="mt-8">
+                                    <Link
+                                        href="/dashboard/client"
+                                        className="block w-full text-center bg-[#FFAE00] hover:bg-[#D97706] text-[#0F1115] font-bold py-2 rounded-lg transition-colors shadow-[0_0_15px_rgba(255,174,0,0.3)]"
+                                    >
+                                        Meus Pedidos
+                                    </Link>
+                                </div>
+                            )}
+
+                            {isOwner && profile.role === 'criador' && (
+                                <div className="mt-8">
+                                    <Link
+                                        href="/jobs"
+                                        className="block w-full text-center bg-[#1A1D23] border border-[#FFAE00] text-[#FFAE00] hover:bg-[#FFAE00] hover:text-[#0F1115] font-bold py-2 rounded-lg transition-colors"
+                                    >
+                                        Mural de Pedidos
+                                    </Link>
                                 </div>
                             )}
                         </div>

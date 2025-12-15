@@ -20,11 +20,31 @@ function AuthCallbackContent() {
                     // Get User ID from session
                     const userId = data.session?.user?.id
 
-                    if (userId) {
-                        router.push(`/profile/${userId}`)
+                    if (!userId) {
+                        router.push('/login?error=no_user_id')
+                        return
+                    }
+
+                    // Check if profile exists and get Role
+                    const { data: profile } = await supabase
+                        .from('users')
+                        .select('role')
+                        .eq('supabase_user_id', userId)
+                        .single()
+
+                    if (profile) {
+                        // Profile Exists - Redirect based on Role
+                        if (profile.role === 'cliente') {
+                            router.push('/dashboard/client')
+                        } else if (profile.role === 'criador') {
+                            router.push('/jobs') // Mural de Pedidos
+                        } else {
+                            // Fallback for other roles or generic dashboard
+                            router.push(next === '/dashboard' ? '/dashboard' : next)
+                        }
                     } else {
-                        // Fallback if no user ID found (unlikely)
-                        router.push('/dashboard')
+                        // No Profile - Redirect to Profile Creation Page (Profile Page Fallback)
+                        router.push(`/profile/${userId}`)
                     }
 
                     router.refresh()
@@ -35,9 +55,12 @@ function AuthCallbackContent() {
             }
             exchangeCodeForSession()
         } else {
+            // No code, redirect to login
+            //router.push('/login') 
+            // Better: Redirect to home? No, this page is specifically for callback.
             router.push('/login')
         }
-    }, [code, router])
+    }, [code, router, next])
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-[#0F1115]">
