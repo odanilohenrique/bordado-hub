@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
-import { User, Star, MapPin, Calendar, Award, Package, Code, Edit2, Eye, Cpu, FileJson, Layers } from 'lucide-react'
+import { User, Star, MapPin, Calendar, Award, Package, Code, Edit2, Eye, FileJson, Layers } from 'lucide-react'
 import Image from 'next/image'
 import ProfileEditor from '@/components/ProfileEditor'
 
@@ -36,6 +36,9 @@ export default function ProfilePage() {
     const [newRole, setNewRole] = useState('cliente')
     const [isEditing, setIsEditing] = useState(false)
 
+    // Toggle for owner to preview their profile
+    const [previewRole, setPreviewRole] = useState<string | null>(null)
+
     useEffect(() => {
         loadData()
     }, [id])
@@ -49,7 +52,6 @@ export default function ProfilePage() {
         if (!id) return
 
         // Load profile from public table
-        // We check both 'id' (public ID) and 'supabase_user_id' (auth ID) to handle different navigation sources
         const { data, error } = await supabase
             .from('users')
             .select('*')
@@ -58,6 +60,7 @@ export default function ProfilePage() {
 
         if (!error && data) {
             setProfile(data)
+            setPreviewRole(data.role) // Initialize view with actual role
         }
         setLoading(false)
     }
@@ -87,6 +90,10 @@ export default function ProfilePage() {
         } finally {
             setIsCreating(false)
         }
+    }
+
+    const toggleView = () => {
+        setPreviewRole(prev => prev === 'criador' ? 'cliente' : 'criador')
     }
 
     if (loading) {
@@ -170,8 +177,9 @@ export default function ProfilePage() {
     // 4. DISPLAY LOGIC
     const defaultSkills = ['Bordado Geral']
 
-    // Determine view type: 'criador' or 'cliente'
-    const isProgrammerView = profile.role === 'criador'
+    // Determine view type based on Toggle (previewRole) or actual role
+    const currentViewRole = previewRole || profile.role
+    const isProgrammerView = currentViewRole === 'criador'
 
     return (
         <div className="min-h-screen bg-[#0F1115] pb-12">
@@ -179,10 +187,18 @@ export default function ProfilePage() {
             <div className="h-48 bg-gradient-to-r from-[#1A1D23] to-[#0F1115] border-b border-[#FFAE00]/10 relative">
                 <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10"></div>
                 {isOwner && (
-                    <div className="absolute bottom-4 right-4 z-20 flex gap-3">
+                    <div className="absolute top-4 right-4 z-50 flex flex-col md:flex-row gap-3">
+                        <button
+                            onClick={toggleView}
+                            className="bg-black/80 text-white px-3 py-2 rounded-full text-xs font-bold border border-white/20 hover:bg-black transition-all flex items-center gap-2 backdrop-blur-sm shadow-md"
+                        >
+                            <Eye className="w-3 h-3" />
+                            {isProgrammerView ? 'Ver como Cliente' : 'Ver como Programador'}
+                        </button>
+
                         <button
                             onClick={() => setIsEditing(true)}
-                            className="bg-[#FFAE00] text-black px-4 py-2 rounded-full text-xs font-bold shadow-lg hover:bg-[#D97706] transition-all flex items-center gap-2 transform hover:scale-105"
+                            className="bg-[#FFAE00] text-black px-3 py-2 rounded-full text-xs font-bold shadow-lg hover:bg-[#D97706] transition-all flex items-center gap-2 transform hover:scale-105"
                         >
                             <Edit2 className="w-3 h-3" /> Editar Perfil
                         </button>
