@@ -35,7 +35,7 @@ export default function CreatorDashboard() {
                 const { data: directData } = await supabase
                     .from('jobs')
                     .select('*, users (name, avatar_url)')
-                    .eq('direct_to_programmer_id', profile.id)
+                    .eq('target_programmer_id', profile.id)
                     .eq('status', 'aberto')
                     .order('created_at', { ascending: false })
 
@@ -47,7 +47,7 @@ export default function CreatorDashboard() {
                 .from('jobs')
                 .select('*, users (name, avatar_url)')
                 .eq('status', 'aberto')
-                .is('direct_to_programmer_id', null)
+                .is('target_programmer_id', null)
                 .order('created_at', { ascending: false })
 
             setPublicJobs(publicData || [])

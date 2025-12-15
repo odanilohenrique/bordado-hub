@@ -156,7 +156,7 @@ function NewJobContent() {
                         image_urls: imageUrls,
                         status: 'aberto',
                         // Direct request to specific programmer (if set)
-                        ...(directProgrammerId && { direct_to_programmer_id: directProgrammerId })
+                        ...(directProgrammerId && { target_programmer_id: directProgrammerId })
                     }
                 ])
 
