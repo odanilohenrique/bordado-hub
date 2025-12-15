@@ -1,12 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Upload, FileText, Image as ImageIcon, Zap, Clock, Package } from 'lucide-react'
 import Link from 'next/link'
 
-export default function NewJob() {
+function NewJobContent() {
     const [title, setTitle] = useState('')
     const [description, setDescription] = useState('')
     const [fabricType, setFabricType] = useState('')
@@ -388,5 +388,21 @@ export default function NewJob() {
                 </div>
             </div>
         </div>
+    )
+}
+
+// Wrapper with Suspense for useSearchParams
+export default function NewJob() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen bg-[#0F1115] flex items-center justify-center">
+                <div className="text-center">
+                    <div className="w-16 h-16 border-4 border-[#FFAE00]/30 border-t-[#FFAE00] rounded-full animate-spin mx-auto mb-4" />
+                    <p className="text-gray-400">Carregando...</p>
+                </div>
+            </div>
+        }>
+            <NewJobContent />
+        </Suspense>
     )
 }
