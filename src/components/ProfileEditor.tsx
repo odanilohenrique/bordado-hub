@@ -83,6 +83,7 @@ export default function ProfileEditor({ profile, onCancel, onSave }: ProfileEdit
             // Update local state
             handleChange('avatar_url', data.publicUrl)
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (error: any) {
             alert('Erro ao fazer upload: ' + error.message)
         } finally {
@@ -118,6 +119,7 @@ export default function ProfileEditor({ profile, onCancel, onSave }: ProfileEdit
 
             if (error) throw error
             onSave()
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (error: any) {
             alert('Erro ao salvar: ' + error.message)
         } finally {
@@ -197,8 +199,8 @@ export default function ProfileEditor({ profile, onCancel, onSave }: ProfileEdit
                                     key={software}
                                     onClick={() => toggleArrayItem('skills', software)}
                                     className={`px-3 py-2 rounded-lg text-sm text-left transition-all ${formData.skills.includes(software)
-                                            ? 'bg-[#FFAE00] text-black font-bold'
-                                            : 'bg-[#0F1115] text-gray-400 border border-gray-800 hover:border-gray-600'
+                                        ? 'bg-[#FFAE00] text-black font-bold'
+                                        : 'bg-[#0F1115] text-gray-400 border border-gray-800 hover:border-gray-600'
                                         }`}
                                 >
                                     {software}
@@ -229,8 +231,8 @@ export default function ProfileEditor({ profile, onCancel, onSave }: ProfileEdit
                                             key={format}
                                             onClick={() => toggleArrayItem('formats', format)}
                                             className={`px-3 py-1 rounded-full text-xs font-bold transition-all ${formData.formats.includes(format)
-                                                    ? 'bg-[#FFAE00] text-black'
-                                                    : 'bg-[#0F1115] text-gray-400 border border-gray-700'
+                                                ? 'bg-[#FFAE00] text-black'
+                                                : 'bg-[#0F1115] text-gray-400 border border-gray-700'
                                                 }`}
                                         >
                                             {format}
