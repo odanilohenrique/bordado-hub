@@ -17,6 +17,7 @@ export default function JobsPage() {
             let query = supabase
                 .from('jobs')
                 .select('*, users (name, avatar_url)')
+                .is('target_programmer_id', null)  // Exclude direct requests from public mural
                 .order('created_at', { ascending: false })
 
             if (filter !== 'all') {
