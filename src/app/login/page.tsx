@@ -29,7 +29,7 @@ export default function Login() {
             setLoading(false)
         } else {
             console.log('Login successful')
-            router.push('/dashboard')
+            router.push('/pedidos')
             router.refresh()
         }
     }

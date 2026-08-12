@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabaseClient'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Upload, FileText, Image as ImageIcon, Zap, Clock, Package } from 'lucide-react'
 import Link from 'next/link'
+import { createNotification } from '@/lib/notifications'
 
 function NewJobContent() {
     const [title, setTitle] = useState('')
@@ -82,7 +83,7 @@ function NewJobContent() {
         if (e.target.files) {
             const newFiles = Array.from(e.target.files)
             if (images.length + newFiles.length > 6) {
-                alert('Máximo de 6 imagens permitidas')
+                alert('Máximo de 6 arquivos permitidos')
                 return
             }
 
@@ -162,7 +163,18 @@ function NewJobContent() {
 
             if (jobError) throw jobError
 
-            router.push('/dashboard')
+            // Notify programmer if it's a direct request
+            if (directProgrammerId) {
+                await createNotification({
+                    userId: directProgrammerId,
+                    type: 'solicitacao_direta',
+                    title: '🎯 Solicitação Direta Recebida!',
+                    message: `Um cliente solicitou a você diretamente a matriz "${title}". Vá ao seu painel e confira!`,
+                    linkUrl: '/pedidos'
+                })
+            }
+
+            router.push('/pedidos')
             router.refresh()
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (err: any) {
@@ -237,14 +249,14 @@ function NewJobContent() {
                     <div className="space-y-2">
                         <label className="flex items-center gap-2 text-sm font-medium text-gray-300">
                             <ImageIcon className="w-4 h-4 text-[#FFAE00]" />
-                            Imagens de Referência <span className="text-gray-500">(Máximo 6)</span>
+                            Arquivos de Referência <span className="text-gray-500">(Máximo 6)</span>
                         </label>
 
                         <div className="relative">
                             <input
                                 type="file"
                                 multiple
-                                accept="image/*"
+                                accept="image/*,application/pdf"
                                 onChange={handleImageChange}
                                 className="hidden"
                                 id="image-upload"
@@ -255,8 +267,8 @@ function NewJobContent() {
                             >
                                 <Upload className="w-6 h-6 text-[#FFAE00] group-hover:scale-110 transition-transform" />
                                 <div className="text-center">
-                                    <p className="text-[#F3F4F6] font-medium">Clique para enviar imagens</p>
-                                    <p className="text-gray-500 text-sm">PNG, JPG até 10MB cada</p>
+                                    <p className="text-[#F3F4F6] font-medium">Clique para enviar arquivos</p>
+                                    <p className="text-gray-500 text-sm">PNG, JPG, WEBP, PDF até 10MB cada</p>
                                 </div>
                             </label>
                         </div>
@@ -264,25 +276,41 @@ function NewJobContent() {
                         {/* Image Previews */}
                         {imagePreviews.length > 0 && (
                             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mt-4">
-                                {imagePreviews.map((preview, idx) => (
-                                    <div key={idx} className="relative group">
-                                        <img
-                                            src={preview}
-                                            alt={`Preview ${idx + 1}`}
-                                            className="w-full h-32 object-cover rounded-lg border border-[#FFAE00]/20"
-                                        />
-                                        <button
-                                            type="button"
-                                            onClick={() => removeImage(idx)}
-                                            className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                                        >
-                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                            </svg>
-                                        </button>
-                                        <p className="text-xs text-gray-400 mt-1 truncate">{images[idx].name}</p>
-                                    </div>
-                                ))}
+                                {imagePreviews.map((preview, idx) => {
+                                    const file = images[idx];
+                                    const isPdf = file?.type === 'application/pdf';
+
+                                    return (
+                                        <div key={idx} className="relative group">
+                                            {isPdf ? (
+                                                <div className="w-full h-32 rounded-lg border border-[#FFAE00]/20 overflow-hidden bg-white/5 relative flex items-center justify-center">
+                                                    <iframe 
+                                                        src={`${preview}#toolbar=0&navpanes=0&scrollbar=0`} 
+                                                        className="w-full h-full pointer-events-none absolute inset-0"
+                                                        title={`PDF Preview ${idx + 1}`}
+                                                    />
+                                                    <div className="absolute inset-0 z-10"></div>
+                                                </div>
+                                            ) : (
+                                                <img
+                                                    src={preview}
+                                                    alt={`Preview ${idx + 1}`}
+                                                    className="w-full h-32 object-contain rounded-lg border border-[#FFAE00]/20 bg-black/20"
+                                                />
+                                            )}
+                                            <button
+                                                type="button"
+                                                onClick={() => removeImage(idx)}
+                                                className="absolute top-2 right-2 z-20 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                                            >
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                </svg>
+                                            </button>
+                                            <p className="text-xs text-gray-400 mt-1 truncate">{file?.name}</p>
+                                        </div>
+                                    );
+                                })}
                             </div>
                         )}
                     </div>

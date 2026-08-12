@@ -8,7 +8,7 @@ function AuthCallbackContent() {
     const router = useRouter()
     const searchParams = useSearchParams()
     const code = searchParams.get('code')
-    const next = searchParams.get('next') ?? '/dashboard'
+    const next = searchParams.get('next') ?? '/pedidos'
 
     // Status for UI feedback
     const [status, setStatus] = useState('Verificando credenciais...')
@@ -33,16 +33,16 @@ function AuthCallbackContent() {
                     .single()
 
                 if (profile) {
-                    if (profile.role === 'cliente') router.push('/dashboard/client')
+                    if (profile.role === 'cliente') router.push('/pedidos')
                     else if (profile.role === 'criador') router.push('/jobs')
-                    else router.push(next === '/dashboard' ? '/dashboard' : next)
+                    else router.push(next === '/pedidos' ? '/producao' : next)
                 } else {
                     router.push(`/profile/${userId}`)
                 }
                 router.refresh()
             } catch (err) {
                 console.error('Profile fetch error:', err)
-                router.push('/dashboard')
+                router.push('/pedidos')
             }
         }
 

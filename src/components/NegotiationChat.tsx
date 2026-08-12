@@ -2,7 +2,8 @@
 
 import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabaseClient'
-import { Send, Paperclip, User, FileImage } from 'lucide-react'
+import { Send, Paperclip, User, FileImage, RefreshCw, CheckCircle2, DollarSign } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import { formatDate } from '@/lib/helpers'
 
 interface Message {
@@ -11,6 +12,7 @@ interface Message {
     attachment_url?: string
     sender_id: string
     created_at: string
+    users?: { name: string }
 }
 
 interface ChatProps {
@@ -18,14 +20,20 @@ interface ChatProps {
     currentUserId: string
     senderName: string // To display in header if needed
     isOwner: boolean
+    jobId: string
+    initialAmount: number
 }
 
-export default function NegotiationChat({ proposalId, currentUserId, isOwner }: ChatProps) {
+export default function NegotiationChat({ proposalId, currentUserId, senderName, isOwner, jobId, initialAmount }: ChatProps) {
     const [messages, setMessages] = useState<Message[]>([])
     const [newMessage, setNewMessage] = useState('')
     const [loading, setLoading] = useState(true)
     const [sending, setSending] = useState(false)
+    const [syncing, setSyncing] = useState(false)
+    const [showQuickDeal, setShowQuickDeal] = useState(false)
+    const [agreedValue, setAgreedValue] = useState(initialAmount?.toString() || '')
     const messagesEndRef = useRef<HTMLDivElement>(null)
+    const router = useRouter()
     const fileInputRef = useRef<HTMLInputElement>(null)
 
     useEffect(() => {
@@ -39,8 +47,27 @@ export default function NegotiationChat({ proposalId, currentUserId, isOwner }: 
                 schema: 'public',
                 table: 'proposal_messages',
                 filter: `proposal_id=eq.${proposalId}`
-            }, (payload) => {
-                setMessages(prev => [...prev, payload.new as Message])
+            }, async (payload) => {
+                const newMsg = payload.new as Message
+                
+                // If it's not from me, we need the name
+                if (newMsg.sender_id !== currentUserId) {
+                    const { data: userData } = await supabase
+                        .from('users')
+                        .select('name')
+                        .eq('id', newMsg.sender_id)
+                        .single()
+                    
+                    if (userData) {
+                        newMsg.users = { name: userData.name }
+                    }
+                }
+
+                setMessages(prev => {
+                    const exists = prev.some(m => m.id === newMsg.id)
+                    if (exists) return prev
+                    return [...prev, newMsg]
+                })
             })
             .subscribe()
 
@@ -56,7 +83,7 @@ export default function NegotiationChat({ proposalId, currentUserId, isOwner }: 
     const loadMessages = async () => {
         const { data } = await supabase
             .from('proposal_messages')
-            .select('*')
+            .select('*, users:sender_id(name)')
             .eq('proposal_id', proposalId)
             .order('created_at', { ascending: true })
 
@@ -68,23 +95,86 @@ export default function NegotiationChat({ proposalId, currentUserId, isOwner }: 
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
     }
 
+    const handleQuickDeal = async () => {
+        if (!agreedValue || isNaN(parseFloat(agreedValue))) {
+            alert('Por favor, insira um valor válido.')
+            return
+        }
+
+        if (!confirm(`Confirmar fechamento por R$ ${parseFloat(agreedValue).toFixed(2)}? \n\nO pedido será aceito e você será redirecionado para o pagamento.`)) return
+
+        setSending(true)
+        try {
+            const finalAmount = parseFloat(agreedValue)
+
+            // 1. Update proposal amount and status
+            const { error: propError } = await supabase
+                .from('proposals')
+                .update({ 
+                    amount: finalAmount,
+                    status: 'aceita' 
+                })
+                .eq('id', proposalId)
+
+            if (propError) throw propError
+
+            // 2. Update job status
+            const { error: jobError } = await supabase
+                .from('jobs')
+                .update({ status: 'em_progresso' })
+                .eq('id', jobId)
+
+            if (jobError) throw jobError
+
+            // 3. Optional: Insert a system message in chat
+            await supabase.from('proposal_messages').insert({
+                proposal_id: proposalId,
+                sender_id: currentUserId,
+                content: `🤝 NEGÓCIO FECHADO! Valor acordado: R$ ${finalAmount.toFixed(2)}`
+            })
+
+            router.push(`/checkout/${proposalId}`)
+        } catch (error: any) {
+            console.error('Quick deal error:', error)
+            alert('Erro ao fechar negócio: ' + error.message)
+        } finally {
+            setSending(false)
+        }
+    }
+
     const handleSendMessage = async (e?: React.FormEvent) => {
         e?.preventDefault()
         if (!newMessage.trim()) return
 
         setSending(true)
         try {
-            const { error } = await supabase.from('proposal_messages').insert({
+            const payload = {
                 proposal_id: proposalId,
                 sender_id: currentUserId,
                 content: newMessage.trim()
-            })
+            }
+            
+            const { data, error } = await supabase.from('proposal_messages').insert(payload).select()
 
-            if (error) throw error
+            if (error) {
+                console.error('[NegotiationChat] Insert error:', error)
+                throw error
+            }
+            
+            // Optimistic update: add message to local state immediately
+            if (data && data.length > 0) {
+                const optimisticMsg = { ...data[0], users: { name: senderName } }
+                setMessages(prev => {
+                    const exists = prev.some(m => m.id === data[0].id)
+                    if (exists) return prev
+                    return [...prev, optimisticMsg as Message]
+                })
+            }
+            
             setNewMessage('')
-        } catch (error) {
-            console.error('Error sending message:', error)
-            alert('Erro ao enviar mensagem')
+        } catch (error: any) {
+            console.error('[NegotiationChat] Full error:', error)
+            alert('Erro ao enviar mensagem: ' + (error?.message || 'Erro desconhecido'))
         } finally {
             setSending(false)
         }
@@ -132,40 +222,127 @@ export default function NegotiationChat({ proposalId, currentUserId, isOwner }: 
     }
 
     return (
-        <div className="flex flex-col h-[400px] bg-[#0F1115] rounded-lg border border-gray-800">
+        <div className="flex flex-col h-[450px] bg-[#0F1115]/50 rounded-xl border border-gray-800/80 shadow-lg overflow-hidden">
+            {/* Header */}
+            <div className="px-4 py-3 bg-[#1A1D23] border-b border-gray-800/80 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                    <span className="text-sm font-semibold text-gray-200 flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                        Chat da Negociação
+                    </span>
+                    <div className="flex items-center gap-1.5 border-l border-gray-800 ml-2 pl-3">
+                        <button 
+                            onClick={async () => {
+                                setSyncing(true)
+                                await loadMessages()
+                                setSyncing(false)
+                            }}
+                            disabled={syncing || loading}
+                            className="p-1.5 text-gray-500 hover:text-[#FFAE00] hover:bg-[#FFAE00]/5 rounded-md transition-all active:rotate-180 duration-500 disabled:opacity-50"
+                            title="Sincronizar mensagens"
+                        >
+                            <RefreshCw className={`w-3.5 h-3.5 ${syncing ? 'animate-spin' : ''}`} />
+                        </button>
+
+                        {isOwner && (
+                            <button 
+                                onClick={() => setShowQuickDeal(!showQuickDeal)}
+                                className={`flex items-center gap-1 text-[11px] font-bold px-2 py-1 rounded transition-all ${
+                                    showQuickDeal 
+                                    ? 'bg-[#FFAE00] text-black shadow-[0_0_10px_rgba(255,174,0,0.3)]' 
+                                    : 'text-gray-400 hover:text-[#FFAE00] hover:bg-[#FFAE00]/5'
+                                }`}
+                                title="Fechar negócio agora"
+                            >
+                                <CheckCircle2 className="w-3.5 h-3.5" />
+                                FECHAR NEGÓCIO
+                            </button>
+                        )}
+                    </div>
+                </div>
+                <span className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold">Ao Vivo</span>
+            </div>
+
+            {/* Quick Deal Panel (Owner Only) */}
+            {isOwner && showQuickDeal && (
+                <div className="bg-[#FFAE00]/10 border-b border-[#FFAE00]/20 p-3 animate-in slide-in-from-top duration-300">
+                    <div className="flex flex-col gap-3">
+                        <div className="flex items-center justify-between">
+                            <h4 className="text-[11px] font-black text-[#FFAE00] uppercase tracking-widest">Ajuste de Valor Final</h4>
+                            <span className="text-[10px] text-gray-500">Acordado no chat</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <div className="relative flex-1">
+                                <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-500" />
+                                <input 
+                                    type="number"
+                                    placeholder="Valor final acordado..."
+                                    value={agreedValue}
+                                    onChange={(e) => setAgreedValue(e.target.value)}
+                                    className="w-full bg-[#0F1115] border border-[#FFAE00]/30 rounded-lg pl-9 pr-3 py-2 text-sm text-white focus:outline-none focus:border-[#FFAE00] transition-colors"
+                                />
+                            </div>
+                            <button 
+                                onClick={handleQuickDeal}
+                                disabled={sending || !agreedValue}
+                                className="bg-[#FFAE00] hover:bg-yellow-400 text-[#0F1115] font-black text-[11px] px-4 py-2 rounded-lg transition-all shadow-lg shadow-[#FFAE00]/10 disabled:opacity-50 flex items-center gap-2"
+                            >
+                                {sending ? 'PROCESSANDO...' : 'ACEITAR E PAGAR'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+
             {/* Messages Area */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin scrollbar-thumb-gray-800 scrollbar-track-transparent">
                 {loading ? (
-                    <div className="flex justify-center text-gray-500 text-sm">Carregando chat...</div>
+                    <div className="flex justify-center items-center h-full text-gray-500 text-sm">
+                        <span className="animate-pulse">Carregando mensagens...</span>
+                    </div>
                 ) : messages.length === 0 ? (
-                    <div className="text-center text-gray-600 text-sm py-10">
-                        Nenhuma mensagem ainda. Inicie a negociação!
+                    <div className="flex flex-col items-center justify-center h-full text-gray-500 space-y-3 opacity-80">
+                        <div className="w-12 h-12 bg-gray-800/50 rounded-full flex items-center justify-center">
+                            <Send className="w-5 h-5 text-gray-400" />
+                        </div>
+                        <p className="text-sm text-center">Nenhuma mensagem ainda.<br/>Inicie a negociação!</p>
                     </div>
                 ) : (
                     messages.map(msg => {
                         const isMe = msg.sender_id === currentUserId
                         return (
-                            <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
-                                <div className={`max-w-[80%] rounded-lg p-3 ${isMe
-                                        ? 'bg-[#FFAE00]/20 border border-[#FFAE00]/30 text-white rounded-br-none'
-                                        : 'bg-[#1A1D23] border border-gray-700 text-gray-300 rounded-bl-none'
+                            <div key={msg.id} className={`flex w-full ${isMe ? 'justify-end' : 'justify-start'}`}>
+                                <div className={`max-w-[85%] sm:max-w-[75%] rounded-2xl px-4 py-2.5 shadow-sm ${isMe
+                                        ? 'bg-[#FFAE00]/10 border border-[#FFAE00]/20 text-gray-100 rounded-br-sm'
+                                        : 'bg-[#1A1D23] border border-gray-800 text-gray-200 rounded-bl-sm'
                                     }`}>
+                                    {!isMe && (
+                                        <p className="text-[10px] font-bold text-[#FFAE00] mb-1 uppercase tracking-tighter">
+                                            {msg.users?.name || 'Sistema'}
+                                        </p>
+                                    )}
+                                    {isMe && (
+                                        <p className="text-[10px] font-bold text-gray-500 mb-1 uppercase tracking-tighter text-right">
+                                            Você
+                                        </p>
+                                    )}
                                     {msg.attachment_url && (
-                                        <div className="mb-2">
+                                        <div className="mb-2 overflow-hidden rounded-lg">
                                             <a href={msg.attachment_url} target="_blank" rel="noopener noreferrer">
                                                 <img
                                                     src={msg.attachment_url}
                                                     alt="Anexo"
-                                                    className="max-w-full h-auto rounded border border-gray-600 hover:opacity-90 transition-opacity"
-                                                    style={{ maxHeight: '150px' }}
+                                                    className="max-w-full h-auto object-cover hover:scale-105 transition-transform duration-300"
+                                                    style={{ maxHeight: '180px' }}
                                                 />
                                             </a>
                                         </div>
                                     )}
-                                    <p className="text-sm">{msg.content}</p>
-                                    <p className="text-[10px] opacity-50 mt-1 text-right block">
+                                    <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+                                    <span className="text-[10px] opacity-40 mt-1 block text-right font-medium">
                                         {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                    </p>
+                                    </span>
                                 </div>
                             </div>
                         )
@@ -175,11 +352,12 @@ export default function NegotiationChat({ proposalId, currentUserId, isOwner }: 
             </div>
 
             {/* Input Area */}
-            <form onSubmit={handleSendMessage} className="p-3 bg-[#1A1D23] border-t border-gray-800 rounded-b-lg flex gap-2 items-center">
+            <form onSubmit={handleSendMessage} className="p-3 bg-[#1A1D23] border-t border-gray-800/80 flex gap-2 items-center w-full">
                 <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    className="p-2 text-gray-400 hover:text-[#FFAE00] transition-colors"
+                    className="flex-shrink-0 p-2.5 text-gray-400 hover:text-[#FFAE00] hover:bg-[#FFAE00]/10 rounded-full transition-all focus:outline-none"
+                    title="Anexar Imagem"
                 >
                     <Paperclip className="w-5 h-5" />
                 </button>
@@ -191,20 +369,22 @@ export default function NegotiationChat({ proposalId, currentUserId, isOwner }: 
                     accept="image/*"
                 />
 
-                <input
-                    type="text"
-                    value={newMessage}
-                    onChange={e => setNewMessage(e.target.value)}
-                    placeholder="Digite sua mensagem..."
-                    className="flex-1 bg-[#0F1115] border border-gray-700 rounded-full px-4 py-2 text-sm text-white focus:outline-none focus:border-[#FFAE00]"
-                />
+                <div className="flex-1 min-w-0 relative">
+                    <input
+                        type="text"
+                        value={newMessage}
+                        onChange={e => setNewMessage(e.target.value)}
+                        placeholder="Digite sua mensagem..."
+                        className="w-full bg-[#0F1115] border border-gray-700/50 rounded-full px-5 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#FFAE00]/50 transition-colors shadow-inner"
+                    />
+                </div>
 
                 <button
                     type="submit"
                     disabled={sending || !newMessage.trim()}
-                    className="p-2 bg-[#FFAE00] text-[#0F1115] rounded-full hover:bg-[#D97706] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    className="flex-shrink-0 p-3 bg-[#FFAE00] text-[#0F1115] rounded-full hover:bg-[#D97706] disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md focus:outline-none"
                 >
-                    <Send className="w-5 h-5" />
+                    <Send className="w-4 h-4 ml-[2px]" />
                 </button>
             </form>
         </div>

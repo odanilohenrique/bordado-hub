@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabaseClient'
 import { User } from '@supabase/supabase-js'
 import { Menu, X, LogOut } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import NotificationBell from '@/components/NotificationBell'
 
 export default function Navbar() {
     const [user, setUser] = useState<User | null>(null)
@@ -42,7 +43,7 @@ export default function Navbar() {
                                 Encontrar Programadores
                             </Link>
                             <Link href="/jobs" className="border-transparent text-gray-300 hover:border-[#FFAE00] hover:text-[#FFAE00] inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-colors">
-                                Mural de Pedidos
+                                Feed Público
                             </Link>
                         </div>
                     </div>
@@ -52,7 +53,8 @@ export default function Navbar() {
                                 <Link href={`/profile/${user.id}`} className="text-gray-300 hover:text-[#FFAE00] px-3 py-2 rounded-md text-sm font-medium transition-colors">
                                     Meu Perfil
                                 </Link>
-                                <Link href="/dashboard" className="text-gray-300 hover:text-[#FFAE00] px-3 py-2 rounded-md text-sm font-medium transition-colors">
+                                <NotificationBell />
+                                <Link href="/pedidos" className="text-gray-300 hover:text-[#FFAE00] px-3 py-2 rounded-md text-sm font-medium transition-colors">
                                     Dashboard
                                 </Link>
                                 <button
@@ -93,7 +95,7 @@ export default function Navbar() {
                 <div className="sm:hidden">
                     <div className="pt-2 pb-3 space-y-1">
                         <Link href="/jobs" className="bg-indigo-50 border-indigo-500 text-indigo-700 block pl-3 pr-4 py-2 border-l-4 text-base font-medium">
-                            Mural de Pedidos
+                            Feed Público
                         </Link>
                         <Link href="/creators" className="border-transparent text-gray-500 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-700 block pl-3 pr-4 py-2 border-l-4 text-base font-medium">
                             Programadores
@@ -102,7 +104,7 @@ export default function Navbar() {
                     <div className="pt-4 pb-4 border-t border-gray-200">
                         {user ? (
                             <div className="space-y-1">
-                                <Link href="/dashboard" className="block px-4 py-2 text-base font-medium text-gray-500 hover:text-gray-800 hover:bg-gray-100">
+                                <Link href="/pedidos" className="block px-4 py-2 text-base font-medium text-gray-500 hover:text-gray-800 hover:bg-gray-100">
                                     Dashboard
                                 </Link>
                                 <button

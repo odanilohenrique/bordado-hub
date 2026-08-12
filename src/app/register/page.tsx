@@ -62,7 +62,7 @@ export default function Register() {
                 throw new Error(result.error || 'Erro ao criar perfil')
             }
 
-            router.push('/dashboard')
+            router.push('/pedidos')
             router.refresh()
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (err: any) {

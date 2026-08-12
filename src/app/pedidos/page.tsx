@@ -1,0 +1,183 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+import { supabase } from '@/lib/supabaseClient'
+import JobCard from '@/components/JobCard'
+import Link from 'next/link'
+import { Plus, Inbox } from 'lucide-react'
+
+export default function PedidosPage() {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const [jobs, setJobs] = useState<any[]>([])
+    const [loading, setLoading] = useState(true)
+    const [filter, setFilter] = useState<string>('all')
+
+    useEffect(() => {
+        async function fetchJobs() {
+            const { data: { user } } = await supabase.auth.getUser()
+            if (!user) return
+
+            const { data: profile } = await supabase
+                .from('users')
+                .select('id')
+                .eq('supabase_user_id', user.id)
+                .single()
+
+            if (profile) {
+                const { data: jobsData } = await supabase
+                    .from('jobs')
+                    .select('*, proposals(status)')
+                    .eq('cliente_id', profile.id)
+                    .order('created_at', { ascending: false })
+
+                if (jobsData) {
+                    // For direct request jobs, fetch programmer names separately
+                    const jobsWithProgrammer = await Promise.all(
+                        jobsData.map(async (job) => {
+                            let enrichedJob = { ...job }
+                            if (job.target_programmer_id) {
+                                const { data: programmer } = await supabase
+                                    .from('users')
+                                    .select('name, avatar_url')
+                                    .eq('id', job.target_programmer_id)
+                                    .single()
+                                enrichedJob = { ...enrichedJob, target_programmer: programmer }
+                            }
+                            
+                            // Calculate client specific status if job is Open
+                            if (enrichedJob.status === 'aberto') {
+                                const proposals = enrichedJob.proposals || []
+                                if (proposals.length === 0) {
+                                    enrichedJob.my_proposal_status = 'aguardando_propostas'
+                                } else {
+                                    const hasCounter = proposals.some((p: any) => p.status === 'contraproposta')
+                                    enrichedJob.my_proposal_status = hasCounter ? 'acao_necessaria' : 'com_propostas'
+                                }
+                            }
+                            
+                            return enrichedJob
+                        })
+                    )
+                    setJobs(jobsWithProgrammer)
+                } else {
+                    setJobs([])
+                }
+            }
+            setLoading(false)
+        }
+
+        fetchJobs()
+    }, [])
+
+    return (
+        <div>
+            <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-8">
+                <div>
+                    <h2 className="text-3xl font-bold text-indigo-400">Matrizes que Encomendei</h2>
+                    <p className="text-gray-400 text-sm mt-1">
+                        Acompanhe o status dos seus pedidos
+                    </p>
+                </div>
+                
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                    <div className="flex p-1 bg-[#1A1D23] rounded-lg border border-indigo-500/20">
+                        <button
+                            onClick={() => setFilter('all')}
+                            className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${filter === 'all'
+                                ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/20'
+                                : 'text-gray-400 hover:text-white'
+                                }`}
+                        >
+                            Todos
+                        </button>
+                        <button
+                            onClick={() => setFilter('aberto')}
+                            className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${filter === 'aberto'
+                                ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/20'
+                                : 'text-gray-400 hover:text-white'
+                                }`}
+                        >
+                            Aguardando
+                        </button>
+                        <button
+                            onClick={() => setFilter('em_progresso')}
+                            className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${filter === 'em_progresso'
+                                ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/20'
+                                : 'text-gray-400 hover:text-white'
+                                }`}
+                        >
+                            Em Produção
+                        </button>
+                    </div>
+
+                    <Link
+                        href="/jobs/new"
+                        className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg transition-all font-bold shadow-lg shadow-indigo-500/20 whitespace-nowrap"
+                    >
+                        <Plus className="w-5 h-5" />
+                        Novo Pedido
+                    </Link>
+                </div>
+            </div>
+
+            {/* Content */}
+            {loading ? (
+                <div className="flex items-center justify-center py-20">
+                    <div className="text-center">
+                        <div className="w-16 h-16 border-4 border-[#FFAE00]/30 border-t-[#FFAE00] rounded-full animate-spin mx-auto mb-4" />
+                        <p className="text-gray-400">Carregando pedidos...</p>
+                    </div>
+                </div>
+            ) : jobs.length === 0 ? (
+                <div className="bg-[#1A1D23] border border-[#FFAE00]/20 rounded-xl p-12 text-center">
+                    <div className="bg-[#FFAE00]/10 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <Inbox className="w-10 h-10 text-[#FFAE00]" />
+                    </div>
+                    <h3 className="text-xl font-bold text-[#F3F4F6] mb-2">
+                        Nenhum pedido ainda
+                    </h3>
+                    <p className="text-gray-400 mb-6 max-w-md mx-auto">
+                        Você ainda não criou nenhum pedido de matriz. Comece agora e receba propostas de programadores profissionais!
+                    </p>
+                    <Link
+                        href="/jobs/new"
+                        className="inline-flex items-center gap-2 px-6 py-3 bg-[#FFAE00] text-[#0F1115] rounded-lg hover:bg-[#D97706] transition-all font-bold shadow-lg shadow-[#FFAE00]/20"
+                    >
+                        <Plus className="w-5 h-5" />
+                        Criar Primeiro Pedido
+                    </Link>
+                </div>
+            ) : (
+                <div className="grid gap-4">
+                    {jobs.filter(j => filter === 'all' ? true : j.status === filter).length === 0 ? (
+                         <div className="text-center py-20 bg-[#1A1D23] rounded-xl border border-indigo-500/10">
+                            <p className="text-gray-400 text-lg">Nenhum pedido encontrado nesta categoria.</p>
+                         </div>
+                    ) : (
+                        jobs.filter(j => filter === 'all' ? true : j.status === filter).map((job) => (
+                            <div key={job.id} className="space-y-0">
+                                {/* Direct Request Banner */}
+                                {job.target_programmer_id && (
+                                    <div className="flex items-center gap-2 bg-purple-900/40 border border-purple-500/40 border-b-0 rounded-t-xl px-4 py-2">
+                                        <span className="text-purple-300 text-xs font-bold uppercase tracking-wider">🎯 Solicitação Direta</span>
+                                        <span className="text-purple-400 text-xs">→</span>
+                                        <span className="text-white text-sm font-semibold">
+                                            {job.target_programmer?.name ?? `Programador (ID: ${String(job.target_programmer_id).slice(0, 8)}...)`}
+                                        </span>
+                                    </div>
+                                )}
+                                <div className={job.target_programmer_id ? 'rounded-t-none overflow-hidden' : ''}>
+                                    <JobCard
+                                        job={job}
+                                        hasNegotiation={job.proposals?.some((p: { status: string }) => p.status === 'contraproposta')}
+                                        viewerRole="client"
+                                    />
+                                </div>
+                            </div>
+                        ))
+                    )}
+                </div>
+            )}
+        </div>
+    )
+}

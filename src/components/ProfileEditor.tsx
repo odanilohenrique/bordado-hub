@@ -34,6 +34,9 @@ interface UserProfile {
     formats?: string[]
     experience_level?: string
     portfolio_urls?: string[]
+    cpf_cnpj?: string
+    pix_key?: string
+    pix_key_type?: string
 }
 
 interface ProfileEditorProps {
@@ -51,7 +54,10 @@ export default function ProfileEditor({ profile, onCancel, onSave }: ProfileEdit
         skills: profile.skills || [],
         formats: profile.formats || [],
         experience_level: profile.experience_level || 'Iniciante',
-        portfolio_urls: profile.portfolio_urls || []
+        portfolio_urls: profile.portfolio_urls || [],
+        cpf_cnpj: profile.cpf_cnpj || '',
+        pix_key: profile.pix_key || '',
+        pix_key_type: profile.pix_key_type || 'cpf'
     })
     const [saving, setSaving] = useState(false)
     const [uploading, setUploading] = useState(false)
@@ -164,7 +170,10 @@ export default function ProfileEditor({ profile, onCancel, onSave }: ProfileEdit
                     skills: formData.skills,
                     formats: formData.formats,
                     experience_level: formData.experience_level,
-                    portfolio_urls: formData.portfolio_urls
+                    portfolio_urls: formData.portfolio_urls,
+                    cpf_cnpj: formData.cpf_cnpj,
+                    pix_key: formData.pix_key,
+                    pix_key_type: formData.pix_key_type
                 })
                 .eq('id', profile.id)
 
@@ -238,6 +247,55 @@ export default function ProfileEditor({ profile, onCancel, onSave }: ProfileEdit
                                 : "Conte um pouco sobre sua experiência..."
                         }
                     />
+                </div>
+
+                {/* Dados Bancários para Recebimento (PIX) */}
+                <div className="p-4 rounded-xl bg-[#0F1115] border border-[#FFAE00]/20 space-y-4">
+                    <h3 className="text-sm font-bold text-[#FFAE00] uppercase tracking-wider">
+                        💳 Dados de Recebimento por PIX
+                    </h3>
+                    <p className="text-xs text-gray-400">
+                        Insira seus dados para receber o valor dos seus trabalhos entregues direto na sua conta bancária via PIX automaticamente.
+                    </p>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-xs font-medium text-gray-400 mb-1">CPF ou CNPJ</label>
+                            <input
+                                type="text"
+                                placeholder="000.000.000-00"
+                                value={formData.cpf_cnpj}
+                                onChange={(e) => handleChange('cpf_cnpj', e.target.value)}
+                                className="w-full bg-[#1A1D23] border border-gray-700 rounded-lg p-2.5 text-sm text-white focus:border-[#FFAE00] focus:outline-none"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-xs font-medium text-gray-400 mb-1">Tipo de Chave PIX</label>
+                            <select
+                                value={formData.pix_key_type}
+                                onChange={(e) => handleChange('pix_key_type', e.target.value)}
+                                className="w-full bg-[#1A1D23] border border-gray-700 rounded-lg p-2.5 text-sm text-white focus:border-[#FFAE00] focus:outline-none"
+                            >
+                                <option value="cpf">CPF</option>
+                                <option value="cnpj">CNPJ</option>
+                                <option value="email">E-mail</option>
+                                <option value="phone">Telefone / Celular</option>
+                                <option value="random">Chave Aleatória (EVP)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label className="block text-xs font-medium text-gray-400 mb-1">Chave PIX</label>
+                        <input
+                            type="text"
+                            placeholder="Sua chave PIX (ex: seu@email.com ou 11999999999)"
+                            value={formData.pix_key}
+                            onChange={(e) => handleChange('pix_key', e.target.value)}
+                            className="w-full bg-[#1A1D23] border border-gray-700 rounded-lg p-2.5 text-sm text-white focus:border-[#FFAE00] focus:outline-none"
+                        />
+                    </div>
                 </div>
 
                 {/* Conditional Fields based on Role */}

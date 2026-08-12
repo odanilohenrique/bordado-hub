@@ -37,7 +37,7 @@ export async function POST(request: Request) {
                 ],
                 external_reference: transaction.id,
                 back_urls: {
-                    success: `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/dashboard/client`,
+                    success: `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/pedidos`,
                     failure: `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/checkout/${transaction.id}`,
                     pending: `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/checkout/${transaction.id}`,
                 },

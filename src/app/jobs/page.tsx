@@ -3,42 +3,98 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import JobCard from '@/components/JobCard'
+import { Search } from 'lucide-react'
 
 export default function JobsPage() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [jobs, setJobs] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
     const [filter, setFilter] = useState<string>('all')
+    const [currentUserId, setCurrentUserId] = useState<string | null>(null)
 
     useEffect(() => {
         async function fetchJobs() {
-            // Join with users table to get client info (name, avatar)
-            // Using 'users' referencing 'cliente_id'
+            // Get current user profile id
+            const { data: { user } } = await supabase.auth.getUser()
+            if (user) {
+                const { data: profile } = await supabase
+                    .from('users')
+                    .select('id')
+                    .eq('supabase_user_id', user.id)
+                    .single()
+                if (profile) setCurrentUserId(profile.id)
+            }
+
+            // Fetch jobs with proposals (status + producer)
             let query = supabase
                 .from('jobs')
-                .select('*, users (name, avatar_url)')
-                .is('target_programmer_id', null)  // Exclude direct requests from public mural
+                .select('*, users!jobs_cliente_id_fkey(name, avatar_url), proposals(status, users:criador_id(name))')
+                .is('target_programmer_id', null)
                 .order('created_at', { ascending: false })
 
-            if (filter !== 'all') {
-                query = query.eq('status', filter)
+            if (filter === 'aberto') {
+                query = query.eq('status', 'aberto')
+            } else if (filter === 'em_progresso') {
+                query = query.eq('status', 'em_progresso')
+            } else {
+                // "all" = aberto + em_progresso (hide entregue/finalizado)
+                query = query.in('status', ['aberto', 'em_progresso'])
             }
 
             const { data } = await query
-            setJobs(data || [])
+            
+            // Extract proposal count and accepted producer name
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const enriched = (data || []).map((job: any) => {
+                const proposals = job.proposals || []
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const acceptedProposal = proposals.find((p: any) => p.status === 'aceita')
+                return {
+                    ...job,
+                    proposalCount: proposals.length,
+                    matchedProducerName: acceptedProposal?.users?.name || null,
+                }
+            })
+
+            setJobs(enriched)
             setLoading(false)
         }
 
         fetchJobs()
     }, [filter])
 
+    // Check if the current user sent a proposal to a job that is now em_progresso (lost the bid)
+    // We'll fetch this separately for the logged-in user
+    const [lostBids, setLostBids] = useState<Set<string>>(new Set())
+
+    useEffect(() => {
+        async function fetchLostBids() {
+            if (!currentUserId) return
+            
+            // Get proposals I sent that were rejected, or proposals I sent on jobs that went to someone else
+            const { data } = await supabase
+                .from('proposals')
+                .select('job_id, status')
+                .eq('criador_id', currentUserId)
+                .in('status', ['recusada', 'pendente'])
+            
+            if (data) {
+                const jobIds = new Set(data
+                    .filter(p => p.status === 'recusada' || p.status === 'pendente')
+                    .map(p => p.job_id))
+                setLostBids(jobIds)
+            }
+        }
+        fetchLostBids()
+    }, [currentUserId])
+
     return (
         <div className="min-h-screen bg-[#0F1115] py-8 px-4 sm:px-6 lg:px-8">
             <div className="max-w-7xl mx-auto">
                 <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
                     <div>
-                        <h1 className="text-3xl font-extrabold text-[#F3F4F6]">Mural de Pedidos</h1>
-                        <p className="text-gray-400 mt-1">Encontre projetos de bordado para trabalhar</p>
+                        <h1 className="text-3xl font-extrabold text-[#F3F4F6]">Feed Público</h1>
+                        <p className="text-gray-400 mt-1">Encontre projetos de bordado e envie sua proposta</p>
                     </div>
 
                     <div className="flex p-1 bg-[#1A1D23] rounded-lg border border-[#FFAE00]/20">
@@ -67,7 +123,7 @@ export default function JobsPage() {
                                 : 'text-gray-400 hover:text-white'
                                 }`}
                         >
-                            Em Progresso
+                            🤝 Match Feito
                         </button>
                     </div>
                 </div>
@@ -78,13 +134,31 @@ export default function JobsPage() {
                     </div>
                 ) : jobs.length === 0 ? (
                     <div className="text-center py-20 bg-[#1A1D23] rounded-xl border border-[#FFAE00]/10">
-                        <p className="text-gray-400 text-lg">Nenhum job encontrado com este filtro.</p>
+                        <Search className="w-10 h-10 text-gray-600 mx-auto mb-4" />
+                        <p className="text-gray-400 text-lg">Nenhum projeto encontrado com este filtro.</p>
                     </div>
                 ) : (
                     <div className="grid grid-cols-1 gap-6">
-                        {jobs.map((job) => (
-                            <JobCard key={job.id} job={job} />
-                        ))}
+                        {jobs.map((job) => {
+                            // Determine feed badge
+                            let feedBadge: 'accepting' | 'matched' | undefined
+                            if (job.status === 'aberto') feedBadge = 'accepting'
+                            else if (job.status === 'em_progresso') feedBadge = 'matched'
+
+                            // Check if user lost this bid
+                            const userLostBid = job.status === 'em_progresso' && lostBids.has(job.id)
+
+                            return (
+                                <JobCard 
+                                    key={job.id} 
+                                    job={job} 
+                                    proposalCount={job.proposalCount}
+                                    feedBadge={feedBadge}
+                                    userLostBid={userLostBid}
+                                    matchedProducerName={job.matchedProducerName}
+                                />
+                            )
+                        })}
                     </div>
                 )}
             </div>

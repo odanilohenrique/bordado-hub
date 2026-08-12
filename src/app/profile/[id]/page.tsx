@@ -397,7 +397,7 @@ export default function ProfilePage() {
                             {isOwner && profile.role === 'cliente' && (
                                 <div className="mt-8">
                                     <Link
-                                        href="/dashboard/client"
+                                        href="/pedidos"
                                         className="block w-full text-center bg-[#FFAE00] hover:bg-[#D97706] text-[#0F1115] font-bold py-2 rounded-lg transition-colors shadow-[0_0_15px_rgba(255,174,0,0.3)]"
                                     >
                                         Meus Pedidos
