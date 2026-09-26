@@ -63,6 +63,17 @@ export default function ProfilePage() {
             .single()
 
         if (!error && data) {
+            // If user is owner and has no avatar, but has Google picture, auto-sync it!
+            const googleAvatar = user?.user_metadata?.avatar_url || user?.user_metadata?.picture
+            const isUserOwner = user?.id === data.supabase_user_id || user?.id === id || user?.id === data.id
+            if (isUserOwner && !data.avatar_url && googleAvatar) {
+                await supabase
+                    .from('users')
+                    .update({ avatar_url: googleAvatar })
+                    .eq('id', data.id)
+                data.avatar_url = googleAvatar
+            }
+
             setProfile(data)
             setPreviewRole(data.role) // Initialize view with actual role
         }
@@ -73,6 +84,7 @@ export default function ProfilePage() {
         if (!currentUser) return
         setIsCreating(true)
         try {
+            const googleAvatar = currentUser.user_metadata?.avatar_url || currentUser.user_metadata?.picture || null
             const res = await fetch('/api/create-profile', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -80,7 +92,8 @@ export default function ProfilePage() {
                     userId: currentUser.id,
                     name: currentUser.user_metadata?.full_name || currentUser.email?.split('@')[0] || 'Usuário',
                     email: currentUser.email,
-                    role: newRole
+                    role: newRole,
+                    avatar_url: googleAvatar
                 })
             })
 
@@ -116,7 +129,12 @@ export default function ProfilePage() {
                 .from('avatars')
                 .upload(filePath, file, { upsert: true })
 
-            if (uploadError) throw uploadError
+            if (uploadError) {
+                if (uploadError.message?.toLowerCase().includes('bucket not found')) {
+                    throw new Error('O bucket de imagens "avatars" ainda não foi criado no Supabase. Crie o bucket "avatars" no Storage do Supabase ou use a foto do Google abaixo.')
+                }
+                throw uploadError
+            }
 
             // Get Public URL
             const { data } = supabase.storage.from('avatars').getPublicUrl(filePath)
@@ -135,6 +153,27 @@ export default function ProfilePage() {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (error: any) {
             alert('Erro ao fazer upload: ' + error.message)
+        } finally {
+            setAvatarUploading(false)
+        }
+    }
+
+    // Use Google Avatar
+    const handleUseGoogleAvatar = async () => {
+        const googleAvatar = currentUser?.user_metadata?.avatar_url || currentUser?.user_metadata?.picture
+        if (!googleAvatar || !profile) return
+
+        setAvatarUploading(true)
+        try {
+            const { error: updateError } = await supabase
+                .from('users')
+                .update({ avatar_url: googleAvatar })
+                .eq('id', profile.id)
+
+            if (updateError) throw updateError
+            await loadData()
+        } catch (error: any) {
+            alert('Erro ao atualizar foto: ' + error.message)
         } finally {
             setAvatarUploading(false)
         }
@@ -329,17 +368,29 @@ export default function ProfilePage() {
 
                             {/* Quick Edit Photo Button (Owner Only) */}
                             {isOwner && (
-                                <label className="flex items-center justify-center gap-2 text-xs text-gray-400 hover:text-[#FFAE00] cursor-pointer transition-colors mb-4 group">
-                                    <Camera className="w-4 h-4" />
-                                    {avatarUploading ? 'Enviando...' : 'Alterar Foto'}
-                                    <input
-                                        type="file"
-                                        className="hidden"
-                                        accept="image/*"
-                                        onChange={handleQuickAvatarUpload}
-                                        disabled={avatarUploading}
-                                    />
-                                </label>
+                                <div className="flex flex-col items-center gap-1.5 mb-4">
+                                    <label className="flex items-center justify-center gap-2 text-xs text-gray-400 hover:text-[#FFAE00] cursor-pointer transition-colors group">
+                                        <Camera className="w-4 h-4" />
+                                        {avatarUploading ? 'Enviando...' : 'Alterar Foto'}
+                                        <input
+                                            type="file"
+                                            className="hidden"
+                                            accept="image/*"
+                                            onChange={handleQuickAvatarUpload}
+                                            disabled={avatarUploading}
+                                        />
+                                    </label>
+                                    {(currentUser?.user_metadata?.avatar_url || currentUser?.user_metadata?.picture) && (
+                                        <button
+                                            type="button"
+                                            onClick={handleUseGoogleAvatar}
+                                            disabled={avatarUploading}
+                                            className="text-[11px] text-[#FFAE00]/80 hover:text-[#FFAE00] hover:underline transition-colors flex items-center gap-1"
+                                        >
+                                            Usar foto do Google
+                                        </button>
+                                    )}
+                                </div>
                             )}
 
                             <h1 className="text-2xl font-bold text-[#F3F4F6] text-center mb-1">{profile.name}</h1>

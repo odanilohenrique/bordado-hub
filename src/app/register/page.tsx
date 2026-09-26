@@ -78,15 +78,15 @@ export default function Register() {
                 {/* Header */}
                 <div className="text-center mb-8">
                     <div className="flex justify-center mb-4">
-                        <div className="bg-[#FFAE00]/10 p-4 rounded-full border border-[#FFAE00]/20">
-                            <UserPlus className="w-12 h-12 text-[#FFAE00]" />
+                        <div className="bg-[#FFAE00]/10 p-4 rounded-full border border-[#FFAE00]/20 shadow-lg shadow-[#FFAE00]/10">
+                            <UserPlus className="w-10 h-10 text-[#FFAE00]" />
                         </div>
                     </div>
-                    <h2 className="text-4xl font-extrabold text-[#F3F4F6] mb-2">
-                        Cadastre-se como Programador
+                    <h2 className="text-3xl font-black text-[#F3F4F6] mb-1">
+                        Bordado<span className="text-[#FFAE00]">HUB</span>
                     </h2>
-                    <p className="text-gray-400 text-lg">
-                        Encontre clientes, venda suas matrizes e receba com segurança
+                    <p className="text-gray-400 text-sm">
+                        Cadastre-se para comprar ou vender matrizes de bordado
                     </p>
                 </div>
 

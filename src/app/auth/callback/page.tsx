@@ -25,14 +25,25 @@ function AuthCallbackContent() {
             setStatus('Autenticado! Redirecionando...')
 
             try {
-                // Check Profile Role
+                // Check Profile Role & Avatar
                 const { data: profile } = await supabase
                     .from('users')
-                    .select('role')
+                    .select('role, avatar_url')
                     .eq('supabase_user_id', userId)
                     .single()
 
+                // If logged in via Google, check for avatar
+                const { data: { user } } = await supabase.auth.getUser()
+                const googleAvatar = user?.user_metadata?.avatar_url || user?.user_metadata?.picture
+
                 if (profile) {
+                    if (!profile.avatar_url && googleAvatar) {
+                        await supabase
+                            .from('users')
+                            .update({ avatar_url: googleAvatar })
+                            .eq('supabase_user_id', userId)
+                    }
+
                     if (profile.role === 'cliente') router.push('/pedidos')
                     else if (profile.role === 'criador') router.push('/jobs')
                     else router.push(next === '/pedidos' ? '/producao' : next)

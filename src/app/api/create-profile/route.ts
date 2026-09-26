@@ -15,7 +15,7 @@ export async function POST(request: Request) {
         }
 
         const body = await request.json()
-        const { userId, name, email, role } = body
+        const { userId, name, email, role, avatar_url } = body
 
         if (!userId || !email) {
             return NextResponse.json({ error: 'Dados incompletos: userId ou email faltando.' }, { status: 400 })
@@ -28,7 +28,8 @@ export async function POST(request: Request) {
                     supabase_user_id: userId,
                     name,
                     email,
-                    role: role || 'cliente'
+                    role: role || 'cliente',
+                    ...(avatar_url ? { avatar_url } : {})
                 },
             ], { onConflict: 'supabase_user_id' })
             .select()

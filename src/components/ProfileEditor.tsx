@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { Save, X, Upload, Trash2, ImageIcon } from 'lucide-react'
 import Image from 'next/image'
@@ -62,6 +62,16 @@ export default function ProfileEditor({ profile, onCancel, onSave }: ProfileEdit
     const [saving, setSaving] = useState(false)
     const [uploading, setUploading] = useState(false)
     const [portfolioUploading, setPortfolioUploading] = useState(false)
+    const [googleAvatarUrl, setGoogleAvatarUrl] = useState<string | null>(null)
+
+    useEffect(() => {
+        async function fetchGoogleAvatar() {
+            const { data: { user } } = await supabase.auth.getUser()
+            const avatar = user?.user_metadata?.avatar_url || user?.user_metadata?.picture || null
+            setGoogleAvatarUrl(avatar)
+        }
+        fetchGoogleAvatar()
+    }, [])
 
     // Handlers
     const handleChange = (field: string, value: string) => {
@@ -84,7 +94,12 @@ export default function ProfileEditor({ profile, onCancel, onSave }: ProfileEdit
                 .from('avatars')
                 .upload(filePath, file)
 
-            if (uploadError) throw uploadError
+            if (uploadError) {
+                if (uploadError.message?.toLowerCase().includes('bucket not found')) {
+                    throw new Error('O bucket de imagens "avatars" ainda não foi criado no Supabase. Crie o bucket "avatars" no Storage do Supabase ou use a foto do Google.')
+                }
+                throw uploadError
+            }
 
             // Get Public URL
             const { data } = supabase.storage.from('avatars').getPublicUrl(filePath)
@@ -200,15 +215,15 @@ export default function ProfileEditor({ profile, onCancel, onSave }: ProfileEdit
                 {/* Avatar Upload */}
                 <div>
                     <label className="block text-sm font-medium text-gray-400 mb-2">Foto de Perfil</label>
-                    <div className="flex items-center gap-4">
+                    <div className="flex flex-wrap items-center gap-4">
                         <div className="w-16 h-16 rounded-full bg-[#0F1115] border border-gray-700 flex items-center justify-center overflow-hidden relative">
                             {formData.avatar_url ? (
-                                <Image src={formData.avatar_url} alt="Avatar" fill className="object-cover" />
+                                <Image src={formData.avatar_url} alt="Avatar" fill className="object-cover" unoptimized />
                             ) : (
                                 <span className="text-gray-500 text-xs">Sem foto</span>
                             )}
                         </div>
-                        <label className="bg-[#0F1115] border border-gray-700 text-gray-300 px-4 py-2 rounded-lg cursor-pointer hover:border-[#FFAE00] hover:text-[#FFAE00] transition-all flex items-center gap-2">
+                        <label className="bg-[#0F1115] border border-gray-700 text-gray-300 px-4 py-2 rounded-lg cursor-pointer hover:border-[#FFAE00] hover:text-[#FFAE00] transition-all flex items-center gap-2 text-sm">
                             <Upload className="w-4 h-4" />
                             {uploading ? 'Enviando...' : 'Alterar Foto'}
                             <input
@@ -219,6 +234,24 @@ export default function ProfileEditor({ profile, onCancel, onSave }: ProfileEdit
                                 disabled={uploading}
                             />
                         </label>
+                        {googleAvatarUrl && (
+                            <button
+                                type="button"
+                                onClick={() => handleChange('avatar_url', googleAvatarUrl)}
+                                className="bg-[#0F1115] border border-[#FFAE00]/30 text-[#FFAE00] hover:bg-[#FFAE00]/10 px-4 py-2 rounded-lg transition-all text-sm flex items-center gap-2"
+                            >
+                                Usar foto do Google
+                            </button>
+                        )}
+                        {formData.avatar_url && (
+                            <button
+                                type="button"
+                                onClick={() => handleChange('avatar_url', '')}
+                                className="text-gray-500 hover:text-red-400 text-xs transition-colors"
+                            >
+                                Remover
+                            </button>
+                        )}
                     </div>
                 </div>
 
