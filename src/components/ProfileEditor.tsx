@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabaseClient'
-import { Save, X, Upload, Trash2, ImageIcon } from 'lucide-react'
+import { Save, X, Upload, Trash2, ImageIcon, Camera } from 'lucide-react'
 import Image from 'next/image'
 
 // Comprehensive list of embroidery software
@@ -69,8 +69,12 @@ export default function ProfileEditor({ profile, onCancel, onSave }: ProfileEdit
             const { data: { user } } = await supabase.auth.getUser()
             const avatar = user?.user_metadata?.avatar_url || user?.user_metadata?.picture || null
             setGoogleAvatarUrl(avatar)
+            if (avatar && !formData.avatar_url) {
+                handleChange('avatar_url', avatar)
+            }
         }
         fetchGoogleAvatar()
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
 
     // Handlers
@@ -83,33 +87,25 @@ export default function ProfileEditor({ profile, onCancel, onSave }: ProfileEdit
             if (!event.target.files || event.target.files.length === 0) return
 
             const file = event.target.files[0]
-            const fileExt = file.name.split('.').pop()
-            const fileName = `${profile.id}-${Math.random()}.${fileExt}`
-            const filePath = `${fileName}`
-
             setUploading(true)
 
-            // Upload to Supabase
-            const { error: uploadError } = await supabase.storage
-                .from('avatars')
-                .upload(filePath, file)
+            const uploadData = new FormData()
+            uploadData.append('file', file)
+            uploadData.append('userId', profile.id)
 
-            if (uploadError) {
-                if (uploadError.message?.toLowerCase().includes('bucket not found')) {
-                    throw new Error('O bucket de imagens "avatars" ainda não foi criado no Supabase. Crie o bucket "avatars" no Storage do Supabase ou use a foto do Google.')
-                }
-                throw uploadError
-            }
+            const res = await fetch('/api/upload-avatar', {
+                method: 'POST',
+                body: uploadData
+            })
 
-            // Get Public URL
-            const { data } = supabase.storage.from('avatars').getPublicUrl(filePath)
+            const data = await res.json()
+            if (!res.ok) throw new Error(data.error || 'Erro ao fazer upload da foto')
 
             // Update local state
             handleChange('avatar_url', data.publicUrl)
-
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (error: any) {
-            alert('Erro ao fazer upload: ' + error.message)
+            alert('Erro ao alterar foto: ' + error.message)
         } finally {
             setUploading(false)
         }
@@ -223,9 +219,9 @@ export default function ProfileEditor({ profile, onCancel, onSave }: ProfileEdit
                                 <span className="text-gray-500 text-xs">Sem foto</span>
                             )}
                         </div>
-                        <label className="bg-[#0F1115] border border-gray-700 text-gray-300 px-4 py-2 rounded-lg cursor-pointer hover:border-[#FFAE00] hover:text-[#FFAE00] transition-all flex items-center gap-2 text-sm">
-                            <Upload className="w-4 h-4" />
-                            {uploading ? 'Enviando...' : 'Alterar Foto'}
+                        <label className="bg-[#0F1115] border border-gray-700 text-gray-300 px-4 py-2.5 rounded-lg cursor-pointer hover:border-[#FFAE00] hover:text-[#FFAE00] transition-all flex items-center gap-2 text-sm font-medium">
+                            <Camera className="w-4 h-4 text-[#FFAE00]" />
+                            {uploading ? 'Enviando foto...' : 'Alterar foto de perfil'}
                             <input
                                 type="file"
                                 className="hidden"
@@ -234,22 +230,13 @@ export default function ProfileEditor({ profile, onCancel, onSave }: ProfileEdit
                                 disabled={uploading}
                             />
                         </label>
-                        {googleAvatarUrl && (
+                        {formData.avatar_url && googleAvatarUrl && formData.avatar_url !== googleAvatarUrl && (
                             <button
                                 type="button"
                                 onClick={() => handleChange('avatar_url', googleAvatarUrl)}
-                                className="bg-[#0F1115] border border-[#FFAE00]/30 text-[#FFAE00] hover:bg-[#FFAE00]/10 px-4 py-2 rounded-lg transition-all text-sm flex items-center gap-2"
+                                className="text-xs text-gray-400 hover:text-[#FFAE00] underline transition-colors"
                             >
-                                Usar foto do Google
-                            </button>
-                        )}
-                        {formData.avatar_url && (
-                            <button
-                                type="button"
-                                onClick={() => handleChange('avatar_url', '')}
-                                className="text-gray-500 hover:text-red-400 text-xs transition-colors"
-                            >
-                                Remover
+                                Restaurar foto do Google
                             </button>
                         )}
                     </div>

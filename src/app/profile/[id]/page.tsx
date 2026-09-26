@@ -118,41 +118,25 @@ export default function ProfilePage() {
         if (!event.target.files || event.target.files.length === 0 || !profile) return
 
         const file = event.target.files[0]
-        const fileExt = file.name.split('.').pop()
-        const fileName = `${profile.id}-${Date.now()}.${fileExt}`
-        const filePath = `${fileName}`
-
         setAvatarUploading(true)
         try {
-            // Upload to Supabase Storage
-            const { error: uploadError } = await supabase.storage
-                .from('avatars')
-                .upload(filePath, file, { upsert: true })
+            const formData = new FormData()
+            formData.append('file', file)
+            formData.append('userId', profile.id)
 
-            if (uploadError) {
-                if (uploadError.message?.toLowerCase().includes('bucket not found')) {
-                    throw new Error('O bucket de imagens "avatars" ainda não foi criado no Supabase. Crie o bucket "avatars" no Storage do Supabase ou use a foto do Google abaixo.')
-                }
-                throw uploadError
-            }
+            const res = await fetch('/api/upload-avatar', {
+                method: 'POST',
+                body: formData
+            })
 
-            // Get Public URL
-            const { data } = supabase.storage.from('avatars').getPublicUrl(filePath)
-
-            // Update DB
-            const { error: updateError } = await supabase
-                .from('users')
-                .update({ avatar_url: data.publicUrl })
-                .eq('id', profile.id)
-
-            if (updateError) throw updateError
+            const data = await res.json()
+            if (!res.ok) throw new Error(data.error || 'Erro ao fazer upload da foto')
 
             // Reload data to show new avatar
             await loadData()
-
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (error: any) {
-            alert('Erro ao fazer upload: ' + error.message)
+            alert('Erro ao alterar foto: ' + error.message)
         } finally {
             setAvatarUploading(false)
         }
@@ -350,48 +334,47 @@ export default function ProfilePage() {
                                 </span>
                             </div>
 
-                            {/* Avatar */}
-                            <div className="w-32 h-32 mx-auto rounded-full border-4 border-[#0F1115] bg-[#2A2D35] flex items-center justify-center overflow-hidden mb-2 relative shadow-[0_0_20px_rgba(255,174,0,0.2)]">
-                                {profile.avatar_url ? (
-                                    <Image
-                                        src={profile.avatar_url}
-                                        alt={profile.name}
-                                        width={128}
-                                        height={128}
-                                        className="object-cover w-full h-full"
-                                        unoptimized
-                                    />
-                                ) : (
-                                    <User className="w-16 h-16 text-gray-500" />
-                                )}
-                            </div>
+                            {/* Avatar & Alterar foto de perfil */}
+                            {(() => {
+                                const googleAvatar = currentUser?.user_metadata?.avatar_url || currentUser?.user_metadata?.picture
+                                const displayAvatar = profile.avatar_url || (isOwner ? googleAvatar : null)
 
-                            {/* Quick Edit Photo Button (Owner Only) */}
-                            {isOwner && (
-                                <div className="flex flex-col items-center gap-1.5 mb-4">
-                                    <label className="flex items-center justify-center gap-2 text-xs text-gray-400 hover:text-[#FFAE00] cursor-pointer transition-colors group">
-                                        <Camera className="w-4 h-4" />
-                                        {avatarUploading ? 'Enviando...' : 'Alterar Foto'}
-                                        <input
-                                            type="file"
-                                            className="hidden"
-                                            accept="image/*"
-                                            onChange={handleQuickAvatarUpload}
-                                            disabled={avatarUploading}
-                                        />
-                                    </label>
-                                    {(currentUser?.user_metadata?.avatar_url || currentUser?.user_metadata?.picture) && (
-                                        <button
-                                            type="button"
-                                            onClick={handleUseGoogleAvatar}
-                                            disabled={avatarUploading}
-                                            className="text-[11px] text-[#FFAE00]/80 hover:text-[#FFAE00] hover:underline transition-colors flex items-center gap-1"
-                                        >
-                                            Usar foto do Google
-                                        </button>
-                                    )}
-                                </div>
-                            )}
+                                return (
+                                    <>
+                                        <div className="w-32 h-32 mx-auto rounded-full border-4 border-[#0F1115] bg-[#2A2D35] flex items-center justify-center overflow-hidden mb-3 relative shadow-[0_0_20px_rgba(255,174,0,0.2)]">
+                                            {displayAvatar ? (
+                                                <Image
+                                                    src={displayAvatar}
+                                                    alt={profile.name}
+                                                    width={128}
+                                                    height={128}
+                                                    className="object-cover w-full h-full"
+                                                    unoptimized
+                                                />
+                                            ) : (
+                                                <User className="w-16 h-16 text-gray-500" />
+                                            )}
+                                        </div>
+
+                                        {/* Botão único: Alterar foto de perfil */}
+                                        {isOwner && (
+                                            <div className="flex justify-center mb-4">
+                                                <label className="inline-flex items-center justify-center gap-2 px-3 py-1.5 rounded-full bg-[#0F1115] border border-gray-700 text-xs font-medium text-gray-300 hover:text-[#FFAE00] hover:border-[#FFAE00]/50 cursor-pointer transition-all shadow-sm group">
+                                                    <Camera className="w-3.5 h-3.5 text-[#FFAE00]" />
+                                                    {avatarUploading ? 'Enviando foto...' : 'Alterar foto de perfil'}
+                                                    <input
+                                                        type="file"
+                                                        className="hidden"
+                                                        accept="image/*"
+                                                        onChange={handleQuickAvatarUpload}
+                                                        disabled={avatarUploading}
+                                                    />
+                                                </label>
+                                            </div>
+                                        )}
+                                    </>
+                                )
+                            })()}
 
                             <h1 className="text-2xl font-bold text-[#F3F4F6] text-center mb-1">{profile.name}</h1>
 
