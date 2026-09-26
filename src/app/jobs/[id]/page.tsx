@@ -5,15 +5,17 @@ import { supabase } from '@/lib/supabaseClient'
 import { useRouter } from 'next/navigation'
 import { formatDate } from '@/lib/helpers'
 import Link from 'next/link'
-import { ArrowLeft, Clock, Calendar, MessageSquare, AlertCircle, CheckCircle, Package, Zap, User, X, Star, PenTool, Download, Upload, Send, Sparkles } from 'lucide-react'
+import { ArrowLeft, Clock, Calendar, MessageSquare, AlertCircle, CheckCircle, Package, Zap, User, X, Star, PenTool, Download, Upload, Send, Sparkles, DollarSign } from 'lucide-react'
 import { useParams } from 'next/navigation'
 import NegotiationChat from '@/components/NegotiationChat'
+import { toast } from 'sonner'
 
 interface Job {
     id: string
     cliente_id: string
     title: string
     description: string
+    dimensions?: string
     image_urls: string[]
     formats: string[]
     fabric_type: string
@@ -73,11 +75,13 @@ function JobDetailClient({ jobId }: { jobId: string }) {
     const [negotiatingProposalId, setNegotiatingProposalId] = useState<string | null>(null)
     const [counterAmount, setCounterAmount] = useState('')
     const [counterMessage, setCounterMessage] = useState('')
+    const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({})
+    const [confirmAcceptModal, setConfirmAcceptModal] = useState<string | null>(null)
 
     // Delivery & Review form state
     const [deliveryNotes, setDeliveryNotes] = useState('')
     const [delivering, setDelivering] = useState(false)
-    const [selectedFile, setSelectedFile] = useState<File | null>(null)
+    const [selectedFiles, setSelectedFiles] = useState<File[]>([])
     const [showSuccessModal, setShowSuccessModal] = useState(false)
 
     const [ratingMatrix, setRatingMatrix] = useState(5)
@@ -125,16 +129,86 @@ function JobDetailClient({ jobId }: { jobId: string }) {
 
             if (proposalsError) {
                 console.error('Error loading proposals:', proposalsError)
+                toast.error('Erro ao carregar propostas: ' + proposalsError.message)
             }
 
             setProposals(proposalsData || [])
+
+            if (proposalsData && proposalsData.length > 0) {
+                // Fetch unread messages count
+                const { data: messages } = await supabase
+                    .from('proposal_messages')
+                    .select('proposal_id, sender_id, read')
+                    .eq('read', false)
+                
+                if (messages) {
+                    const counts: Record<string, number> = {}
+                    messages.forEach(msg => {
+                        if (msg.sender_id !== profile.id) {
+                            counts[msg.proposal_id] = (counts[msg.proposal_id] || 0) + 1
+                        }
+                    })
+                    setUnreadCounts(counts)
+                }
+            }
+
             setLoading(false)
         }
 
         loadData()
-    }, [jobId, router])
+
+        // Listen for new proposals and messages
+        const channel = supabase
+            .channel(`job_updates_${jobId}`)
+            .on('postgres_changes', {
+                event: 'INSERT',
+                schema: 'public',
+                table: 'proposal_messages',
+            }, (payload) => {
+                const newMsg = payload.new as any
+                setUnreadCounts(prev => {
+                    // Only increment if not sent by us, and not currently negotiating this one
+                    if (newMsg.sender_id !== currentUser?.id) {
+                        return {
+                            ...prev,
+                            [newMsg.proposal_id]: (prev[newMsg.proposal_id] || 0) + 1
+                        }
+                    }
+                    return prev
+                })
+            })
+            .on('postgres_changes', {
+                event: '*',
+                schema: 'public',
+                table: 'proposals',
+                filter: `job_id=eq.${jobId}`
+            }, () => {
+                loadData() // Reload proposals on changes
+            })
+            .subscribe()
+
+        return () => {
+            supabase.removeChannel(channel)
+        }
+    }, [jobId, router, currentUser?.id])
 
     const acceptedProposal = proposals.find((p: any) => p.status === 'aceita')
+
+    const handleNegotiate = (propId: string) => {
+        if (negotiatingProposalId === propId) {
+            setNegotiatingProposalId(null)
+        } else {
+            setNegotiatingProposalId(propId)
+            // Mark as read immediately in UI
+            setUnreadCounts(prev => ({ ...prev, [propId]: 0 }))
+            // Mark as read in DB
+            supabase.from('proposal_messages')
+                .update({ read: true })
+                .eq('proposal_id', propId)
+                .neq('sender_id', currentUser?.id)
+                .then()
+        }
+    }
 
     const handleSubmitProposal = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -154,57 +228,65 @@ function JobDetailClient({ jobId }: { jobId: string }) {
 
             if (error) throw error
 
-            alert('Proposta enviada com sucesso!')
+            toast.success('Proposta enviada com sucesso!')
             router.refresh()
             window.location.reload()
         } catch (err: any) {
-            alert('Erro ao enviar proposta: ' + err.message)
+            toast.error('Erro ao enviar proposta: ' + err.message)
         } finally {
             setSubmitting(false)
         }
     }
 
     const handleSubmitDelivery = async () => {
-        if (!selectedFile) return
+        if (selectedFiles.length === 0) return
         setDelivering(true)
         try {
-            const fileExt = selectedFile.name.split('.').pop()
-            const fileName = `${jobId}_${Math.random()}.${fileExt}`
-            const filePath = `deliveries/${fileName}`
+            const publicUrls: string[] = []
 
-            const { error: uploadError } = await supabase.storage
-                .from('job-deliveries')
-                .upload(filePath, selectedFile)
+            for (const file of selectedFiles) {
+                const fileExt = file.name.split('.').pop()
+                const fileName = `${jobId}_${Math.random()}.${fileExt}`
+                const filePath = `deliveries/${fileName}`
 
-            if (uploadError) throw uploadError
+                const { error: uploadError } = await supabase.storage
+                    .from('job-deliveries')
+                    .upload(filePath, file)
 
-            const { data: { publicUrl } } = supabase.storage
-                .from('job-deliveries')
-                .getPublicUrl(filePath)
+                if (uploadError) throw uploadError
 
-            await handleDeliverMatrix(deliveryNotes, publicUrl)
+                const { data: { publicUrl } } = supabase.storage
+                    .from('job-deliveries')
+                    .getPublicUrl(filePath)
+                
+                publicUrls.push(publicUrl)
+            }
+
+            await handleDeliverMatrix(deliveryNotes, publicUrls.join(','))
         } catch (err: any) {
-            alert('Erro no upload: ' + err.message)
+            toast.error('Erro no upload: ' + err.message)
             setDelivering(false)
         }
     }
 
-    const handleDeliverMatrix = async (deliveryNotes: string, fileUrl: string) => {
+    const handleDeliverMatrix = async (deliveryNotes: string, fileUrls: string) => {
         try {
-            const { error } = await supabase
-                .from('jobs')
-                .update({
-                    status: 'entregue',
-                    delivery_url: fileUrl,
-                    delivery_notes: deliveryNotes,
-                    delivered_at: new Date().toISOString()
+            const response = await fetch('/api/jobs/deliver', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    jobId,
+                    deliveryUrls: fileUrls,
+                    deliveryNotes
                 })
-                .eq('id', jobId)
+            })
 
-            if (error) throw error
+            const data = await response.json()
+            if (!response.ok) throw new Error(data.error || 'Erro na entrega')
+
             setShowSuccessModal(true)
         } catch (err: any) {
-            alert('Erro ao entregar: ' + err.message)
+            toast.error('Erro ao entregar: ' + err.message)
             setDelivering(false)
         }
     }
@@ -213,41 +295,31 @@ function JobDetailClient({ jobId }: { jobId: string }) {
         if (!acceptedProposal) return
 
         try {
-            const { error: reviewError } = await supabase
-                .from('reviews')
-                .insert([{
-                    job_id: jobId,
-                    reviewer_id: currentUser.id,
-                    reviewee_id: acceptedProposal.criador_id,
-                    rating_matrix: mRating,
-                    rating_service: sRating,
-                    comment,
-                    rating: Math.round((mRating + sRating) / 2)
-                }])
+            const response = await fetch('/api/jobs/approve', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    jobId,
+                    reviewerId: currentUser.id,
+                    revieweeId: acceptedProposal.criador_id,
+                    ratingMatrix: mRating,
+                    ratingService: sRating,
+                    comment
+                })
+            })
 
-            if (reviewError) throw reviewError
+            const data = await response.json()
+            if (!response.ok) throw new Error(data.error || 'Erro na avaliação')
 
-            const { error: jobError } = await supabase
-                .from('jobs')
-                .update({ status: 'finalizado' })
-                .eq('id', jobId)
-
-            if (jobError) throw jobError
-
-            alert('Avaliação enviada! Projeto finalizado.')
-            window.location.reload()
+            toast.success('Avaliação enviada! Projeto finalizado e pagamento liberado.')
+            setTimeout(() => {
+                window.location.reload()
+            }, 2000)
         } catch (err: any) {
-            alert('Erro ao avaliar: ' + err.message)
+            toast.error('Erro ao avaliar: ' + err.message)
         }
     }
 
-    const handleNegotiate = (proposalId: string) => {
-        if (negotiatingProposalId === proposalId) {
-            setNegotiatingProposalId(null)
-        } else {
-            setNegotiatingProposalId(proposalId)
-        }
-    }
 
     const submitCounterProposal = async () => {
         if (!negotiatingProposalId) return
@@ -264,12 +336,19 @@ function JobDetailClient({ jobId }: { jobId: string }) {
 
             if (error) throw error
 
-            alert('Contraproposta enviada!')
+            // Automatically send a message in chat
+            await supabase.from('proposal_messages').insert({
+                proposal_id: negotiatingProposalId,
+                sender_id: currentUser.id,
+                content: `⚡ Fiz uma contraproposta oficial de **R$ ${counterAmount}**. Veja os detalhes e aceite para fecharmos!`
+            })
+
+            toast.success('Contraproposta enviada!')
             setNegotiatingProposalId(null)
             router.refresh()
             window.location.reload()
         } catch (err: any) {
-            alert('Erro: ' + err.message)
+            toast.error('Erro: ' + err.message)
         }
     }
 
@@ -288,7 +367,7 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                     .eq('id', proposalId)
 
                 if (error) throw error
-                alert('Oferta aceita! O valor foi atualizado. Aguarde o pagamento do cliente.')
+                toast.success('Oferta aceita! O valor foi atualizado. Aguarde o pagamento do cliente.')
             } else {
                 const { error } = await supabase
                     .from('proposals')
@@ -300,32 +379,26 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                     .eq('id', proposalId)
 
                 if (error) throw error
-                alert('Contraproposta recusada.')
+                toast.success('Contraproposta recusada.')
             }
             router.refresh()
             window.location.reload()
         } catch (err: any) {
-            alert('Erro: ' + err.message)
+            toast.error('Erro: ' + err.message)
         }
     }
 
     const handleAcceptProposal = async (proposalId: string) => {
-        if (!confirm('Aceitar esta proposta e ir para o pagamento?')) return
-
+        setConfirmAcceptModal(null)
         try {
             await supabase
                 .from('proposals')
                 .update({ status: 'aceita' })
                 .eq('id', proposalId)
 
-            await supabase
-                .from('jobs')
-                .update({ status: 'em_progresso' })
-                .eq('id', jobId)
-
             router.push(`/checkout/${proposalId}`)
         } catch (err: any) {
-            alert('Erro: ' + err.message)
+            toast.error('Erro: ' + err.message)
         }
     }
 
@@ -385,15 +458,21 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                         </span>
                                     </div>
                                 </div>
-                                <div className="flex gap-2 mb-4">
+                                <div className="flex gap-2 mb-4 flex-wrap">
                                     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-[#0F1115] border border-gray-800 rounded-md text-xs text-gray-300">
                                         <Clock className="w-3 h-3 text-[#FFAE00]" />
                                         {urgencyLabels[job.urgency] || job.urgency}
                                     </span>
                                     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-[#0F1115] border border-gray-800 rounded-md text-xs text-gray-300">
                                         <Package className="w-3 h-3 text-[#FFAE00]" />
-                                        {job.fabric_type || 'N/A'}
+                                        Tecido: {job.fabric_type || 'N/A'}
                                     </span>
+                                    {job.dimensions && (
+                                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-[#0F1115] border border-[#FFAE00]/20 rounded-md text-xs text-[#FFAE00] font-bold">
+                                            <Package className="w-3 h-3" />
+                                            {job.dimensions}
+                                        </span>
+                                    )}
                                 </div>
                                 <p className="text-sm text-gray-300 line-clamp-3 leading-relaxed mb-4">
                                     {job.description}
@@ -479,32 +558,47 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                                 <input 
                                                     type="file" 
                                                     id="matrix-upload"
+                                                    multiple
+                                                    accept=".pdf,.jpg,.jpeg,.png,.pxf,.emb,.dst,.jef,.pes,.xxx,.vp3,.hus,.vip,.shv,.exp,.pec"
                                                     className="hidden" 
-                                                    onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+                                                    onChange={(e) => {
+                                                        const files = Array.from(e.target.files || [])
+                                                        if (files.length > 10) {
+                                                            toast.error('Você pode enviar no máximo 10 arquivos por vez.')
+                                                            return
+                                                        }
+                                                        setSelectedFiles(files)
+                                                    }}
                                                     disabled={delivering}
                                                 />
                                                 <label 
                                                     htmlFor="matrix-upload"
                                                     className={`flex flex-col items-center justify-center border-2 border-dashed border-white/10 rounded-xl p-8 cursor-pointer hover:border-green-500/50 hover:bg-green-500/5 transition-all ${delivering ? 'opacity-50 cursor-not-allowed' : ''}`}
                                                 >
-                                                    {selectedFile ? (
+                                                    {selectedFiles.length > 0 ? (
                                                         <>
                                                             <Upload className="w-8 h-8 text-green-400 mb-2" />
-                                                            <p className="text-sm text-green-400 font-bold text-center">Arquivo selecionado:</p>
-                                                            <p className="text-xs text-gray-300 mt-1 truncate max-w-[250px]">{selectedFile.name}</p>
-                                                            <p className="text-[10px] text-gray-500 mt-2 uppercase tracking-widest font-bold">Clique para alterar</p>
+                                                            <p className="text-sm text-green-400 font-bold text-center">{selectedFiles.length} arquivo(s) selecionado(s):</p>
+                                                            <div className="flex flex-wrap justify-center gap-2 mt-3">
+                                                                {selectedFiles.map((f, i) => (
+                                                                    <div key={i} className="bg-[#1A1D23] px-3 py-1 rounded text-xs text-gray-300 border border-white/10 truncate max-w-[150px]">
+                                                                        {f.name}
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                            <p className="text-[10px] text-gray-500 mt-4 uppercase tracking-widest font-bold">Clique para alterar a seleção</p>
                                                         </>
                                                     ) : (
                                                         <>
                                                             <Upload className="w-8 h-8 text-green-400 mb-2" />
-                                                            <p className="text-sm text-gray-300 font-bold text-center">Clique para selecionar a matriz finalizada</p>
-                                                            <p className="text-[10px] text-gray-500 mt-1 uppercase tracking-widest font-bold">Todos os formatos serão aceitos</p>
+                                                            <p className="text-sm text-gray-300 font-bold text-center">Clique para selecionar os arquivos (até 10)</p>
+                                                            <p className="text-[10px] text-gray-500 mt-1 uppercase tracking-widest font-bold text-center">Apenas formatos de bordado (.pxf, .emb, .dst, .pes, etc) e imagens/pdf</p>
                                                         </>
                                                     )}
                                                 </label>
                                             </div>
 
-                                            {selectedFile && (
+                                            {selectedFiles.length > 0 && (
                                                 <div className="mt-4 flex justify-end">
                                                     <button 
                                                         onClick={handleSubmitDelivery}
@@ -549,15 +643,35 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                     </div>
                                 )}
 
-                                <a 
-                                    href={job.delivery_url} 
-                                    target="_blank" 
-                                    rel="noopener noreferrer"
-                                    className="inline-flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-xl font-bold transition-all shadow-lg shadow-green-500/20 hover:scale-105 active:scale-95"
-                                >
-                                    <Download className="w-5 h-5" />
-                                    Baixar Matriz Finalizada
-                                </a>
+                                {job.delivery_url && job.delivery_url.split(',').length > 1 ? (
+                                    <div className="flex flex-col gap-3">
+                                        <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">Arquivos Entregues ({job.delivery_url.split(',').length})</p>
+                                        <div className="flex flex-wrap gap-3">
+                                            {job.delivery_url.split(',').map((url, i) => (
+                                                <a 
+                                                    key={i}
+                                                    href={url} 
+                                                    target="_blank" 
+                                                    rel="noopener noreferrer"
+                                                    className="inline-flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-5 py-3 rounded-xl font-bold transition-all shadow-lg shadow-green-500/20 hover:scale-105 active:scale-95 text-sm"
+                                                >
+                                                    <Download className="w-4 h-4" />
+                                                    Arquivo {i + 1}
+                                                </a>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <a 
+                                        href={job.delivery_url} 
+                                        target="_blank" 
+                                        rel="noopener noreferrer"
+                                        className="inline-flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-xl font-bold transition-all shadow-lg shadow-green-500/20 hover:scale-105 active:scale-95"
+                                    >
+                                        <Download className="w-5 h-5" />
+                                        Baixar Matriz Finalizada
+                                    </a>
+                                )}
                             </div>
 
                             {isOwner && (
@@ -709,18 +823,33 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                         <p className="text-xs text-gray-400 line-clamp-2 mt-4 mb-4 h-8 bg-black/20 p-2 rounded border border-white/5 italic">"{proposal.message}"</p>
                                         
                                         <div className="flex flex-col gap-2">
-                                            <div className="flex gap-2">
+                                            <div className="flex gap-2 relative">
                                                 {isOwner && proposal.status === 'pendente' && (
                                                     <>
-                                                        <button onClick={() => handleAcceptProposal(proposal.id)} className="flex-1 bg-[#FFAE00] text-black text-xs font-bold py-2 rounded-lg transition-colors flex items-center justify-center gap-1 hover:brightness-110"><Zap className="w-3 h-3"/> Pagar</button>
-                                                        <button onClick={() => handleNegotiate(proposal.id)} className={`flex-1 border text-xs font-bold py-2 rounded-lg transition-colors flex items-center justify-center gap-1 ${negotiatingProposalId === proposal.id ? 'bg-white/10 text-white border-white/20' : 'border-white/10 text-gray-400 hover:text-white'}`}><MessageSquare className="w-3 h-3"/> {negotiatingProposalId === proposal.id ? 'Ocultar' : 'Chat'}</button>
+                                                        <button onClick={() => setConfirmAcceptModal(proposal.id)} className="flex-1 bg-[#FFAE00] text-black text-xs font-bold py-2 rounded-lg transition-colors flex items-center justify-center gap-1 hover:brightness-110"><Zap className="w-3 h-3"/> Pagar</button>
+                                                        <button onClick={() => handleNegotiate(proposal.id)} className={`flex-1 border text-xs font-bold py-2 rounded-lg transition-colors flex items-center justify-center gap-1 relative ${negotiatingProposalId === proposal.id ? 'bg-white/10 text-white border-white/20' : 'border-white/10 text-gray-400 hover:text-white'}`}>
+                                                            <MessageSquare className="w-3 h-3"/> {negotiatingProposalId === proposal.id ? 'Ocultar' : 'Chat'}
+                                                            {unreadCounts[proposal.id] > 0 && <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white shadow-lg animate-bounce">{unreadCounts[proposal.id]}</span>}
+                                                        </button>
                                                     </>
                                                 )}
                                                 {!isOwner && currentUser?.id === proposal.criador_id && (
-                                                    <button onClick={() => handleNegotiate(proposal.id)} className={`w-full border text-xs font-bold py-2 rounded-lg transition-colors flex items-center justify-center gap-1 ${negotiatingProposalId === proposal.id ? 'bg-[#FFAE00]/10 text-[#FFAE00] border-[#FFAE00]/30' : 'border-white/10 text-gray-400 hover:text-[#FFAE00]'}`}><MessageSquare className="w-3 h-3"/> {negotiatingProposalId === proposal.id ? 'Fechar Chat' : 'Abrir Chat'}</button>
+                                                    <button onClick={() => handleNegotiate(proposal.id)} className={`w-full border text-xs font-bold py-2 rounded-lg transition-colors flex items-center justify-center gap-1 relative ${negotiatingProposalId === proposal.id ? 'bg-[#FFAE00]/10 text-[#FFAE00] border-[#FFAE00]/30' : 'border-white/10 text-gray-400 hover:text-[#FFAE00]'}`}>
+                                                        <MessageSquare className="w-3 h-3"/> {negotiatingProposalId === proposal.id ? 'Fechar Chat' : 'Abrir Chat'}
+                                                        {unreadCounts[proposal.id] > 0 && <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white shadow-lg animate-bounce">{unreadCounts[proposal.id]}</span>}
+                                                    </button>
                                                 )}
                                             </div>
-                                            {proposal.status === 'aceita' && <div className="w-full text-center py-2 bg-green-500/10 text-green-500 text-xs font-bold rounded-lg border border-green-500/20 uppercase tracking-wider">Aceita</div>}
+                                            {proposal.status === 'aceita' && (
+                                                <div className="flex flex-col gap-2">
+                                                    <div className="w-full text-center py-2 bg-green-500/10 text-green-500 text-xs font-bold rounded-lg border border-green-500/20 uppercase tracking-wider">Aceita</div>
+                                                    {isOwner && job.status === 'aberto' && (
+                                                        <button onClick={() => router.push(`/checkout/${proposal.id}`)} className="w-full bg-[#FFAE00] text-black text-xs font-bold py-2 rounded-lg transition-colors flex items-center justify-center gap-1 hover:brightness-110">
+                                                            <DollarSign className="w-3 h-3"/> Continuar Pagamento
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            )}
 
                                             {!isOwner && proposal.status === 'contraproposta' && (
                                                 <div className="p-3 bg-[#FFAE00]/10 border border-[#FFAE00]/30 rounded-lg">
@@ -728,6 +857,29 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                                     <div className="flex gap-2">
                                                         <button onClick={() => handleProgrammerResponse(proposal.id, 'accept_counter', proposal)} className="flex-1 bg-[#FFAE00] text-black text-[10px] font-bold py-1.5 rounded">Aceitar</button>
                                                         <button onClick={() => handleProgrammerResponse(proposal.id, 'reject_counter', proposal)} className="flex-1 border border-gray-600 text-gray-300 text-[10px] py-1.5 rounded hover:bg-white/5">Recusar</button>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {isOwner && proposal.status === 'contraproposta' && (
+                                                <div className="p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg text-center">
+                                                    <p className="text-[10px] text-yellow-500 font-bold uppercase tracking-wider mb-1"><Clock className="w-3 h-3 inline mr-1"/> Aguardando Resposta</p>
+                                                    <p className="text-xs text-gray-300">Você ofereceu <strong>R$ {proposal.counter_amount}</strong></p>
+                                                </div>
+                                            )}
+
+                                            {isOwner && negotiatingProposalId === proposal.id && proposal.status === 'pendente' && (
+                                                <div className="mt-2 p-3 bg-[#1A1D23] border border-white/5 rounded-lg flex flex-col gap-2 shadow-inner">
+                                                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1"><Zap className="w-3 h-3 text-[#FFAE00]"/> Fazer Contraproposta</p>
+                                                    <div className="flex gap-2">
+                                                        <input 
+                                                            type="number" 
+                                                            placeholder="Novo Valor (R$)" 
+                                                            className="flex-1 bg-[#0F1115] border border-white/10 text-xs p-2 rounded text-white focus:border-[#FFAE00] outline-none" 
+                                                            value={counterAmount}
+                                                            onChange={(e) => setCounterAmount(e.target.value)}
+                                                        />
+                                                        <button onClick={submitCounterProposal} disabled={!counterAmount} className="bg-[#FFAE00] text-black text-xs font-bold px-3 py-1.5 rounded hover:brightness-110 disabled:opacity-50 transition-all">Enviar</button>
                                                     </div>
                                                 </div>
                                             )}
@@ -782,6 +934,35 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                             >
                                 Entendi, fechar
                             </button>
+                        </div>
+                    </div>
+                )}
+
+                {/* CONFIRM ACCEPT MODAL */}
+                {confirmAcceptModal && (
+                    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[100] p-4 animate-in fade-in duration-200">
+                        <div className="bg-[#1A1D23] border border-[#FFAE00]/30 p-6 md:p-8 rounded-2xl w-full max-w-md text-center shadow-[0_0_50px_rgba(255,174,0,0.15)] animate-in zoom-in-95 duration-200">
+                            <div className="w-16 h-16 bg-[#FFAE00]/20 rounded-full flex items-center justify-center mx-auto mb-6 shadow-[0_0_30px_rgba(255,174,0,0.3)]">
+                                <DollarSign className="w-8 h-8 text-[#FFAE00]" />
+                            </div>
+                            <h3 className="text-2xl font-black text-white mb-2">Ir para o Pagamento?</h3>
+                            <p className="text-gray-400 text-sm mb-8 leading-relaxed">
+                                Você está prestes a fechar negócio com este programador. O valor ficará retido com segurança até que a matriz seja entregue e aprovada por você.
+                            </p>
+                            <div className="flex gap-3">
+                                <button 
+                                    onClick={() => setConfirmAcceptModal(null)}
+                                    className="flex-1 bg-white/5 border border-white/10 text-white font-bold py-3.5 rounded-xl hover:bg-white/10 transition-colors"
+                                >
+                                    Cancelar
+                                </button>
+                                <button 
+                                    onClick={() => handleAcceptProposal(confirmAcceptModal)}
+                                    className="flex-1 bg-[#FFAE00] text-black font-black py-3.5 rounded-xl hover:brightness-110 transition-colors shadow-lg shadow-[#FFAE00]/20 flex items-center justify-center gap-2"
+                                >
+                                    Pagar Agora <Zap className="w-4 h-4" />
+                                </button>
+                            </div>
                         </div>
                     </div>
                 )}

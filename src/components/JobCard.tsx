@@ -44,7 +44,7 @@ export default function JobCard({ job, hasNegotiation, viewerRole, proposalCount
         
         // Status do Cliente
         aguardando_propostas: { bg: 'bg-gray-500/10', text: 'text-gray-400', label: 'Aguardando Programadores' },
-        com_propostas: { bg: 'bg-[#FFAE00]/10', text: 'text-[#FFAE00]', label: 'Propostas Recebidas!' },
+        com_propostas: { bg: 'bg-[#FFAE00] shadow-[0_0_20px_rgba(255,174,0,0.8)] border border-white animate-pulse', text: 'text-black font-black', label: '🎯 VEJA AS PROPOSTAS!' },
         acao_necessaria: { bg: 'bg-red-500/10', text: 'text-red-400', label: 'Sua Vez: Responda no Chat!' }
     }
 

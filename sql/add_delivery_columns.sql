@@ -1,0 +1,3 @@
+ALTER TABLE public.jobs ADD COLUMN IF NOT EXISTS delivery_url TEXT;
+ALTER TABLE public.jobs ADD COLUMN IF NOT EXISTS delivery_notes TEXT;
+ALTER TABLE public.jobs ADD COLUMN IF NOT EXISTS delivered_at TIMESTAMPTZ;

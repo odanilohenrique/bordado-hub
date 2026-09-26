@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabaseClient'
 import { Send, Paperclip, User, FileImage, RefreshCw, CheckCircle2, DollarSign } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { formatDate } from '@/lib/helpers'
+import { toast } from 'sonner'
 
 interface Message {
     id: string
@@ -97,7 +98,7 @@ export default function NegotiationChat({ proposalId, currentUserId, senderName,
 
     const handleQuickDeal = async () => {
         if (!agreedValue || isNaN(parseFloat(agreedValue))) {
-            alert('Por favor, insira um valor válido.')
+            toast.error('Por favor, insira um valor válido.')
             return
         }
 
@@ -118,15 +119,7 @@ export default function NegotiationChat({ proposalId, currentUserId, senderName,
 
             if (propError) throw propError
 
-            // 2. Update job status
-            const { error: jobError } = await supabase
-                .from('jobs')
-                .update({ status: 'em_progresso' })
-                .eq('id', jobId)
-
-            if (jobError) throw jobError
-
-            // 3. Optional: Insert a system message in chat
+            // Optional: Insert a system message in chat
             await supabase.from('proposal_messages').insert({
                 proposal_id: proposalId,
                 sender_id: currentUserId,
@@ -136,7 +129,7 @@ export default function NegotiationChat({ proposalId, currentUserId, senderName,
             router.push(`/checkout/${proposalId}`)
         } catch (error: any) {
             console.error('Quick deal error:', error)
-            alert('Erro ao fechar negócio: ' + error.message)
+            toast.error('Erro ao fechar negócio: ' + error.message)
         } finally {
             setSending(false)
         }
@@ -174,7 +167,7 @@ export default function NegotiationChat({ proposalId, currentUserId, senderName,
             setNewMessage('')
         } catch (error: any) {
             console.error('[NegotiationChat] Full error:', error)
-            alert('Erro ao enviar mensagem: ' + (error?.message || 'Erro desconhecido'))
+            toast.error('Erro ao enviar mensagem: ' + (error?.message || 'Erro desconhecido'))
         } finally {
             setSending(false)
         }
@@ -214,7 +207,7 @@ export default function NegotiationChat({ proposalId, currentUserId, senderName,
 
         } catch (error) {
             console.error('Upload error:', error)
-            alert('Erro ao enviar arquivo. Verifique se é uma imagem válida.')
+            toast.error('Erro ao enviar arquivo. Verifique se é uma imagem válida.')
         } finally {
             setSending(false)
             if (fileInputRef.current) fileInputRef.current.value = ''

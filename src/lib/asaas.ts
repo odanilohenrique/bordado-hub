@@ -2,16 +2,35 @@
  * Asaas API v3 Helper Client
  * Documentation: https://asaasv3.docs.apiary.io/
  */
+import { readFileSync } from 'fs'
+import { resolve } from 'path'
 
 const ASAAS_API_URL = process.env.ASAAS_API_URL || 'https://sandbox.asaas.com/api/v3'
-const ASAAS_API_KEY = process.env.ASAAS_API_KEY || ''
+
+// Read ASAAS_API_KEY directly from .env.local to avoid dotenv-expand
+// interpreting the leading $ as a variable reference
+function loadAsaasKey(): string {
+    // First try the env var
+    const envKey = process.env.ASAAS_API_KEY
+    if (envKey && envKey.length > 10) return envKey
+
+    // Fallback: read .env.local directly
+    try {
+        const envPath = resolve(process.cwd(), '.env.local')
+        const content = readFileSync(envPath, 'utf8')
+        const match = content.match(/ASAAS_API_KEY=['"]?([^'"\r\n]+)['"]?/)
+        if (match) return match[1]
+    } catch {}
+    return ''
+}
+const ASAAS_API_KEY = loadAsaasKey()
 
 /**
  * Generic fetch wrapper for Asaas API
  */
 async function asaasFetch(endpoint: string, options: RequestInit = {}) {
     if (!ASAAS_API_KEY) {
-        console.warn('⚠️ ASAAS_API_KEY environment variable is not set. Payments will fail or run in fallback mode.')
+        console.warn('⚠️ ASAAS_API_KEY environment variable is not set.')
     }
 
     const headers = {
@@ -25,11 +44,18 @@ async function asaasFetch(endpoint: string, options: RequestInit = {}) {
         headers,
     })
 
-    const data = await res.json()
+    const rawText = await res.text()
+    let data: any = {}
+    try {
+        data = rawText ? JSON.parse(rawText) : {}
+    } catch (e) {
+        console.error('Failed to parse Asaas response:', rawText)
+        throw new Error('Asaas retornou uma resposta inválida.')
+    }
 
     if (!res.ok) {
-        console.error('Asaas API Error:', data)
-        throw new Error(data.errors?.[0]?.description || 'Erro na integração com o Asaas')
+        console.error('Asaas API Error:', res.status, rawText)
+        throw new Error(data?.errors?.[0]?.description || 'Erro na integração com o Asaas')
     }
 
     return data

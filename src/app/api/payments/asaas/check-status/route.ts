@@ -43,13 +43,24 @@ export async function GET(request: Request) {
             // Update transaction to paid if not already
             const { data: tx } = await supabase
                 .from('transactions')
-                .select('job_id, status')
+                .select('job_id, status, criador_id, jobs(title)')
                 .eq('id', transactionId)
                 .single()
 
             if (tx && tx.status === 'pendente') {
                 await supabase.from('transactions').update({ status: 'pago' }).eq('id', transactionId)
                 await supabase.from('jobs').update({ status: 'em_progresso' }).eq('id', tx.job_id)
+                
+                // Notifica o programador que o pagamento caiu
+                if (tx.criador_id) {
+                    await supabase.from('notifications').insert({
+                        user_id: tx.criador_id,
+                        type: 'pagamento_aprovado',
+                        title: '💰 Pagamento Aprovado!',
+                        message: `O pagamento do pedido "${tx.jobs?.title || 'Bordado'}" foi confirmado. O dinheiro já está retido em segurança. Você já pode iniciar a produção e enviar a matriz!`,
+                        link_url: `/jobs/${tx.job_id}`
+                    })
+                }
             }
         }
 

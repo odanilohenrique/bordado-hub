@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabaseClient'
 import { useRouter, useParams } from 'next/navigation'
 import { QrCode, Copy, CheckCircle2, ShieldCheck, ArrowLeft, Loader2, Zap, CreditCard, Lock } from 'lucide-react'
 import Image from 'next/image'
+import { toast } from 'sonner'
 
 type PaymentMethod = 'pix' | 'cartao'
 
@@ -61,7 +62,7 @@ function CheckoutClient({ proposalId }: { proposalId: string }) {
                 .single()
 
             if (!proposalData) {
-                alert('Proposta não encontrada')
+                toast('Proposta não encontrada')
                 router.push('/pedidos')
                 return
             }
@@ -158,7 +159,7 @@ function CheckoutClient({ proposalId }: { proposalId: string }) {
     const handleGeneratePix = async (e: React.FormEvent) => {
         e.preventDefault()
         if (!cpfCnpj || cpfCnpj.trim().length < 11) {
-            alert('Por favor, informe um CPF ou CNPJ válido.')
+            toast('Por favor, informe um CPF ou CNPJ válido.')
             return
         }
 
@@ -197,7 +198,7 @@ function CheckoutClient({ proposalId }: { proposalId: string }) {
             }
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (err: any) {
-            alert('Erro: ' + err.message)
+            toast.error('Erro: ' + err.message)
         } finally {
             setProcessing(false)
         }
@@ -207,11 +208,11 @@ function CheckoutClient({ proposalId }: { proposalId: string }) {
     const handleCardPayment = async (e: React.FormEvent) => {
         e.preventDefault()
         if (!cpfCnpj || cpfCnpj.trim().length < 11) {
-            alert('Por favor, informe um CPF ou CNPJ válido.')
+            toast('Por favor, informe um CPF ou CNPJ válido.')
             return
         }
         if (!cardData.cardNumber || !cardData.ccv || !cardData.expiryMonth || !cardData.expiryYear) {
-            alert('Preencha todos os dados do cartão.')
+            toast('Preencha todos os dados do cartão.')
             return
         }
 
@@ -244,12 +245,12 @@ function CheckoutClient({ proposalId }: { proposalId: string }) {
                 setTimeout(() => router.push('/pedidos'), 3000)
             } else {
                 // Payment is pending analysis
-                alert('Pagamento em análise. Você será notificado quando for confirmado.')
+                toast('Pagamento em análise. Você será notificado quando for confirmado.')
                 router.push('/pedidos')
             }
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (err: any) {
-            alert('Erro ao processar cartão: ' + err.message)
+            toast('Erro ao processar cartão: ' + err.message)
         } finally {
             setProcessing(false)
         }

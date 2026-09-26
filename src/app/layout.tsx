@@ -11,6 +11,8 @@ export const metadata: Metadata = {
   description: "Conectando clientes e criadores de matrizes de bordado",
 };
 
+import { Toaster } from 'sonner';
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -22,6 +24,16 @@ export default function RootLayout({
         <ClientProviders>
           <NavigationWrapper>
             {children}
+            <Toaster 
+              theme="dark" 
+              toastOptions={{
+                style: {
+                  background: '#1A1D23',
+                  border: '1px solid rgba(255, 174, 0, 0.2)',
+                  color: '#fff',
+                },
+              }}
+            />
           </NavigationWrapper>
         </ClientProviders>
       </body>

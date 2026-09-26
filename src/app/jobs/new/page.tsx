@@ -10,6 +10,7 @@ import { createNotification } from '@/lib/notifications'
 function NewJobContent() {
     const [title, setTitle] = useState('')
     const [description, setDescription] = useState('')
+    const [dimensions, setDimensions] = useState('')
     const [fabricType, setFabricType] = useState('')
     const [urgency, setUrgency] = useState('sem_pressa')
     const [formats, setFormats] = useState<string[]>([])
@@ -151,6 +152,7 @@ function NewJobContent() {
                         cliente_id: userData.id,
                         title,
                         description,
+                        dimensions,
                         fabric_type: fabricType,
                         urgency,
                         formats,
@@ -340,6 +342,22 @@ function NewJobContent() {
                                 </label>
                             ))}
                         </div>
+                    </div>
+
+                    {/* Dimensions */}
+                    <div className="space-y-2">
+                        <label className="flex items-center gap-2 text-sm font-medium text-gray-300">
+                            <Package className="w-4 h-4 text-[#FFAE00]" />
+                            Tamanho da Matriz (Obrigatório)
+                        </label>
+                        <input
+                            type="text"
+                            required
+                            value={dimensions}
+                            onChange={e => setDimensions(e.target.value)}
+                            placeholder="Ex: 10x10cm, Bastidor 13x18, 5cm de largura..."
+                            className="w-full bg-[#0F1115] border border-[#FFAE00]/20 rounded-lg px-4 py-3 text-[#F3F4F6] placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#FFAE00] focus:border-transparent transition-all"
+                        />
                     </div>
 
                     {/* Fabric Type */}

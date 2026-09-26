@@ -4,13 +4,14 @@ import { useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { User, Mail, Lock, Zap, UserPlus } from 'lucide-react'
+import { User, Mail, Lock, Zap, UserPlus, ShoppingBag, Code } from 'lucide-react'
 
 export default function Register() {
     const [name, setName] = useState('')
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
     const [confirmPassword, setConfirmPassword] = useState('')
+    const [role, setRole] = useState<'cliente' | 'criador' | null>(null)
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const router = useRouter()
@@ -28,6 +29,12 @@ export default function Register() {
 
         if (password.length < 6) {
             setError('A senha deve ter pelo menos 6 caracteres.')
+            setLoading(false)
+            return
+        }
+
+        if (!role) {
+            setError('Selecione o que deseja fazer: Comprar ou Trabalhar.')
             setLoading(false)
             return
         }
@@ -52,7 +59,7 @@ export default function Register() {
                     userId: authData.user.id,
                     name,
                     email,
-                    role: 'criador' // Explicitly set role for this page
+                    role
                 }),
             })
 
@@ -62,7 +69,7 @@ export default function Register() {
                 throw new Error(result.error || 'Erro ao criar perfil')
             }
 
-            router.push('/pedidos')
+            router.push(role === 'cliente' ? '/pedidos' : '/dashboard')
             router.refresh()
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (err: any) {
@@ -132,6 +139,39 @@ export default function Register() {
                             </div>
                             <div className="relative flex justify-center text-sm">
                                 <span className="px-2 bg-[#1A1D23] text-gray-400">Ou crie com email</span>
+                            </div>
+                        </div>
+
+                        {/* Role Selector */}
+                        <div className="space-y-2">
+                            <label className="block text-sm font-medium text-gray-300">Eu quero:</label>
+                            <div className="grid grid-cols-2 gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => setRole('cliente')}
+                                    className={`p-4 rounded-xl border-2 text-center transition-all ${
+                                        role === 'cliente'
+                                            ? 'bg-[#FFAE00]/10 border-[#FFAE00] text-white shadow-lg shadow-[#FFAE00]/10'
+                                            : 'bg-[#0F1115] border-gray-700 text-gray-400 hover:border-gray-500'
+                                    }`}
+                                >
+                                    <ShoppingBag className={`w-6 h-6 mx-auto mb-2 ${role === 'cliente' ? 'text-[#FFAE00]' : 'text-gray-500'}`} />
+                                    <span className="text-sm font-bold block">Comprar Matrizes</span>
+                                    <span className="text-[10px] text-gray-500 mt-1 block">Encomendar bordados</span>
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setRole('criador')}
+                                    className={`p-4 rounded-xl border-2 text-center transition-all ${
+                                        role === 'criador'
+                                            ? 'bg-[#FFAE00]/10 border-[#FFAE00] text-white shadow-lg shadow-[#FFAE00]/10'
+                                            : 'bg-[#0F1115] border-gray-700 text-gray-400 hover:border-gray-500'
+                                    }`}
+                                >
+                                    <Code className={`w-6 h-6 mx-auto mb-2 ${role === 'criador' ? 'text-[#FFAE00]' : 'text-gray-500'}`} />
+                                    <span className="text-sm font-bold block">Trabalhar</span>
+                                    <span className="text-[10px] text-gray-500 mt-1 block">Criar e vender matrizes</span>
+                                </button>
                             </div>
                         </div>
 
