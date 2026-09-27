@@ -160,6 +160,8 @@ export interface CreateCardPaymentDTO {
     installmentCount?: number
     // Holder address (required by Asaas for anti-fraud)
     postalCode: string
+    addressNumber: string
+    addressComplement?: string
     phone: string
 }
 
@@ -205,6 +207,8 @@ export async function createCreditCardCharge(params: CreateCardPaymentDTO) {
                 cpfCnpj: params.customerCpfCnpj.replace(/\D/g, ''),
                 email: params.customerEmail || '',
                 postalCode: params.postalCode.replace(/\D/g, ''),
+                addressNumber: params.addressNumber || 'SN',
+                addressComplement: params.addressComplement || undefined,
                 phone: params.phone.replace(/\D/g, ''),
             },
         }),

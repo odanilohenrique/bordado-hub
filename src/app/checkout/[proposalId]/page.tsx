@@ -45,6 +45,7 @@ function CheckoutClient({ proposalId }: { proposalId: string }) {
         expiryYear: '',
         ccv: '',
         postalCode: '',
+        addressNumber: '',
         phone: '',
         installmentCount: 1,
     })
@@ -233,6 +234,7 @@ function CheckoutClient({ proposalId }: { proposalId: string }) {
                     ccv: cardData.ccv,
                     installmentCount: cardData.installmentCount,
                     postalCode: cardData.postalCode,
+                    addressNumber: cardData.addressNumber || 'SN',
                     phone: cardData.phone,
                 }),
             })
@@ -539,7 +541,7 @@ function CheckoutClient({ proposalId }: { proposalId: string }) {
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-3">
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                                 <div>
                                     <label className="block text-xs font-semibold text-gray-300 mb-1.5 uppercase">CEP</label>
                                     <input
@@ -549,6 +551,17 @@ function CheckoutClient({ proposalId }: { proposalId: string }) {
                                         placeholder="00000-000"
                                         value={cardData.postalCode}
                                         onChange={(e) => handleCardChange('postalCode', e.target.value)}
+                                        className="w-full bg-[#0F1115] border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-[#FFAE00] transition-all text-sm font-mono"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-semibold text-gray-300 mb-1.5 uppercase">Nº do Endereço</label>
+                                    <input
+                                        type="text"
+                                        required
+                                        placeholder="Ex: 123 ou S/N"
+                                        value={cardData.addressNumber}
+                                        onChange={(e) => handleCardChange('addressNumber', e.target.value)}
                                         className="w-full bg-[#0F1115] border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-[#FFAE00] transition-all text-sm font-mono"
                                     />
                                 </div>

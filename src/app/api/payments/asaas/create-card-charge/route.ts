@@ -14,6 +14,7 @@ export async function POST(request: Request) {
             ccv,
             installmentCount,
             postalCode,
+            addressNumber,
             phone,
         } = await request.json()
 
@@ -54,6 +55,7 @@ export async function POST(request: Request) {
             ccv,
             installmentCount: installmentCount || 1,
             postalCode,
+            addressNumber: addressNumber || 'SN',
             phone,
         })
 
