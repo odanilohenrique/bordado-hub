@@ -261,15 +261,58 @@ export default function JobCard({ job, hasNegotiation, viewerRole, proposalCount
                             </span>
                         )}
 
-                        {viewerRole === 'programmer' && (job.my_proposal_status === 'aceita' || job.status === 'em_progresso') ? (
-                            <button className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg font-bold text-xs transition-all shadow-lg shadow-green-500/10 active:scale-95 ml-auto">
-                                Entregar Matriz
-                                <CheckCircle className="w-3.5 h-3.5" />
-                            </button>
+                        {viewerRole === 'client' ? (
+                            job.status === 'entregue' ? (
+                                <button className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg font-bold text-xs transition-all shadow-lg shadow-green-500/20 active:scale-95 ml-auto animate-pulse">
+                                    Baixar & Avaliar 🚀
+                                    <CheckCircle className="w-3.5 h-3.5" />
+                                </button>
+                            ) : job.status === 'em_progresso' ? (
+                                <button className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-bold text-xs transition-all shadow-lg shadow-blue-500/20 active:scale-95 ml-auto">
+                                    Acompanhar Produção
+                                    <Clock className="w-3.5 h-3.5" />
+                                </button>
+                            ) : job.status === 'finalizado' ? (
+                                <button className="flex items-center gap-2 bg-gray-800 hover:bg-gray-700 text-gray-200 border border-white/10 px-4 py-2 rounded-lg font-bold text-xs transition-all active:scale-95 ml-auto">
+                                    Ver Matriz (Concluído)
+                                    <ArrowRight className="w-3.5 h-3.5" />
+                                </button>
+                            ) : proposalCount && proposalCount > 0 ? (
+                                <button className="flex items-center gap-2 bg-[#FFAE00] hover:bg-[#FFB92E] text-[#0F1115] px-4 py-2 rounded-lg font-bold text-xs transition-all shadow-lg shadow-[#FFAE00]/20 active:scale-95 ml-auto">
+                                    Ver Propostas ({proposalCount})
+                                    <Sparkles className="w-3.5 h-3.5" />
+                                </button>
+                            ) : (
+                                <button className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg font-bold text-xs transition-all shadow-lg shadow-indigo-500/20 active:scale-95 ml-auto">
+                                    Acompanhar Pedido
+                                    <ArrowRight className="w-3.5 h-3.5" />
+                                </button>
+                            )
+                        ) : viewerRole === 'programmer' ? (
+                            job.my_proposal_status === 'aceita' || job.status === 'em_progresso' ? (
+                                <button className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg font-bold text-xs transition-all shadow-lg shadow-green-500/10 active:scale-95 ml-auto">
+                                    Entregar Matriz
+                                    <CheckCircle className="w-3.5 h-3.5" />
+                                </button>
+                            ) : job.status === 'entregue' ? (
+                                <button className="flex items-center gap-2 bg-green-500/20 text-green-400 border border-green-500/30 px-4 py-2 rounded-lg font-bold text-xs ml-auto">
+                                    Matriz Entregue
+                                    <CheckCircle className="w-3.5 h-3.5" />
+                                </button>
+                            ) : job.status === 'finalizado' ? (
+                                <button className="flex items-center gap-2 bg-gray-800 text-gray-400 border border-white/10 px-4 py-2 rounded-lg font-bold text-xs ml-auto">
+                                    Finalizado
+                                </button>
+                            ) : (
+                                <button className="flex items-center gap-2 bg-[#FFAE00] hover:bg-[#FFB92E] text-[#0F1115] px-4 py-2 rounded-lg font-bold text-xs transition-all shadow-lg shadow-[#FFAE00]/10 active:scale-95 ml-auto">
+                                    Enviar Proposta
+                                    <Send className="w-3.5 h-3.5" />
+                                </button>
+                            )
                         ) : (
                             <button className="flex items-center gap-2 bg-[#FFAE00] hover:bg-[#FFB92E] text-[#0F1115] px-4 py-2 rounded-lg font-bold text-xs transition-all shadow-lg shadow-[#FFAE00]/10 active:scale-95 ml-auto">
-                                {job.status === 'aberto' ? 'Enviar Proposta' : 'Abrir Chat'}
-                                <Send className="w-3.5 h-3.5" />
+                                {job.status === 'aberto' ? 'Enviar Proposta' : 'Ver Detalhes'}
+                                <ArrowRight className="w-3.5 h-3.5" />
                             </button>
                         )}
                     </div>

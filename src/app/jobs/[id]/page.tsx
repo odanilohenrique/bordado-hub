@@ -5,10 +5,12 @@ import { supabase } from '@/lib/supabaseClient'
 import { useRouter } from 'next/navigation'
 import { formatDate } from '@/lib/helpers'
 import Link from 'next/link'
-import { ArrowLeft, Clock, Calendar, MessageSquare, AlertCircle, CheckCircle, Package, Zap, User, X, Star, PenTool, Download, Upload, Send, Sparkles, DollarSign } from 'lucide-react'
+import { ArrowLeft, Clock, Calendar, MessageSquare, AlertCircle, CheckCircle, Package, Zap, User, X, Star, PenTool, Download, Upload, Send, Sparkles, DollarSign, Wrench, Camera, RotateCcw } from 'lucide-react'
 import { useParams } from 'next/navigation'
 import NegotiationChat from '@/components/NegotiationChat'
 import { toast } from 'sonner'
+import JSZip from 'jszip'
+import { saveAs } from 'file-saver'
 
 interface Job {
     id: string
@@ -25,6 +27,8 @@ interface Job {
     delivery_url?: string
     delivery_notes?: string
     delivered_at?: string
+    revision_notes?: string
+    revision_image_url?: string
 }
 
 interface Proposal {
@@ -87,6 +91,13 @@ function JobDetailClient({ jobId }: { jobId: string }) {
     const [ratingMatrix, setRatingMatrix] = useState(5)
     const [ratingService, setRatingService] = useState(5)
     const [reviewComment, setReviewComment] = useState('')
+    const [jobReview, setJobReview] = useState<any>(null)
+
+    // Revision state
+    const [showRevisionModal, setShowRevisionModal] = useState(false)
+    const [revisionNotes, setRevisionNotes] = useState('')
+    const [revisionPhoto, setRevisionPhoto] = useState<File | null>(null)
+    const [submittingRevision, setSubmittingRevision] = useState(false)
 
     const router = useRouter()
 
@@ -112,6 +123,15 @@ function JobDetailClient({ jobId }: { jobId: string }) {
 
             setJob(jobData)
             setCurrentUser(profile)
+
+            if (jobData?.status === 'finalizado') {
+                const { data: rev } = await supabase
+                    .from('reviews')
+                    .select('*')
+                    .eq('job_id', jobId)
+                    .maybeSingle()
+                if (rev) setJobReview(rev)
+            }
 
             const { data: proposalsData, error: proposalsError } = await supabase
                 .from('proposals')
@@ -245,13 +265,14 @@ function JobDetailClient({ jobId }: { jobId: string }) {
             const publicUrls: string[] = []
 
             for (const file of selectedFiles) {
-                const fileExt = file.name.split('.').pop()
-                const fileName = `${jobId}_${Math.random()}.${fileExt}`
+                // Sanitize file name to avoid weird characters in URLs
+                const safeName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_')
+                const fileName = `${jobId}_${safeName}`
                 const filePath = `deliveries/${fileName}`
 
                 const { error: uploadError } = await supabase.storage
                     .from('job-deliveries')
-                    .upload(filePath, file)
+                    .upload(filePath, file, { upsert: true })
 
                 if (uploadError) throw uploadError
 
@@ -317,6 +338,58 @@ function JobDetailClient({ jobId }: { jobId: string }) {
             }, 2000)
         } catch (err: any) {
             toast.error('Erro ao avaliar: ' + err.message)
+        }
+    }
+
+    const handleRequestRevision = async () => {
+        if (!revisionNotes.trim()) {
+            toast.error('Por favor, descreva o que precisa ser ajustado.')
+            return
+        }
+        setSubmittingRevision(true)
+        try {
+            let uploadedPhotoUrl = ''
+            if (revisionPhoto) {
+                const safeName = revisionPhoto.name.replace(/[^a-zA-Z0-9.\-_]/g, '_')
+                const path = `revisions/${jobId}_${Date.now()}_${safeName}`
+                const { error: uploadError } = await supabase.storage
+                    .from('job-deliveries')
+                    .upload(path, revisionPhoto, { upsert: true })
+                
+                if (!uploadError) {
+                    const { data: { publicUrl } } = supabase.storage
+                        .from('job-deliveries')
+                        .getPublicUrl(path)
+                    uploadedPhotoUrl = publicUrl
+                }
+            }
+
+            const res = await fetch('/api/jobs/revision', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    jobId,
+                    clientId: currentUser?.id,
+                    notes: revisionNotes,
+                    imageUrl: uploadedPhotoUrl
+                })
+            })
+
+            const data = await res.json()
+            if (!res.ok) throw new Error(data.error || 'Erro ao solicitar revisão')
+
+            toast.success('Solicitação de ajuste enviada ao programador!')
+            setShowRevisionModal(false)
+            setJob((prev: any) => ({
+                ...prev,
+                status: 'em_revisao',
+                revision_notes: revisionNotes,
+                revision_image_url: uploadedPhotoUrl
+            }))
+        } catch (err: any) {
+            toast.error(err.message || 'Erro ao enviar solicitação de ajuste')
+        } finally {
+            setSubmittingRevision(false)
         }
     }
 
@@ -496,8 +569,8 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                     </div>
                 </div>
 
-                {/* 2. MIDDLE SECTION: Proposals OR Production Hero OR Delivery */}
-                {job.status === 'em_progresso' && acceptedProposal ? (
+                {/* 2. MIDDLE SECTION: Proposals OR Production/Revision Hero OR Delivery OR Finalized */}
+                {(job.status === 'em_progresso' || job.status === 'em_revisao') && acceptedProposal ? (
                     <div className="bg-[#1A1D23] border border-[#FFAE00]/30 rounded-xl p-8 shadow-[0_0_40px_rgba(255,174,0,0.15)] relative overflow-hidden flex flex-col items-center justify-center min-h-[320px] text-center mb-8">
                         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-40 h-40 bg-[#FFAE00]/5 rounded-full blur-3xl"></div>
                         
@@ -507,20 +580,35 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                     <circle cx="50" cy="50" r="48" fill="none" stroke="currentColor" strokeWidth="1.5" strokeDasharray="6 4" strokeLinecap="round" />
                                 </svg>
                                 <div className="bg-[#0F1115] w-14 h-14 rounded-full border border-[#FFAE00]/40 z-10 shadow-[0_0_25px_rgba(255,174,0,0.25)] flex items-center justify-center">
-                                    <PenTool className="w-6 h-6 text-[#FFAE00] animate-pulse" style={{ animationDuration: '2.5s' }} />
+                                    {job.status === 'em_revisao' ? (
+                                        <Wrench className="w-6 h-6 text-yellow-400 animate-pulse" />
+                                    ) : (
+                                        <PenTool className="w-6 h-6 text-[#FFAE00] animate-pulse" style={{ animationDuration: '2.5s' }} />
+                                    )}
                                 </div>
                             </div>
                         </div>
 
                         <div className="relative z-10 max-w-lg mx-auto">
-                            <h2 className="text-3xl font-black text-white mb-3 tracking-tight">Matriz em Produção</h2>
+                            <h2 className="text-3xl font-black text-white mb-3 tracking-tight">
+                                {job.status === 'em_revisao' ? 'Matriz em Revisão' : 'Matriz em Produção'}
+                            </h2>
                             <p className="text-gray-400 text-sm leading-relaxed px-4">
-                                Aguarde... O profissional <strong className="text-[#FFAE00] text-base">{acceptedProposal.users?.name || 'Parceiro'}</strong> está criando sua matriz da melhor maneira possível.
+                                {job.status === 'em_revisao' ? (
+                                    isOwner ? (
+                                        <>Você solicitou um ajuste na matriz. O profissional <strong className="text-[#FFAE00] text-base">{acceptedProposal.users?.name || 'Parceiro'}</strong> já foi notificado e está trabalhando na correção.</>
+                                    ) : (
+                                        <>O comprador testou o bordado e solicitou um ajuste. Veja os detalhes abaixo e envie a matriz corrigida.</>
+                                    )
+                                ) : (
+                                    <>Aguarde... O profissional <strong className="text-[#FFAE00] text-base">{acceptedProposal.users?.name || 'Parceiro'}</strong> está criando sua matriz da melhor maneira possível.</>
+                                )}
                             </p>
+
                             <div className="mt-6 flex items-center justify-center gap-4">
-                                <span className="inline-flex items-center gap-2 bg-[#FFAE00]/10 text-[#FFAE00] px-4 py-2 rounded-full text-xs font-bold border border-[#FFAE00]/20">
-                                    <span className="w-2 h-2 bg-[#FFAE00] rounded-full animate-pulse"></span>
-                                    TRABALHO EM ANDAMENTO
+                                <span className={`inline-flex items-center gap-2 ${job.status === 'em_revisao' ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20' : 'bg-[#FFAE00]/10 text-[#FFAE00] border-[#FFAE00]/20'} px-4 py-2 rounded-full text-xs font-bold border`}>
+                                    <span className={`w-2 h-2 ${job.status === 'em_revisao' ? 'bg-yellow-400' : 'bg-[#FFAE00]'} rounded-full animate-pulse`}></span>
+                                    {job.status === 'em_revisao' ? 'AJUSTES EM ANDAMENTO' : 'TRABALHO EM ANDAMENTO'}
                                 </span>
                                 
                                 <button 
@@ -532,6 +620,28 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                 </button>
                             </div>
 
+                            {/* REVISION DETAILS CARD (IF IN REVISION) */}
+                            {job.status === 'em_revisao' && (job.revision_notes || job.revision_image_url) && (
+                                <div className="mt-6 bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-5 text-left">
+                                    <p className="text-xs font-bold text-yellow-400 flex items-center gap-2 uppercase tracking-wider mb-2">
+                                        <Wrench className="w-4 h-4" /> Detalhes do Ajuste Solicitado pelo Cliente:
+                                    </p>
+                                    {job.revision_notes && (
+                                        <div className="bg-[#0F1115] p-3.5 rounded-lg border border-white/5 text-sm text-gray-200 mb-3 whitespace-pre-wrap">
+                                            &quot;{job.revision_notes}&quot;
+                                        </div>
+                                    )}
+                                    {job.revision_image_url && (
+                                        <div>
+                                            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">Foto do Defeito / Teste na Máquina:</p>
+                                            <a href={job.revision_image_url} target="_blank" rel="noopener noreferrer" className="inline-block relative rounded-lg overflow-hidden border border-white/10 hover:border-yellow-500/50 transition-colors">
+                                                <img src={job.revision_image_url} alt="Foto do bordado com defeito" className="max-h-48 rounded-lg object-cover" />
+                                            </a>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
                             {/* DELIVERY SECTION (Programmer Only) */}
                             {!isOwner && currentUser?.id === acceptedProposal.criador_id && (
                                 <div className="mt-8 pt-8 border-t border-white/10 w-full max-w-lg mx-auto text-left relative z-10">
@@ -540,7 +650,9 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                             <div className="bg-green-500/20 p-2 rounded-lg">
                                                 <Package className="w-5 h-5 text-green-400" />
                                             </div>
-                                            <h3 className="text-lg font-bold text-white">Entregar Matriz</h3>
+                                            <h3 className="text-lg font-bold text-white">
+                                                {job.status === 'em_revisao' ? 'Enviar Matriz Corrigida' : 'Entregar Matriz'}
+                                            </h3>
                                         </div>
                                         
                                         <div className="space-y-4">
@@ -613,7 +725,7 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                                         ) : (
                                                             <>
                                                                 <Send className="w-4 h-4" />
-                                                                Enviar Matriz
+                                                                {job.status === 'em_revisao' ? 'Enviar Matriz Corrigida' : 'Enviar Matriz'}
                                                             </>
                                                         )}
                                                     </button>
@@ -628,55 +740,133 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                 ) : job.status === 'entregue' ? (
                     <div className="bg-[#1A1D23] border border-green-500/30 rounded-xl overflow-hidden shadow-[0_0_50px_rgba(34,197,94,0.1)] mb-8">
                         <div className="flex flex-col lg:flex-row">
+                            {/* Left Side: Owner gets test/download/revision; Programmer gets confirmation + file list */}
                             <div className="flex-1 p-8 lg:p-10 border-b lg:border-b-0 lg:border-r border-white/5">
-                                <div className="inline-flex items-center gap-2 bg-green-500/20 text-green-400 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider mb-6">
-                                    <CheckCircle className="w-3 h-3" /> Matriz Entregue
-                                </div>
-                                <h2 className="text-3xl font-black text-white mb-4">Sua matriz está pronta! 🚀</h2>
-                                <p className="text-gray-400 text-sm mb-6 leading-relaxed">
-                                    O programador <strong className="text-white">{acceptedProposal?.users?.name}</strong> finalizou o trabalho. Baixe os arquivos abaixo e, se estiver tudo certo, faça a avaliação para liberar o projeto.
-                                </p>
+                                {isOwner ? (
+                                    <>
+                                        <div className="inline-flex items-center gap-2 bg-green-500/20 text-green-400 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider mb-6">
+                                            <CheckCircle className="w-3 h-3" /> Matriz Pronta para Teste
+                                        </div>
+                                        <h2 className="text-3xl font-black text-white mb-4">Sua matriz está pronta! 🚀</h2>
+                                        <p className="text-gray-400 text-sm mb-6 leading-relaxed">
+                                            O programador <strong className="text-white">{acceptedProposal?.users?.name}</strong> finalizou o trabalho. Baixe os arquivos abaixo e faça um teste na sua máquina. Se estiver tudo perfeito, envie a avaliação para liberar o pagamento!
+                                        </p>
+                                    </>
+                                ) : (
+                                    <>
+                                        <div className="inline-flex items-center gap-2 bg-green-500/20 text-green-400 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider mb-6">
+                                            <Package className="w-3 h-3" /> Matriz Entregue com Sucesso
+                                        </div>
+                                        <h2 className="text-3xl font-black text-white mb-4">Matriz Enviada para o Cliente! 🚀</h2>
+                                        <p className="text-gray-400 text-sm mb-6 leading-relaxed">
+                                            Você já enviou os arquivos da matriz. O cliente foi notificado para testar o bordado na máquina e realizar a aprovação do projeto.
+                                        </p>
+                                    </>
+                                )}
                                 
                                 {job.delivery_notes && (
                                     <div className="bg-[#0F1115] p-4 rounded-xl border border-white/5 mb-6 italic text-sm text-gray-400">
-                                        "{job.delivery_notes}"
+                                        &quot;{job.delivery_notes}&quot;
                                     </div>
                                 )}
 
-                                {job.delivery_url && job.delivery_url.split(',').length > 1 ? (
-                                    <div className="flex flex-col gap-3">
-                                        <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">Arquivos Entregues ({job.delivery_url.split(',').length})</p>
-                                        <div className="flex flex-wrap gap-3">
-                                            {job.delivery_url.split(',').map((url, i) => (
-                                                <a 
-                                                    key={i}
-                                                    href={url} 
-                                                    target="_blank" 
-                                                    rel="noopener noreferrer"
-                                                    className="inline-flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-5 py-3 rounded-xl font-bold transition-all shadow-lg shadow-green-500/20 hover:scale-105 active:scale-95 text-sm"
+                                {job.delivery_url && (() => {
+                                    const urls = job.delivery_url.split(',')
+                                    const getFileName = (url: string) => {
+                                        const decoded = decodeURIComponent(url.split('/').pop() || 'arquivo')
+                                        const parts = decoded.split('_')
+                                        return parts.length > 1 ? parts.slice(1).join('_') : decoded
+                                    }
+
+                                    const handleDownloadAll = async () => {
+                                        toast.info('Compactando arquivos... aguarde.')
+                                        try {
+                                            const zip = new JSZip()
+                                            for (const url of urls) {
+                                                const res = await fetch(url)
+                                                const blob = await res.blob()
+                                                zip.file(getFileName(url), blob)
+                                            }
+                                            const content = await zip.generateAsync({ type: 'blob' })
+                                            saveAs(content, `${job.title || 'matrizes'}.zip`)
+                                            toast.success('Download concluído!')
+                                        } catch (err) {
+                                            toast.error('Erro ao compactar arquivos.')
+                                        }
+                                    }
+
+                                    return (
+                                        <div className="flex flex-col gap-4">
+                                            <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">
+                                                {isOwner ? `Arquivos para Download (${urls.length})` : `Arquivos Entregues (${urls.length})`}
+                                            </p>
+                                            <div className="flex flex-wrap gap-2">
+                                                {urls.map((url, i) => (
+                                                    <a 
+                                                        key={i}
+                                                        href={url} 
+                                                        target="_blank" 
+                                                        rel="noopener noreferrer"
+                                                        className="inline-flex items-center gap-2 bg-[#0F1115] hover:bg-green-500/20 border border-white/10 hover:border-green-500/50 text-gray-300 hover:text-green-400 px-4 py-2 rounded-lg transition-all text-xs"
+                                                    >
+                                                        <Download className="w-3 h-3" />
+                                                        {getFileName(url)}
+                                                    </a>
+                                                ))}
+                                            </div>
+                                            {urls.length > 1 && (
+                                                <button
+                                                    onClick={handleDownloadAll}
+                                                    className="inline-flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-xl font-bold transition-all shadow-lg shadow-green-500/20 hover:scale-105 active:scale-95 w-fit"
                                                 >
-                                                    <Download className="w-4 h-4" />
-                                                    Arquivo {i + 1}
-                                                </a>
-                                            ))}
+                                                    <Download className="w-5 h-5" />
+                                                    Baixar Tudo (.zip)
+                                                </button>
+                                            )}
                                         </div>
+                                    )
+                                })()}
+
+                                {/* REVISION TRIGGER BUTTON FOR BUYER */}
+                                {isOwner && (
+                                    <div className="mt-8 pt-6 border-t border-white/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-yellow-500/[0.04] p-4 rounded-xl border border-yellow-500/20">
+                                        <div>
+                                            <p className="text-xs font-bold text-yellow-400 flex items-center gap-1.5">
+                                                <AlertCircle className="w-4 h-4" /> Testou na máquina e precisa de algum ajuste?
+                                            </p>
+                                            <p className="text-[11px] text-gray-400 mt-0.5">
+                                                Você pode solicitar uma correção de ponto, tamanho ou formato com foto.
+                                            </p>
+                                        </div>
+                                        <button
+                                            onClick={() => setShowRevisionModal(true)}
+                                            className="inline-flex items-center gap-2 bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 px-4 py-2 rounded-xl text-xs font-bold transition-all hover:scale-105 active:scale-95 shrink-0"
+                                        >
+                                            <Wrench className="w-3.5 h-3.5" />
+                                            Pedir Ajuste / Revisão
+                                        </button>
                                     </div>
-                                ) : (
-                                    <a 
-                                        href={job.delivery_url} 
-                                        target="_blank" 
-                                        rel="noopener noreferrer"
-                                        className="inline-flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-xl font-bold transition-all shadow-lg shadow-green-500/20 hover:scale-105 active:scale-95"
-                                    >
-                                        <Download className="w-5 h-5" />
-                                        Baixar Matriz Finalizada
-                                    </a>
+                                )}
+
+                                {/* QUICK CHAT BUTTON FOR PROGRAMMER */}
+                                {!isOwner && acceptedProposal && (
+                                    <div className="mt-8 pt-6 border-t border-white/10 flex items-center justify-between">
+                                        <p className="text-xs text-gray-500">Dúvidas com o cliente sobre o bordado?</p>
+                                        <button
+                                            onClick={() => handleNegotiate(acceptedProposal.id)}
+                                            className="inline-flex items-center gap-2 bg-[#1A1D23] hover:bg-white/5 text-gray-300 px-4 py-2 rounded-xl text-xs font-bold border border-white/10 transition-colors"
+                                        >
+                                            <MessageSquare className="w-3.5 h-3.5" />
+                                            Abrir Chat com Cliente
+                                        </button>
+                                    </div>
                                 )}
                             </div>
 
+                            {/* Right Side: Review Form for Owner, Timeline for Programmer */}
                             {isOwner && (
                                 <div className="w-full lg:w-[450px] bg-green-500/5 p-8 lg:p-10 flex flex-col justify-center">
-                                    <h3 className="text-xl font-bold text-white mb-6">Avalie o Trabalho</h3>
+                                    <h3 className="text-xl font-bold text-white mb-6">Tudo Certo? Avalie o Trabalho</h3>
                                     
                                     <div className="space-y-6">
                                         <div className="space-y-3">
@@ -710,9 +900,10 @@ function JobDetailClient({ jobId }: { jobId: string }) {
 
                                         <button 
                                             onClick={() => handleSubmitReview(ratingMatrix, ratingService, reviewComment)}
-                                            className="w-full bg-white text-black font-black py-4 rounded-xl hover:bg-gray-200 transition-all uppercase tracking-widest text-sm"
+                                            className="w-full bg-white text-black font-black py-4 rounded-xl hover:bg-gray-200 transition-all uppercase tracking-widest text-sm flex items-center justify-center gap-2 shadow-lg"
                                         >
-                                            Enviar Avaliação & Finalizar
+                                            <CheckCircle className="w-4 h-4 text-green-600" />
+                                            Enviar Avaliação & Liberar Pagamento
                                         </button>
                                     </div>
                                 </div>
@@ -729,7 +920,7 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                                 <CheckCircle className="w-3 h-3 text-white" />
                                             </div>
                                             <h4 className="text-sm font-bold text-green-400 mb-1 leading-none pt-0.5">Matriz Entregue</h4>
-                                            <p className="text-xs text-gray-500">Seu arquivo foi enviado com sucesso.</p>
+                                            <p className="text-xs text-gray-500 text-left">Seu arquivo foi enviado com sucesso.</p>
                                         </div>
 
                                         {/* Etapa 2: Aguardando (Pendente) */}
@@ -737,10 +928,9 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                             <div className="absolute -left-[30px] top-0 w-[24px] h-[24px] bg-[#FFAE00] rounded-full border-4 border-[#1A1D23] flex items-center justify-center shadow-[0_0_10px_rgba(255,174,0,0.5)] animate-pulse z-10">
                                                 <Clock className="w-3 h-3 text-black" />
                                             </div>
-                                            <h4 className="text-sm font-bold text-[#FFAE00] mb-1 leading-none pt-0.5">Avaliação do Cliente (Opcional)</h4>
+                                            <h4 className="text-sm font-bold text-[#FFAE00] mb-1 leading-none pt-0.5">Avaliação do Cliente</h4>
                                             <p className="text-xs text-gray-500 leading-relaxed text-left">
-                                                O cliente tem a opção de avaliar a qualidade do trabalho. <br/>
-                                                <span className="text-gray-400 italic">Dica: Mande uma mensagem pedindo para o cliente avaliar (isso aumenta a sua reputação)</span>
+                                                O comprador está testando o bordado na máquina e fará a aprovação.
                                             </p>
                                         </div>
 
@@ -749,12 +939,145 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                             <div className="absolute -left-[30px] top-0 w-[24px] h-[24px] bg-gray-800 rounded-full border-4 border-[#1A1D23] z-10"></div>
                                             <h4 className="text-sm font-bold text-gray-600 mb-1 leading-none pt-0.5">Pagamento Liberado</h4>
                                             <p className="text-xs text-gray-600 text-left">
-                                                Será liberado na sua carteira automaticamente em 12 horas após a entrega
+                                                Será transferido via PIX automaticamente para sua conta assim que o cliente aprovar.
                                             </p>
                                         </div>
                                     </div>
                                 </div>
                             )}
+                        </div>
+                    </div>
+                ) : job.status === 'finalizado' ? (
+                    <div className="bg-[#1A1D23] border border-green-500/30 rounded-xl overflow-hidden shadow-[0_0_50px_rgba(34,197,94,0.1)] mb-8">
+                        <div className="flex flex-col lg:flex-row">
+                            {/* Left Side: Always accessible downloads */}
+                            <div className="flex-1 p-8 lg:p-10 border-b lg:border-b-0 lg:border-r border-white/5">
+                                <div className="inline-flex items-center gap-2 bg-green-500/20 text-green-400 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider mb-6">
+                                    <CheckCircle className="w-3 h-3" /> Pedido Concluído & Pago
+                                </div>
+                                <h2 className="text-3xl font-black text-white mb-2">Matriz Aprovada e Concluída! 🏆</h2>
+                                <p className="text-gray-400 text-sm mb-6 leading-relaxed">
+                                    Este pedido foi 100% finalizado. Os arquivos ficam salvos permanentemente na sua conta e você pode baixá-los a qualquer momento.
+                                </p>
+                                
+                                {job.delivery_url && (() => {
+                                    const urls = job.delivery_url.split(',')
+                                    const getFileName = (url: string) => {
+                                        const decoded = decodeURIComponent(url.split('/').pop() || 'arquivo')
+                                        const parts = decoded.split('_')
+                                        return parts.length > 1 ? parts.slice(1).join('_') : decoded
+                                    }
+
+                                    const handleDownloadAll = async () => {
+                                        toast.info('Compactando arquivos... aguarde.')
+                                        try {
+                                            const zip = new JSZip()
+                                            for (const url of urls) {
+                                                const res = await fetch(url)
+                                                const blob = await res.blob()
+                                                zip.file(getFileName(url), blob)
+                                            }
+                                            const content = await zip.generateAsync({ type: 'blob' })
+                                            saveAs(content, `${job.title || 'matrizes'}.zip`)
+                                            toast.success('Download concluído!')
+                                        } catch (err) {
+                                            toast.error('Erro ao compactar arquivos.')
+                                        }
+                                    }
+
+                                    return (
+                                        <div className="flex flex-col gap-4">
+                                            <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">
+                                                Arquivos da Matriz ({urls.length})
+                                            </p>
+                                            <div className="flex flex-wrap gap-2">
+                                                {urls.map((url, i) => (
+                                                    <a 
+                                                        key={i}
+                                                        href={url} 
+                                                        target="_blank" 
+                                                        rel="noopener noreferrer"
+                                                        className="inline-flex items-center gap-2 bg-[#0F1115] hover:bg-green-500/20 border border-white/10 hover:border-green-500/50 text-gray-300 hover:text-green-400 px-4 py-2 rounded-lg transition-all text-xs"
+                                                    >
+                                                        <Download className="w-3 h-3" />
+                                                        {getFileName(url)}
+                                                    </a>
+                                                ))}
+                                            </div>
+                                            {urls.length > 1 && (
+                                                <button
+                                                    onClick={handleDownloadAll}
+                                                    className="inline-flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-xl font-bold transition-all shadow-lg shadow-green-500/20 hover:scale-105 active:scale-95 w-fit"
+                                                >
+                                                    <Download className="w-5 h-5" />
+                                                    Baixar Tudo (.zip)
+                                                </button>
+                                            )}
+                                        </div>
+                                    )
+                                })()}
+
+                                <div className="mt-8 pt-6 border-t border-white/10 flex items-center justify-between">
+                                    <p className="text-xs text-gray-500">Histórico de mensagens e suporte preservados.</p>
+                                    {acceptedProposal && (
+                                        <button
+                                            onClick={() => handleNegotiate(acceptedProposal.id)}
+                                            className="inline-flex items-center gap-2 bg-[#1A1D23] hover:bg-white/5 text-gray-300 px-4 py-2 rounded-xl text-xs font-bold border border-white/10 transition-colors"
+                                        >
+                                            <MessageSquare className="w-3.5 h-3.5" />
+                                            Abrir Chat do Pedido
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Right Side: Review Summary */}
+                            <div className="w-full lg:w-[450px] bg-green-500/5 p-8 lg:p-10 flex flex-col justify-center">
+                                <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
+                                    <Star className="w-5 h-5 text-[#FFAE00] fill-[#FFAE00]" />
+                                    Avaliação do Projeto
+                                </h3>
+
+                                {jobReview ? (
+                                    <div className="space-y-4">
+                                        <div>
+                                            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Qualidade da Matriz</p>
+                                            <div className="flex gap-1">
+                                                {[1, 2, 3, 4, 5].map(s => (
+                                                    <Star key={s} className={`w-5 h-5 ${s <= jobReview.rating_matrix ? 'fill-[#FFAE00] text-[#FFAE00]' : 'text-gray-700'}`} />
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Atendimento / Prazo</p>
+                                            <div className="flex gap-1">
+                                                {[1, 2, 3, 4, 5].map(s => (
+                                                    <Star key={s} className={`w-5 h-5 ${s <= jobReview.rating_service ? 'fill-[#FFAE00] text-[#FFAE00]' : 'text-gray-700'}`} />
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        {jobReview.comment && (
+                                            <div className="bg-[#0F1115] p-3 rounded-xl border border-white/5 text-sm text-gray-300 italic">
+                                                &quot;{jobReview.comment}&quot;
+                                            </div>
+                                        )}
+
+                                        <div className="pt-2">
+                                            <span className="inline-flex items-center gap-1.5 text-xs text-green-400 bg-green-500/10 px-3 py-1.5 rounded-full border border-green-500/20 font-bold">
+                                                <CheckCircle className="w-3.5 h-3.5" /> Pagamento PIX Transferido
+                                            </span>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="text-center py-4">
+                                        <CheckCircle className="w-10 h-10 text-green-400 mx-auto mb-2" />
+                                        <p className="text-sm text-gray-300 font-bold">Trabalho concluído com sucesso!</p>
+                                        <p className="text-xs text-gray-500 mt-1">O valor foi liberado para o programador.</p>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
                 ) : (
@@ -962,6 +1285,94 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                 >
                                     Pagar Agora <Zap className="w-4 h-4" />
                                 </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* REVISION REQUEST MODAL */}
+                {showRevisionModal && (
+                    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[100] p-4 animate-in fade-in duration-200">
+                        <div className="bg-[#1A1D23] border border-yellow-500/30 p-6 md:p-8 rounded-2xl w-full max-w-lg shadow-[0_0_50px_rgba(234,179,8,0.15)] relative">
+                            <button
+                                onClick={() => setShowRevisionModal(false)}
+                                className="absolute top-4 right-4 text-gray-400 hover:text-white p-1 rounded-lg hover:bg-white/5 transition-colors"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+
+                            <div className="flex items-center gap-3 mb-6">
+                                <div className="w-12 h-12 bg-yellow-500/20 rounded-xl border border-yellow-500/30 flex items-center justify-center shrink-0">
+                                    <Wrench className="w-6 h-6 text-yellow-400" />
+                                </div>
+                                <div>
+                                    <h3 className="text-xl font-black text-white">Solicitar Ajuste na Matriz</h3>
+                                    <p className="text-xs text-gray-400 mt-0.5">Descreva o que aconteceu no teste para o programador corrigir.</p>
+                                </div>
+                            </div>
+
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">
+                                        O que precisa ser ajustado? *
+                                    </label>
+                                    <textarea
+                                        value={revisionNotes}
+                                        onChange={e => setRevisionNotes(e.target.value)}
+                                        placeholder="Ex: No teste em tecido piquet, o ponto da letra ficou muito denso e repuxou. Precisa reduzir um pouco os pontos e aumentar o contorno em 2mm..."
+                                        className="w-full bg-[#0F1115] border border-white/10 rounded-xl p-3.5 text-sm text-gray-200 focus:border-yellow-500/50 min-h-[120px]"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">
+                                        Foto do teste / defeito (opcional, mas recomendado)
+                                    </label>
+                                    <input
+                                        type="file"
+                                        id="revision-photo-input"
+                                        accept="image/*,.pdf"
+                                        className="hidden"
+                                        onChange={e => setRevisionPhoto(e.target.files?.[0] || null)}
+                                    />
+                                    <label
+                                        htmlFor="revision-photo-input"
+                                        className="flex items-center gap-3 bg-[#0F1115] border border-white/10 hover:border-yellow-500/30 rounded-xl p-3.5 cursor-pointer text-xs text-gray-300 transition-colors"
+                                    >
+                                        <Camera className="w-5 h-5 text-yellow-400 shrink-0" />
+                                        <span className="truncate">
+                                            {revisionPhoto ? `Arquivo selecionado: ${revisionPhoto.name}` : 'Clique para anexar foto do bordado com defeito'}
+                                        </span>
+                                    </label>
+                                </div>
+
+                                <div className="flex gap-3 pt-3">
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowRevisionModal(false)}
+                                        className="flex-1 bg-white/5 border border-white/10 text-gray-400 font-bold py-3.5 rounded-xl hover:bg-white/10 transition-colors text-xs"
+                                    >
+                                        Cancelar
+                                    </button>
+                                    <button
+                                        type="button"
+                                        disabled={submittingRevision}
+                                        onClick={handleRequestRevision}
+                                        className="flex-1 bg-yellow-500 hover:bg-yellow-400 text-black font-black py-3.5 rounded-xl transition-all shadow-lg shadow-yellow-500/20 disabled:opacity-50 flex items-center justify-center gap-2 text-xs"
+                                    >
+                                        {submittingRevision ? (
+                                            <>
+                                                <div className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" />
+                                                Enviando Ajuste...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Send className="w-4 h-4" />
+                                                Enviar Solicitação
+                                            </>
+                                        )}
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>

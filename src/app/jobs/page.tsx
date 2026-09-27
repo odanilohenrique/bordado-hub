@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import JobCard from '@/components/JobCard'
-import { Search } from 'lucide-react'
+import { Search, Plus } from 'lucide-react'
+import Link from 'next/link'
 
 export default function JobsPage() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -91,40 +92,50 @@ export default function JobsPage() {
     return (
         <div className="min-h-screen bg-[#0F1115] py-8 px-4 sm:px-6 lg:px-8">
             <div className="max-w-7xl mx-auto">
-                <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
                     <div>
                         <h1 className="text-3xl font-extrabold text-[#F3F4F6]">Feed Público</h1>
                         <p className="text-gray-400 mt-1">Encontre projetos de bordado e envie sua proposta</p>
                     </div>
 
-                    <div className="flex p-1 bg-[#1A1D23] rounded-lg border border-[#FFAE00]/20">
-                        <button
-                            onClick={() => setFilter('all')}
-                            className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${filter === 'all'
-                                ? 'bg-[#FFAE00] text-[#0F1115] shadow-lg shadow-[#FFAE00]/20'
-                                : 'text-gray-400 hover:text-white'
-                                }`}
+                    <div className="flex flex-wrap items-center gap-3">
+                        <div className="flex p-1 bg-[#1A1D23] rounded-xl border border-[#FFAE00]/20">
+                            <button
+                                onClick={() => setFilter('all')}
+                                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${filter === 'all'
+                                    ? 'bg-[#FFAE00] text-[#0F1115] shadow-lg shadow-[#FFAE00]/20 font-bold'
+                                    : 'text-gray-400 hover:text-white'
+                                    }`}
+                            >
+                                Todos
+                            </button>
+                            <button
+                                onClick={() => setFilter('aberto')}
+                                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${filter === 'aberto'
+                                    ? 'bg-[#FFAE00] text-[#0F1115] shadow-lg shadow-[#FFAE00]/20 font-bold'
+                                    : 'text-gray-400 hover:text-white'
+                                    }`}
+                            >
+                                Abertos
+                            </button>
+                            <button
+                                onClick={() => setFilter('em_progresso')}
+                                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${filter === 'em_progresso'
+                                    ? 'bg-[#FFAE00] text-[#0F1115] shadow-lg shadow-[#FFAE00]/20 font-bold'
+                                    : 'text-gray-400 hover:text-white'
+                                    }`}
+                            >
+                                🤝 Match Feito
+                            </button>
+                        </div>
+
+                        <Link
+                            href="/jobs/new"
+                            className="inline-flex items-center gap-2 bg-gradient-to-r from-[#FFAE00] to-[#FF9100] hover:from-[#FFB92E] hover:to-[#FFAE00] text-[#0F1115] px-5 py-2.5 rounded-xl font-extrabold text-sm transition-all shadow-lg shadow-[#FFAE00]/20 hover:scale-105 active:scale-95 whitespace-nowrap"
                         >
-                            Todos
-                        </button>
-                        <button
-                            onClick={() => setFilter('aberto')}
-                            className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${filter === 'aberto'
-                                ? 'bg-[#FFAE00] text-[#0F1115] shadow-lg shadow-[#FFAE00]/20'
-                                : 'text-gray-400 hover:text-white'
-                                }`}
-                        >
-                            Abertos
-                        </button>
-                        <button
-                            onClick={() => setFilter('em_progresso')}
-                            className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${filter === 'em_progresso'
-                                ? 'bg-[#FFAE00] text-[#0F1115] shadow-lg shadow-[#FFAE00]/20'
-                                : 'text-gray-400 hover:text-white'
-                                }`}
-                        >
-                            🤝 Match Feito
-                        </button>
+                            <Plus className="w-4 h-4 stroke-[3]" />
+                            Criar Pedido
+                        </Link>
                     </div>
                 </div>
 

@@ -53,11 +53,12 @@ export async function GET(request: Request) {
                 
                 // Notifica o programador que o pagamento caiu
                 if (tx.criador_id) {
+                    const jobTitle = (Array.isArray((tx as any)?.jobs) ? (tx as any)?.jobs[0]?.title : (tx as any)?.jobs?.title) || 'Bordado'
                     await supabase.from('notifications').insert({
                         user_id: tx.criador_id,
                         type: 'pagamento_aprovado',
                         title: '💰 Pagamento Aprovado!',
-                        message: `O pagamento do pedido "${tx.jobs?.title || 'Bordado'}" foi confirmado. O dinheiro já está retido em segurança. Você já pode iniciar a produção e enviar a matriz!`,
+                        message: `O pagamento do pedido "${jobTitle}" foi confirmado. O dinheiro já está retido em segurança. Você já pode iniciar a produção e enviar a matriz!`,
                         link_url: `/jobs/${tx.job_id}`
                     })
                 }
