@@ -29,6 +29,7 @@ export default function ProfilePage() {
     const params = useParams()
     const id = params?.id as string
     const [profile, setProfile] = useState<UserProfile | null>(null)
+    const [reviews, setReviews] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -72,6 +73,41 @@ export default function ProfilePage() {
                     .update({ avatar_url: googleAvatar })
                     .eq('id', data.id)
                 data.avatar_url = googleAvatar
+            }
+
+            // Load reviews received by this user
+            const { data: reviewsData } = await supabase
+                .from('reviews')
+                .select('*, jobs(title)')
+                .or(`reviewee_id.eq.${data.id}${data.supabase_user_id ? `,reviewee_id.eq.${data.supabase_user_id}` : ''}`)
+                .order('created_at', { ascending: false })
+
+            if (reviewsData && reviewsData.length > 0) {
+                const reviewerIds = Array.from(new Set(reviewsData.map(r => r.reviewer_id).filter(Boolean)))
+                const { data: reviewers } = await supabase
+                    .from('users')
+                    .select('id, supabase_user_id, name, avatar_url')
+                    .or(`id.in.(${reviewerIds.join(',')}),supabase_user_id.in.(${reviewerIds.join(',')})`)
+
+                const reviewerMap = new Map()
+                reviewers?.forEach(u => {
+                    reviewerMap.set(u.id, u)
+                    if (u.supabase_user_id) reviewerMap.set(u.supabase_user_id, u)
+                })
+
+                const enrichedReviews = reviewsData.map(r => ({
+                    ...r,
+                    reviewer: reviewerMap.get(r.reviewer_id) || { name: 'Cliente' }
+                }))
+
+                setReviews(enrichedReviews)
+
+                // Calculate dynamic average rating
+                const sum = reviewsData.reduce((acc, r) => acc + (r.rating || 5), 0)
+                data.rating = Number((sum / reviewsData.length).toFixed(1))
+                data.reviews_count = reviewsData.length
+            } else {
+                setReviews([])
             }
 
             setProfile(data)
@@ -537,13 +573,84 @@ export default function ProfilePage() {
 
                         {/* Reviews (Common) */}
                         <div className="bg-[#1A1D23] rounded-xl border border-[#FFAE00]/20 p-6 shadow-xl">
-                            <h2 className="text-xl font-bold text-[#F3F4F6] mb-6 flex items-center gap-2">
-                                <Star className="w-5 h-5 text-[#FFAE00]" />
-                                Avaliações Recentes
-                            </h2>
-                            <div className="text-center py-8 text-gray-500 text-sm">
-                                Nenhuma avaliação recebida ainda.
+                            <div className="flex items-center justify-between mb-6">
+                                <h2 className="text-xl font-bold text-[#F3F4F6] flex items-center gap-2">
+                                    <Star className="w-5 h-5 text-[#FFAE00] fill-[#FFAE00]" />
+                                    Avaliações Recentes
+                                </h2>
+                                {reviews.length > 0 && (
+                                    <span className="text-xs font-bold text-gray-400 bg-white/5 border border-white/10 px-3 py-1 rounded-full">
+                                        {reviews.length} {reviews.length === 1 ? 'avaliação' : 'avaliações'}
+                                    </span>
+                                )}
                             </div>
+
+                            {reviews.length === 0 ? (
+                                <div className="text-center py-8 text-gray-500 text-sm">
+                                    Nenhuma avaliação recebida ainda.
+                                </div>
+                            ) : (
+                                <div className="space-y-4">
+                                    {reviews.map((rev) => (
+                                        <div key={rev.id} className="bg-[#0F1115] border border-white/5 hover:border-[#FFAE00]/30 rounded-xl p-5 transition-all">
+                                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-10 h-10 rounded-full bg-[#1A1D23] border border-gray-700 flex items-center justify-center overflow-hidden shrink-0">
+                                                        {rev.reviewer?.avatar_url ? (
+                                                            <img src={rev.reviewer.avatar_url} alt={rev.reviewer.name} className="w-full h-full object-cover" />
+                                                        ) : (
+                                                            <User className="w-5 h-5 text-gray-400" />
+                                                        )}
+                                                    </div>
+                                                    <div>
+                                                        <h4 className="text-sm font-bold text-white leading-tight">{rev.reviewer?.name || 'Cliente'}</h4>
+                                                        <p className="text-[11px] text-gray-500 mt-0.5">
+                                                            {new Date(rev.created_at).toLocaleDateString('pt-BR')}
+                                                            {rev.jobs?.title && (
+                                                                <span className="text-gray-400"> • Pedido: <strong className="text-gray-300 font-medium">{rev.jobs.title}</strong></span>
+                                                            )}
+                                                        </p>
+                                                    </div>
+                                                </div>
+
+                                                {/* Stars */}
+                                                <div className="flex items-center gap-1.5 self-start sm:self-auto bg-[#1A1D23] px-3 py-1.5 rounded-lg border border-white/5">
+                                                    <div className="flex">
+                                                        {[1, 2, 3, 4, 5].map((s) => (
+                                                            <Star
+                                                                key={s}
+                                                                className={`w-3.5 h-3.5 ${s <= (rev.rating || 5) ? 'text-[#FFAE00] fill-[#FFAE00]' : 'text-gray-700'}`}
+                                                            />
+                                                        ))}
+                                                    </div>
+                                                    <span className="text-xs font-bold text-white ml-1">{(rev.rating || 5).toFixed(1)}</span>
+                                                </div>
+                                            </div>
+
+                                            {/* Matrix & Service breakdown */}
+                                            <div className="flex flex-wrap gap-2 mb-3">
+                                                {rev.rating_matrix && (
+                                                    <span className="text-[10px] font-medium text-gray-300 bg-white/[0.03] border border-white/5 px-2.5 py-1 rounded-md flex items-center gap-1">
+                                                        Matriz: <strong className="text-[#FFAE00]">{rev.rating_matrix}.0</strong> ⭐
+                                                    </span>
+                                                )}
+                                                {rev.rating_service && (
+                                                    <span className="text-[10px] font-medium text-gray-300 bg-white/[0.03] border border-white/5 px-2.5 py-1 rounded-md flex items-center gap-1">
+                                                        Atendimento / Prazo: <strong className="text-[#FFAE00]">{rev.rating_service}.0</strong> ⭐
+                                                    </span>
+                                                )}
+                                            </div>
+
+                                            {/* Comment text */}
+                                            {rev.comment && (
+                                                <p className="text-sm text-gray-300 leading-relaxed italic bg-white/[0.01] p-3 rounded-lg border border-white/5">
+                                                    &quot;{rev.comment}&quot;
+                                                </p>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
 
                     </div>

@@ -3,11 +3,17 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import JobCard from '@/components/JobCard'
-import { Briefcase, Target, Clock, CheckCircle } from 'lucide-react'
+import { Briefcase, Target, Clock, CheckCircle, Wrench, AlertCircle, Package, Award } from 'lucide-react'
 
 export default function CreatorDashboard() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const [inRevision, setInRevision] = useState<any[]>([])
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [inProduction, setInProduction] = useState<any[]>([])
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const [delivered, setDelivered] = useState<any[]>([])
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const [completed, setCompleted] = useState<any[]>([])
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [pendingProposals, setPendingProposals] = useState<any[]>([])
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -50,7 +56,19 @@ export default function CreatorDashboard() {
                     return { ...jobData, my_proposal_status: p.status }
                 }).filter(Boolean)
 
-                setInProduction(mapped.filter(j => j.my_proposal_status === 'aceita'))
+                // 1. Em Revisão (Ação Prioritária)
+                setInRevision(mapped.filter(j => j.my_proposal_status === 'aceita' && j.status === 'em_revisao'))
+
+                // 2. Em Produção (Produzir e Entregar)
+                setInProduction(mapped.filter(j => j.my_proposal_status === 'aceita' && (j.status === 'em_progresso' || !j.status)))
+
+                // 3. Matrizes Entregues (Aguardando Aprovação do Cliente)
+                setDelivered(mapped.filter(j => j.my_proposal_status === 'aceita' && j.status === 'entregue'))
+
+                // 4. Concluídas & Pagas
+                setCompleted(mapped.filter(j => j.my_proposal_status === 'aceita' && j.status === 'finalizado'))
+
+                // 5. Propostas Pendentes / Contrapropostas
                 setPendingProposals(mapped.filter(j => j.my_proposal_status === 'pendente' || j.my_proposal_status === 'contraproposta'))
             }
 
@@ -71,35 +89,43 @@ export default function CreatorDashboard() {
         )
     }
 
-    const totalItems = inProduction.length + pendingProposals.length + directRequests.length
+    const totalActive = inRevision.length + inProduction.length + delivered.length + completed.length + pendingProposals.length + directRequests.length
 
     return (
         <div className="space-y-8">
             {/* Dashboard Header */}
             <div className="bg-gradient-to-r from-green-500/10 to-transparent border border-green-500/20 rounded-xl p-6">
-                <div className="flex items-center gap-4">
-                    <div className="bg-green-500/20 p-3 rounded-xl">
-                        <Briefcase className="w-7 h-7 text-green-400" />
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div className="flex items-center gap-4">
+                        <div className="bg-green-500/20 p-3 rounded-xl shrink-0">
+                            <Briefcase className="w-7 h-7 text-green-400" />
+                        </div>
+                        <div>
+                            <h1 className="text-2xl font-black text-white">Minha Produção</h1>
+                            <p className="text-gray-400 text-sm mt-0.5">Gerencie suas matrizes e acompanhe cada etapa do trabalho</p>
+                        </div>
                     </div>
-                    <div>
-                        <h1 className="text-2xl font-black text-white">Minha Produção</h1>
-                        <p className="text-gray-400 text-sm mt-0.5">Gerencie suas matrizes e acompanhe seus trabalhos</p>
-                    </div>
-                    {totalItems > 0 && (
-                        <div className="ml-auto hidden md:flex items-center gap-3">
+
+                    {totalActive > 0 && (
+                        <div className="flex flex-wrap items-center gap-2">
+                            {inRevision.length > 0 && (
+                                <span className="flex items-center gap-1.5 text-xs font-bold bg-yellow-500/10 text-yellow-400 px-3 py-1.5 rounded-full border border-yellow-500/30 animate-pulse">
+                                    <Wrench className="w-3.5 h-3.5" /> {inRevision.length} em revisão
+                                </span>
+                            )}
                             {inProduction.length > 0 && (
-                                <span className="flex items-center gap-1.5 text-xs font-bold bg-green-500/10 text-green-400 px-3 py-1.5 rounded-full border border-green-500/20">
-                                    <CheckCircle className="w-3 h-3" /> {inProduction.length} em produção
+                                <span className="flex items-center gap-1.5 text-xs font-bold bg-blue-500/10 text-blue-400 px-3 py-1.5 rounded-full border border-blue-500/30">
+                                    <Clock className="w-3.5 h-3.5" /> {inProduction.length} em produção
                                 </span>
                             )}
-                            {pendingProposals.length > 0 && (
-                                <span className="flex items-center gap-1.5 text-xs font-bold bg-yellow-500/10 text-yellow-400 px-3 py-1.5 rounded-full border border-yellow-500/20">
-                                    <Clock className="w-3 h-3" /> {pendingProposals.length} aguardando
+                            {delivered.length > 0 && (
+                                <span className="flex items-center gap-1.5 text-xs font-bold bg-emerald-500/10 text-emerald-400 px-3 py-1.5 rounded-full border border-emerald-500/30">
+                                    <Package className="w-3.5 h-3.5" /> {delivered.length} entregue{delivered.length > 1 ? 's' : ''}
                                 </span>
                             )}
-                            {directRequests.length > 0 && (
-                                <span className="flex items-center gap-1.5 text-xs font-bold bg-purple-500/10 text-purple-400 px-3 py-1.5 rounded-full border border-purple-500/20">
-                                    <Target className="w-3 h-3" /> {directRequests.length} diretas
+                            {completed.length > 0 && (
+                                <span className="flex items-center gap-1.5 text-xs font-bold bg-gray-800 text-gray-300 px-3 py-1.5 rounded-full border border-white/10">
+                                    <CheckCircle className="w-3.5 h-3.5 text-green-400" /> {completed.length} finalizada{completed.length > 1 ? 's' : ''}
                                 </span>
                             )}
                         </div>
@@ -107,7 +133,7 @@ export default function CreatorDashboard() {
                 </div>
             </div>
 
-            {totalItems === 0 && (
+            {totalActive === 0 && (
                 <div className="bg-[#1A1D23] border border-green-500/10 rounded-xl p-12 text-center">
                     <div className="bg-green-500/10 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
                         <Briefcase className="w-10 h-10 text-green-400" />
@@ -119,25 +145,25 @@ export default function CreatorDashboard() {
                 </div>
             )}
 
-            {/* Section 1: Em Produção (Green) */}
-            {inProduction.length > 0 && (
+            {/* SEÇÃO 1: REVISÃO SOLICITADA (Prioridade Máxima) */}
+            {inRevision.length > 0 && (
                 <section>
                     <div className="flex items-center gap-3 mb-4">
-                        <div className="bg-green-500/20 p-2 rounded-lg">
-                            <CheckCircle className="w-5 h-5 text-green-400" />
+                        <div className="bg-yellow-500/20 p-2.5 rounded-xl border border-yellow-500/30">
+                            <Wrench className="w-5 h-5 text-yellow-400 animate-pulse" />
                         </div>
                         <div>
                             <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                                Em Produção
-                                <span className="bg-green-500 text-white text-[10px] px-2 py-0.5 rounded-full font-black">{inProduction.length}</span>
+                                Revisão Solicitada pelo Cliente
+                                <span className="bg-yellow-500 text-black text-[10px] px-2 py-0.5 rounded-full font-black animate-pulse">{inRevision.length}</span>
                             </h2>
-                            <p className="text-gray-500 text-xs">Matrizes aceitas que você está produzindo agora</p>
+                            <p className="text-yellow-400/80 text-xs">O comprador testou a matriz e solicitou ajustes. Envie a versão corrigida.</p>
                         </div>
                     </div>
                     <div className="grid gap-4">
-                        {inProduction.map((job) => (
-                            <div key={`prod-${job.id}`} className="relative border border-green-500/20 rounded-xl overflow-hidden shadow-[0_0_15px_rgba(34,197,94,0.05)]">
-                                <div className="absolute -left-3 top-4 bottom-4 w-1 bg-green-500 rounded-full z-10"></div>
+                        {inRevision.map((job) => (
+                            <div key={`rev-${job.id}`} className="relative border border-yellow-500/40 rounded-xl overflow-hidden shadow-[0_0_20px_rgba(234,179,8,0.12)]">
+                                <div className="absolute -left-3 top-4 bottom-4 w-1 bg-yellow-500 rounded-full z-10 animate-pulse"></div>
                                 <JobCard job={job} viewerRole="programmer" />
                             </div>
                         ))}
@@ -145,11 +171,89 @@ export default function CreatorDashboard() {
                 </section>
             )}
 
-            {/* Section 2: Propostas Enviadas (Yellow) */}
+            {/* SEÇÃO 2: EM PRODUÇÃO */}
+            {inProduction.length > 0 && (
+                <section>
+                    <div className="flex items-center gap-3 mb-4">
+                        <div className="bg-blue-500/20 p-2.5 rounded-xl border border-blue-500/30">
+                            <Clock className="w-5 h-5 text-blue-400" />
+                        </div>
+                        <div>
+                            <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                                Em Produção
+                                <span className="bg-blue-500 text-white text-[10px] px-2 py-0.5 rounded-full font-black">{inProduction.length}</span>
+                            </h2>
+                            <p className="text-gray-400 text-xs">Matrizes que você está digitalizando e precisa entregar</p>
+                        </div>
+                    </div>
+                    <div className="grid gap-4">
+                        {inProduction.map((job) => (
+                            <div key={`prod-${job.id}`} className="relative border border-blue-500/30 rounded-xl overflow-hidden shadow-[0_0_15px_rgba(59,130,246,0.08)]">
+                                <div className="absolute -left-3 top-4 bottom-4 w-1 bg-blue-500 rounded-full z-10"></div>
+                                <JobCard job={job} viewerRole="programmer" />
+                            </div>
+                        ))}
+                    </div>
+                </section>
+            )}
+
+            {/* SEÇÃO 3: MATRIZES ENTREGUES (Aguardando Aprovação) */}
+            {delivered.length > 0 && (
+                <section>
+                    <div className="flex items-center gap-3 mb-4">
+                        <div className="bg-emerald-500/20 p-2.5 rounded-xl border border-emerald-500/30">
+                            <Package className="w-5 h-5 text-emerald-400" />
+                        </div>
+                        <div>
+                            <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                                Matrizes Entregues
+                                <span className="bg-emerald-500 text-white text-[10px] px-2 py-0.5 rounded-full font-black">{delivered.length}</span>
+                            </h2>
+                            <p className="text-gray-400 text-xs">Arquivos enviados. Aguardando o cliente testar e aprovar para liberação do PIX</p>
+                        </div>
+                    </div>
+                    <div className="grid gap-4">
+                        {delivered.map((job) => (
+                            <div key={`deliv-${job.id}`} className="relative border border-emerald-500/20 rounded-xl overflow-hidden shadow-[0_0_15px_rgba(16,185,129,0.05)]">
+                                <div className="absolute -left-3 top-4 bottom-4 w-1 bg-emerald-500 rounded-full z-10"></div>
+                                <JobCard job={job} viewerRole="programmer" />
+                            </div>
+                        ))}
+                    </div>
+                </section>
+            )}
+
+            {/* SEÇÃO 4: CONCLUÍDAS & PAGAS */}
+            {completed.length > 0 && (
+                <section>
+                    <div className="flex items-center gap-3 mb-4">
+                        <div className="bg-green-500/20 p-2.5 rounded-xl border border-green-500/30">
+                            <Award className="w-5 h-5 text-green-400" />
+                        </div>
+                        <div>
+                            <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                                Concluídas & Pagas
+                                <span className="bg-gray-700 text-gray-200 text-[10px] px-2 py-0.5 rounded-full font-bold">{completed.length}</span>
+                            </h2>
+                            <p className="text-gray-400 text-xs">Matrizes aprovadas pelo cliente com pagamento transferido</p>
+                        </div>
+                    </div>
+                    <div className="grid gap-4">
+                        {completed.map((job) => (
+                            <div key={`comp-${job.id}`} className="relative border border-gray-800 rounded-xl overflow-hidden opacity-90 hover:opacity-100 transition-opacity">
+                                <div className="absolute -left-3 top-4 bottom-4 w-1 bg-gray-600 rounded-full z-10"></div>
+                                <JobCard job={job} viewerRole="programmer" />
+                            </div>
+                        ))}
+                    </div>
+                </section>
+            )}
+
+            {/* SEÇÃO 5: PROPOSTAS ENVIADAS */}
             {pendingProposals.length > 0 && (
                 <section>
                     <div className="flex items-center gap-3 mb-4">
-                        <div className="bg-yellow-500/20 p-2 rounded-lg">
+                        <div className="bg-yellow-500/20 p-2.5 rounded-xl border border-yellow-500/30">
                             <Clock className="w-5 h-5 text-yellow-400" />
                         </div>
                         <div>
@@ -157,7 +261,7 @@ export default function CreatorDashboard() {
                                 Propostas Enviadas
                                 <span className="bg-yellow-500 text-black text-[10px] px-2 py-0.5 rounded-full font-black">{pendingProposals.length}</span>
                             </h2>
-                            <p className="text-gray-500 text-xs">Aguardando resposta do cliente</p>
+                            <p className="text-gray-400 text-xs">Aguardando resposta do cliente no mural de pedidos</p>
                         </div>
                     </div>
                     <div className="grid gap-4">
@@ -171,11 +275,11 @@ export default function CreatorDashboard() {
                 </section>
             )}
 
-            {/* Section 3: Solicitações Diretas (Purple) */}
+            {/* SEÇÃO 6: SOLICITAÇÕES DIRETAS */}
             {directRequests.length > 0 && (
                 <section>
                     <div className="flex items-center gap-3 mb-4">
-                        <div className="bg-purple-500/20 p-2 rounded-lg">
+                        <div className="bg-purple-500/20 p-2.5 rounded-xl border border-purple-500/30">
                             <Target className="w-5 h-5 text-purple-400" />
                         </div>
                         <div>
@@ -183,7 +287,7 @@ export default function CreatorDashboard() {
                                 Solicitações Diretas
                                 <span className="bg-purple-500 text-white text-[10px] px-2 py-0.5 rounded-full font-black animate-pulse">{directRequests.length}</span>
                             </h2>
-                            <p className="text-gray-500 text-xs">Clientes que escolheram você especificamente</p>
+                            <p className="text-gray-400 text-xs">Clientes que escolheram você especificamente para o trabalho</p>
                         </div>
                     </div>
                     <div className="grid gap-4">
