@@ -699,7 +699,7 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                     )}
                                     {job.revision_image_url && (
                                         <div>
-                                            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">Foto do Defeito / Teste na Máquina:</p>
+                                            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">Foto do Teste / Defeito no Bordado:</p>
                                             <a href={job.revision_image_url} target="_blank" rel="noopener noreferrer" className="inline-block relative rounded-lg overflow-hidden border border-white/10 hover:border-yellow-500/50 transition-colors">
                                                 <img src={job.revision_image_url} alt="Foto do bordado com defeito" className="max-h-48 rounded-lg object-cover" />
                                             </a>
@@ -898,7 +898,7 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                     <div className="mt-8 pt-6 border-t border-white/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-yellow-500/[0.04] p-4 rounded-xl border border-yellow-500/20">
                                         <div>
                                             <p className="text-xs font-bold text-yellow-400 flex items-center gap-1.5">
-                                                <AlertCircle className="w-4 h-4" /> Testou na máquina e precisa de algum ajuste?
+                                                <AlertCircle className="w-4 h-4" /> Testou o bordado e precisa de algum ajuste ou correção?
                                             </p>
                                             <p className="text-[11px] text-gray-400 mt-0.5">
                                                 Você pode solicitar uma correção de ponto, tamanho ou formato com foto.
@@ -938,12 +938,12 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                     <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 text-xs text-amber-200/90 flex items-start gap-2.5 mb-5">
                                         <Sparkles className="w-4 h-4 text-[#FFAE00] flex-shrink-0 mt-0.5" />
                                         <div className="space-y-1">
-                                            <p className="font-bold text-white">💡 Já testou na máquina de bordar?</p>
+                                            <p className="font-bold text-white">💡 Já testou o bordado?</p>
                                             <p className="text-gray-300 leading-relaxed text-[11px]">
                                                 Recomendamos fazer um teste no tecido antes de avaliar. Se precisar de ajustes agora, use o botão <strong>Pedir Ajuste / Revisão</strong> ao lado.
                                             </p>
                                             <p className="text-[10px] text-amber-400 font-semibold">
-                                                🛡️ Fique tranquilo: mesmo após aprovar, você terá 7 dias de garantia para solicitar correções!
+                                                🛡️ Fique tranquilo: mesmo após aprovar, você terá 7 dias de garantia para solicitar correções na matriz!
                                             </p>
                                         </div>
                                     </div>
@@ -1097,18 +1097,18 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                     )
                                 })()}
 
-                                {/* GARANTIA DE TESTE NA MÁQUINA (PÓS-AVALIAÇÃO) */}
+                                {/* GARANTIA DE AJUSTE OU CORREÇÃO (PÓS-AVALIAÇÃO) */}
                                 {isOwner && (
                                     <div className="mt-6 p-4 bg-yellow-500/[0.05] border border-yellow-500/25 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                                         <div>
                                             <div className="flex items-center gap-2">
                                                 <span className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse"></span>
                                                 <p className="text-xs font-bold text-yellow-400 flex items-center gap-1.5">
-                                                    <Wrench className="w-3.5 h-3.5" /> Garantia de Teste na Máquina (7 dias)
+                                                    <Wrench className="w-3.5 h-3.5" /> Garantia de Ajuste ou Correção (7 dias)
                                                 </p>
                                             </div>
                                             <p className="text-xs text-gray-400 mt-1 leading-relaxed">
-                                                Testou no tecido e o ponto repuxou, arrebentou linha ou precisa de pequeno ajuste?
+                                                Bordou a peça e precisa de alteração de pontos, tamanho ou compensação na matriz?
                                             </p>
                                         </div>
                                         <button
@@ -1116,7 +1116,7 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                             className="inline-flex items-center gap-2 bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 px-4 py-2.5 rounded-xl text-xs font-bold transition-all hover:scale-105 active:scale-95 shrink-0"
                                         >
                                             <RotateCcw className="w-3.5 h-3.5" />
-                                            Solicitar Ajuste na Máquina
+                                            Solicitar Ajuste ou Correção
                                         </button>
                                     </div>
                                 )}
