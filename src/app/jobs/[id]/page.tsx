@@ -361,31 +361,17 @@ function JobDetailClient({ jobId }: { jobId: string }) {
         }
         setSubmittingRevision(true)
         try {
-            let uploadedPhotoUrl = ''
+            const formData = new FormData()
+            formData.append('jobId', jobId)
+            if (currentUser?.id) formData.append('clientId', currentUser.id)
+            formData.append('notes', revisionNotes.trim())
             if (revisionPhoto) {
-                const safeName = revisionPhoto.name.replace(/[^a-zA-Z0-9.\-_]/g, '_')
-                const path = `revisions/${jobId}_${Date.now()}_${safeName}`
-                const { error: uploadError } = await supabase.storage
-                    .from('job-deliveries')
-                    .upload(path, revisionPhoto, { upsert: true })
-                
-                if (!uploadError) {
-                    const { data: { publicUrl } } = supabase.storage
-                        .from('job-deliveries')
-                        .getPublicUrl(path)
-                    uploadedPhotoUrl = publicUrl
-                }
+                formData.append('photo', revisionPhoto)
             }
 
             const res = await fetch('/api/jobs/revision', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    jobId,
-                    clientId: currentUser?.id,
-                    notes: revisionNotes,
-                    imageUrl: uploadedPhotoUrl
-                })
+                body: formData
             })
 
             const data = await res.json()
@@ -397,7 +383,7 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                 ...prev,
                 status: 'em_revisao',
                 revision_notes: revisionNotes,
-                revision_image_url: uploadedPhotoUrl
+                revision_image_url: data.imageUrl || null
             }))
         } catch (err: any) {
             toast.error(err.message || 'Erro ao enviar solicitação de ajuste')
@@ -946,7 +932,21 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                             {/* Right Side: Review Form for Owner, Timeline for Programmer */}
                             {isOwner && (
                                 <div className="w-full lg:w-[450px] bg-green-500/5 p-8 lg:p-10 flex flex-col justify-center">
-                                    <h3 className="text-xl font-bold text-white mb-6">Tudo Certo? Avalie o Trabalho</h3>
+                                    <h3 className="text-xl font-bold text-white mb-4">Tudo Certo? Avalie o Trabalho</h3>
+
+                                    {/* Dica amigável antes de avaliar */}
+                                    <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 text-xs text-amber-200/90 flex items-start gap-2.5 mb-5">
+                                        <Sparkles className="w-4 h-4 text-[#FFAE00] flex-shrink-0 mt-0.5" />
+                                        <div className="space-y-1">
+                                            <p className="font-bold text-white">💡 Já testou na máquina de bordar?</p>
+                                            <p className="text-gray-300 leading-relaxed text-[11px]">
+                                                Recomendamos fazer um teste no tecido antes de avaliar. Se precisar de ajustes agora, use o botão <strong>Pedir Ajuste / Revisão</strong> ao lado.
+                                            </p>
+                                            <p className="text-[10px] text-amber-400 font-semibold">
+                                                🛡️ Fique tranquilo: mesmo após aprovar, você terá 7 dias de garantia para solicitar correções!
+                                            </p>
+                                        </div>
+                                    </div>
                                     
                                     <div className="space-y-6">
                                         <div className="space-y-3">
@@ -1096,6 +1096,30 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                         </div>
                                     )
                                 })()}
+
+                                {/* GARANTIA DE TESTE NA MÁQUINA (PÓS-AVALIAÇÃO) */}
+                                {isOwner && (
+                                    <div className="mt-6 p-4 bg-yellow-500/[0.05] border border-yellow-500/25 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                                        <div>
+                                            <div className="flex items-center gap-2">
+                                                <span className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse"></span>
+                                                <p className="text-xs font-bold text-yellow-400 flex items-center gap-1.5">
+                                                    <Wrench className="w-3.5 h-3.5" /> Garantia de Teste na Máquina (7 dias)
+                                                </p>
+                                            </div>
+                                            <p className="text-xs text-gray-400 mt-1 leading-relaxed">
+                                                Testou no tecido e o ponto repuxou, arrebentou linha ou precisa de pequeno ajuste?
+                                            </p>
+                                        </div>
+                                        <button
+                                            onClick={() => setShowRevisionModal(true)}
+                                            className="inline-flex items-center gap-2 bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 px-4 py-2.5 rounded-xl text-xs font-bold transition-all hover:scale-105 active:scale-95 shrink-0"
+                                        >
+                                            <RotateCcw className="w-3.5 h-3.5" />
+                                            Solicitar Ajuste na Máquina
+                                        </button>
+                                    </div>
+                                )}
 
                                 <div className="mt-8 pt-6 border-t border-white/10 flex items-center justify-between">
                                     <p className="text-xs text-gray-500">Histórico de mensagens e suporte preservados.</p>

@@ -12,21 +12,42 @@ export async function POST(request: Request) {
 
         const supabase = createServiceClient()
 
-        // 1. Insert Review
-        const { error: reviewError } = await supabase
+        // 1. Insert or Update Review
+        const { data: existingReview } = await supabase
             .from('reviews')
-            .insert([{
-                job_id: jobId,
-                reviewer_id: reviewerId,
-                reviewee_id: revieweeId,
-                rating_matrix: ratingMatrix,
-                rating_service: ratingService,
-                comment,
-                rating: Math.round((ratingMatrix + ratingService) / 2)
-            }])
+            .select('id')
+            .eq('job_id', jobId)
+            .maybeSingle()
+
+        let reviewError: any = null
+        if (existingReview) {
+            const { error: updErr } = await supabase
+                .from('reviews')
+                .update({
+                    rating_matrix: ratingMatrix,
+                    rating_service: ratingService,
+                    comment,
+                    rating: Math.round((ratingMatrix + ratingService) / 2)
+                })
+                .eq('id', existingReview.id)
+            reviewError = updErr
+        } else {
+            const { error: insErr } = await supabase
+                .from('reviews')
+                .insert([{
+                    job_id: jobId,
+                    reviewer_id: reviewerId,
+                    reviewee_id: revieweeId,
+                    rating_matrix: ratingMatrix,
+                    rating_service: ratingService,
+                    comment,
+                    rating: Math.round((ratingMatrix + ratingService) / 2)
+                }])
+            reviewError = insErr
+        }
 
         if (reviewError) {
-            console.error('Review insert error:', reviewError)
+            console.error('Review save error:', reviewError)
             // If FK constraint error, try to recreate table without FK
             if (reviewError.code === '23503') {
                 return NextResponse.json({ 

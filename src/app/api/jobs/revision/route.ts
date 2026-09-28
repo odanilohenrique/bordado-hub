@@ -3,15 +3,56 @@ import { createServiceClient } from '@/lib/supabaseClient'
 
 export async function POST(request: Request) {
     try {
-        const { jobId, clientId, notes, imageUrl } = await request.json()
+        let jobId = ''
+        let clientId = ''
+        let notes = ''
+        let imageUrl = ''
+
+        const contentType = request.headers.get('content-type') || ''
+        const supabase = createServiceClient()
+
+        if (contentType.includes('multipart/form-data')) {
+            const formData = await request.formData()
+            jobId = (formData.get('jobId') as string) || ''
+            clientId = (formData.get('clientId') as string) || ''
+            notes = (formData.get('notes') as string) || ''
+            const file = formData.get('photo') as File | null
+
+            if (file && file.size > 0) {
+                const fileExt = file.name.split('.').pop() || 'jpg'
+                const safeName = `${Date.now()}-${Math.random().toString(36).substring(2, 7)}.${fileExt}`
+                const path = `revisions/${jobId}_${safeName}`
+                const buffer = Buffer.from(await file.arrayBuffer())
+
+                const { error: uploadError } = await supabase.storage
+                    .from('job-deliveries')
+                    .upload(path, buffer, {
+                        contentType: file.type || 'image/jpeg',
+                        upsert: true
+                    })
+
+                if (!uploadError) {
+                    const { data: { publicUrl } } = supabase.storage
+                        .from('job-deliveries')
+                        .getPublicUrl(path)
+                    imageUrl = publicUrl
+                } else {
+                    console.error('Revision photo upload error:', uploadError)
+                }
+            }
+        } else {
+            const body = await request.json()
+            jobId = body.jobId
+            clientId = body.clientId
+            notes = body.notes
+            imageUrl = body.imageUrl
+        }
 
         if (!jobId || !notes) {
             return NextResponse.json({ error: 'Descreva os detalhes do ajuste necessário.' }, { status: 400 })
         }
 
-        const supabase = createServiceClient()
-
-        // 1. Get Job & Accepted Proposal
+        // 1. Get Job
         const { data: job, error: jobError } = await supabase
             .from('jobs')
             .select('id, title, cliente_id')
@@ -31,27 +72,14 @@ export async function POST(request: Request) {
             .single()
 
         // 3. Update Job status to em_revisao
-        const updatePayload: any = {
-            status: 'em_revisao'
-        }
-        
-        // Try to update revision columns if they exist in table
-        try {
-            await supabase
-                .from('jobs')
-                .update({
-                    status: 'em_revisao',
-                    revision_notes: notes,
-                    ...(imageUrl ? { revision_image_url: imageUrl } : {})
-                })
-                .eq('id', jobId)
-        } catch {
-            // Fallback if columns not created yet
-            await supabase
-                .from('jobs')
-                .update({ status: 'em_revisao' })
-                .eq('id', jobId)
-        }
+        await supabase
+            .from('jobs')
+            .update({
+                status: 'em_revisao',
+                revision_notes: notes,
+                ...(imageUrl ? { revision_image_url: imageUrl } : {})
+            })
+            .eq('id', jobId)
 
         // 4. Send notification to programmer
         if (proposal?.criador_id) {
@@ -67,11 +95,12 @@ export async function POST(request: Request) {
             await supabase.from('proposal_messages').insert({
                 proposal_id: proposal.id,
                 sender_id: clientId || job.cliente_id,
-                message: `🛠️ [SOLICITAÇÃO DE AJUSTE/REVISÃO]\n\n${notes}${imageUrl ? `\n\nFoto do Teste/Defeito: ${imageUrl}` : ''}`
+                content: `🛠️ [SOLICITAÇÃO DE AJUSTE NA MÁQUINA]\n\n${notes}`,
+                attachment_url: imageUrl || null
             })
         }
 
-        return NextResponse.json({ success: true })
+        return NextResponse.json({ success: true, imageUrl })
     } catch (error: any) {
         console.error('Error requesting revision:', error)
         return NextResponse.json({ error: error.message || 'Erro interno' }, { status: 500 })
