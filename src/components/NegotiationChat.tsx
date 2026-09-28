@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabaseClient'
-import { Send, Paperclip, User, FileImage, RefreshCw, CheckCircle2, DollarSign } from 'lucide-react'
+import { Send, Paperclip, User, FileImage, RefreshCw, CheckCircle2, DollarSign, Package, Download, FileText } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { formatDate } from '@/lib/helpers'
 import { toast } from 'sonner'
@@ -40,7 +40,7 @@ export default function NegotiationChat({ proposalId, currentUserId, senderName,
     useEffect(() => {
         loadMessages()
 
-        // Subscribe to new messages
+        // 1. Subscribe to Realtime postgres_changes
         const channel = supabase
             .channel(`proposal_chat:${proposalId}`)
             .on('postgres_changes', {
@@ -51,7 +51,7 @@ export default function NegotiationChat({ proposalId, currentUserId, senderName,
             }, async (payload) => {
                 const newMsg = payload.new as Message
                 
-                // If it's not from me, we need the name
+                // If it's not from me, fetch sender name
                 if (newMsg.sender_id !== currentUserId) {
                     const { data: userData } = await supabase
                         .from('users')
@@ -72,10 +72,33 @@ export default function NegotiationChat({ proposalId, currentUserId, senderName,
             })
             .subscribe()
 
+        // 2. High-speed silent polling fallback (every 2.5s) to guarantee zero-F5 instant arrival
+        const syncInterval = setInterval(async () => {
+            try {
+                const { data } = await supabase
+                    .from('proposal_messages')
+                    .select('*, users:sender_id(name)')
+                    .eq('proposal_id', proposalId)
+                    .order('created_at', { ascending: true })
+
+                if (data && data.length > 0) {
+                    setMessages(prev => {
+                        if (prev.length === data.length && prev[prev.length - 1]?.id === data[data.length - 1]?.id) {
+                            return prev
+                        }
+                        return data
+                    })
+                }
+            } catch (err) {
+                // silent
+            }
+        }, 2500)
+
         return () => {
             supabase.removeChannel(channel)
+            clearInterval(syncInterval)
         }
-    }, [proposalId])
+    }, [proposalId, currentUserId])
 
     useEffect(() => {
         scrollToBottom()
@@ -319,18 +342,49 @@ export default function NegotiationChat({ proposalId, currentUserId, senderName,
                                             Você
                                         </p>
                                     )}
-                                    {msg.attachment_url && (
-                                        <div className="mb-2 overflow-hidden rounded-lg">
-                                            <a href={msg.attachment_url} target="_blank" rel="noopener noreferrer">
-                                                <img
-                                                    src={msg.attachment_url}
-                                                    alt="Anexo"
-                                                    className="max-w-full h-auto object-cover hover:scale-105 transition-transform duration-300"
-                                                    style={{ maxHeight: '180px' }}
-                                                />
-                                            </a>
-                                        </div>
-                                    )}
+                                    {msg.attachment_url && (() => {
+                                        const url = msg.attachment_url
+                                        const ext = url.split('.').pop()?.toLowerCase() || ''
+                                        const isImage = ['png', 'jpg', 'jpeg', 'webp', 'gif'].includes(ext)
+                                        const rawFileName = decodeURIComponent(url.split('/').pop() || 'arquivo')
+                                        const fileName = rawFileName.replace(/^\d+-[a-z0-9]+_/i, '')
+
+                                        if (isImage) {
+                                            return (
+                                                <div className="mb-2 overflow-hidden rounded-lg">
+                                                    <a href={url} target="_blank" rel="noopener noreferrer">
+                                                        <img
+                                                            src={url}
+                                                            alt="Anexo"
+                                                            className="max-w-full h-auto object-cover rounded-lg border border-white/10 hover:scale-105 transition-transform duration-300"
+                                                            style={{ maxHeight: '200px' }}
+                                                        />
+                                                    </a>
+                                                </div>
+                                            )
+                                        }
+
+                                        return (
+                                            <div className="mb-2">
+                                                <a
+                                                    href={url}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    download
+                                                    className="inline-flex items-center gap-2.5 bg-[#0F1115] hover:bg-[#FFAE00]/10 border border-[#FFAE00]/30 hover:border-[#FFAE00] text-gray-200 px-3.5 py-2.5 rounded-xl transition-all text-xs font-semibold group shadow"
+                                                >
+                                                    <div className="w-8 h-8 rounded-lg bg-[#FFAE00]/10 text-[#FFAE00] flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+                                                        <Package className="w-4 h-4" />
+                                                    </div>
+                                                    <div className="flex flex-col text-left">
+                                                        <span className="truncate max-w-[200px] text-white group-hover:text-[#FFAE00] transition-colors">{fileName}</span>
+                                                        <span className="text-[10px] text-gray-500 uppercase tracking-wider font-bold">Baixar Arquivo (.{(ext).toUpperCase()})</span>
+                                                    </div>
+                                                    <Download className="w-4 h-4 text-gray-400 group-hover:text-[#FFAE00] ml-1 shrink-0" />
+                                                </a>
+                                            </div>
+                                        )
+                                    })()}
                                     <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</p>
                                     <span className="text-[10px] opacity-40 mt-1 block text-right font-medium">
                                         {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -349,7 +403,7 @@ export default function NegotiationChat({ proposalId, currentUserId, senderName,
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
                     className="flex-shrink-0 p-2.5 text-gray-400 hover:text-[#FFAE00] hover:bg-[#FFAE00]/10 rounded-full transition-all focus:outline-none"
-                    title="Anexar Imagem"
+                    title="Anexar Imagem ou Matriz de Bordado"
                 >
                     <Paperclip className="w-5 h-5" />
                 </button>
@@ -358,15 +412,16 @@ export default function NegotiationChat({ proposalId, currentUserId, senderName,
                     ref={fileInputRef}
                     onChange={handleFileUpload}
                     className="hidden"
-                    accept="image/*"
+                    accept="image/*,application/pdf,.dst,.pes,.jef,.emb,.pxf,.xxx,.exp,.vp3,.zip,.rar"
                 />
 
                 <div className="flex-1 min-w-0 relative">
                     <input
+                        id="chat-message-input"
                         type="text"
                         value={newMessage}
                         onChange={e => setNewMessage(e.target.value)}
-                        placeholder="Digite sua mensagem..."
+                        placeholder="Digite sua mensagem ou anexe arquivos..."
                         className="w-full bg-[#0F1115] border border-gray-700/50 rounded-full px-5 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#FFAE00]/50 transition-colors shadow-inner"
                     />
                 </div>

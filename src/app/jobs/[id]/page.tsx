@@ -243,6 +243,20 @@ function JobDetailClient({ jobId }: { jobId: string }) {
         }
     }
 
+    const handleOpenChatForAdjustment = () => {
+        if (!acceptedProposal) return
+        setNegotiatingProposalId(acceptedProposal.id)
+        setUnreadCounts(prev => ({ ...prev, [acceptedProposal.id]: 0 }))
+        setTimeout(() => {
+            const chatSection = document.getElementById('negotiation-chat-section')
+            chatSection?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+            const inputEl = document.getElementById('chat-message-input') as HTMLInputElement | null
+            if (inputEl) {
+                inputEl.focus()
+            }
+        }, 150)
+    }
+
     const handleSubmitProposal = async (e: React.FormEvent) => {
         e.preventDefault()
         setSubmitting(true)
@@ -1112,24 +1126,24 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                             </p>
                                         </div>
                                         <button
-                                            onClick={() => setShowRevisionModal(true)}
-                                            className="inline-flex items-center gap-2 bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 px-4 py-2.5 rounded-xl text-xs font-bold transition-all hover:scale-105 active:scale-95 shrink-0"
+                                            onClick={handleOpenChatForAdjustment}
+                                            className="inline-flex items-center gap-2 bg-[#FFAE00] hover:bg-yellow-400 text-black px-4 py-2.5 rounded-xl text-xs font-black transition-all hover:scale-105 active:scale-95 shrink-0 shadow-lg shadow-[#FFAE00]/10"
                                         >
-                                            <RotateCcw className="w-3.5 h-3.5" />
-                                            Solicitar Ajuste ou Correção
+                                            <MessageSquare className="w-3.5 h-3.5" />
+                                            Solicitar Ajuste no Chat
                                         </button>
                                     </div>
                                 )}
 
                                 <div className="mt-8 pt-6 border-t border-white/10 flex items-center justify-between">
                                     <p className="text-xs text-gray-500">Histórico de mensagens e suporte preservados.</p>
-                                    {acceptedProposal && (
+                                    {!isOwner && acceptedProposal && (
                                         <button
                                             onClick={() => handleNegotiate(acceptedProposal.id)}
                                             className="inline-flex items-center gap-2 bg-[#1A1D23] hover:bg-white/5 text-gray-300 px-4 py-2 rounded-xl text-xs font-bold border border-white/10 transition-colors"
                                         >
                                             <MessageSquare className="w-3.5 h-3.5" />
-                                            Abrir Chat do Pedido
+                                            Abrir Chat com Cliente
                                         </button>
                                     )}
                                 </div>
@@ -1320,7 +1334,7 @@ function JobDetailClient({ jobId }: { jobId: string }) {
 
                 {/* 3. BOTTOM SECTION: Chat */}
                 {negotiatingProposalId && (
-                    <div className="bg-[#1A1D23] border border-[#FFAE00]/30 rounded-xl overflow-hidden shadow-2xl mt-2 mb-8 animate-in slide-in-from-bottom-4 fade-in duration-300">
+                    <div id="negotiation-chat-section" className="bg-[#1A1D23] border border-[#FFAE00]/30 rounded-xl overflow-hidden shadow-2xl mt-2 mb-8 animate-in slide-in-from-bottom-4 fade-in duration-300">
                         <div className="bg-[#FFAE00]/10 border-b border-[#FFAE00]/20 px-4 py-3 flex justify-between items-center">
                             <h3 className="text-sm font-bold text-[#FFAE00] flex items-center gap-2">
                                 <MessageSquare className="w-4 h-4" /> 

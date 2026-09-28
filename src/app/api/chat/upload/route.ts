@@ -7,7 +7,7 @@ export async function POST(request: Request) {
         const file = formData.get('file') as File | null
         const proposalId = formData.get('proposalId') as string | null
         const senderId = formData.get('senderId') as string | null
-        const content = (formData.get('content') as string | null) || '📎 Enviou um anexo'
+        const customContent = formData.get('content') as string | null
 
         if (!file || !proposalId || !senderId) {
             return NextResponse.json({ error: 'Arquivo, proposta e remetente são obrigatórios.' }, { status: 400 })
@@ -21,8 +21,7 @@ export async function POST(request: Request) {
         if (!exists) {
             const { error: bucketError } = await supabase.storage.createBucket('proposal_attachments', {
                 public: true,
-                fileSizeLimit: 10485760, // 10MB
-                allowedMimeTypes: ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/gif', 'application/pdf']
+                fileSizeLimit: 26214400, // 25MB
             })
             if (bucketError && !bucketError.message?.toLowerCase().includes('already exists')) {
                 console.error('Bucket creation error:', bucketError)
@@ -30,15 +29,15 @@ export async function POST(request: Request) {
         }
 
         // 2. Upload file to storage using service client (bypasses RLS issues)
-        const fileExt = file.name.split('.').pop() || 'png'
-        const safeName = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}.${fileExt}`
+        const fileExt = file.name.split('.').pop() || 'file'
+        const safeName = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}_${file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_')}`
         const filePath = `chat-attachments/${proposalId}/${safeName}`
         const fileBuffer = Buffer.from(await file.arrayBuffer())
 
         const { error: uploadError } = await supabase.storage
             .from('proposal_attachments')
             .upload(filePath, fileBuffer, {
-                contentType: file.type || 'image/jpeg',
+                contentType: file.type || 'application/octet-stream',
                 upsert: true
             })
 
@@ -53,13 +52,18 @@ export async function POST(request: Request) {
             .getPublicUrl(filePath)
         const publicUrl = publicData.publicUrl
 
+        const isEmbroidery = ['dst', 'pes', 'jef', 'emb', 'pxf', 'xxx', 'exp', 'vp3'].includes(fileExt.toLowerCase())
+        const defaultContent = isEmbroidery 
+            ? `🧵 Enviou matriz de bordado: ${file.name}` 
+            : `📎 Enviou anexo: ${file.name}`
+
         // 4. Insert message into proposal_messages
         const { data: messageData, error: msgError } = await supabase
             .from('proposal_messages')
             .insert({
                 proposal_id: proposalId,
                 sender_id: senderId,
-                content: content.trim(),
+                content: customContent ? customContent.trim() : defaultContent,
                 attachment_url: publicUrl
             })
             .select('*, users:sender_id(name)')
