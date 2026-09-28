@@ -3,7 +3,7 @@
 import { formatDate } from '@/lib/helpers'
 import Link from 'next/link'
 import Image from 'next/image'
-import { Clock, ArrowRight, User, Calendar, Layers, Zap, Image as ImageIcon, Target, Handshake, Sparkles, Send, CheckCircle, Wrench } from 'lucide-react'
+import { Clock, ArrowRight, User, Calendar, Layers, Zap, Image as ImageIcon, Target, Handshake, Sparkles, Send, CheckCircle, Wrench, Package, Maximize2 } from 'lucide-react'
 
 interface Job {
     id: string
@@ -12,6 +12,9 @@ interface Job {
     created_at: string
     deadline?: string
     description?: string
+    dimensions?: string
+    order_type?: string
+    items_count?: number
     image_urls?: string[]
     fabric_type?: string
     urgency?: string
@@ -155,9 +158,16 @@ export default function JobCard({ job, hasNegotiation, viewerRole, proposalCount
                             </h3>
                             {/* Direct Request Badge */}
                             {job.target_programmer_id && (
-                                <div className="inline-flex items-center gap-1.5 text-[10px] font-semibold text-purple-300 bg-purple-500/10 border border-purple-500/20 px-2 py-0.5 rounded-full mt-1.5">
+                                <div className="inline-flex items-center gap-1.5 text-[10px] font-semibold text-purple-300 bg-purple-500/10 border border-purple-500/20 px-2 py-0.5 rounded-full mt-1.5 mr-2">
                                     <Target className="w-3 h-3" />
                                     Solicitação direta para: <span className="text-white font-bold">{job.target_programmer?.name || 'Programador'}</span>
+                                </div>
+                            )}
+                            {/* Kit Badge */}
+                            {(job.order_type === 'kit' || (job.items_count && job.items_count > 1) || job.title?.startsWith('[Kit')) && (
+                                <div className="inline-flex items-center gap-1.5 text-[10px] font-bold text-[#FFAE00] bg-[#FFAE00]/10 border border-[#FFAE00]/30 px-2.5 py-0.5 rounded-full mt-1.5 shadow-sm">
+                                    <Package className="w-3 h-3" />
+                                    Kit com {job.items_count || (job.title?.match(/\[Kit\s*(\d+)/i)?.[1] ? Number(job.title.match(/\[Kit\s*(\d+)/i)?.[1]) : 2)} Matrizes
                                 </div>
                             )}
                             {/* Client Info */}
@@ -214,7 +224,7 @@ export default function JobCard({ job, hasNegotiation, viewerRole, proposalCount
                     </div>
 
                     {/* Specs Row — inline chips */}
-                    <div className="flex flex-wrap gap-2 mb-3">
+                    <div className="flex flex-wrap items-center gap-2 mb-3">
                         {job.formats && job.formats.length > 0 && (
                             <div className="flex items-center gap-1.5 text-[11px] text-gray-400 bg-white/[0.03] border border-white/5 rounded-full px-2.5 py-1">
                                 <Layers className="w-3 h-3 text-[#FFAE00]/50" />
@@ -225,6 +235,12 @@ export default function JobCard({ job, hasNegotiation, viewerRole, proposalCount
                             <div className="flex items-center gap-1.5 text-[11px] text-gray-400 bg-white/[0.03] border border-white/5 rounded-full px-2.5 py-1">
                                 <div className="w-2.5 h-2.5 rounded-sm bg-[#FFAE00]/20 border border-[#FFAE00]/30"></div>
                                 <span>{job.fabric_type}</span>
+                            </div>
+                        )}
+                        {job.dimensions && (
+                            <div className="flex items-center gap-1.5 text-[11px] text-[#FFAE00]/90 bg-[#FFAE00]/5 border border-[#FFAE00]/20 rounded-full px-2.5 py-1 max-w-full">
+                                <Maximize2 className="w-3 h-3 text-[#FFAE00] shrink-0" />
+                                <span className="truncate max-w-[280px]" title={job.dimensions}>{job.dimensions}</span>
                             </div>
                         )}
                     </div>

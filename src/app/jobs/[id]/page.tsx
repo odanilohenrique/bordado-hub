@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabaseClient'
 import { useRouter } from 'next/navigation'
 import { formatDate } from '@/lib/helpers'
 import Link from 'next/link'
-import { ArrowLeft, Clock, Calendar, MessageSquare, AlertCircle, CheckCircle, Package, Zap, User, X, Star, PenTool, Download, Upload, Send, Sparkles, DollarSign, Wrench, Camera, RotateCcw } from 'lucide-react'
+import { ArrowLeft, Clock, Calendar, MessageSquare, AlertCircle, CheckCircle, Package, Zap, User, X, Star, PenTool, Download, Upload, Send, Sparkles, DollarSign, Wrench, Camera, RotateCcw, Ruler, Maximize2 } from 'lucide-react'
 import { useParams } from 'next/navigation'
 import NegotiationChat from '@/components/NegotiationChat'
 import { toast } from 'sonner'
@@ -18,6 +18,8 @@ interface Job {
     title: string
     description: string
     dimensions?: string
+    order_type?: string
+    items_count?: number
     image_urls: string[]
     formats: string[]
     fabric_type: string
@@ -92,6 +94,7 @@ function JobDetailClient({ jobId }: { jobId: string }) {
     const [ratingService, setRatingService] = useState(5)
     const [reviewComment, setReviewComment] = useState('')
     const [jobReview, setJobReview] = useState<any>(null)
+    const [jobTransaction, setJobTransaction] = useState<any>(null)
 
     // Revision state
     const [showRevisionModal, setShowRevisionModal] = useState(false)
@@ -131,6 +134,16 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                     .eq('job_id', jobId)
                     .maybeSingle()
                 if (rev) setJobReview(rev)
+
+                // Fetch transaction to determine payment method
+                const { data: txData } = await supabase
+                    .from('transactions')
+                    .select('metodo, status')
+                    .eq('job_id', jobId)
+                    .order('created_at', { ascending: false })
+                    .limit(1)
+                    .maybeSingle()
+                if (txData) setJobTransaction(txData)
             }
 
             const { data: proposalsData, error: proposalsError } = await supabase
@@ -523,15 +536,23 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                         {/* Info Right */}
                         <div className="w-full md:flex-1 p-6 flex flex-col justify-between">
                             <div>
-                                <div className="flex justify-between items-start mb-4">
-                                    <h1 className="text-2xl font-bold text-[#F3F4F6]">{job.title}</h1>
+                                <div className="flex justify-between items-start mb-2">
+                                    <div>
+                                        <h1 className="text-2xl font-bold text-[#F3F4F6]">{job.title}</h1>
+                                        {(job.order_type === 'kit' || (job.items_count && job.items_count > 1) || job.title?.startsWith('[Kit')) && (
+                                            <div className="inline-flex items-center gap-1.5 text-xs font-bold text-[#FFAE00] bg-[#FFAE00]/10 border border-[#FFAE00]/30 px-3 py-1 rounded-full mt-2 shadow-sm">
+                                                <Package className="w-3.5 h-3.5" />
+                                                Kit com {job.items_count || (job.title?.match(/\[Kit\s*(\d+)/i)?.[1] ? Number(job.title.match(/\[Kit\s*(\d+)/i)?.[1]) : 2)} Matrizes
+                                            </div>
+                                        )}
+                                    </div>
                                     <div className="flex items-center gap-2">
                                         <span className="px-3 py-1 bg-[#FFAE00]/10 text-[#FFAE00] border border-[#FFAE00]/20 rounded-full text-[10px] font-bold tracking-wider uppercase">
                                             {job.status.replace('_', ' ')}
                                         </span>
                                     </div>
                                 </div>
-                                <div className="flex gap-2 mb-4 flex-wrap">
+                                <div className="flex gap-2 mb-4 flex-wrap items-center">
                                     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-[#0F1115] border border-gray-800 rounded-md text-xs text-gray-300">
                                         <Clock className="w-3 h-3 text-[#FFAE00]" />
                                         {urgencyLabels[job.urgency] || job.urgency}
@@ -541,12 +562,29 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                         Tecido: {job.fabric_type || 'N/A'}
                                     </span>
                                     {job.dimensions && (
-                                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-[#0F1115] border border-[#FFAE00]/20 rounded-md text-xs text-[#FFAE00] font-bold">
-                                            <Package className="w-3 h-3" />
-                                            {job.dimensions}
-                                        </span>
+                                        job.dimensions.includes('|') ? (
+                                            job.dimensions.split('|').map((part, idx) => (
+                                                <span key={idx} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-[#FFAE00]/10 border border-[#FFAE00]/30 rounded-md text-xs text-[#FFAE00] font-bold">
+                                                    <Ruler className="w-3 h-3 text-[#FFAE00]" />
+                                                    {part.trim()}
+                                                </span>
+                                            ))
+                                        ) : (
+                                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-[#0F1115] border border-[#FFAE00]/20 rounded-md text-xs text-[#FFAE00] font-bold">
+                                                <Ruler className="w-3 h-3 text-[#FFAE00]" />
+                                                {job.dimensions}
+                                            </span>
+                                        )
                                     )}
                                 </div>
+                                {(job.order_type === 'kit' || (job.items_count && job.items_count > 1) || job.title?.startsWith('[Kit')) && (
+                                    <div className="bg-amber-500/10 border-l-4 border-[#FFAE00] p-3 rounded-r-lg mb-4 text-xs text-amber-200/90">
+                                        <span className="font-bold text-[#FFAE00] flex items-center gap-1.5 mb-0.5">
+                                            <Sparkles className="w-3.5 h-3.5" /> Pacote de Matrizes (Kit de Uniforme):
+                                        </span>
+                                        Este pedido contempla a criação de todas as matrizes especificadas acima. Ao enviar uma proposta, considere o valor total para digitalizar todo o conjunto.
+                                    </div>
+                                )}
                                 <p className="text-sm text-gray-300 line-clamp-3 leading-relaxed mb-4">
                                     {job.description}
                                 </p>
@@ -567,6 +605,48 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                             </div>
                         </div>
                     </div>
+
+                    {/* Galeria Detalhada das Matrizes de Referência */}
+                    {job.image_urls && job.image_urls.length > 1 && (
+                        <div className="p-5 bg-[#0F1115]/60 border-t border-white/5">
+                            <h3 className="text-xs font-bold text-[#FFAE00] uppercase tracking-wider flex items-center gap-2 mb-3">
+                                <Package className="w-3.5 h-3.5 text-[#FFAE00]" />
+                                Imagens de Referência por Matriz ({job.image_urls.length} arquivos):
+                            </h3>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                                {job.image_urls.map((url, idx) => {
+                                    const isPdf = url.toLowerCase().includes('.pdf')
+                                    const dimParts = job.dimensions?.split('|') || []
+                                    const label = dimParts[idx] ? dimParts[idx].trim() : `Arte ${idx + 1}`
+
+                                    return (
+                                        <div key={idx} className="bg-[#1A1D23] border border-white/10 rounded-lg p-2.5 flex flex-col justify-between group hover:border-[#FFAE00]/50 transition-all shadow">
+                                            <div className="h-28 w-full bg-black/40 rounded flex items-center justify-center overflow-hidden relative mb-2">
+                                                {isPdf ? (
+                                                    <iframe src={`${url}#toolbar=0&navpanes=0&scrollbar=0`} className="w-full h-full pointer-events-none" />
+                                                ) : (
+                                                    <img src={url} alt={label} className="max-h-full max-w-full object-contain p-1 group-hover:scale-105 transition-transform" />
+                                                )}
+                                                <a
+                                                    href={url}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity text-xs font-bold text-white gap-1"
+                                                >
+                                                    <Maximize2 className="w-3.5 h-3.5 text-[#FFAE00]" /> Ver Ampliado
+                                                </a>
+                                            </div>
+                                            <div className="text-center">
+                                                <span className="text-[11px] font-bold text-gray-200 block truncate" title={label}>
+                                                    {label}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {/* 2. MIDDLE SECTION: Proposals OR Production/Revision Hero OR Delivery OR Finalized */}
@@ -1066,7 +1146,7 @@ function JobDetailClient({ jobId }: { jobId: string }) {
 
                                         <div className="pt-2">
                                             <span className="inline-flex items-center gap-1.5 text-xs text-green-400 bg-green-500/10 px-3 py-1.5 rounded-full border border-green-500/20 font-bold">
-                                                <CheckCircle className="w-3.5 h-3.5" /> Pagamento PIX Transferido
+                                                <CheckCircle className="w-3.5 h-3.5" /> Pagamento {jobTransaction?.metodo === 'asaas_cartao' ? 'via Cartão' : 'PIX'} Confirmado
                                             </span>
                                         </div>
                                     </div>

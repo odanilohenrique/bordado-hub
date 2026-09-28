@@ -179,35 +179,34 @@ export default function NegotiationChat({ proposalId, currentUserId, senderName,
 
         setSending(true)
         try {
-            const fileExt = file.name.split('.').pop()
-            const fileName = `${Math.random()}.${fileExt}`
-            const filePath = `chat-attachments/${proposalId}/${fileName}`
+            const formData = new FormData()
+            formData.append('file', file)
+            formData.append('proposalId', proposalId)
+            formData.append('senderId', currentUserId)
+            formData.append('content', '📎 Enviou um anexo')
 
-            // Upload
-            const { error: uploadError } = await supabase.storage
-                .from('proposal_attachments') // Need to ensure this bucket exists!
-                .upload(filePath, file)
-
-            if (uploadError) throw uploadError
-
-            // Get URL
-            const { data: { publicUrl } } = supabase.storage
-                .from('proposal_attachments')
-                .getPublicUrl(filePath)
-
-            // Send Message with Attachment
-            const { error: msgError } = await supabase.from('proposal_messages').insert({
-                proposal_id: proposalId,
-                sender_id: currentUserId,
-                content: '📎 Enviou um anexo',
-                attachment_url: publicUrl
+            const res = await fetch('/api/chat/upload', {
+                method: 'POST',
+                body: formData,
             })
 
-            if (msgError) throw msgError
+            const result = await res.json()
 
-        } catch (error) {
+            if (!res.ok) throw new Error(result.error || 'Erro no upload')
+
+            // Optimistic update: add message to local state
+            if (result.message) {
+                const optimisticMsg = { ...result.message, users: { name: senderName } }
+                setMessages(prev => {
+                    const exists = prev.some(m => m.id === result.message.id)
+                    if (exists) return prev
+                    return [...prev, optimisticMsg as Message]
+                })
+            }
+
+        } catch (error: any) {
             console.error('Upload error:', error)
-            toast.error('Erro ao enviar arquivo. Verifique se é uma imagem válida.')
+            toast.error(error?.message || 'Erro ao enviar arquivo. Verifique se é uma imagem válida.')
         } finally {
             setSending(false)
             if (fileInputRef.current) fileInputRef.current.value = ''

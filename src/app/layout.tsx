@@ -20,6 +20,22 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR">
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              if (typeof window !== 'undefined') {
+                window.addEventListener('error', function(e) {
+                  if (e.filename && e.filename.startsWith('chrome-extension://')) {
+                    e.stopImmediatePropagation();
+                    e.preventDefault();
+                  }
+                }, true);
+              }
+            `,
+          }}
+        />
+      </head>
       <body className={`${inter.className} min-h-screen bg-[#0F1115]`}>
         <ClientProviders>
           <NavigationWrapper>
