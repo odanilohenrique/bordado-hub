@@ -27,8 +27,31 @@ export default function Sidebar() {
     const router = useRouter()
     const [user, setUser] = useState<SupabaseUser | null>(null)
     const [profile, setProfile] = useState<UserProfile | null>(null)
+    const [revisionsCount, setRevisionsCount] = useState(0)
+
+    const checkRevisions = async (profileId: string) => {
+        try {
+            const { data } = await supabase
+                .from('proposals')
+                .select('id, jobs(status)')
+                .eq('criador_id', profileId)
+                .eq('status', 'aceita')
+
+            if (data) {
+                const inRev = data.filter((p: any) => {
+                    const j = Array.isArray(p.jobs) ? p.jobs[0] : p.jobs
+                    return j?.status === 'em_revisao'
+                })
+                setRevisionsCount(inRev.length)
+            }
+        } catch (e) {
+            // silent
+        }
+    }
 
     useEffect(() => {
+        let channel: any = null
+
         const fetchUser = async () => {
             const { data: { session } } = await supabase.auth.getSession()
             if (session?.user) {
@@ -39,7 +62,17 @@ export default function Sidebar() {
                     .eq('supabase_user_id', session.user.id)
                     .single()
                 
-                if (data) setProfile(data)
+                if (data) {
+                    setProfile(data)
+                    checkRevisions(data.id)
+
+                    channel = supabase
+                        .channel(`sidebar_notifs:${data.id}`)
+                        .on('postgres_changes', { event: '*', schema: 'public', table: 'jobs' }, () => {
+                            checkRevisions(data.id)
+                        })
+                        .subscribe()
+                }
             }
         }
 
@@ -48,14 +81,17 @@ export default function Sidebar() {
         const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
             if (session?.user) {
                 setUser(session.user)
-                // Fetch profile again if needed, or rely on layout
             } else {
                 setUser(null)
                 setProfile(null)
+                setRevisionsCount(0)
             }
         })
 
-        return () => subscription.unsubscribe()
+        return () => {
+            subscription.unsubscribe()
+            if (channel) supabase.removeChannel(channel)
+        }
     }, [])
 
     const handleLogout = async () => {
@@ -178,7 +214,12 @@ export default function Sidebar() {
                                     }`}
                                 >
                                     <item.icon className={`w-5 h-5 ${isActive ? 'text-[#FFAE00]' : 'text-gray-500'}`} />
-                                    {item.name}
+                                    <span>{item.name}</span>
+                                    {item.href === '/producao' && revisionsCount > 0 && (
+                                        <span className="ml-auto bg-amber-500 text-black font-black text-[10px] px-2 py-0.5 rounded-full shadow-md animate-pulse">
+                                            {revisionsCount} Ajuste{revisionsCount > 1 ? 's' : ''}
+                                        </span>
+                                    )}
                                 </Link>
                             )
                         })}

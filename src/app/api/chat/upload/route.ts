@@ -74,6 +74,33 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: `Erro ao registrar mensagem: ${msgError.message}` }, { status: 500 })
         }
 
+        // 5. Notify the recipient in real-time
+        try {
+            const { data: proposal } = await supabase
+                .from('proposals')
+                .select('id, criador_id, job_id, jobs(id, title, cliente_id)')
+                .eq('id', proposalId)
+                .single()
+
+            if (proposal) {
+                const jobData = Array.isArray(proposal.jobs) ? proposal.jobs[0] : proposal.jobs
+                const recipientId = senderId === proposal.criador_id ? jobData?.cliente_id : proposal.criador_id
+                const senderName = messageData?.users?.name || 'Alguém'
+
+                if (recipientId) {
+                    await supabase.from('notifications').insert({
+                        user_id: recipientId,
+                        type: isEmbroidery ? 'matriz_recebida' : 'anexo_recebido',
+                        title: isEmbroidery ? '🧵 Nova Matriz no Chat!' : `📎 Novo Anexo de ${senderName}`,
+                        message: isEmbroidery ? `${senderName} enviou a matriz "${file.name}" no chat.` : `${senderName} enviou um arquivo no pedido.`,
+                        link_url: `/jobs/${proposal.job_id}`
+                    })
+                }
+            }
+        } catch (notifErr) {
+            console.error('Notification dispatch error:', notifErr)
+        }
+
         return NextResponse.json({ success: true, message: messageData, publicUrl }, { status: 200 })
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {

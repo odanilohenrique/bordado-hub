@@ -160,28 +160,29 @@ export default function NegotiationChat({ proposalId, currentUserId, senderName,
 
     const handleSendMessage = async (e?: React.FormEvent) => {
         e?.preventDefault()
-        if (!newMessage.trim()) return
+        const text = newMessage.trim()
+        if (!text) return
 
         setSending(true)
         try {
-            const payload = {
-                proposal_id: proposalId,
-                sender_id: currentUserId,
-                content: newMessage.trim()
-            }
-            
-            const { data, error } = await supabase.from('proposal_messages').insert(payload).select()
+            const res = await fetch('/api/chat/send', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    proposalId,
+                    senderId: currentUserId,
+                    content: text
+                })
+            })
 
-            if (error) {
-                console.error('[NegotiationChat] Insert error:', error)
-                throw error
-            }
-            
+            const result = await res.json()
+            if (!res.ok) throw new Error(result.error || 'Erro ao enviar mensagem')
+
             // Optimistic update: add message to local state immediately
-            if (data && data.length > 0) {
-                const optimisticMsg = { ...data[0], users: { name: senderName } }
+            if (result.message) {
+                const optimisticMsg = { ...result.message, users: { name: senderName } }
                 setMessages(prev => {
-                    const exists = prev.some(m => m.id === data[0].id)
+                    const exists = prev.some(m => m.id === result.message.id)
                     if (exists) return prev
                     return [...prev, optimisticMsg as Message]
                 })
@@ -189,7 +190,7 @@ export default function NegotiationChat({ proposalId, currentUserId, senderName,
             
             setNewMessage('')
         } catch (error: any) {
-            console.error('[NegotiationChat] Full error:', error)
+            console.error('[NegotiationChat] Send error:', error)
             toast.error('Erro ao enviar mensagem: ' + (error?.message || 'Erro desconhecido'))
         } finally {
             setSending(false)

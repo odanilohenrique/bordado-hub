@@ -243,10 +243,11 @@ function JobDetailClient({ jobId }: { jobId: string }) {
         }
     }
 
-    const handleOpenChatForAdjustment = () => {
+    const handleOpenChatForAdjustment = async () => {
         if (!acceptedProposal) return
         setNegotiatingProposalId(acceptedProposal.id)
         setUnreadCounts(prev => ({ ...prev, [acceptedProposal.id]: 0 }))
+        
         setTimeout(() => {
             const chatSection = document.getElementById('negotiation-chat-section')
             chatSection?.scrollIntoView({ behavior: 'smooth', block: 'center' })
@@ -255,6 +256,25 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                 inputEl.focus()
             }
         }, 150)
+
+        // If job was finalized, re-open for revision and alert the programmer
+        if (job?.status === 'finalizado') {
+            try {
+                await fetch('/api/jobs/revision', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        jobId,
+                        clientId: currentUser?.id,
+                        notes: 'O cliente acionou a garantia pós-teste e abriu o chat para solicitar ajustes na matriz.'
+                    })
+                })
+                setJob((prev: any) => ({ ...prev, status: 'em_revisao' }))
+                toast.info('Garantia acionada: o programador foi notificado com prioridade alta!')
+            } catch (err) {
+                console.error('Adjustment trigger error:', err)
+            }
+        }
     }
 
     const handleSubmitProposal = async (e: React.FormEvent) => {
