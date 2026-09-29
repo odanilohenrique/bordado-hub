@@ -320,11 +320,25 @@ function NewJobContent() {
                 ...(directProgrammerId && { target_programmer_id: directProgrammerId })
             }
 
-            const { data: createdJob, error: jobError } = await supabase
+            let { data: createdJob, error: jobError } = await supabase
                 .from('jobs')
                 .insert([baseJobPayload])
                 .select()
                 .single()
+
+            // Fallback inteligente se as colunas items_count ou order_type ainda não tiverem sido adicionadas no Supabase
+            if (jobError && (jobError.message?.includes('items_count') || jobError.message?.includes('order_type'))) {
+                console.warn('Colunas de kit não encontradas, tentando inserção com campos básicos...')
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                const { order_type, items_count, ...fallbackPayload } = baseJobPayload
+                const fallbackRes = await supabase
+                    .from('jobs')
+                    .insert([fallbackPayload])
+                    .select()
+                    .single()
+                createdJob = fallbackRes.data
+                jobError = fallbackRes.error
+            }
 
             if (jobError) throw jobError
 
