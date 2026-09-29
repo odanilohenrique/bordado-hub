@@ -25,8 +25,38 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{
             __html: `
               if (typeof window !== 'undefined') {
+                // 1. Intercept console.error from extensions to avoid Next.js dev overlay popups
+                const _origConsoleError = console.error;
+                console.error = function(...args) {
+                  const msg = args.map(function(a) { return (a && a.stack) ? a.stack : String(a); }).join(' ');
+                  if (
+                    msg.includes('chrome-extension://') || 
+                    msg.includes('moz-extension://') || 
+                    msg.includes('injected.js')
+                  ) {
+                    return;
+                  }
+                  _origConsoleError.apply(console, args);
+                };
+
+                // 2. Intercept uncaught window error events
                 window.addEventListener('error', function(e) {
-                  if (e.filename && e.filename.startsWith('chrome-extension://')) {
+                  const isExt = (e.filename && (e.filename.startsWith('chrome-extension://') || e.filename.startsWith('moz-extension://'))) ||
+                                (e.error && e.error.stack && (e.error.stack.includes('chrome-extension://') || e.error.stack.includes('moz-extension://')));
+                  if (isExt) {
+                    e.stopImmediatePropagation();
+                    e.preventDefault();
+                  }
+                }, true);
+
+                // 3. Intercept unhandled promise rejections from extensions
+                window.addEventListener('unhandledrejection', function(e) {
+                  const reasonStr = (e.reason && e.reason.stack) ? e.reason.stack : String(e.reason || '');
+                  if (
+                    reasonStr.includes('chrome-extension://') || 
+                    reasonStr.includes('moz-extension://') || 
+                    reasonStr.includes('injected.js')
+                  ) {
                     e.stopImmediatePropagation();
                     e.preventDefault();
                   }
