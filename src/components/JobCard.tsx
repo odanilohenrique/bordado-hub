@@ -67,6 +67,9 @@ export default function JobCard({ job, hasNegotiation, viewerRole, proposalCount
 
     // ===== SHOWCASE CARD for matched jobs (no details, just vitrine) =====
     if (feedBadge === 'matched') {
+        const isWinningProducer = job.my_proposal_status === 'aceita'
+        const isPaid = job.status === 'em_progresso' || job.status === 'entregue' || job.status === 'finalizado'
+
         return (
             <div className="block group">
                 <div className="bg-[#1A1D23] border border-[#FFAE00]/30 rounded-xl overflow-hidden transition-all duration-300 md:flex shadow-[0_0_30px_rgba(255,174,0,0.08)] hover:shadow-[0_0_40px_rgba(255,174,0,0.15)]">
@@ -96,19 +99,43 @@ export default function JobCard({ job, hasNegotiation, viewerRole, proposalCount
                         <div className="relative z-10">
                             <div className="inline-flex items-center gap-2 mb-4">
                                 <Handshake className="w-6 h-6 text-[#FFAE00]" />
-                                <span className="text-[10px] font-black text-[#FFAE00] uppercase tracking-[0.2em] bg-[#FFAE00]/10 px-3 py-1 rounded-full border border-[#FFAE00]/20">Negócio Fechado</span>
+                                <span className="text-[10px] font-black text-[#FFAE00] uppercase tracking-[0.2em] bg-[#FFAE00]/10 px-3 py-1 rounded-full border border-[#FFAE00]/20">
+                                    {isPaid ? 'Negócio Fechado • Em Produção' : 'Negócio Fechado • Aguardando Pagamento'}
+                                </span>
                             </div>
                             <h3 className="text-2xl md:text-3xl font-black text-white mb-3 tracking-tight">{job.title}</h3>
                             <p className="text-gray-400 text-sm">
-                                A matriz está sendo produzida por <strong className="text-[#FFAE00] text-base">{matchedProducerName || 'um profissional'}</strong>
+                                {isPaid ? (
+                                    <>A matriz está sendo produzida por <strong className="text-[#FFAE00] text-base">{matchedProducerName || 'um profissional'}</strong></>
+                                ) : (
+                                    <>Proposta aceita! Aguardando o cliente concluir o pagamento.</>
+                                )}
                             </p>
 
-                            {userLostBid && (
+                            {/* Winning Producer Special Action */}
+                            {isWinningProducer ? (
+                                <div className="mt-5">
+                                    {isPaid ? (
+                                        <Link
+                                            href={`/jobs/${job.id}`}
+                                            className="inline-flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white font-bold text-xs px-5 py-2.5 rounded-xl transition-all shadow-lg shadow-green-500/20 hover:scale-105"
+                                        >
+                                            <CheckCircle className="w-4 h-4" />
+                                            Você foi o escolhido! Entregar Matriz
+                                        </Link>
+                                    ) : (
+                                        <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg px-4 py-2 text-xs text-yellow-400 font-semibold inline-flex items-center gap-2">
+                                            <Clock className="w-4 h-4" />
+                                            Sua proposta foi aceita! Aguarde a liberação do pagamento para iniciar.
+                                        </div>
+                                    )}
+                                </div>
+                            ) : userLostBid ? (
                                 <div className="mt-5 bg-blue-500/5 border border-blue-500/20 rounded-lg px-4 py-2.5 inline-block">
                                     <p className="text-xs font-bold text-blue-400 flex items-center gap-1.5"><Sparkles className="w-3.5 h-3.5"/> Dessa vez não foi, mas não desista!</p>
                                     <p className="text-[10px] text-gray-500 mt-0.5">Novos pedidos chegam a todo momento.</p>
                                 </div>
-                            )}
+                            ) : null}
                         </div>
                     </div>
                 </div>
@@ -322,7 +349,19 @@ export default function JobCard({ job, hasNegotiation, viewerRole, proposalCount
                                 Contraproposta Recebida
                                 <Send className="w-3.5 h-3.5" />
                             </button>
-                        ) : (job.my_proposal_status === 'aceita' || (viewerRole === 'programmer' && job.status === 'em_progresso')) ? (
+                        ) : job.my_proposal_status === 'aceita' ? (
+                            job.status === 'em_progresso' ? (
+                                <button className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg font-bold text-xs transition-all shadow-lg shadow-green-500/10 active:scale-95 ml-auto">
+                                    Entregar Matriz
+                                    <CheckCircle className="w-3.5 h-3.5" />
+                                </button>
+                            ) : (
+                                <button className="flex items-center gap-2 bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 px-4 py-2 rounded-lg font-bold text-xs ml-auto transition-colors">
+                                    Aguardando Pagamento
+                                    <Clock className="w-3.5 h-3.5" />
+                                </button>
+                            )
+                        ) : (viewerRole === 'programmer' && job.status === 'em_progresso') ? (
                             <button className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg font-bold text-xs transition-all shadow-lg shadow-green-500/10 active:scale-95 ml-auto">
                                 Entregar Matriz
                                 <CheckCircle className="w-3.5 h-3.5" />

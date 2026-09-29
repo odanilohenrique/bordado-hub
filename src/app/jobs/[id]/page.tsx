@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabaseClient'
 import { useRouter } from 'next/navigation'
 import { formatDate } from '@/lib/helpers'
 import Link from 'next/link'
-import { ArrowLeft, Clock, Calendar, MessageSquare, AlertCircle, CheckCircle, Package, Zap, User, X, Star, PenTool, Download, Upload, Send, Sparkles, DollarSign, Wrench, Camera, RotateCcw, Ruler, Maximize2 } from 'lucide-react'
+import { ArrowLeft, Clock, Calendar, MessageSquare, AlertCircle, CheckCircle, Package, Zap, User, X, Star, PenTool, Download, Upload, Send, Sparkles, DollarSign, Wrench, Camera, RotateCcw, Ruler, Maximize2, Handshake } from 'lucide-react'
 import { useParams } from 'next/navigation'
 import NegotiationChat from '@/components/NegotiationChat'
 import { toast } from 'sonner'
@@ -523,7 +523,9 @@ function JobDetailClient({ jobId }: { jobId: string }) {
     const isOwner = currentUser?.id === job.cliente_id
     const myExistingProposal = proposals.find((p: any) => p.criador_id === currentUser?.id)
     const hasAlreadySentProposal = !!myExistingProposal
-    const showProposalForm = !isOwner && job.status === 'aberto' && !hasAlreadySentProposal
+    const hasAnyAcceptedProposal = proposals.some((p: any) => p.status === 'aceita')
+    const isJobLocked = job.status !== 'aberto' || hasAnyAcceptedProposal
+    const showProposalForm = !isOwner && !isJobLocked && !hasAlreadySentProposal
 
     const urgencyLabels: Record<string, string> = {
         'urgente': '🔥 Urgente',
@@ -1272,6 +1274,16 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                     <MessageSquare className="w-3.5 h-3.5" />
                                     Abrir Chat da Sua Proposta
                                 </button>
+                            </div>
+                        )}
+
+                        {!isOwner && isJobLocked && !hasAlreadySentProposal && (
+                            <div className="mb-6 bg-blue-500/10 border border-blue-500/30 p-4 rounded-xl flex items-center gap-3">
+                                <Handshake className="w-5 h-5 text-[#FFAE00] shrink-0" />
+                                <div>
+                                    <p className="text-sm font-bold text-white">Negócio Fechado • Em Produção</p>
+                                    <p className="text-xs text-gray-400">Este pedido já fechou proposta com outro profissional e está em produção. Não está mais aceitando novas propostas.</p>
+                                </div>
                             </div>
                         )}
 

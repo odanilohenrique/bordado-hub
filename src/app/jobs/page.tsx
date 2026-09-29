@@ -74,6 +74,7 @@ export default function JobsPage() {
                 return {
                     ...job,
                     proposalCount: proposals.length,
+                    hasAcceptedProposal: !!acceptedProposal,
                     matchedProducerName: acceptedProposal?.users?.name || null,
                     my_proposal_status: myProposalStatus,
                     isOwner: isOwner,
@@ -176,11 +177,14 @@ export default function JobsPage() {
                         {jobs.map((job) => {
                             // Determine feed badge
                             let feedBadge: 'accepting' | 'matched' | undefined
-                            if (job.status === 'aberto') feedBadge = 'accepting'
-                            else if (job.status === 'em_progresso') feedBadge = 'matched'
+                            if (job.status === 'em_progresso' || job.status === 'finalizado' || job.status === 'entregue' || job.hasAcceptedProposal) {
+                                feedBadge = 'matched'
+                            } else if (job.status === 'aberto') {
+                                feedBadge = 'accepting'
+                            }
 
                             // Check if user lost this bid
-                            const userLostBid = job.status === 'em_progresso' && lostBids.has(job.id)
+                            const userLostBid = (job.status === 'em_progresso' || job.hasAcceptedProposal) && lostBids.has(job.id)
 
                             return (
                                 <JobCard 
