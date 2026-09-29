@@ -1,29 +1,50 @@
--- create_notifications.sql
--- Run this in the Supabase SQL Editor
+-- ==============================================================================
+-- CRIAÇÃO COMPLETA DA TABELA DE NOTIFICAÇÕES COM REALTIME E POLÍTICAS RLS
+-- ==============================================================================
 
-create table if not exists notifications (
-    id uuid primary key default gen_random_uuid(),
-    user_id uuid references users(id) not null,
-    type text not null, -- 'nova_proposta', 'nova_mensagem', 'solicitacao_direta', etc.
-    title text not null,
-    message text not null,
-    link_url text,
-    is_read boolean default false,
-    created_at timestamptz default now()
+-- 1. Cria a tabela 'notifications' caso ainda não exista
+CREATE TABLE IF NOT EXISTS public.notifications (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES public.users(id) ON DELETE CASCADE NOT NULL,
+    type TEXT NOT NULL,
+    title TEXT NOT NULL,
+    message TEXT NOT NULL,
+    link_url TEXT,
+    is_read BOOLEAN DEFAULT false,
+    created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- RLS
-alter table notifications enable row level security;
+-- 2. Habilita RLS (Segurança por linha)
+ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
 
--- Policies
-create policy "Users can view their own notifications" on notifications
-    for select using (auth.uid() in (select supabase_user_id from users where id = user_id));
+-- 3. Políticas de segurança (Remove anteriores se houver para evitar conflitos)
+DROP POLICY IF EXISTS "Users can view their own notifications" ON public.notifications;
+CREATE POLICY "Users can view their own notifications" ON public.notifications
+    FOR SELECT USING (auth.uid() IN (SELECT supabase_user_id FROM public.users WHERE id = user_id));
 
-create policy "Users can update their own notifications (e.g., mark as read)" on notifications
-    for update using (auth.uid() in (select supabase_user_id from users where id = user_id));
+DROP POLICY IF EXISTS "Users can update their own notifications" ON public.notifications;
+CREATE POLICY "Users can update their own notifications" ON public.notifications
+    FOR UPDATE USING (auth.uid() IN (SELECT supabase_user_id FROM public.users WHERE id = user_id));
 
--- Note: Inserts will mostly happen via edge functions, trigger, or backend API using service role, 
--- but users making an action that generates a notification could potentially insert if their RLS allowed.
--- For safety, inserts can be restricted or handled by the app server/service role.
-create policy "Authenticated users can create notifications" on notifications
-  for insert with check (auth.role() = 'authenticated');
+DROP POLICY IF EXISTS "Authenticated users can create notifications" ON public.notifications;
+CREATE POLICY "Authenticated users can create notifications" ON public.notifications
+    FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+
+-- 4. Habilita réplica completa para envio no Realtime
+ALTER TABLE public.notifications REPLICA IDENTITY FULL;
+
+-- 5. Adiciona à publicação do supabase_realtime
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables 
+    WHERE pubname = 'supabase_realtime' 
+    AND schemaname = 'public' 
+    AND tablename = 'notifications'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.notifications;
+  END IF;
+END $$;
+
+-- 6. Recarrega o cache do PostgREST
+NOTIFY pgrst, 'reload schema';
