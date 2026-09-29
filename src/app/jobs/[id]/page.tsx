@@ -508,6 +508,35 @@ function JobDetailClient({ jobId }: { jobId: string }) {
         }
     }
 
+    const [cancellingReserve, setCancellingReserve] = useState(false)
+
+    const handleCancelReservation = async (proposalId: string, role: 'programmer' | 'client') => {
+        const confirmMsg = role === 'programmer'
+            ? 'Deseja realmente cancelar a espera por este pagamento? O pedido será liberado no feed público e sua proposta será descartada para você não ficar preso.'
+            : 'Deseja desistir desta contratação e voltar a ver outras propostas para seu pedido?'
+        
+        if (!window.confirm(confirmMsg)) return
+
+        setCancellingReserve(true)
+        try {
+            const res = await fetch('/api/jobs/cancel-reserve', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ proposalId, cancelledBy: role })
+            })
+            const data = await res.json()
+            if (!res.ok) throw new Error(data.error || 'Erro ao cancelar reserva')
+
+            toast.success(role === 'programmer' ? 'Pedido liberado com sucesso! Você está livre.' : 'Contratação cancelada. Pedido reaberto!')
+            router.refresh()
+            window.location.reload()
+        } catch (err: any) {
+            toast.error('Erro: ' + err.message)
+        } finally {
+            setCancellingReserve(false)
+        }
+    }
+
     if (loading) return (
         <div className="min-h-screen bg-[#0F1115] flex items-center justify-center">
             <div className="w-16 h-16 border-4 border-[#FFAE00]/30 border-t-[#FFAE00] rounded-full animate-spin" />
@@ -1252,29 +1281,111 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                             </div>
                         )}
 
-                        {!isOwner && hasAlreadySentProposal && myExistingProposal && (
-                            <div className="mb-6 bg-yellow-500/10 border border-yellow-500/30 p-4 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-lg">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-9 h-9 rounded-full bg-yellow-500/20 text-yellow-400 flex items-center justify-center shrink-0">
-                                        <Clock className="w-5 h-5" />
+                        {/* Buyer Alert: Pending Payment */}
+                        {isOwner && acceptedProposal && job.status === 'aberto' && (
+                            <div className="mb-6 bg-gradient-to-r from-yellow-500/15 via-[#FFAE00]/10 to-transparent border border-yellow-500/30 p-5 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-lg">
+                                <div className="flex items-start sm:items-center gap-3">
+                                    <div className="w-10 h-10 rounded-full bg-yellow-500/20 text-yellow-400 flex items-center justify-center shrink-0">
+                                        <DollarSign className="w-5 h-5" />
                                     </div>
                                     <div>
-                                        <p className="text-sm font-bold text-white flex items-center gap-1.5">
-                                            Você já enviou uma proposta para este pedido
+                                        <span className="text-[10px] font-black uppercase tracking-wider bg-yellow-500/20 text-yellow-400 px-2.5 py-0.5 rounded-full">
+                                            Aguardando Seu Pagamento
+                                        </span>
+                                        <p className="text-sm font-bold text-white mt-1">
+                                            Você aceitou a proposta de {acceptedProposal.users?.name || 'um profissional'} no valor de <strong className="text-yellow-400">R$ {acceptedProposal.amount?.toFixed(2)}</strong>
                                         </p>
-                                        <p className="text-xs text-gray-300 mt-0.5">
-                                            Valor oferecido: <strong className="text-yellow-400">R$ {myExistingProposal.amount?.toFixed(2)}</strong> • Prazo: <strong>{myExistingProposal.deadline_text || 'A combinar'}</strong>
+                                        <p className="text-xs text-gray-400 mt-0.5">
+                                            Conclua o pagamento para o programador começar a criar sua matriz. O valor fica 100% seguro em custódia até você aprovar.
                                         </p>
                                     </div>
                                 </div>
-                                <button
-                                    onClick={() => handleNegotiate(myExistingProposal.id)}
-                                    className="inline-flex items-center gap-2 bg-[#FFAE00] hover:bg-yellow-400 text-black px-4 py-2 rounded-xl text-xs font-black transition-all hover:scale-105 active:scale-95 shrink-0 shadow-md"
-                                >
-                                    <MessageSquare className="w-3.5 h-3.5" />
-                                    Abrir Chat da Sua Proposta
-                                </button>
+                                <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
+                                    <Link
+                                        href={`/checkout/${acceptedProposal.id}`}
+                                        className="inline-flex items-center gap-2 bg-[#FFAE00] hover:bg-yellow-400 text-black px-5 py-2.5 rounded-xl text-xs font-black transition-all hover:scale-105 active:scale-95 shadow-md shadow-[#FFAE00]/10"
+                                    >
+                                        <DollarSign className="w-4 h-4" />
+                                        Pagar Agora
+                                    </Link>
+                                    <button
+                                        onClick={() => handleCancelReservation(acceptedProposal.id, 'client')}
+                                        disabled={cancellingReserve}
+                                        className="inline-flex items-center gap-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 px-3 py-2.5 rounded-xl text-xs font-bold transition-colors"
+                                        title="Desistir e reabrir o pedido para outras propostas"
+                                    >
+                                        <X className="w-3.5 h-3.5" />
+                                        Desistir / Outro
+                                    </button>
+                                </div>
                             </div>
+                        )}
+
+                        {/* Programmer Alert: Waiting Payment or Already Sent */}
+                        {!isOwner && hasAlreadySentProposal && myExistingProposal && (
+                            myExistingProposal.status === 'aceita' ? (
+                                <div className="mb-6 bg-yellow-500/10 border border-yellow-500/30 p-5 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-lg">
+                                    <div className="flex items-start sm:items-center gap-3">
+                                        <div className="w-10 h-10 rounded-full bg-yellow-500/20 text-yellow-400 flex items-center justify-center shrink-0">
+                                            <Clock className="w-5 h-5 animate-pulse" />
+                                        </div>
+                                        <div>
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-[10px] font-black uppercase tracking-wider bg-yellow-500/20 text-yellow-400 px-2.5 py-0.5 rounded-full">
+                                                    Proposta Aceita • Aguardando Pagamento
+                                                </span>
+                                            </div>
+                                            <p className="text-sm font-bold text-white mt-1">
+                                                O comprador aceitou sua proposta no valor de <strong className="text-yellow-400">R$ {myExistingProposal.amount?.toFixed(2)}</strong>
+                                            </p>
+                                            <p className="text-xs text-gray-300 mt-1">
+                                                🛡️ <strong>Atenção:</strong> Não inicie a criação da matriz ainda. Seu prazo ({myExistingProposal.deadline_text || 'combinado'}) só começará a contar após a confirmação do pagamento em custódia.
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
+                                        <button
+                                            onClick={() => handleNegotiate(myExistingProposal.id)}
+                                            className="inline-flex items-center gap-2 bg-[#FFAE00] hover:bg-yellow-400 text-black px-4 py-2 rounded-xl text-xs font-black transition-all hover:scale-105 active:scale-95 shadow-md"
+                                        >
+                                            <MessageSquare className="w-3.5 h-3.5" />
+                                            Chat com Cliente
+                                        </button>
+                                        <button
+                                            onClick={() => handleCancelReservation(myExistingProposal.id, 'programmer')}
+                                            disabled={cancellingReserve}
+                                            className="inline-flex items-center gap-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 px-3 py-2 rounded-xl text-xs font-bold transition-colors"
+                                            title="Se o cliente demorar para pagar, você pode liberar o pedido para não ficar preso"
+                                        >
+                                            <X className="w-3.5 h-3.5" />
+                                            {cancellingReserve ? 'Liberando...' : 'Liberar Pedido'}
+                                        </button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="mb-6 bg-yellow-500/10 border border-yellow-500/30 p-4 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-lg">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-9 h-9 rounded-full bg-yellow-500/20 text-yellow-400 flex items-center justify-center shrink-0">
+                                            <Clock className="w-5 h-5" />
+                                        </div>
+                                        <div>
+                                            <p className="text-sm font-bold text-white flex items-center gap-1.5">
+                                                Você já enviou uma proposta para este pedido
+                                            </p>
+                                            <p className="text-xs text-gray-300 mt-0.5">
+                                                Valor oferecido: <strong className="text-yellow-400">R$ {myExistingProposal.amount?.toFixed(2)}</strong> • Prazo: <strong>{myExistingProposal.deadline_text || 'A combinar'}</strong>
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <button
+                                        onClick={() => handleNegotiate(myExistingProposal.id)}
+                                        className="inline-flex items-center gap-2 bg-[#FFAE00] hover:bg-yellow-400 text-black px-4 py-2 rounded-xl text-xs font-black transition-all hover:scale-105 active:scale-95 shrink-0 shadow-md"
+                                    >
+                                        <MessageSquare className="w-3.5 h-3.5" />
+                                        Abrir Chat da Sua Proposta
+                                    </button>
+                                </div>
+                            )
                         )}
 
                         {!isOwner && isJobLocked && !hasAlreadySentProposal && (
