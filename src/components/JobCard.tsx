@@ -29,6 +29,7 @@ interface Job {
         avatar_url: string | null
     }
     my_proposal_status?: string
+    isOwner?: boolean
 }
 
 export default function JobCard({ job, hasNegotiation, viewerRole, proposalCount, feedBadge, userLostBid, matchedProducerName }: { job: Job, hasNegotiation?: boolean, viewerRole?: 'client' | 'programmer', proposalCount?: number, feedBadge?: 'accepting' | 'matched', userLostBid?: boolean, matchedProducerName?: string | null }) {
@@ -283,7 +284,8 @@ export default function JobCard({ job, hasNegotiation, viewerRole, proposalCount
                             </span>
                         )}
 
-                        {viewerRole === 'client' ? (
+                        {/* Smart Button Logic */}
+                        {job.isOwner || viewerRole === 'client' ? (
                             job.status === 'entregue' ? (
                                 <button className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg font-bold text-xs transition-all shadow-lg shadow-green-500/20 active:scale-95 ml-auto animate-pulse">
                                     Baixar & Avaliar 🚀
@@ -306,50 +308,43 @@ export default function JobCard({ job, hasNegotiation, viewerRole, proposalCount
                                 </button>
                             ) : (
                                 <button className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg font-bold text-xs transition-all shadow-lg shadow-indigo-500/20 active:scale-95 ml-auto">
-                                    Acompanhar Pedido
+                                    Meu Pedido
                                     <ArrowRight className="w-3.5 h-3.5" />
                                 </button>
                             )
-                        ) : viewerRole === 'programmer' ? (
-                            job.status === 'em_revisao' ? (
-                                <button className="flex items-center gap-2 bg-yellow-500 hover:bg-yellow-400 text-black px-4 py-2 rounded-lg font-black text-xs transition-all shadow-lg shadow-yellow-500/20 active:scale-95 ml-auto animate-pulse">
-                                    Entregar Revisão
-                                    <Wrench className="w-3.5 h-3.5" />
-                                </button>
-                            ) : job.status === 'entregue' ? (
-                                <button className="flex items-center gap-2 bg-green-500/10 hover:bg-green-500/20 text-green-400 border border-green-500/30 px-4 py-2 rounded-lg font-bold text-xs ml-auto transition-colors">
-                                    Aguardando Aprovação
-                                    <Clock className="w-3.5 h-3.5" />
-                                </button>
-                            ) : job.status === 'finalizado' ? (
-                                <button className="flex items-center gap-2 bg-gray-800 hover:bg-gray-700 text-gray-300 border border-white/10 px-4 py-2 rounded-lg font-bold text-xs ml-auto transition-colors">
-                                    Ver Matriz (Concluído)
-                                    <CheckCircle className="w-3.5 h-3.5 text-green-400" />
-                                </button>
-                            ) : (job.my_proposal_status === 'aceita' || job.status === 'em_progresso') ? (
-                                <button className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg font-bold text-xs transition-all shadow-lg shadow-green-500/10 active:scale-95 ml-auto">
-                                    Entregar Matriz
-                                    <CheckCircle className="w-3.5 h-3.5" />
-                                </button>
-                            ) : job.my_proposal_status === 'contraproposta' ? (
-                                <button className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg font-bold text-xs transition-all shadow-lg shadow-red-500/20 active:scale-95 ml-auto animate-pulse">
-                                    Contraproposta Recebida
-                                    <Send className="w-3.5 h-3.5" />
-                                </button>
-                            ) : job.my_proposal_status === 'pendente' ? (
-                                <button className="flex items-center gap-2 bg-yellow-500/10 text-yellow-400 border border-yellow-500/30 px-4 py-2 rounded-lg font-bold text-xs ml-auto">
-                                    Proposta Enviada
-                                    <Clock className="w-3.5 h-3.5" />
-                                </button>
-                            ) : (
-                                <button className="flex items-center gap-2 bg-[#FFAE00] hover:bg-[#FFB92E] text-[#0F1115] px-4 py-2 rounded-lg font-bold text-xs transition-all shadow-lg shadow-[#FFAE00]/10 active:scale-95 ml-auto">
-                                    Enviar Proposta
-                                    <Send className="w-3.5 h-3.5" />
-                                </button>
-                            )
+                        ) : job.my_proposal_status === 'pendente' ? (
+                            <button className="flex items-center gap-2 bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 px-4 py-2 rounded-lg font-bold text-xs ml-auto transition-colors">
+                                Proposta Enviada
+                                <Clock className="w-3.5 h-3.5" />
+                            </button>
+                        ) : job.my_proposal_status === 'contraproposta' ? (
+                            <button className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg font-bold text-xs transition-all shadow-lg shadow-red-500/20 active:scale-95 ml-auto animate-pulse">
+                                Contraproposta Recebida
+                                <Send className="w-3.5 h-3.5" />
+                            </button>
+                        ) : (job.my_proposal_status === 'aceita' || (viewerRole === 'programmer' && job.status === 'em_progresso')) ? (
+                            <button className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg font-bold text-xs transition-all shadow-lg shadow-green-500/10 active:scale-95 ml-auto">
+                                Entregar Matriz
+                                <CheckCircle className="w-3.5 h-3.5" />
+                            </button>
+                        ) : job.status === 'em_revisao' && viewerRole === 'programmer' ? (
+                            <button className="flex items-center gap-2 bg-yellow-500 hover:bg-yellow-400 text-black px-4 py-2 rounded-lg font-black text-xs transition-all shadow-lg shadow-yellow-500/20 active:scale-95 ml-auto animate-pulse">
+                                Entregar Revisão
+                                <Wrench className="w-3.5 h-3.5" />
+                            </button>
+                        ) : job.status === 'entregue' && viewerRole === 'programmer' ? (
+                            <button className="flex items-center gap-2 bg-green-500/10 hover:bg-green-500/20 text-green-400 border border-green-500/30 px-4 py-2 rounded-lg font-bold text-xs ml-auto transition-colors">
+                                Aguardando Aprovação
+                                <Clock className="w-3.5 h-3.5" />
+                            </button>
+                        ) : job.status === 'aberto' ? (
+                            <button className="flex items-center gap-2 bg-[#FFAE00] hover:bg-[#FFB92E] text-[#0F1115] px-4 py-2 rounded-lg font-bold text-xs transition-all shadow-lg shadow-[#FFAE00]/10 active:scale-95 ml-auto">
+                                Enviar Proposta
+                                <Send className="w-3.5 h-3.5" />
+                            </button>
                         ) : (
                             <button className="flex items-center gap-2 bg-[#FFAE00] hover:bg-[#FFB92E] text-[#0F1115] px-4 py-2 rounded-lg font-bold text-xs transition-all shadow-lg shadow-[#FFAE00]/10 active:scale-95 ml-auto">
-                                {job.status === 'aberto' ? 'Enviar Proposta' : 'Ver Detalhes'}
+                                Ver Detalhes
                                 <ArrowRight className="w-3.5 h-3.5" />
                             </button>
                         )}

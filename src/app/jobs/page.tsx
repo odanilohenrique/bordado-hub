@@ -17,13 +17,31 @@ export default function JobsPage() {
         async function fetchJobs() {
             // Get current user profile id
             const { data: { user } } = await supabase.auth.getUser()
+            let myProfileId: string | null = null
             if (user) {
                 const { data: profile } = await supabase
                     .from('users')
                     .select('id')
                     .eq('supabase_user_id', user.id)
                     .single()
-                if (profile) setCurrentUserId(profile.id)
+                if (profile) {
+                    myProfileId = profile.id
+                    setCurrentUserId(profile.id)
+                }
+            }
+
+            // Fetch my sent proposals if logged in
+            const myProposalsMap: Record<string, string> = {}
+            if (myProfileId) {
+                const { data: myProps } = await supabase
+                    .from('proposals')
+                    .select('job_id, status')
+                    .eq('criador_id', myProfileId)
+                if (myProps) {
+                    myProps.forEach(p => {
+                        myProposalsMap[p.job_id] = p.status
+                    })
+                }
             }
 
             // Fetch jobs with proposals (status + producer)
@@ -44,16 +62,21 @@ export default function JobsPage() {
 
             const { data } = await query
             
-            // Extract proposal count and accepted producer name
+            // Extract proposal count, ownership and sent proposal status
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const enriched = (data || []).map((job: any) => {
                 const proposals = job.proposals || []
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const acceptedProposal = proposals.find((p: any) => p.status === 'aceita')
+                const myProposalStatus = myProposalsMap[job.id] || null
+                const isOwner = !!(myProfileId && job.cliente_id === myProfileId)
+
                 return {
                     ...job,
                     proposalCount: proposals.length,
                     matchedProducerName: acceptedProposal?.users?.name || null,
+                    my_proposal_status: myProposalStatus,
+                    isOwner: isOwner,
                 }
             })
 

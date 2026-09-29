@@ -521,7 +521,9 @@ function JobDetailClient({ jobId }: { jobId: string }) {
     )
 
     const isOwner = currentUser?.id === job.cliente_id
-    const showProposalForm = !isOwner && job.status === 'aberto'
+    const myExistingProposal = proposals.find((p: any) => p.criador_id === currentUser?.id)
+    const hasAlreadySentProposal = !!myExistingProposal
+    const showProposalForm = !isOwner && job.status === 'aberto' && !hasAlreadySentProposal
 
     const urgencyLabels: Record<string, string> = {
         'urgente': '🔥 Urgente',
@@ -1245,6 +1247,31 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                         </button>
                                     </div>
                                 </form>
+                            </div>
+                        )}
+
+                        {!isOwner && hasAlreadySentProposal && myExistingProposal && (
+                            <div className="mb-6 bg-yellow-500/10 border border-yellow-500/30 p-4 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-lg">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-9 h-9 rounded-full bg-yellow-500/20 text-yellow-400 flex items-center justify-center shrink-0">
+                                        <Clock className="w-5 h-5" />
+                                    </div>
+                                    <div>
+                                        <p className="text-sm font-bold text-white flex items-center gap-1.5">
+                                            Você já enviou uma proposta para este pedido
+                                        </p>
+                                        <p className="text-xs text-gray-300 mt-0.5">
+                                            Valor oferecido: <strong className="text-yellow-400">R$ {myExistingProposal.amount?.toFixed(2)}</strong> • Prazo: <strong>{myExistingProposal.deadline_text || 'A combinar'}</strong>
+                                        </p>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => handleNegotiate(myExistingProposal.id)}
+                                    className="inline-flex items-center gap-2 bg-[#FFAE00] hover:bg-yellow-400 text-black px-4 py-2 rounded-xl text-xs font-black transition-all hover:scale-105 active:scale-95 shrink-0 shadow-md"
+                                >
+                                    <MessageSquare className="w-3.5 h-3.5" />
+                                    Abrir Chat da Sua Proposta
+                                </button>
                             </div>
                         )}
 
