@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import JobCard from '@/components/JobCard'
-import { Briefcase, Target, Clock, CheckCircle, Wrench, AlertCircle, Package, Award } from 'lucide-react'
+import Link from 'next/link'
+import { Briefcase, Target, Clock, CheckCircle, Wrench, AlertCircle, Package, Award, Wallet } from 'lucide-react'
 
 export default function CreatorDashboard() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -128,6 +129,13 @@ export default function CreatorDashboard() {
                                     <CheckCircle className="w-3.5 h-3.5 text-green-400" /> {completed.length} finalizada{completed.length > 1 ? 's' : ''}
                                 </span>
                             )}
+                            <Link
+                                href="/financeiro"
+                                className="inline-flex items-center gap-2 bg-[#FFAE00]/10 hover:bg-[#FFAE00]/20 text-[#FFAE00] border border-[#FFAE00]/30 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all shadow-sm ml-auto"
+                            >
+                                <Wallet className="w-3.5 h-3.5" />
+                                Painel Financeiro
+                            </Link>
                         </div>
                     )}
                 </div>

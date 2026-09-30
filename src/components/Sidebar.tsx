@@ -9,6 +9,7 @@ import {
     LayoutDashboard, 
     ShoppingBag, 
     Palette, 
+    Wallet,
     Users, 
     Store, 
     LogOut,
@@ -112,6 +113,7 @@ export default function Sidebar() {
 
     const creatorNav = [
         { name: 'Minha Produção', href: '/producao', icon: Palette },
+        { name: 'Painel Financeiro', href: '/financeiro', icon: Wallet },
     ]
 
     return (
