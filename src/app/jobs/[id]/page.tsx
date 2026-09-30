@@ -537,6 +537,44 @@ function JobDetailClient({ jobId }: { jobId: string }) {
         }
     }
 
+    const handleDownloadReferenceImage = async (url: string, index: number) => {
+        try {
+            toast.info('Iniciando download da imagem...')
+            const res = await fetch(url)
+            const blob = await res.blob()
+            const ext = url.split('.').pop()?.split('?')[0] || 'jpg'
+            const safeTitle = (job?.title || 'referencia').replace(/[^a-zA-Z0-9_-]/g, '_')
+            const fileName = `${safeTitle}_referencia_${index + 1}.${ext}`
+            saveAs(blob, fileName)
+            toast.success('Download da imagem concluído!')
+        } catch (err) {
+            console.error('Download error:', err)
+            window.open(url, '_blank')
+        }
+    }
+
+    const handleDownloadAllReferenceImages = async () => {
+        if (!job?.image_urls || job.image_urls.length === 0) return
+        toast.info('Compactando imagens de referência... aguarde.')
+        try {
+            const zip = new JSZip()
+            for (let i = 0; i < job.image_urls.length; i++) {
+                const url = job.image_urls[i]
+                const res = await fetch(url)
+                const blob = await res.blob()
+                const ext = url.split('.').pop()?.split('?')[0] || 'jpg'
+                const safeTitle = (job?.title || 'matriz').replace(/[^a-zA-Z0-9_-]/g, '_')
+                zip.file(`${safeTitle}_arte_${i + 1}.${ext}`, blob)
+            }
+            const content = await zip.generateAsync({ type: 'blob' })
+            saveAs(content, `${(job.title || 'referencias').replace(/[^a-zA-Z0-9_-]/g, '_')}_referencias.zip`)
+            toast.success('Download das referências concluído!')
+        } catch (err) {
+            console.error('Zip error:', err)
+            toast.error('Erro ao compactar imagens de referência.')
+        }
+    }
+
     if (loading) return (
         <div className="min-h-screen bg-[#0F1115] flex items-center justify-center">
             <div className="w-16 h-16 border-4 border-[#FFAE00]/30 border-t-[#FFAE00] rounded-full animate-spin" />
@@ -578,12 +616,52 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                     <div className="flex flex-col md:flex-row">
                         {/* Image Left */}
                         {job.image_urls && job.image_urls.length > 0 && (
-                            <div className="w-full md:w-1/3 min-h-[200px] bg-black/40 border-r border-white/5 relative">
-                                {job.image_urls[0].toLowerCase().includes('.pdf') ? (
-                                    <iframe src={`${job.image_urls[0]}#toolbar=0&navpanes=0&scrollbar=0`} className="absolute inset-0 w-full h-full" />
-                                ) : (
-                                    <img src={job.image_urls[0]} alt="Referência" className="absolute inset-0 w-full h-full object-contain p-4" />
-                                )}
+                            <div className="w-full md:w-1/3 min-h-[220px] bg-black/40 border-r border-white/5 relative flex flex-col justify-between group">
+                                <div className="relative flex-1 min-h-[180px] flex items-center justify-center overflow-hidden">
+                                    {job.image_urls[0].toLowerCase().includes('.pdf') ? (
+                                        <iframe src={`${job.image_urls[0]}#toolbar=0&navpanes=0&scrollbar=0`} className="absolute inset-0 w-full h-full" />
+                                    ) : (
+                                        <img src={job.image_urls[0]} alt="Referência" className="max-h-full max-w-full object-contain p-4 group-hover:scale-105 transition-transform duration-300" />
+                                    )}
+                                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 p-2">
+                                        <a
+                                            href={job.image_urls[0]}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="inline-flex items-center gap-1.5 bg-white/20 hover:bg-white/30 text-white text-xs font-bold px-3 py-2 rounded-lg backdrop-blur-sm transition-all"
+                                        >
+                                            <Maximize2 className="w-3.5 h-3.5 text-[#FFAE00]" />
+                                            Ver Completa
+                                        </a>
+                                        <button
+                                            type="button"
+                                            onClick={() => handleDownloadReferenceImage(job.image_urls[0], 0)}
+                                            className="inline-flex items-center gap-1.5 bg-[#FFAE00] hover:bg-yellow-400 text-black text-xs font-black px-3 py-2 rounded-lg shadow-lg transition-all"
+                                        >
+                                            <Download className="w-3.5 h-3.5" />
+                                            Baixar
+                                        </button>
+                                    </div>
+                                </div>
+                                <div className="p-2.5 bg-[#0F1115] border-t border-white/5 flex items-center justify-between gap-2">
+                                    <a
+                                        href={job.image_urls[0]}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="flex-1 inline-flex items-center justify-center gap-1.5 bg-[#1A1D23] hover:bg-white/5 text-gray-300 hover:text-white border border-white/10 text-xs font-semibold py-1.5 px-2 rounded-lg transition-colors"
+                                    >
+                                        <Maximize2 className="w-3.5 h-3.5 text-[#FFAE00]" />
+                                        Ver Imagem Completa
+                                    </a>
+                                    <button
+                                        type="button"
+                                        onClick={() => handleDownloadReferenceImage(job.image_urls[0], 0)}
+                                        className="flex-1 inline-flex items-center justify-center gap-1.5 bg-[#FFAE00]/10 hover:bg-[#FFAE00]/20 text-[#FFAE00] border border-[#FFAE00]/30 text-xs font-bold py-1.5 px-2 rounded-lg transition-colors"
+                                    >
+                                        <Download className="w-3.5 h-3.5" />
+                                        Baixar Imagem
+                                    </button>
+                                </div>
                             </div>
                         )}
                         {/* Info Right */}
@@ -660,39 +738,89 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                     </div>
 
                     {/* Galeria Detalhada das Matrizes de Referência */}
-                    {job.image_urls && job.image_urls.length > 1 && (
+                    {job.image_urls && job.image_urls.length > 0 && (
                         <div className="p-5 bg-[#0F1115]/60 border-t border-white/5">
-                            <h3 className="text-xs font-bold text-[#FFAE00] uppercase tracking-wider flex items-center gap-2 mb-3">
-                                <Package className="w-3.5 h-3.5 text-[#FFAE00]" />
-                                Imagens de Referência por Matriz ({job.image_urls.length} arquivos):
-                            </h3>
-                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-3">
+                                <div>
+                                    <h3 className="text-xs font-bold text-[#FFAE00] uppercase tracking-wider flex items-center gap-2">
+                                        <Package className="w-3.5 h-3.5 text-[#FFAE00]" />
+                                        Artes e Imagens de Referência do Pedido ({job.image_urls.length} {job.image_urls.length === 1 ? 'arquivo' : 'arquivos'}):
+                                    </h3>
+                                    <p className="text-[11px] text-gray-400 mt-0.5">
+                                        Baixe a imagem original em alta resolução para abrir no seu programa de matrizes (Wilcom, Embird, PE-Design, etc.)
+                                    </p>
+                                </div>
+                                {job.image_urls.length > 1 && (
+                                    <button
+                                        type="button"
+                                        onClick={handleDownloadAllReferenceImages}
+                                        className="inline-flex items-center gap-1.5 bg-[#FFAE00] hover:bg-yellow-400 text-black px-3.5 py-1.5 rounded-lg text-xs font-bold shadow transition-all shrink-0 hover:scale-105 active:scale-95"
+                                    >
+                                        <Download className="w-3.5 h-3.5" />
+                                        Baixar Todas as Artes (.zip)
+                                    </button>
+                                )}
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                                 {job.image_urls.map((url, idx) => {
                                     const isPdf = url.toLowerCase().includes('.pdf')
                                     const dimParts = job.dimensions?.split('|') || []
                                     const label = dimParts[idx] ? dimParts[idx].trim() : `Arte ${idx + 1}`
 
                                     return (
-                                        <div key={idx} className="bg-[#1A1D23] border border-white/10 rounded-lg p-2.5 flex flex-col justify-between group hover:border-[#FFAE00]/50 transition-all shadow">
-                                            <div className="h-28 w-full bg-black/40 rounded flex items-center justify-center overflow-hidden relative mb-2">
+                                        <div key={idx} className="bg-[#1A1D23] border border-white/10 rounded-xl p-3 flex flex-col justify-between group hover:border-[#FFAE00]/50 transition-all shadow-md">
+                                            <div className="h-32 w-full bg-black/40 rounded-lg flex items-center justify-center overflow-hidden relative mb-2.5">
                                                 {isPdf ? (
                                                     <iframe src={`${url}#toolbar=0&navpanes=0&scrollbar=0`} className="w-full h-full pointer-events-none" />
                                                 ) : (
-                                                    <img src={url} alt={label} className="max-h-full max-w-full object-contain p-1 group-hover:scale-105 transition-transform" />
+                                                    <img src={url} alt={label} className="max-h-full max-w-full object-contain p-2 group-hover:scale-105 transition-transform duration-300" />
                                                 )}
+                                                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-1.5 transition-opacity p-2">
+                                                    <a
+                                                        href={url}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="p-2 bg-white/20 hover:bg-white/30 text-white rounded-lg backdrop-blur-sm transition-all text-xs font-bold flex items-center gap-1"
+                                                        title="Ver em tamanho real"
+                                                    >
+                                                        <Maximize2 className="w-3.5 h-3.5 text-[#FFAE00]" />
+                                                    </a>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleDownloadReferenceImage(url, idx)}
+                                                        className="p-2 bg-[#FFAE00] hover:bg-yellow-400 text-black rounded-lg shadow transition-all text-xs font-bold flex items-center gap-1"
+                                                        title="Baixar imagem original"
+                                                    >
+                                                        <Download className="w-3.5 h-3.5" />
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            <div className="mb-2">
+                                                <span className="text-xs font-bold text-gray-200 block truncate" title={label}>
+                                                    {label}
+                                                </span>
+                                            </div>
+
+                                            <div className="flex items-center gap-1.5 pt-2 border-t border-white/5">
                                                 <a
                                                     href={url}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
-                                                    className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity text-xs font-bold text-white gap-1"
+                                                    className="flex-1 inline-flex items-center justify-center gap-1 bg-[#0F1115] hover:bg-white/5 text-gray-300 hover:text-white border border-white/10 text-[11px] font-semibold py-1.5 px-2 rounded-lg transition-colors"
                                                 >
-                                                    <Maximize2 className="w-3.5 h-3.5 text-[#FFAE00]" /> Ver Ampliado
+                                                    <Maximize2 className="w-3 h-3 text-[#FFAE00]" />
+                                                    Ver
                                                 </a>
-                                            </div>
-                                            <div className="text-center">
-                                                <span className="text-[11px] font-bold text-gray-200 block truncate" title={label}>
-                                                    {label}
-                                                </span>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleDownloadReferenceImage(url, idx)}
+                                                    className="flex-1 inline-flex items-center justify-center gap-1 bg-[#FFAE00]/10 hover:bg-[#FFAE00]/20 text-[#FFAE00] border border-[#FFAE00]/30 text-[11px] font-bold py-1.5 px-2 rounded-lg transition-colors"
+                                                >
+                                                    <Download className="w-3 h-3" />
+                                                    Baixar
+                                                </button>
                                             </div>
                                         </div>
                                     )
@@ -772,6 +900,50 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                             </a>
                                         </div>
                                     )}
+                                </div>
+                            )}
+
+                            {/* SHORTCUT: DOWNLOAD ARTE DO CLIENTE PARA O PROGRAMADOR */}
+                            {!isOwner && job.image_urls && job.image_urls.length > 0 && (
+                                <div className="mt-6 p-4 bg-[#0F1115]/90 border border-[#FFAE00]/30 rounded-xl flex flex-col sm:flex-row items-center justify-between gap-3 text-left w-full shadow-lg">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-lg bg-[#FFAE00]/10 border border-[#FFAE00]/20 flex items-center justify-center text-[#FFAE00] shrink-0">
+                                            <Package className="w-5 h-5" />
+                                        </div>
+                                        <div>
+                                            <p className="text-xs font-bold text-white">Artes de Referência do Comprador</p>
+                                            <p className="text-[11px] text-gray-400">
+                                                {job.image_urls.length} {job.image_urls.length === 1 ? 'imagem disponível' : 'imagens disponíveis'} para criar sua matriz em alta precisão
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                                        <a
+                                            href={job.image_urls[0]}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="inline-flex items-center gap-1.5 px-3 py-2 bg-[#1A1D23] hover:bg-white/10 text-gray-300 text-xs font-semibold rounded-lg border border-white/10 transition-colors"
+                                        >
+                                            <Maximize2 className="w-3.5 h-3.5 text-[#FFAE00]" /> Ver Completa
+                                        </a>
+                                        {job.image_urls.length > 1 ? (
+                                            <button
+                                                type="button"
+                                                onClick={handleDownloadAllReferenceImages}
+                                                className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#FFAE00] hover:bg-yellow-400 text-black text-xs font-bold rounded-lg shadow transition-colors"
+                                            >
+                                                <Download className="w-3.5 h-3.5" /> Baixar Todas (.zip)
+                                            </button>
+                                        ) : (
+                                            <button
+                                                type="button"
+                                                onClick={() => handleDownloadReferenceImage(job.image_urls[0], 0)}
+                                                className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#FFAE00] hover:bg-yellow-400 text-black text-xs font-bold rounded-lg shadow transition-colors"
+                                            >
+                                                <Download className="w-3.5 h-3.5" /> Baixar Imagem
+                                            </button>
+                                        )}
+                                    </div>
                                 </div>
                             )}
 
@@ -1097,15 +1269,84 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                 ) : job.status === 'finalizado' ? (
                     <div className="bg-[#1A1D23] border border-green-500/30 rounded-xl overflow-hidden shadow-[0_0_50px_rgba(34,197,94,0.1)] mb-8">
                         <div className="flex flex-col lg:flex-row">
-                            {/* Left Side: Always accessible downloads */}
+                            {/* Left Side: Always accessible downloads & personalized messages */}
                             <div className="flex-1 p-8 lg:p-10 border-b lg:border-b-0 lg:border-r border-white/5">
-                                <div className="inline-flex items-center gap-2 bg-green-500/20 text-green-400 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider mb-6">
-                                    <CheckCircle className="w-3 h-3" /> Pedido Concluído & Pago
-                                </div>
-                                <h2 className="text-3xl font-black text-white mb-2">Matriz Aprovada e Concluída! 🏆</h2>
-                                <p className="text-gray-400 text-sm mb-6 leading-relaxed">
-                                    Este pedido foi 100% finalizado. Os arquivos ficam salvos permanentemente na sua conta e você pode baixá-los a qualquer momento.
-                                </p>
+                                {isOwner ? (
+                                    <>
+                                        <div className="inline-flex items-center gap-2 bg-green-500/20 text-green-400 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider mb-6">
+                                            <CheckCircle className="w-3 h-3" /> Pedido Concluído & Pago
+                                        </div>
+                                        <h2 className="text-3xl font-black text-white mb-2">Matriz Aprovada e Concluída! 🏆</h2>
+                                        <p className="text-gray-400 text-sm mb-6 leading-relaxed">
+                                            Parabéns! Sua matriz foi 100% aprovada e está pronta para bordar. Os arquivos ficam salvos permanentemente na sua conta e você pode baixá-los a qualquer momento.
+                                        </p>
+                                    </>
+                                ) : (
+                                    <>
+                                        {jobReview && jobReview.rating_matrix === 5 && jobReview.rating_service === 5 ? (
+                                            <div className="inline-flex items-center gap-2 bg-[#FFAE00]/20 text-[#FFAE00] border border-[#FFAE00]/40 px-3.5 py-1 rounded-full text-[11px] font-black uppercase tracking-wider mb-6 shadow-[0_0_15px_rgba(255,174,0,0.2)]">
+                                                <Sparkles className="w-3.5 h-3.5 text-[#FFAE00]" /> Avaliação Máxima • 5 Estrelas
+                                            </div>
+                                        ) : jobReview && (jobReview.rating_matrix + jobReview.rating_service) >= 8 ? (
+                                            <div className="inline-flex items-center gap-2 bg-green-500/20 text-green-400 border border-green-500/40 px-3.5 py-1 rounded-full text-[11px] font-black uppercase tracking-wider mb-6">
+                                                <Star className="w-3.5 h-3.5 fill-green-400 text-green-400" /> Ótimo Trabalho • Avaliação Positiva
+                                            </div>
+                                        ) : (
+                                            <div className="inline-flex items-center gap-2 bg-green-500/20 text-green-400 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider mb-6">
+                                                <CheckCircle className="w-3 h-3" /> Pedido Concluído & Aprovado
+                                            </div>
+                                        )}
+
+                                        <h2 className="text-3xl font-black text-white mb-2">
+                                            {jobReview && jobReview.rating_matrix === 5 && jobReview.rating_service === 5
+                                                ? 'Excelente Trabalho! Parabéns! 🚀🌟'
+                                                : jobReview && (jobReview.rating_matrix + jobReview.rating_service) >= 8
+                                                ? 'Parabéns pela Entrega Concluída! 🎯'
+                                                : 'Missão Cumprida! Pedido Finalizado 🎯'}
+                                        </h2>
+
+                                        <p className="text-gray-300 text-sm mb-6 leading-relaxed">
+                                            {jobReview && jobReview.rating_matrix === 5 && jobReview.rating_service === 5 ? (
+                                                <>
+                                                    O comprador avaliou sua entrega com <strong className="text-[#FFAE00]">nota máxima (5 estrelas)</strong>! Sua precisão nos pontos, pontualidade e capricho fazem toda a diferença no BordadoHUB. Continue mantendo esse padrão de excelência — <strong className="text-white">profissionais 5 estrelas ganham maior destaque e preferência em novos pedidos!</strong>
+                                                </>
+                                            ) : jobReview && (jobReview.rating_matrix + jobReview.rating_service) >= 8 ? (
+                                                <>
+                                                    O comprador aprovou sua matriz e deixou uma excelente avaliação! Seu capricho e atendimento fortalecem sua reputação na comunidade BordadoHUB. Continue produzindo matrizes de alto nível!
+                                                </>
+                                            ) : (
+                                                <>
+                                                    O cliente aprovou sua entrega e o pedido foi marcado como 100% concluído. Bom trabalho! Continue produzindo e expandindo sua clientela no BordadoHUB.
+                                                </>
+                                            )}
+                                        </p>
+
+                                        {/* Card Financeiro / Repasse do Produtor */}
+                                        <div className="mb-6 p-4 bg-green-500/10 border border-green-500/30 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-[0_0_20px_rgba(34,197,94,0.08)]">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 rounded-full bg-green-500/20 text-green-400 flex items-center justify-center font-bold text-lg shrink-0">
+                                                    💰
+                                                </div>
+                                                <div>
+                                                    <p className="text-xs font-bold text-green-400 uppercase tracking-wider">Pagamento Liberado para Repasse</p>
+                                                    <p className="text-sm font-bold text-white mt-0.5">
+                                                        Valor da sua proposta: <span className="text-green-400 font-black">R$ {acceptedProposal?.amount ? acceptedProposal.amount.toFixed(2) : '---'}</span>
+                                                    </p>
+                                                    <p className="text-[11px] text-gray-400">
+                                                        O pagamento do comprador foi confirmado e o valor será repassado via PIX para sua chave cadastrada.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <Link
+                                                href="/producao"
+                                                className="inline-flex items-center gap-1.5 bg-green-500 hover:bg-green-600 text-white px-3.5 py-2 rounded-lg text-xs font-bold transition-all shrink-0 hover:scale-105 active:scale-95 shadow-md"
+                                            >
+                                                <Package className="w-3.5 h-3.5" />
+                                                Minha Produção
+                                            </Link>
+                                        </div>
+                                    </>
+                                )}
                                 
                                 {job.delivery_url && (() => {
                                     const urls = job.delivery_url.split(',')
@@ -1164,7 +1405,7 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                     )
                                 })()}
 
-                                {/* GARANTIA DE AJUSTE OU CORREÇÃO (PÓS-AVALIAÇÃO) */}
+                                {/* GARANTIA DE AJUSTE OU CORREÇÃO (PÓS-AVALIAÇÃO - APENAS PARA O COMPRADOR) */}
                                 {isOwner && (
                                     <div className="mt-6 p-4 bg-yellow-500/[0.05] border border-yellow-500/25 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                                         <div>
@@ -1204,10 +1445,17 @@ function JobDetailClient({ jobId }: { jobId: string }) {
 
                             {/* Right Side: Review Summary */}
                             <div className="w-full lg:w-[450px] bg-green-500/5 p-8 lg:p-10 flex flex-col justify-center">
-                                <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
-                                    <Star className="w-5 h-5 text-[#FFAE00] fill-[#FFAE00]" />
-                                    Avaliação do Projeto
-                                </h3>
+                                <div className="mb-6">
+                                    <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                                        <Star className="w-5 h-5 text-[#FFAE00] fill-[#FFAE00]" />
+                                        {isOwner ? 'Avaliação do Projeto' : 'Avaliação Recebida do Cliente'}
+                                    </h3>
+                                    {!isOwner && jobReview && jobReview.rating_matrix === 5 && jobReview.rating_service === 5 && (
+                                        <span className="inline-block mt-2 text-[11px] font-bold bg-amber-500/20 text-[#FFAE00] border border-amber-500/30 px-2.5 py-0.5 rounded-full">
+                                            🏆 Desempenho 10/10 • Cliente Satisfeito
+                                        </span>
+                                    )}
+                                </div>
 
                                 {jobReview ? (
                                     <div className="space-y-4">
@@ -1231,11 +1479,17 @@ function JobDetailClient({ jobId }: { jobId: string }) {
 
                                         {jobReview.comment && (
                                             <div className="bg-[#0F1115] p-3 rounded-xl border border-white/5 text-sm text-gray-300 italic">
+                                                {!isOwner && <p className="text-[10px] text-gray-500 uppercase not-italic font-bold mb-1">Comentário do Comprador:</p>}
                                                 &quot;{jobReview.comment}&quot;
                                             </div>
                                         )}
 
-                                        <div className="pt-2">
+                                        <div className="pt-2 flex flex-col gap-2">
+                                            {!isOwner && (
+                                                <span className="inline-flex items-center gap-1.5 text-xs text-[#FFAE00] bg-amber-500/10 px-3 py-1.5 rounded-full border border-amber-500/20 font-bold">
+                                                    <Sparkles className="w-3.5 h-3.5 text-[#FFAE00]" /> Pontuação adicionada ao seu perfil profissional!
+                                                </span>
+                                            )}
                                             <span className="inline-flex items-center gap-1.5 text-xs text-green-400 bg-green-500/10 px-3 py-1.5 rounded-full border border-green-500/20 font-bold">
                                                 <CheckCircle className="w-3.5 h-3.5" /> Pagamento {jobTransaction?.metodo === 'asaas_cartao' ? 'via Cartão' : 'PIX'} Confirmado
                                             </span>
