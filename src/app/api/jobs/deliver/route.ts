@@ -42,8 +42,8 @@ export async function POST(request: Request) {
         await supabase.from('notifications').insert({
             user_id: job.cliente_id,
             type: 'matriz_entregue',
-            title: '📦 Matriz Entregue!',
-            message: `O programador acabou de entregar os arquivos do pedido "${job.title}". Acesse para baixar e avaliar!`,
+            title: 'Matriz Entregue!',
+            message: `O programador entregou os arquivos do pedido "${job.title}". Você tem até 24 horas para testar o bordado ou solicitar ajustes!`,
             link_url: `/jobs/${job.id}`
         })
 

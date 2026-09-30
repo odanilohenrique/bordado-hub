@@ -1052,9 +1052,9 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                         <div className="inline-flex items-center gap-2 bg-green-500/20 text-green-400 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider mb-6">
                                             <CheckCircle className="w-3 h-3" /> Matriz Pronta para Teste
                                         </div>
-                                        <h2 className="text-3xl font-black text-white mb-4">Sua matriz está pronta! 🚀</h2>
+                                        <h2 className="text-3xl font-black text-white mb-4">Sua matriz está pronta!</h2>
                                         <p className="text-gray-400 text-sm mb-6 leading-relaxed">
-                                            O programador <strong className="text-white">{acceptedProposal?.users?.name}</strong> finalizou o trabalho. Baixe os arquivos abaixo e faça um teste na sua máquina. Se estiver tudo perfeito, envie a avaliação para liberar o pagamento!
+                                            O programador <strong className="text-white">{acceptedProposal?.users?.name}</strong> finalizou o trabalho. Baixe os arquivos abaixo e faça um teste na sua máquina. Você tem até <strong className="text-[#FFAE00]">24 horas</strong> para testar o bordado ou solicitar ajustes antes da liberação automática.
                                         </p>
                                     </>
                                 ) : (
@@ -1062,9 +1062,9 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                         <div className="inline-flex items-center gap-2 bg-green-500/20 text-green-400 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider mb-6">
                                             <Package className="w-3 h-3" /> Matriz Entregue com Sucesso
                                         </div>
-                                        <h2 className="text-3xl font-black text-white mb-4">Matriz Enviada para o Cliente! 🚀</h2>
+                                        <h2 className="text-3xl font-black text-white mb-4">Matriz Enviada para o Comprador!</h2>
                                         <p className="text-gray-400 text-sm mb-6 leading-relaxed">
-                                            Você já enviou os arquivos da matriz. O cliente foi notificado para testar o bordado na máquina e realizar a aprovação do projeto.
+                                            Você já enviou os arquivos da matriz. O cliente foi notificado para testar o bordado na máquina. Caso ele não avalie ou solicite revisões dentro do prazo de <strong className="text-[#FFAE00]">24 horas</strong>, o pagamento será liberado automaticamente para você.
                                         </p>
                                     </>
                                 )}
@@ -1247,9 +1247,9 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                             <div className="absolute -left-[30px] top-0 w-[24px] h-[24px] bg-[#FFAE00] rounded-full border-4 border-[#1A1D23] flex items-center justify-center shadow-[0_0_10px_rgba(255,174,0,0.5)] animate-pulse z-10">
                                                 <Clock className="w-3 h-3 text-black" />
                                             </div>
-                                            <h4 className="text-sm font-bold text-[#FFAE00] mb-1 leading-none pt-0.5">Avaliação do Cliente</h4>
+                                            <h4 className="text-sm font-bold text-[#FFAE00] mb-1 leading-none pt-0.5">Avaliação do Cliente (até 24h)</h4>
                                             <p className="text-xs text-gray-500 leading-relaxed text-left">
-                                                O comprador está testando o bordado na máquina e fará a aprovação.
+                                                O comprador tem até 24 horas para testar o bordado. Se ele não avaliar nem solicitar ajustes nesse prazo, o valor é liberado automaticamente.
                                             </p>
                                         </div>
 
@@ -1258,7 +1258,7 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                             <div className="absolute -left-[30px] top-0 w-[24px] h-[24px] bg-gray-800 rounded-full border-4 border-[#1A1D23] z-10"></div>
                                             <h4 className="text-sm font-bold text-gray-600 mb-1 leading-none pt-0.5">Pagamento Liberado</h4>
                                             <p className="text-xs text-gray-600 text-left">
-                                                Será transferido via PIX automaticamente para sua conta assim que o cliente aprovar.
+                                                O repasse via PIX é liberado imediatamente após a aprovação ou ao final do prazo de 24 horas.
                                             </p>
                                         </div>
                                     </div>
@@ -1788,10 +1788,10 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                             <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-6 shadow-[0_0_30px_rgba(34,197,94,0.3)]">
                                 <CheckCircle className="w-10 h-10 text-green-400" />
                             </div>
-                            <h3 className="text-3xl font-black text-white mb-2">Matriz Enviada! 🎉</h3>
+                            <h3 className="text-3xl font-black text-white mb-2">Matriz Enviada com Sucesso!</h3>
                             <p className="text-gray-400 text-sm mb-8 leading-relaxed">
-                                Mandou muito bem! O cliente já foi notificado.<br/><br/>
-                                <strong className="text-white">O pagamento será liberado</strong> na sua carteira automaticamente em <strong>12 horas</strong>, ou imediatamente a avaliação do cliente (que é opcional).
+                                Parabéns pelo trabalho! O comprador já foi notificado.<br/><br/>
+                                <strong className="text-white">O pagamento será liberado</strong> automaticamente em <strong>24 horas</strong> caso o cliente não solicite revisões, ou imediatamente após a avaliação.
                             </p>
                             <button 
                                 onClick={() => window.location.reload()}
