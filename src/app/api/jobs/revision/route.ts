@@ -86,16 +86,16 @@ export async function POST(request: Request) {
             await supabase.from('notifications').insert({
                 user_id: proposal.criador_id,
                 type: 'solicitacao_ajuste',
-                title: '🛠️ Ajuste Solicitado na Matriz',
+                title: 'Ajuste Solicitado na Matriz',
                 message: `O cliente testou a matriz do pedido "${job.title}" e solicitou um ajuste: "${notes.slice(0, 80)}${notes.length > 80 ? '...' : ''}"`,
-                link_url: `/jobs/${job.id}`
+                link_url: `/jobs/${job.id}?chat=${proposal.id}`
             })
 
             // 5. Send message in negotiation chat for visibility
             await supabase.from('proposal_messages').insert({
                 proposal_id: proposal.id,
                 sender_id: clientId || job.cliente_id,
-                content: `🛠️ [SOLICITAÇÃO DE AJUSTE NA MÁQUINA]\n\n${notes}`,
+                content: `[SOLICITAÇÃO DE AJUSTE NA MÁQUINA]\n\n${notes}`,
                 attachment_url: imageUrl || null
             })
         }

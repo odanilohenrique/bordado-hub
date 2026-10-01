@@ -45,9 +45,9 @@ export async function POST(request: Request) {
                 await supabase.from('notifications').insert({
                     user_id: recipientId,
                     type: isAdjustment ? 'solicitacao_ajuste' : 'nova_mensagem',
-                    title: isAdjustment ? '🛠️ Ajuste Solicitado na Matriz!' : `💬 Nova Mensagem de ${senderName}`,
+                    title: isAdjustment ? 'Ajuste Solicitado na Matriz' : `Nova Mensagem de ${senderName}`,
                     message: content.length > 90 ? `${content.slice(0, 90)}...` : content,
-                    link_url: `/jobs/${proposal.job_id}`
+                    link_url: `/jobs/${proposal.job_id}?chat=${proposalId}`
                 })
             }
         }

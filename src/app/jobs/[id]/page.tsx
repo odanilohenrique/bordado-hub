@@ -1,12 +1,11 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback, Suspense } from 'react'
 import { supabase } from '@/lib/supabaseClient'
-import { useRouter } from 'next/navigation'
+import { useRouter, useParams, useSearchParams } from 'next/navigation'
 import { formatDate } from '@/lib/helpers'
 import Link from 'next/link'
-import { ArrowLeft, Clock, Calendar, MessageSquare, AlertCircle, CheckCircle, Package, Zap, User, X, Star, PenTool, Download, Upload, Send, Sparkles, DollarSign, Wrench, Camera, RotateCcw, Ruler, Maximize2, Handshake } from 'lucide-react'
-import { useParams } from 'next/navigation'
+import { ArrowLeft, Clock, Calendar, MessageSquare, AlertCircle, CheckCircle, Package, Zap, User, X, Star, PenTool, Download, Upload, Send, Sparkles, DollarSign, Wrench, Camera, RotateCcw, Ruler, Maximize2, Handshake, Check } from 'lucide-react'
 import NegotiationChat from '@/components/NegotiationChat'
 import { toast } from 'sonner'
 import JSZip from 'jszip'
@@ -61,7 +60,15 @@ export default function JobDetail() {
         </div>
     )
 
-    return <JobDetailClient jobId={id} />
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen bg-[#0F1115] flex items-center justify-center">
+                <div className="w-16 h-16 border-4 border-[#FFAE00]/30 border-t-[#FFAE00] rounded-full animate-spin" />
+            </div>
+        }>
+            <JobDetailClient jobId={id} />
+        </Suspense>
+    )
 }
 
 function JobDetailClient({ jobId }: { jobId: string }) {
@@ -78,6 +85,8 @@ function JobDetailClient({ jobId }: { jobId: string }) {
     const [submitting, setSubmitting] = useState(false)
 
     // Negotiation state
+    const searchParams = useSearchParams()
+    const chatParam = searchParams.get('chat')
     const [negotiatingProposalId, setNegotiatingProposalId] = useState<string | null>(null)
     const [counterAmount, setCounterAmount] = useState('')
     const [counterMessage, setCounterMessage] = useState('')
@@ -104,90 +113,90 @@ function JobDetailClient({ jobId }: { jobId: string }) {
 
     const router = useRouter()
 
-    useEffect(() => {
-        async function loadData() {
-            const { data: { user } } = await supabase.auth.getUser()
-            if (!user) {
-                router.push('/login')
-                return
-            }
-
-            const { data: profile } = await supabase
-                .from('users')
-                .select('*')
-                .eq('supabase_user_id', user.id)
-                .single()
-
-            const { data: jobData } = await supabase
-                .from('jobs')
-                .select('*')
-                .eq('id', jobId)
-                .single()
-
-            setJob(jobData)
-            setCurrentUser(profile)
-
-            if (jobData?.status === 'finalizado') {
-                const { data: rev } = await supabase
-                    .from('reviews')
-                    .select('*')
-                    .eq('job_id', jobId)
-                    .maybeSingle()
-                if (rev) setJobReview(rev)
-
-                // Fetch transaction to determine payment method
-                const { data: txData } = await supabase
-                    .from('transactions')
-                    .select('metodo, status')
-                    .eq('job_id', jobId)
-                    .order('created_at', { ascending: false })
-                    .limit(1)
-                    .maybeSingle()
-                if (txData) setJobTransaction(txData)
-            }
-
-            const { data: proposalsData, error: proposalsError } = await supabase
-                .from('proposals')
-                .select(`
-                    *,
-                    users:criador_id (
-                        id,
-                        name,
-                        avatar_url,
-                        rating
-                    )
-                `)
-                .eq('job_id', jobId)
-                .order('created_at', { ascending: false })
-
-            if (proposalsError) {
-                console.error('Error loading proposals:', proposalsError)
-                toast.error('Erro ao carregar propostas: ' + proposalsError.message)
-            }
-
-            setProposals(proposalsData || [])
-
-            if (proposalsData && proposalsData.length > 0) {
-                // Fetch unread messages count
-                const { data: messages } = await supabase
-                    .from('proposal_messages')
-                    .select('proposal_id, sender_id, read')
-                    .eq('read', false)
-                
-                if (messages) {
-                    const counts: Record<string, number> = {}
-                    messages.forEach(msg => {
-                        if (msg.sender_id !== profile.id) {
-                            counts[msg.proposal_id] = (counts[msg.proposal_id] || 0) + 1
-                        }
-                    })
-                    setUnreadCounts(counts)
-                }
-            }
-
-            setLoading(false)
+    const loadData = useCallback(async () => {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) {
+            router.push('/login')
+            return
         }
 
+        const { data: profile } = await supabase
+            .from('users')
+            .select('*')
+            .eq('supabase_user_id', user.id)
+            .single()
+
+        const { data: jobData } = await supabase
+            .from('jobs')
+            .select('*')
+            .eq('id', jobId)
+            .single()
+
+        setJob(jobData)
+        setCurrentUser(profile)
+
+        if (jobData?.status === 'finalizado') {
+            const { data: rev } = await supabase
+                .from('reviews')
+                .select('*')
+                .eq('job_id', jobId)
+                .maybeSingle()
+            if (rev) setJobReview(rev)
+
+            // Fetch transaction to determine payment method
+            const { data: txData } = await supabase
+                .from('transactions')
+                .select('metodo, status')
+                .eq('job_id', jobId)
+                .order('created_at', { ascending: false })
+                .limit(1)
+                .maybeSingle()
+            if (txData) setJobTransaction(txData)
+        }
+
+        const { data: proposalsData, error: proposalsError } = await supabase
+            .from('proposals')
+            .select(`
+                *,
+                users:criador_id (
+                    id,
+                    name,
+                    avatar_url,
+                    rating
+                )
+            `)
+            .eq('job_id', jobId)
+            .order('created_at', { ascending: false })
+
+        if (proposalsError) {
+            console.error('Error loading proposals:', proposalsError)
+            toast.error('Erro ao carregar propostas: ' + proposalsError.message)
+        }
+
+        setProposals(proposalsData || [])
+
+        if (proposalsData && proposalsData.length > 0) {
+            // Fetch unread messages count
+            const { data: messages } = await supabase
+                .from('proposal_messages')
+                .select('proposal_id, sender_id, read')
+                .eq('read', false)
+            
+            if (messages) {
+                const counts: Record<string, number> = {}
+                messages.forEach(msg => {
+                    if (msg.sender_id !== profile?.id) {
+                        counts[msg.proposal_id] = (counts[msg.proposal_id] || 0) + 1
+                    }
+                })
+                setUnreadCounts(counts)
+            }
+        }
+
+        setLoading(false)
+    }, [jobId, router])
+
+    useEffect(() => {
         loadData()
 
         // Listen for new proposals and messages
@@ -223,7 +232,7 @@ function JobDetailClient({ jobId }: { jobId: string }) {
         return () => {
             supabase.removeChannel(channel)
         }
-    }, [jobId, router, currentUser?.id])
+    }, [jobId, loadData, currentUser?.id])
 
     const acceptedProposal = proposals.find((p: any) => p.status === 'aceita')
 
@@ -242,6 +251,33 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                 .then()
         }
     }
+
+    // Auto-open chat when arriving via notification with ?chat=...
+    useEffect(() => {
+        if (!chatParam || proposals.length === 0) return
+
+        let targetId = chatParam
+        if (chatParam === 'true' || chatParam === 'open') {
+            const accepted = proposals.find((p: any) => p.status === 'aceita')
+            const mine = proposals.find((p: any) => p.criador_id === currentUser?.id)
+            targetId = accepted?.id || mine?.id || proposals[0]?.id
+        }
+
+        const found = proposals.find((p: any) => p.id === targetId)
+        if (found || targetId) {
+            setNegotiatingProposalId(targetId)
+            setUnreadCounts(prev => ({ ...prev, [targetId]: 0 }))
+
+            setTimeout(() => {
+                const chatSection = document.getElementById('negotiation-chat-section')
+                if (chatSection) {
+                    chatSection.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                    const inputEl = document.getElementById('chat-message-input') as HTMLInputElement | null
+                    if (inputEl) inputEl.focus()
+                }
+            }, 300)
+        }
+    }, [chatParam, proposals.length, currentUser?.id])
 
     const handleOpenChatForAdjustment = async () => {
         if (!acceptedProposal) return
@@ -431,28 +467,42 @@ function JobDetailClient({ jobId }: { jobId: string }) {
         if (!negotiatingProposalId) return
 
         try {
+            const numericCounter = parseFloat(counterAmount)
             const { error } = await supabase
                 .from('proposals')
                 .update({
                     status: 'contraproposta',
-                    counter_amount: parseFloat(counterAmount),
-                    counter_message: counterMessage
+                    counter_amount: numericCounter,
+                    counter_message: counterMessage || 'Contraproposta do cliente'
                 })
                 .eq('id', negotiatingProposalId)
 
             if (error) throw error
 
-            // Automatically send a message in chat
+            // Send notification message in chat
             await supabase.from('proposal_messages').insert({
                 proposal_id: negotiatingProposalId,
-                sender_id: currentUser.id,
-                content: `⚡ Fiz uma contraproposta oficial de **R$ ${counterAmount}**. Veja os detalhes e aceite para fecharmos!`
+                sender_id: currentUser?.id,
+                content: `Fiz uma contraproposta oficial de R$ ${numericCounter.toFixed(2)}. Veja os detalhes e aceite para fecharmos!`
             })
 
+            // Create notification for the programmer with direct link to chat
+            const targetProp = proposals.find(p => p.id === negotiatingProposalId)
+            if (targetProp?.criador_id) {
+                await supabase.from('notifications').insert({
+                    user_id: targetProp.criador_id,
+                    type: 'contraproposta',
+                    title: 'Contraproposta Recebida',
+                    message: `O cliente fez uma contraproposta de R$ ${numericCounter.toFixed(2)} no pedido "${job?.title || 'Bordado'}".`,
+                    link_url: `/jobs/${jobId}?chat=${negotiatingProposalId}`
+                })
+            }
+
             toast.success('Contraproposta enviada!')
-            setNegotiatingProposalId(null)
+            setCounterAmount('')
+            setCounterMessage('')
+            await loadData()
             router.refresh()
-            window.location.reload()
         } catch (err: any) {
             toast.error('Erro: ' + err.message)
         }
@@ -461,11 +511,11 @@ function JobDetailClient({ jobId }: { jobId: string }) {
     const handleProgrammerResponse = async (proposalId: string, action: 'accept_counter' | 'reject_counter', proposal: Proposal) => {
         try {
             if (action === 'accept_counter') {
+                const targetAmount = proposal.counter_amount || proposal.amount
                 const { error } = await supabase
                     .from('proposals')
                     .update({
-                        amount: proposal.counter_amount,
-                        message: `${proposal.message}\n\n[Atualização: Aceitei sua oferta de R$ ${proposal.counter_amount}]`,
+                        amount: targetAmount,
                         status: 'pendente',
                         counter_amount: null,
                         counter_message: null
@@ -473,7 +523,26 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                     .eq('id', proposalId)
 
                 if (error) throw error
-                toast.success('Oferta aceita! O valor foi atualizado. Aguarde o pagamento do cliente.')
+
+                // Send update into chat
+                await supabase.from('proposal_messages').insert({
+                    proposal_id: proposalId,
+                    sender_id: currentUser?.id,
+                    content: `[CONTRAOFERTA ACEITA] Aceitei sua contraproposta de R$ ${Number(targetAmount).toFixed(2)}. O valor foi atualizado!`
+                })
+
+                // Notify client
+                if (job?.cliente_id) {
+                    await supabase.from('notifications').insert({
+                        user_id: job.cliente_id,
+                        type: 'contraproposta_aceita',
+                        title: 'Contraproposta Aceita!',
+                        message: `O produtor aceitou sua oferta de R$ ${Number(targetAmount).toFixed(2)} para o pedido "${job.title}". Conclua o pagamento para iniciar a produção.`,
+                        link_url: `/jobs/${job.id}`
+                    })
+                }
+
+                toast.success(`Oferta aceita! O valor foi atualizado para R$ ${Number(targetAmount).toFixed(2)}. Aguarde o pagamento do cliente.`)
             } else {
                 const { error } = await supabase
                     .from('proposals')
@@ -485,10 +554,17 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                     .eq('id', proposalId)
 
                 if (error) throw error
-                toast.success('Contraproposta recusada.')
+
+                await supabase.from('proposal_messages').insert({
+                    proposal_id: proposalId,
+                    sender_id: currentUser?.id,
+                    content: `[CONTRAOFERTA RECUSADA] O valor original de R$ ${Number(proposal.amount).toFixed(2)} foi mantido.`
+                })
+
+                toast.success('Contraproposta recusada. Valor original mantido.')
             }
+            await loadData()
             router.refresh()
-            window.location.reload()
         } catch (err: any) {
             toast.error('Erro: ' + err.message)
         }
@@ -1593,7 +1669,7 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                                 O comprador aceitou sua proposta no valor de <strong className="text-yellow-400">R$ {myExistingProposal.amount?.toFixed(2)}</strong>
                                             </p>
                                             <p className="text-xs text-gray-300 mt-1">
-                                                🛡️ <strong>Atenção:</strong> Não inicie a criação da matriz ainda. Seu prazo ({myExistingProposal.deadline_text || 'combinado'}) só começará a contar após a confirmação do pagamento em custódia.
+                                                <strong>Atenção:</strong> Não inicie a criação da matriz ainda. Seu prazo ({myExistingProposal.deadline_text || 'combinado'}) só começará a contar após a confirmação do pagamento em custódia.
                                             </p>
                                         </div>
                                     </div>
@@ -1613,6 +1689,54 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                         >
                                             <X className="w-3.5 h-3.5" />
                                             {cancellingReserve ? 'Liberando...' : 'Liberar Pedido'}
+                                        </button>
+                                    </div>
+                                </div>
+                            ) : myExistingProposal.status === 'contraproposta' && myExistingProposal.counter_amount ? (
+                                <div className="mb-6 bg-[#FFAE00]/15 border-2 border-[#FFAE00] p-5 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-[0_0_30px_rgba(255,174,0,0.15)] animate-in slide-in-from-top-2 duration-300">
+                                    <div className="flex items-start sm:items-center gap-3">
+                                        <div className="w-12 h-12 rounded-2xl bg-[#FFAE00]/20 text-[#FFAE00] flex items-center justify-center shrink-0 border border-[#FFAE00]/30 shadow-inner">
+                                            <Handshake className="w-6 h-6" />
+                                        </div>
+                                        <div>
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <span className="text-[11px] font-black uppercase tracking-wider bg-[#FFAE00] text-black px-2.5 py-0.5 rounded-full shadow-sm">
+                                                    Contraproposta Recebida
+                                                </span>
+                                                <span className="text-xs text-gray-400">
+                                                    Sua proposta inicial: R$ {myExistingProposal.amount?.toFixed(2)}
+                                                </span>
+                                            </div>
+                                            <p className="text-base font-bold text-white leading-snug">
+                                                O cliente ofereceu <strong className="text-[#FFAE00] text-lg">R$ {Number(myExistingProposal.counter_amount).toFixed(2)}</strong> para fechar este trabalho!
+                                            </p>
+                                            <p className="text-xs text-gray-300 mt-1">
+                                                Ao aceitar a oferta, o valor da sua proposta será atualizado para <strong>R$ {Number(myExistingProposal.counter_amount).toFixed(2)}</strong> e o cliente poderá pagar.
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-2 self-stretch sm:self-center shrink-0 flex-wrap">
+                                        <button
+                                            onClick={() => handleProgrammerResponse(myExistingProposal.id, 'accept_counter', myExistingProposal)}
+                                            className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 bg-[#FFAE00] hover:bg-yellow-400 text-black px-5 py-3 rounded-xl text-xs font-black transition-all hover:scale-105 active:scale-95 shadow-lg shadow-[#FFAE00]/20"
+                                        >
+                                            <Check className="w-4 h-4" />
+                                            Aceitar Oferta (R$ {Number(myExistingProposal.counter_amount).toFixed(2)})
+                                        </button>
+                                        <button
+                                            onClick={() => handleProgrammerResponse(myExistingProposal.id, 'reject_counter', myExistingProposal)}
+                                            className="inline-flex items-center justify-center gap-1.5 border border-white/10 hover:border-white/20 text-gray-400 hover:text-white px-3 py-3 rounded-xl text-xs font-bold transition-colors hover:bg-white/5 active:scale-95"
+                                            title="Recusar contraproposta e manter seu valor original"
+                                        >
+                                            <X className="w-4 h-4" />
+                                            Recusar
+                                        </button>
+                                        <button
+                                            onClick={() => handleNegotiate(myExistingProposal.id)}
+                                            className="inline-flex items-center justify-center gap-1.5 bg-[#1A1D23] hover:bg-white/5 text-gray-300 px-4 py-3 rounded-xl text-xs font-bold border border-white/10 transition-colors"
+                                        >
+                                            <MessageSquare className="w-4 h-4" />
+                                            Chat
                                         </button>
                                     </div>
                                 </div>
@@ -1716,20 +1840,34 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                                 </div>
                                             )}
 
-                                            {!isOwner && proposal.status === 'contraproposta' && (
-                                                <div className="p-3 bg-[#FFAE00]/10 border border-[#FFAE00]/30 rounded-lg">
-                                                    <p className="text-xs font-bold text-[#FFAE00] mb-2 flex items-center gap-1"><AlertCircle className="w-3 h-3"/> Oferta do Cliente: R$ {proposal.counter_amount}</p>
+                                            {!isOwner && proposal.status === 'contraproposta' && proposal.criador_id === currentUser?.id && (
+                                                <div className="p-3 bg-[#FFAE00]/10 border border-[#FFAE00]/30 rounded-xl mt-2">
+                                                    <p className="text-xs font-bold text-[#FFAE00] mb-2 flex items-center gap-1.5">
+                                                        <Handshake className="w-3.5 h-3.5"/> Oferta do Cliente: R$ {Number(proposal.counter_amount).toFixed(2)}
+                                                    </p>
                                                     <div className="flex gap-2">
-                                                        <button onClick={() => handleProgrammerResponse(proposal.id, 'accept_counter', proposal)} className="flex-1 bg-[#FFAE00] text-black text-[10px] font-bold py-1.5 rounded">Aceitar</button>
-                                                        <button onClick={() => handleProgrammerResponse(proposal.id, 'reject_counter', proposal)} className="flex-1 border border-gray-600 text-gray-300 text-[10px] py-1.5 rounded hover:bg-white/5">Recusar</button>
+                                                        <button 
+                                                            onClick={() => handleProgrammerResponse(proposal.id, 'accept_counter', proposal)} 
+                                                            className="flex-1 bg-[#FFAE00] hover:bg-yellow-400 text-black text-xs font-black py-2 rounded-lg transition-all shadow flex items-center justify-center gap-1 active:scale-95"
+                                                        >
+                                                            <Check className="w-3.5 h-3.5" />
+                                                            Aceitar Oferta (R$ {Number(proposal.counter_amount).toFixed(2)})
+                                                        </button>
+                                                        <button 
+                                                            onClick={() => handleProgrammerResponse(proposal.id, 'reject_counter', proposal)} 
+                                                            className="border border-white/10 hover:border-white/20 text-gray-400 hover:text-white text-xs py-2 px-3 rounded-lg hover:bg-white/5 transition-colors flex items-center gap-1 active:scale-95"
+                                                        >
+                                                            <X className="w-3.5 h-3.5" />
+                                                            Recusar
+                                                        </button>
                                                     </div>
                                                 </div>
                                             )}
 
                                             {isOwner && proposal.status === 'contraproposta' && (
-                                                <div className="p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg text-center">
+                                                <div className="p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg text-center mt-2">
                                                     <p className="text-[10px] text-yellow-500 font-bold uppercase tracking-wider mb-1"><Clock className="w-3 h-3 inline mr-1"/> Aguardando Resposta</p>
-                                                    <p className="text-xs text-gray-300">Você ofereceu <strong>R$ {proposal.counter_amount}</strong></p>
+                                                    <p className="text-xs text-gray-300">Você ofereceu <strong>R$ {Number(proposal.counter_amount).toFixed(2)}</strong></p>
                                                 </div>
                                             )}
 
@@ -1776,6 +1914,7 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                 senderName={currentUser?.name || 'Usuário'}
                                 jobId={jobId}
                                 initialAmount={proposals.find(p => p.id === negotiatingProposalId)?.amount || 0}
+                                onProposalUpdated={loadData}
                             />
                         </div>
                     </div>

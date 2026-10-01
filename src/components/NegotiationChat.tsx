@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabaseClient'
-import { Send, Paperclip, User, FileImage, RefreshCw, CheckCircle2, DollarSign, Package, Download, FileText } from 'lucide-react'
+import { Send, Paperclip, User, FileImage, RefreshCw, CheckCircle2, DollarSign, Package, Download, FileText, Handshake, AlertCircle, X, Check, Clock } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { formatDate } from '@/lib/helpers'
 import { toast } from 'sonner'
@@ -16,6 +16,15 @@ interface Message {
     users?: { name: string }
 }
 
+interface ProposalData {
+    id: string
+    amount: number
+    status: string
+    counter_amount: number | null
+    counter_message: string | null
+    criador_id: string
+}
+
 interface ChatProps {
     proposalId: string
     currentUserId: string
@@ -23,9 +32,10 @@ interface ChatProps {
     isOwner: boolean
     jobId: string
     initialAmount: number
+    onProposalUpdated?: () => void
 }
 
-export default function NegotiationChat({ proposalId, currentUserId, senderName, isOwner, jobId, initialAmount }: ChatProps) {
+export default function NegotiationChat({ proposalId, currentUserId, senderName, isOwner, jobId, initialAmount, onProposalUpdated }: ChatProps) {
     const [messages, setMessages] = useState<Message[]>([])
     const [newMessage, setNewMessage] = useState('')
     const [loading, setLoading] = useState(true)
@@ -33,12 +43,15 @@ export default function NegotiationChat({ proposalId, currentUserId, senderName,
     const [syncing, setSyncing] = useState(false)
     const [showQuickDeal, setShowQuickDeal] = useState(false)
     const [agreedValue, setAgreedValue] = useState(initialAmount?.toString() || '')
+    const [proposalData, setProposalData] = useState<ProposalData | null>(null)
+    const [processingCounter, setProcessingCounter] = useState(false)
     const messagesEndRef = useRef<HTMLDivElement>(null)
     const router = useRouter()
     const fileInputRef = useRef<HTMLInputElement>(null)
 
     useEffect(() => {
         loadMessages()
+        loadProposal()
 
         // 1. Subscribe to Realtime postgres_changes
         const channel = supabase
@@ -70,6 +83,18 @@ export default function NegotiationChat({ proposalId, currentUserId, senderName,
                     return [...prev, newMsg]
                 })
             })
+            .on('postgres_changes', {
+                event: '*',
+                schema: 'public',
+                table: 'proposals',
+                filter: `id=eq.${proposalId}`
+            }, (payload) => {
+                if (payload.new) {
+                    const updated = payload.new as ProposalData
+                    setProposalData(updated)
+                    if (updated.amount) setAgreedValue(updated.amount.toString())
+                }
+            })
             .subscribe()
 
         // 2. High-speed silent polling fallback (every 2.5s) to guarantee zero-F5 instant arrival
@@ -89,6 +114,16 @@ export default function NegotiationChat({ proposalId, currentUserId, senderName,
                         return data
                     })
                 }
+
+                const { data: prop } = await supabase
+                    .from('proposals')
+                    .select('id, amount, status, counter_amount, counter_message, criador_id')
+                    .eq('id', proposalId)
+                    .single()
+
+                if (prop) {
+                    setProposalData(prop)
+                }
             } catch (err) {
                 // silent
             }
@@ -99,6 +134,117 @@ export default function NegotiationChat({ proposalId, currentUserId, senderName,
             clearInterval(syncInterval)
         }
     }, [proposalId, currentUserId])
+
+    const loadProposal = async () => {
+        try {
+            const { data } = await supabase
+                .from('proposals')
+                .select('id, amount, status, counter_amount, counter_message, criador_id')
+                .eq('id', proposalId)
+                .single()
+
+            if (data) {
+                setProposalData(data)
+                if (data.amount) setAgreedValue(data.amount.toString())
+            }
+        } catch (e) {
+            // silent
+        }
+    }
+
+    const handleAcceptCounter = async () => {
+        if (!proposalData?.counter_amount) return
+        setProcessingCounter(true)
+        try {
+            const targetAmount = proposalData.counter_amount
+            const { error: propError } = await supabase
+                .from('proposals')
+                .update({
+                    amount: targetAmount,
+                    status: 'pendente',
+                    counter_amount: null,
+                    counter_message: null
+                })
+                .eq('id', proposalId)
+
+            if (propError) throw propError
+
+            // Insert system message into chat
+            await supabase.from('proposal_messages').insert({
+                proposal_id: proposalId,
+                sender_id: currentUserId,
+                content: `[CONTRAOFERTA ACEITA] Aceitei sua contraproposta de R$ ${Number(targetAmount).toFixed(2)}. O valor foi atualizado!`
+            })
+
+            // Notify client
+            const { data: jobInfo } = await supabase
+                .from('jobs')
+                .select('cliente_id, title')
+                .eq('id', jobId)
+                .single()
+
+            if (jobInfo?.cliente_id) {
+                await supabase.from('notifications').insert({
+                    user_id: jobInfo.cliente_id,
+                    type: 'contraproposta_aceita',
+                    title: 'Contraproposta Aceita!',
+                    message: `O produtor aceitou sua oferta de R$ ${Number(targetAmount).toFixed(2)} no pedido "${jobInfo.title}". Conclua o pagamento para iniciar a produção.`,
+                    link_url: `/jobs/${jobId}`
+                })
+            }
+
+            setProposalData(prev => prev ? ({
+                ...prev,
+                amount: targetAmount,
+                status: 'pendente',
+                counter_amount: null,
+                counter_message: null
+            }) : null)
+
+            toast.success(`Oferta aceita! O valor foi atualizado para R$ ${Number(targetAmount).toFixed(2)}.`)
+            onProposalUpdated?.()
+        } catch (err: any) {
+            toast.error('Erro ao aceitar oferta: ' + err.message)
+        } finally {
+            setProcessingCounter(false)
+        }
+    }
+
+    const handleRejectCounter = async () => {
+        setProcessingCounter(true)
+        try {
+            const { error: propError } = await supabase
+                .from('proposals')
+                .update({
+                    status: 'pendente',
+                    counter_amount: null,
+                    counter_message: null
+                })
+                .eq('id', proposalId)
+
+            if (propError) throw propError
+
+            await supabase.from('proposal_messages').insert({
+                proposal_id: proposalId,
+                sender_id: currentUserId,
+                content: `[CONTRAOFERTA RECUSADA] O valor original de R$ ${Number(proposalData?.amount || initialAmount).toFixed(2)} foi mantido.`
+            })
+
+            setProposalData(prev => prev ? ({
+                ...prev,
+                status: 'pendente',
+                counter_amount: null,
+                counter_message: null
+            }) : null)
+
+            toast.success('Contraproposta recusada. Valor original mantido.')
+            onProposalUpdated?.()
+        } catch (err: any) {
+            toast.error('Erro ao recusar contraproposta: ' + err.message)
+        } finally {
+            setProcessingCounter(false)
+        }
+    }
 
     useEffect(() => {
         scrollToBottom()
@@ -245,12 +391,18 @@ export default function NegotiationChat({ proposalId, currentUserId, senderName,
                     <span className="text-sm font-semibold text-gray-200 flex items-center gap-2">
                         <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
                         Chat da Negociação
+                        {(proposalData?.amount || initialAmount > 0) && (
+                            <span className="text-[11px] font-black text-[#FFAE00] bg-[#FFAE00]/10 px-2 py-0.5 rounded-md border border-[#FFAE00]/20 ml-1">
+                                R$ {(proposalData?.amount || initialAmount).toFixed(2)}
+                            </span>
+                        )}
                     </span>
                     <div className="flex items-center gap-1.5 border-l border-gray-800 ml-2 pl-3">
                         <button 
                             onClick={async () => {
                                 setSyncing(true)
                                 await loadMessages()
+                                await loadProposal()
                                 setSyncing(false)
                             }}
                             disabled={syncing || loading}
@@ -278,6 +430,65 @@ export default function NegotiationChat({ proposalId, currentUserId, senderName,
                 </div>
                 <span className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold">Ao Vivo</span>
             </div>
+
+            {/* Producer Counter-Proposal Action Banner */}
+            {!isOwner && proposalData?.status === 'contraproposta' && proposalData.counter_amount && (
+                <div className="bg-[#FFAE00]/15 border-b border-[#FFAE00]/30 p-3 sm:p-4 animate-in slide-in-from-top duration-300">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-xl bg-[#FFAE00]/20 text-[#FFAE00] flex items-center justify-center shrink-0 border border-[#FFAE00]/30 shadow-sm">
+                                <Handshake className="w-5 h-5" />
+                            </div>
+                            <div>
+                                <div className="flex items-center gap-2 mb-0.5">
+                                    <span className="text-[10px] font-black uppercase tracking-wider bg-[#FFAE00] text-black px-2 py-0.5 rounded-full">
+                                        Contraproposta do Cliente
+                                    </span>
+                                    <span className="text-[11px] text-gray-400">
+                                        Original: R$ {(proposalData.amount || initialAmount).toFixed(2)}
+                                    </span>
+                                </div>
+                                <p className="text-sm font-bold text-white leading-tight">
+                                    O cliente ofereceu <strong className="text-[#FFAE00] text-base">R$ {Number(proposalData.counter_amount).toFixed(2)}</strong> para fechar este trabalho.
+                                </p>
+                                <p className="text-[11px] text-gray-400 mt-0.5">
+                                    Ao aceitar, o valor da sua proposta é atualizado e o cliente poderá concluir o pagamento.
+                                </p>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-2 w-full sm:w-auto shrink-0 self-stretch sm:self-center">
+                            <button
+                                onClick={handleAcceptCounter}
+                                disabled={processingCounter}
+                                className="flex-1 sm:flex-none bg-[#FFAE00] hover:bg-yellow-400 text-black font-black text-xs px-4 py-2.5 rounded-xl transition-all shadow-lg shadow-[#FFAE00]/20 flex items-center justify-center gap-1.5 active:scale-95 disabled:opacity-50"
+                            >
+                                <Check className="w-4 h-4" />
+                                {processingCounter ? 'Atualizando...' : `Aceitar Oferta (R$ ${Number(proposalData.counter_amount).toFixed(2)})`}
+                            </button>
+                            <button
+                                onClick={handleRejectCounter}
+                                disabled={processingCounter}
+                                className="border border-white/10 hover:border-white/20 text-gray-400 hover:text-white font-bold text-xs px-3 py-2.5 rounded-xl transition-colors hover:bg-white/5 active:scale-95 disabled:opacity-50 flex items-center gap-1"
+                            >
+                                <X className="w-3.5 h-3.5" />
+                                Recusar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Buyer Waiting Banner */}
+            {isOwner && proposalData?.status === 'contraproposta' && proposalData.counter_amount && (
+                <div className="bg-yellow-500/10 border-b border-yellow-500/20 p-3 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                        <Clock className="w-4 h-4 text-yellow-500 shrink-0" />
+                        <span className="text-xs text-yellow-400 font-bold">
+                            Você enviou uma contraproposta de <strong>R$ {Number(proposalData.counter_amount).toFixed(2)}</strong>. Aguardando o produtor aceitar.
+                        </span>
+                    </div>
+                </div>
+            )}
 
             {/* Quick Deal Panel (Owner Only) */}
             {isOwner && showQuickDeal && (

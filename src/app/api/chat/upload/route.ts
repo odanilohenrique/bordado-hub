@@ -54,8 +54,8 @@ export async function POST(request: Request) {
 
         const isEmbroidery = ['dst', 'pes', 'jef', 'emb', 'pxf', 'xxx', 'exp', 'vp3'].includes(fileExt.toLowerCase())
         const defaultContent = isEmbroidery 
-            ? `🧵 Enviou matriz de bordado: ${file.name}` 
-            : `📎 Enviou anexo: ${file.name}`
+            ? `Enviou matriz de bordado: ${file.name}` 
+            : `Enviou anexo: ${file.name}`
 
         // 4. Insert message into proposal_messages
         const { data: messageData, error: msgError } = await supabase
@@ -91,9 +91,9 @@ export async function POST(request: Request) {
                     await supabase.from('notifications').insert({
                         user_id: recipientId,
                         type: isEmbroidery ? 'matriz_recebida' : 'anexo_recebido',
-                        title: isEmbroidery ? '🧵 Nova Matriz no Chat!' : `📎 Novo Anexo de ${senderName}`,
+                        title: isEmbroidery ? 'Nova Matriz no Chat' : `Novo Anexo de ${senderName}`,
                         message: isEmbroidery ? `${senderName} enviou a matriz "${file.name}" no chat.` : `${senderName} enviou um arquivo no pedido.`,
-                        link_url: `/jobs/${proposal.job_id}`
+                        link_url: `/jobs/${proposal.job_id}?chat=${proposalId}`
                     })
                 }
             }
