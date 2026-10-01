@@ -1028,38 +1028,41 @@ function JobDetailClient({ jobId }: { jobId: string }) {
 
                             {/* ARTES DE REFERÊNCIA DO COMPRADOR (CARDS VISÍVEIS) */}
                             {job.image_urls && job.image_urls.length > 0 && (
-                                <div className="mt-8 p-5 bg-[#0F1115]/90 border border-[#FFAE00]/30 rounded-2xl w-full text-left shadow-xl animate-in fade-in duration-300">
+                                <div className="mt-8 pt-8 border-t border-white/10 w-full max-w-2xl mx-auto text-left animate-in fade-in duration-300">
                                     {/* Header da Seção */}
-                                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-4 border-b border-white/5">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 rounded-xl bg-[#FFAE00]/10 border border-[#FFAE00]/20 flex items-center justify-center text-[#FFAE00] shrink-0">
-                                                <Package className="w-5 h-5" />
+                                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-4">
+                                        <div className="flex items-center gap-2.5">
+                                            <div className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-[#FFAE00] shrink-0">
+                                                <Package className="w-4 h-4" />
                                             </div>
                                             <div>
-                                                <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                                                    {!isOwner ? 'Artes de Referência do Comprador' : 'Artes de Referência do Pedido'}
-                                                    <span className="text-[10px] bg-[#FFAE00]/10 text-[#FFAE00] border border-[#FFAE00]/30 px-2 py-0.5 rounded-full font-mono font-bold">
-                                                        {job.image_urls.length} {job.image_urls.length === 1 ? 'arte' : 'artes'}
+                                                <div className="flex items-center gap-2">
+                                                    <h3 className="text-sm font-bold text-white">
+                                                        Artes de Referência
+                                                    </h3>
+                                                    <span className="text-[11px] px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-gray-400 font-medium whitespace-nowrap">
+                                                        {job.image_urls.length} {job.image_urls.length === 1 ? 'imagem' : 'imagens'}
                                                     </span>
-                                                </h3>
-                                                <p className="text-xs text-gray-400 mt-0.5">
-                                                    Visualize cada imagem em tamanho real ou baixe individualmente para criar a matriz com máxima fidelidade.
+                                                </div>
+                                                <p className="text-[11px] text-gray-400 mt-0.5">
+                                                    Arquivos enviados para a criação da matriz
                                                 </p>
                                             </div>
                                         </div>
+
                                         {job.image_urls.length > 1 && (
                                             <button
                                                 type="button"
                                                 onClick={handleDownloadAllReferenceImages}
-                                                className="inline-flex items-center gap-2 bg-[#FFAE00] hover:bg-yellow-400 text-black px-4 py-2 rounded-xl text-xs font-black shadow-lg shadow-[#FFAE00]/15 transition-all shrink-0 active:scale-95"
+                                                className="inline-flex items-center gap-1.5 bg-[#FFAE00] hover:bg-yellow-400 text-black px-3.5 py-1.5 rounded-lg text-xs font-bold shadow-sm transition-all shrink-0 active:scale-95 whitespace-nowrap"
                                             >
-                                                <Download className="w-4 h-4" /> Baixar Tudo (.zip)
+                                                <Download className="w-3.5 h-3.5" /> Baixar Todas (.zip)
                                             </button>
                                         )}
                                     </div>
 
                                     {/* Grid de Cards das Artes */}
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mt-4">
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-1">
                                         {job.image_urls.map((url, idx) => {
                                             const isPdf = url.toLowerCase().includes('.pdf')
                                             const dimParts = job.dimensions ? job.dimensions.split('|') : []
@@ -1068,64 +1071,70 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                             return (
                                                 <div 
                                                     key={idx} 
-                                                    className="bg-[#1A1D23] border border-white/10 hover:border-[#FFAE00]/40 rounded-xl p-3.5 flex flex-col justify-between transition-all group shadow-md"
+                                                    className="bg-[#0F1115] border border-white/10 hover:border-white/20 rounded-xl overflow-hidden transition-all duration-200 flex flex-col group shadow-sm hover:shadow-lg hover:shadow-black/50"
                                                 >
-                                                    {/* Header do Card */}
-                                                    <div className="flex items-center justify-between gap-2 mb-2">
-                                                        <span className="text-xs font-bold text-white truncate" title={label}>
-                                                            {label}
-                                                        </span>
-                                                        <span className="text-[10px] text-gray-500 font-mono font-semibold shrink-0">
+                                                    {/* Canvas com Proporção Quadrada e Fundo Escuro */}
+                                                    <div className="relative aspect-square w-full bg-black/40 flex items-center justify-center p-3 overflow-hidden">
+                                                        {/* Badge de numeração discreto no topo */}
+                                                        <span className="absolute top-2 left-2 z-10 px-1.5 py-0.5 rounded bg-black/70 backdrop-blur-md text-[10px] font-mono font-medium text-gray-400 border border-white/10">
                                                             #{idx + 1}
                                                         </span>
-                                                    </div>
 
-                                                    {/* Imagem / Preview */}
-                                                    <div className="h-44 w-full bg-[#0F1115] rounded-lg border border-white/5 flex items-center justify-center overflow-hidden relative mb-3 group/thumb">
                                                         {isPdf ? (
                                                             <div className="flex flex-col items-center justify-center text-gray-400 gap-2 p-4 text-center">
                                                                 <PenTool className="w-8 h-8 text-[#FFAE00]" />
-                                                                <span className="text-[11px] font-semibold text-gray-300">Documento PDF</span>
+                                                                <span className="text-[11px] font-medium text-gray-300">Documento PDF</span>
                                                             </div>
                                                         ) : (
                                                             <img 
                                                                 src={url} 
                                                                 alt={label} 
-                                                                className="max-h-full max-w-full object-contain p-2 transition-transform duration-300 group-hover:scale-105" 
+                                                                className="max-h-full max-w-full object-contain p-1 transition-transform duration-300 group-hover:scale-105" 
                                                             />
                                                         )}
 
-                                                        {/* Hover overlay para ver rápida */}
+                                                        {/* Hover overlay rápido para abrir original */}
                                                         <a 
                                                             href={url}
                                                             target="_blank"
                                                             rel="noopener noreferrer"
-                                                            className="absolute inset-0 bg-black/40 opacity-0 group-hover/thumb:opacity-100 flex items-center justify-center transition-opacity"
-                                                            title="Clique para abrir imagem original em tela cheia"
+                                                            className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"
+                                                            title="Ver imagem original em tela cheia"
                                                         >
-                                                            <span className="bg-black/80 text-white text-[11px] font-bold px-3 py-1.5 rounded-lg border border-white/20 flex items-center gap-1.5 backdrop-blur-sm">
-                                                                <Maximize2 className="w-3.5 h-3.5 text-[#FFAE00]" /> Abrir Original
+                                                            <span className="bg-black/80 text-white text-[10px] font-bold px-2.5 py-1 rounded-md border border-white/20 flex items-center gap-1 backdrop-blur-sm">
+                                                                <Maximize2 className="w-3 h-3 text-[#FFAE00]" /> Abrir
                                                             </span>
                                                         </a>
                                                     </div>
 
-                                                    {/* Ações: Ver Completa e Baixar */}
-                                                    <div className="flex items-center gap-2 pt-1 border-t border-white/5">
-                                                        <a
-                                                            href={url}
-                                                            target="_blank"
-                                                            rel="noopener noreferrer"
-                                                            className="flex-1 inline-flex items-center justify-center gap-1.5 py-2 px-3 bg-[#0F1115] hover:bg-white/10 text-gray-300 hover:text-white text-xs font-semibold rounded-lg border border-white/10 transition-colors"
-                                                        >
-                                                            <Maximize2 className="w-3.5 h-3.5 text-[#FFAE00]" /> Ver Completa
-                                                        </a>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => handleDownloadReferenceImage(url, idx)}
-                                                            className="flex-1 inline-flex items-center justify-center gap-1.5 py-2 px-3 bg-[#FFAE00] hover:bg-yellow-400 text-black text-xs font-bold rounded-lg shadow transition-all active:scale-95"
-                                                        >
-                                                            <Download className="w-3.5 h-3.5" /> Baixar
-                                                        </button>
+                                                    {/* Rodapé do Card com Nome e Ações Alinhadas */}
+                                                    <div className="p-3 bg-[#0F1115] border-t border-white/5 flex flex-col gap-2">
+                                                        <p className="text-xs font-medium text-gray-200 truncate" title={label}>
+                                                            {label}
+                                                        </p>
+
+                                                        {/* Botões Perfeitamente Proporcionais (50% / 50%) */}
+                                                        <div className="grid grid-cols-2 gap-1.5">
+                                                            <a
+                                                                href={url}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className="inline-flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white text-[11px] font-medium transition-colors border border-white/10 text-center whitespace-nowrap"
+                                                                title="Abrir em tamanho real"
+                                                            >
+                                                                <Maximize2 className="w-3 h-3 text-[#FFAE00] shrink-0" />
+                                                                <span>Ver</span>
+                                                            </a>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleDownloadReferenceImage(url, idx)}
+                                                                className="inline-flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg bg-[#FFAE00] hover:bg-yellow-400 text-black text-[11px] font-bold transition-all shadow-sm active:scale-95 text-center whitespace-nowrap"
+                                                                title="Baixar arquivo original"
+                                                            >
+                                                                <Download className="w-3 h-3 shrink-0" />
+                                                                <span>Baixar</span>
+                                                            </button>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             )
