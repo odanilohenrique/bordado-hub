@@ -1026,46 +1026,110 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                 </div>
                             )}
 
-                            {/* SHORTCUT: DOWNLOAD ARTE DO CLIENTE PARA O PROGRAMADOR */}
-                            {!isOwner && job.image_urls && job.image_urls.length > 0 && (
-                                <div className="mt-6 p-4 bg-[#0F1115]/90 border border-[#FFAE00]/30 rounded-xl flex flex-col sm:flex-row items-center justify-between gap-3 text-left w-full shadow-lg">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 rounded-lg bg-[#FFAE00]/10 border border-[#FFAE00]/20 flex items-center justify-center text-[#FFAE00] shrink-0">
-                                            <Package className="w-5 h-5" />
+                            {/* ARTES DE REFERÊNCIA DO COMPRADOR (CARDS VISÍVEIS) */}
+                            {job.image_urls && job.image_urls.length > 0 && (
+                                <div className="mt-8 p-5 bg-[#0F1115]/90 border border-[#FFAE00]/30 rounded-2xl w-full text-left shadow-xl animate-in fade-in duration-300">
+                                    {/* Header da Seção */}
+                                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-4 border-b border-white/5">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 rounded-xl bg-[#FFAE00]/10 border border-[#FFAE00]/20 flex items-center justify-center text-[#FFAE00] shrink-0">
+                                                <Package className="w-5 h-5" />
+                                            </div>
+                                            <div>
+                                                <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                                                    {!isOwner ? 'Artes de Referência do Comprador' : 'Artes de Referência do Pedido'}
+                                                    <span className="text-[10px] bg-[#FFAE00]/10 text-[#FFAE00] border border-[#FFAE00]/30 px-2 py-0.5 rounded-full font-mono font-bold">
+                                                        {job.image_urls.length} {job.image_urls.length === 1 ? 'arte' : 'artes'}
+                                                    </span>
+                                                </h3>
+                                                <p className="text-xs text-gray-400 mt-0.5">
+                                                    Visualize cada imagem em tamanho real ou baixe individualmente para criar a matriz com máxima fidelidade.
+                                                </p>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <p className="text-xs font-bold text-white">Artes de Referência do Comprador</p>
-                                            <p className="text-[11px] text-gray-400">
-                                                {job.image_urls.length} {job.image_urls.length === 1 ? 'imagem disponível' : 'imagens disponíveis'} para criar sua matriz em alta precisão
-                                            </p>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-                                        <a
-                                            href={job.image_urls[0]}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="inline-flex items-center gap-1.5 px-3 py-2 bg-[#1A1D23] hover:bg-white/10 text-gray-300 text-xs font-semibold rounded-lg border border-white/10 transition-colors"
-                                        >
-                                            <Maximize2 className="w-3.5 h-3.5 text-[#FFAE00]" /> Ver Completa
-                                        </a>
-                                        {job.image_urls.length > 1 ? (
+                                        {job.image_urls.length > 1 && (
                                             <button
                                                 type="button"
                                                 onClick={handleDownloadAllReferenceImages}
-                                                className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#FFAE00] hover:bg-yellow-400 text-black text-xs font-bold rounded-lg shadow transition-colors"
+                                                className="inline-flex items-center gap-2 bg-[#FFAE00] hover:bg-yellow-400 text-black px-4 py-2 rounded-xl text-xs font-black shadow-lg shadow-[#FFAE00]/15 transition-all shrink-0 active:scale-95"
                                             >
-                                                <Download className="w-3.5 h-3.5" /> Baixar Todas (.zip)
-                                            </button>
-                                        ) : (
-                                            <button
-                                                type="button"
-                                                onClick={() => handleDownloadReferenceImage(job.image_urls[0], 0)}
-                                                className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#FFAE00] hover:bg-yellow-400 text-black text-xs font-bold rounded-lg shadow transition-colors"
-                                            >
-                                                <Download className="w-3.5 h-3.5" /> Baixar Imagem
+                                                <Download className="w-4 h-4" /> Baixar Tudo (.zip)
                                             </button>
                                         )}
+                                    </div>
+
+                                    {/* Grid de Cards das Artes */}
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mt-4">
+                                        {job.image_urls.map((url, idx) => {
+                                            const isPdf = url.toLowerCase().includes('.pdf')
+                                            const dimParts = job.dimensions ? job.dimensions.split('|') : []
+                                            const label = dimParts[idx]?.trim() || `Arte ${idx + 1}`
+
+                                            return (
+                                                <div 
+                                                    key={idx} 
+                                                    className="bg-[#1A1D23] border border-white/10 hover:border-[#FFAE00]/40 rounded-xl p-3.5 flex flex-col justify-between transition-all group shadow-md"
+                                                >
+                                                    {/* Header do Card */}
+                                                    <div className="flex items-center justify-between gap-2 mb-2">
+                                                        <span className="text-xs font-bold text-white truncate" title={label}>
+                                                            {label}
+                                                        </span>
+                                                        <span className="text-[10px] text-gray-500 font-mono font-semibold shrink-0">
+                                                            #{idx + 1}
+                                                        </span>
+                                                    </div>
+
+                                                    {/* Imagem / Preview */}
+                                                    <div className="h-44 w-full bg-[#0F1115] rounded-lg border border-white/5 flex items-center justify-center overflow-hidden relative mb-3 group/thumb">
+                                                        {isPdf ? (
+                                                            <div className="flex flex-col items-center justify-center text-gray-400 gap-2 p-4 text-center">
+                                                                <PenTool className="w-8 h-8 text-[#FFAE00]" />
+                                                                <span className="text-[11px] font-semibold text-gray-300">Documento PDF</span>
+                                                            </div>
+                                                        ) : (
+                                                            <img 
+                                                                src={url} 
+                                                                alt={label} 
+                                                                className="max-h-full max-w-full object-contain p-2 transition-transform duration-300 group-hover:scale-105" 
+                                                            />
+                                                        )}
+
+                                                        {/* Hover overlay para ver rápida */}
+                                                        <a 
+                                                            href={url}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="absolute inset-0 bg-black/40 opacity-0 group-hover/thumb:opacity-100 flex items-center justify-center transition-opacity"
+                                                            title="Clique para abrir imagem original em tela cheia"
+                                                        >
+                                                            <span className="bg-black/80 text-white text-[11px] font-bold px-3 py-1.5 rounded-lg border border-white/20 flex items-center gap-1.5 backdrop-blur-sm">
+                                                                <Maximize2 className="w-3.5 h-3.5 text-[#FFAE00]" /> Abrir Original
+                                                            </span>
+                                                        </a>
+                                                    </div>
+
+                                                    {/* Ações: Ver Completa e Baixar */}
+                                                    <div className="flex items-center gap-2 pt-1 border-t border-white/5">
+                                                        <a
+                                                            href={url}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="flex-1 inline-flex items-center justify-center gap-1.5 py-2 px-3 bg-[#0F1115] hover:bg-white/10 text-gray-300 hover:text-white text-xs font-semibold rounded-lg border border-white/10 transition-colors"
+                                                        >
+                                                            <Maximize2 className="w-3.5 h-3.5 text-[#FFAE00]" /> Ver Completa
+                                                        </a>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleDownloadReferenceImage(url, idx)}
+                                                            className="flex-1 inline-flex items-center justify-center gap-1.5 py-2 px-3 bg-[#FFAE00] hover:bg-yellow-400 text-black text-xs font-bold rounded-lg shadow transition-all active:scale-95"
+                                                        >
+                                                            <Download className="w-3.5 h-3.5" /> Baixar
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            )
+                                        })}
                                     </div>
                                 </div>
                             )}
