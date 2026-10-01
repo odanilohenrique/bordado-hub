@@ -14,13 +14,15 @@ export async function POST(request: Request) {
         // Verify job
         const { data: job, error: jobError } = await supabase
             .from('jobs')
-            .select('id, cliente_id, title')
+            .select('id, cliente_id, title, status, revision_notes')
             .eq('id', jobId)
             .single()
 
         if (jobError || !job) {
             return NextResponse.json({ error: 'Pedido não encontrado.' }, { status: 404 })
         }
+
+        const isRevision = job.status === 'em_revisao' || Boolean(job.revision_notes)
 
         // Update Job Status
         const { error: updateError } = await supabase
@@ -41,9 +43,11 @@ export async function POST(request: Request) {
         // Notify client
         await supabase.from('notifications').insert({
             user_id: job.cliente_id,
-            type: 'matriz_entregue',
-            title: 'Matriz Entregue!',
-            message: `O programador entregou os arquivos do pedido "${job.title}". Você tem até 24 horas para testar o bordado ou solicitar ajustes!`,
+            type: isRevision ? 'matriz_revisada_entregue' : 'matriz_entregue',
+            title: isRevision ? 'Matriz Revisada Entregue!' : 'Matriz Entregue!',
+            message: isRevision
+                ? `O programador enviou a versão corrigida da matriz do pedido "${job.title}". Baixe e teste o arquivo na sua máquina!`
+                : `O programador entregou os arquivos do pedido "${job.title}". Você tem até 24 horas para testar o bordado ou solicitar ajustes!`,
             link_url: `/jobs/${job.id}`
         })
 

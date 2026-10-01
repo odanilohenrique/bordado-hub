@@ -1246,28 +1246,50 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                 {isOwner ? (
                                     <>
                                         <div className="inline-flex items-center gap-2 bg-green-500/20 text-green-400 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider mb-6">
-                                            <CheckCircle className="w-3 h-3" /> Matriz Pronta para Teste
+                                            <CheckCircle className="w-3 h-3" /> {job.revision_notes ? 'Matriz Revisada Pronta para Teste' : 'Matriz Pronta para Teste'}
                                         </div>
-                                        <h2 className="text-3xl font-black text-white mb-4">Sua matriz está pronta!</h2>
+                                        <h2 className="text-3xl font-black text-white mb-4">
+                                            {job.revision_notes ? 'Sua matriz revisada está pronta!' : 'Sua matriz está pronta!'}
+                                        </h2>
                                         <p className="text-gray-400 text-sm mb-6 leading-relaxed">
-                                            O programador <strong className="text-white">{acceptedProposal?.users?.name}</strong> finalizou o trabalho. Baixe os arquivos abaixo e faça um teste na sua máquina. Você tem até <strong className="text-[#FFAE00]">24 horas</strong> para testar o bordado ou solicitar ajustes antes da liberação automática.
+                                            {job.revision_notes ? (
+                                                <>O programador <strong className="text-white">{acceptedProposal?.users?.name}</strong> enviou a <strong>versão revisada da matriz com as alterações solicitadas</strong>. Baixe os arquivos abaixo e faça um novo teste na sua máquina. Você tem até <strong className="text-[#FFAE00]">24 horas</strong> para aprovar ou solicitar novos ajustes antes da liberação automática.</>
+                                            ) : (
+                                                <>O programador <strong className="text-white">{acceptedProposal?.users?.name}</strong> finalizou o trabalho. Baixe os arquivos abaixo e faça um teste na sua máquina. Você tem até <strong className="text-[#FFAE00]">24 horas</strong> para testar o bordado ou solicitar ajustes antes da liberação automática.</>
+                                            )}
                                         </p>
                                     </>
                                 ) : (
                                     <>
                                         <div className="inline-flex items-center gap-2 bg-green-500/20 text-green-400 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider mb-6">
-                                            <Package className="w-3 h-3" /> Matriz Entregue com Sucesso
+                                            <Package className="w-3 h-3" /> {job.revision_notes ? 'Correção da Matriz Enviada com Sucesso' : 'Matriz Entregue com Sucesso'}
                                         </div>
-                                        <h2 className="text-3xl font-black text-white mb-4">Matriz Enviada para o Comprador!</h2>
+                                        <h2 className="text-3xl font-black text-white mb-4">
+                                            {job.revision_notes ? 'Matriz Revisada Enviada para o Comprador!' : 'Matriz Enviada para o Comprador!'}
+                                        </h2>
                                         <p className="text-gray-400 text-sm mb-6 leading-relaxed">
-                                            Você já enviou os arquivos da matriz. O cliente foi notificado para testar o bordado na máquina. Caso ele não avalie ou solicite revisões dentro do prazo de <strong className="text-[#FFAE00]">24 horas</strong>, o pagamento será liberado automaticamente para você.
+                                            {job.revision_notes ? (
+                                                <>Você enviou a <strong>versão revisada da matriz</strong> atendendo aos ajustes solicitados pelo comprador. O cliente foi notificado para testar o novo arquivo na máquina. Caso ele não avalie ou solicite novas revisões dentro do prazo de <strong className="text-[#FFAE00]">24 horas</strong>, o pagamento será liberado automaticamente para você.</>
+                                            ) : (
+                                                <>Você já enviou os arquivos da matriz. O cliente foi notificado para testar o bordado na máquina. Caso ele não avalie ou solicite revisões dentro do prazo de <strong className="text-[#FFAE00]">24 horas</strong>, o pagamento será liberado automaticamente para você.</>
+                                            )}
                                         </p>
                                     </>
                                 )}
                                 
+                                {job.revision_notes && (
+                                    <div className="bg-yellow-500/10 p-3.5 rounded-xl border border-yellow-500/20 mb-4 text-xs text-yellow-300">
+                                        <p className="font-bold uppercase tracking-wider text-[10px] text-yellow-400 mb-1">Ajuste que havia sido solicitado:</p>
+                                        <p className="italic text-gray-300">&quot;{job.revision_notes}&quot;</p>
+                                    </div>
+                                )}
+
                                 {job.delivery_notes && (
-                                    <div className="bg-[#0F1115] p-4 rounded-xl border border-white/5 mb-6 italic text-sm text-gray-400">
-                                        &quot;{job.delivery_notes}&quot;
+                                    <div className="bg-[#0F1115] p-4 rounded-xl border border-white/5 mb-6 text-sm text-gray-400">
+                                        <p className="font-bold uppercase tracking-wider text-[10px] text-gray-500 mb-1">
+                                            {job.revision_notes ? 'Notas da Correção do Produtor:' : 'Notas da Entrega:'}
+                                        </p>
+                                        <p className="italic">&quot;{job.delivery_notes}&quot;</p>
                                     </div>
                                 )}
 
@@ -1299,7 +1321,9 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                     return (
                                         <div className="flex flex-col gap-4">
                                             <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">
-                                                {isOwner ? `Arquivos para Download (${urls.length})` : `Arquivos Entregues (${urls.length})`}
+                                                {isOwner 
+                                                    ? (job.revision_notes ? `Arquivos da Matriz Revisada (${urls.length})` : `Arquivos para Download (${urls.length})`) 
+                                                    : (job.revision_notes ? `Arquivos da Matriz Revisada Entregues (${urls.length})` : `Arquivos Entregues (${urls.length})`)}
                                             </p>
                                             <div className="flex flex-wrap gap-2">
                                                 {urls.map((url, i) => (
@@ -1373,12 +1397,12 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                     <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 text-xs text-amber-200/90 flex items-start gap-2.5 mb-5">
                                         <Sparkles className="w-4 h-4 text-[#FFAE00] flex-shrink-0 mt-0.5" />
                                         <div className="space-y-1">
-                                            <p className="font-bold text-white">💡 Já testou o bordado?</p>
+                                            <p className="font-bold text-white">Já testou o bordado?</p>
                                             <p className="text-gray-300 leading-relaxed text-[11px]">
                                                 Recomendamos fazer um teste no tecido antes de avaliar. Se precisar de ajustes agora, use o botão <strong>Pedir Ajuste / Revisão</strong> ao lado.
                                             </p>
                                             <p className="text-[10px] text-amber-400 font-semibold">
-                                                🛡️ Fique tranquilo: mesmo após aprovar, você terá 7 dias de garantia para solicitar correções na matriz!
+                                                Fique tranquilo: mesmo após aprovar, você terá 7 dias de garantia para solicitar correções na matriz!
                                             </p>
                                         </div>
                                     </div>

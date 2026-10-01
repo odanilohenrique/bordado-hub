@@ -598,7 +598,14 @@ export default function NegotiationChat({ proposalId, currentUserId, senderName,
                                             </div>
                                         )
                                     })()}
-                                    <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+                                    {(() => {
+                                        const cleanContent = msg.content
+                                            ? msg.content.replace(/^\[SOLICITAÇÃO DE AJUSTE NA MÁQUINA\]\s*/i, '').replace(/^\[AJUSTE NA MÁQUINA\]\s*/i, '')
+                                            : ''
+                                        return cleanContent ? (
+                                            <p className="text-sm leading-relaxed whitespace-pre-wrap">{cleanContent}</p>
+                                        ) : null
+                                    })()}
                                     <span className="text-[10px] opacity-40 mt-1 block text-right font-medium">
                                         {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                     </span>

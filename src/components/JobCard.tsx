@@ -19,6 +19,7 @@ interface Job {
     fabric_type?: string
     urgency?: string
     formats?: string[]
+    revision_notes?: string
     target_programmer_id?: string | null
     target_programmer?: {
         name: string
@@ -33,11 +34,17 @@ interface Job {
 }
 
 export default function JobCard({ job, hasNegotiation, viewerRole, proposalCount, feedBadge, userLostBid, matchedProducerName }: { job: Job, hasNegotiation?: boolean, viewerRole?: 'client' | 'programmer', proposalCount?: number, feedBadge?: 'accepting' | 'matched', userLostBid?: boolean, matchedProducerName?: string | null }) {
+    const isRevision = Boolean(job.revision_notes)
+
     const statusConfig: Record<string, { bg: string; text: string; label: string }> = {
         aberto: { bg: 'bg-[#FFAE00]/10', text: 'text-[#FFAE00]', label: 'Aberto' },
         em_progresso: { bg: 'bg-blue-500/10', text: 'text-blue-400', label: 'Em Produção' },
-        em_revisao: { bg: 'bg-yellow-500/20 border border-yellow-500/40 animate-pulse', text: 'text-yellow-400 font-bold', label: '🛠️ Revisão Solicitada' },
-        entregue: { bg: 'bg-green-500/10', text: 'text-green-400', label: 'Matriz Entregue' },
+        em_revisao: { bg: 'bg-yellow-500/20 border border-yellow-500/40 animate-pulse', text: 'text-yellow-400 font-bold', label: 'Revisão Solicitada' },
+        entregue: { 
+            bg: isRevision ? 'bg-emerald-500/15 border border-emerald-500/30' : 'bg-green-500/10', 
+            text: isRevision ? 'text-emerald-400 font-bold' : 'text-green-400', 
+            label: isRevision ? 'Matriz Revisada Entregue' : 'Matriz Entregue' 
+        },
         finalizado: { bg: 'bg-gray-500/10', text: 'text-gray-400', label: 'Concluído & Pago' },
         cancelado: { bg: 'bg-red-500/10', text: 'text-red-400', label: 'Cancelado' },
         negociacao: { bg: 'bg-purple-500/10', text: 'text-purple-400', label: 'Em Negociação' },
@@ -49,7 +56,7 @@ export default function JobCard({ job, hasNegotiation, viewerRole, proposalCount
         
         // Status do Cliente
         aguardando_propostas: { bg: 'bg-gray-500/10', text: 'text-gray-400', label: 'Aguardando Programadores' },
-        com_propostas: { bg: 'bg-[#FFAE00] shadow-[0_0_20px_rgba(255,174,0,0.8)] border border-white animate-pulse', text: 'text-black font-black', label: '🎯 VEJA AS PROPOSTAS!' },
+        com_propostas: { bg: 'bg-[#FFAE00] shadow-[0_0_20px_rgba(255,174,0,0.8)] border border-white animate-pulse', text: 'text-black font-black', label: 'VEJA AS PROPOSTAS!' },
         acao_necessaria: { bg: 'bg-red-500/10', text: 'text-red-400', label: 'Sua Vez: Responda no Chat!' }
     }
 
@@ -315,7 +322,7 @@ export default function JobCard({ job, hasNegotiation, viewerRole, proposalCount
                         {job.isOwner || viewerRole === 'client' ? (
                             job.status === 'entregue' ? (
                                 <button className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg font-bold text-xs transition-all shadow-lg shadow-green-500/20 active:scale-95 ml-auto animate-pulse">
-                                    Baixar & Avaliar 🚀
+                                    {isRevision ? 'Avaliar Matriz Revisada' : 'Baixar & Avaliar'}
                                     <CheckCircle className="w-3.5 h-3.5" />
                                 </button>
                             ) : job.status === 'em_progresso' ? (
@@ -350,7 +357,17 @@ export default function JobCard({ job, hasNegotiation, viewerRole, proposalCount
                                 <Send className="w-3.5 h-3.5" />
                             </button>
                         ) : job.my_proposal_status === 'aceita' ? (
-                            job.status === 'em_progresso' ? (
+                            job.status === 'em_revisao' ? (
+                                <button className="flex items-center gap-2 bg-yellow-500 hover:bg-yellow-400 text-black px-4 py-2 rounded-lg font-black text-xs transition-all shadow-lg shadow-yellow-500/20 active:scale-95 ml-auto animate-pulse">
+                                    Enviar Correção
+                                    <Wrench className="w-3.5 h-3.5" />
+                                </button>
+                            ) : job.status === 'entregue' ? (
+                                <button className="flex items-center gap-2 bg-green-500/10 hover:bg-green-500/20 text-green-400 border border-green-500/30 px-4 py-2 rounded-lg font-bold text-xs ml-auto transition-colors">
+                                    {isRevision ? 'Matriz Revisada Enviada' : 'Aguardando Aprovação'}
+                                    <Clock className="w-3.5 h-3.5" />
+                                </button>
+                            ) : job.status === 'em_progresso' ? (
                                 <button className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg font-bold text-xs transition-all shadow-lg shadow-green-500/10 active:scale-95 ml-auto">
                                     Entregar Matriz
                                     <CheckCircle className="w-3.5 h-3.5" />
@@ -373,7 +390,7 @@ export default function JobCard({ job, hasNegotiation, viewerRole, proposalCount
                             </button>
                         ) : job.status === 'entregue' && viewerRole === 'programmer' ? (
                             <button className="flex items-center gap-2 bg-green-500/10 hover:bg-green-500/20 text-green-400 border border-green-500/30 px-4 py-2 rounded-lg font-bold text-xs ml-auto transition-colors">
-                                Aguardando Aprovação
+                                {isRevision ? 'Matriz Revisada Enviada' : 'Aguardando Aprovação'}
                                 <Clock className="w-3.5 h-3.5" />
                             </button>
                         ) : job.status === 'aberto' ? (

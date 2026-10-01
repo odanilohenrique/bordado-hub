@@ -95,7 +95,7 @@ export async function POST(request: Request) {
             await supabase.from('proposal_messages').insert({
                 proposal_id: proposal.id,
                 sender_id: clientId || job.cliente_id,
-                content: `[SOLICITAÇÃO DE AJUSTE NA MÁQUINA]\n\n${notes}`,
+                content: notes,
                 attachment_url: imageUrl || null
             })
         }
