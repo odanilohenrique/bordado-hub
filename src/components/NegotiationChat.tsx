@@ -2,9 +2,8 @@
 
 import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabaseClient'
-import { Send, Paperclip, User, FileImage, RefreshCw, CheckCircle2, DollarSign, Package, Download, FileText, Handshake, AlertCircle, X, Check, Clock } from 'lucide-react'
+import { Send, Paperclip, User, FileImage, RefreshCw, CheckCircle2, DollarSign, Package, Download, Handshake, X, Check, Clock, CheckCheck } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { formatDate } from '@/lib/helpers'
 import { toast } from 'sonner'
 
 interface Message {
@@ -13,7 +12,7 @@ interface Message {
     attachment_url?: string
     sender_id: string
     created_at: string
-    users?: { name: string }
+    users?: { name: string; avatar_url?: string | null }
 }
 
 interface ProposalData {
@@ -28,14 +27,30 @@ interface ProposalData {
 interface ChatProps {
     proposalId: string
     currentUserId: string
-    senderName: string // To display in header if needed
+    senderName: string
     isOwner: boolean
     jobId: string
     initialAmount: number
     onProposalUpdated?: () => void
+    onClose?: () => void
+    otherUser?: {
+        name: string
+        avatar_url?: string | null
+        role?: string
+    }
 }
 
-export default function NegotiationChat({ proposalId, currentUserId, senderName, isOwner, jobId, initialAmount, onProposalUpdated }: ChatProps) {
+export default function NegotiationChat({ 
+    proposalId, 
+    currentUserId, 
+    senderName, 
+    isOwner, 
+    jobId, 
+    initialAmount, 
+    onProposalUpdated, 
+    onClose, 
+    otherUser 
+}: ChatProps) {
     const [messages, setMessages] = useState<Message[]>([])
     const [newMessage, setNewMessage] = useState('')
     const [loading, setLoading] = useState(true)
@@ -45,13 +60,26 @@ export default function NegotiationChat({ proposalId, currentUserId, senderName,
     const [agreedValue, setAgreedValue] = useState(initialAmount?.toString() || '')
     const [proposalData, setProposalData] = useState<ProposalData | null>(null)
     const [processingCounter, setProcessingCounter] = useState(false)
+    const [otherUserData, setOtherUserData] = useState<{
+        name: string
+        avatar_url?: string | null
+        role?: string
+    } | null>(otherUser || null)
+
     const messagesEndRef = useRef<HTMLDivElement>(null)
     const router = useRouter()
     const fileInputRef = useRef<HTMLInputElement>(null)
 
     useEffect(() => {
+        if (otherUser) {
+            setOtherUserData(otherUser)
+        }
+    }, [otherUser])
+
+    useEffect(() => {
         loadMessages()
         loadProposal()
+        fetchOtherUser()
 
         // 1. Subscribe to Realtime postgres_changes
         const channel = supabase
@@ -64,16 +92,23 @@ export default function NegotiationChat({ proposalId, currentUserId, senderName,
             }, async (payload) => {
                 const newMsg = payload.new as Message
                 
-                // If it's not from me, fetch sender name
+                // If it's not from me, fetch sender details
                 if (newMsg.sender_id !== currentUserId) {
                     const { data: userData } = await supabase
                         .from('users')
-                        .select('name')
+                        .select('name, avatar_url')
                         .eq('id', newMsg.sender_id)
                         .single()
                     
                     if (userData) {
-                        newMsg.users = { name: userData.name }
+                        newMsg.users = { name: userData.name, avatar_url: userData.avatar_url }
+                        if (!otherUserData?.name) {
+                            setOtherUserData({
+                                name: userData.name,
+                                avatar_url: userData.avatar_url,
+                                role: isOwner ? 'Programador' : 'Cliente'
+                            })
+                        }
                     }
                 }
 
@@ -102,7 +137,7 @@ export default function NegotiationChat({ proposalId, currentUserId, senderName,
             try {
                 const { data } = await supabase
                     .from('proposal_messages')
-                    .select('*, users:sender_id(name)')
+                    .select('*, users:sender_id(name, avatar_url)')
                     .eq('proposal_id', proposalId)
                     .order('created_at', { ascending: true })
 
@@ -134,6 +169,40 @@ export default function NegotiationChat({ proposalId, currentUserId, senderName,
             clearInterval(syncInterval)
         }
     }, [proposalId, currentUserId])
+
+    const fetchOtherUser = async () => {
+        try {
+            if (isOwner) {
+                const { data: prop } = await supabase
+                    .from('proposals')
+                    .select('criador_id, users:criador_id(name, avatar_url)')
+                    .eq('id', proposalId)
+                    .single()
+                if (prop?.users) {
+                    setOtherUserData({
+                        name: (prop.users as any).name || 'Programador',
+                        avatar_url: (prop.users as any).avatar_url || null,
+                        role: 'Programador'
+                    })
+                }
+            } else {
+                const { data: jobInfo } = await supabase
+                    .from('jobs')
+                    .select('cliente_id, users:cliente_id(name, avatar_url)')
+                    .eq('id', jobId)
+                    .single()
+                if (jobInfo?.users) {
+                    setOtherUserData({
+                        name: (jobInfo.users as any).name || 'Cliente',
+                        avatar_url: (jobInfo.users as any).avatar_url || null,
+                        role: 'Cliente'
+                    })
+                }
+            }
+        } catch (e) {
+            // silent
+        }
+    }
 
     const loadProposal = async () => {
         try {
@@ -254,7 +323,7 @@ export default function NegotiationChat({ proposalId, currentUserId, senderName,
     const loadMessages = async () => {
         const { data } = await supabase
             .from('proposal_messages')
-            .select('*, users:sender_id(name)')
+            .select('*, users:sender_id(name, avatar_url)')
             .eq('proposal_id', proposalId)
             .order('created_at', { ascending: true })
 
@@ -289,11 +358,11 @@ export default function NegotiationChat({ proposalId, currentUserId, senderName,
 
             if (propError) throw propError
 
-            // Optional: Insert a system message in chat
+            // Insert system message in chat
             await supabase.from('proposal_messages').insert({
                 proposal_id: proposalId,
                 sender_id: currentUserId,
-                content: `🤝 NEGÓCIO FECHADO! Valor acordado: R$ ${finalAmount.toFixed(2)}`
+                content: `[NEGÓCIO FECHADO] Valor acordado: R$ ${finalAmount.toFixed(2)}`
             })
 
             router.push(`/checkout/${proposalId}`)
@@ -354,7 +423,7 @@ export default function NegotiationChat({ proposalId, currentUserId, senderName,
             formData.append('file', file)
             formData.append('proposalId', proposalId)
             formData.append('senderId', currentUserId)
-            formData.append('content', '📎 Enviou um anexo')
+            formData.append('content', 'Enviou um anexo')
 
             const res = await fetch('/api/chat/upload', {
                 method: 'POST',
@@ -384,57 +453,147 @@ export default function NegotiationChat({ proposalId, currentUserId, senderName,
         }
     }
 
-    return (
-        <div className="flex flex-col h-[450px] bg-[#0F1115]/50 rounded-xl border border-gray-800/80 shadow-lg overflow-hidden">
-            {/* Header */}
-            <div className="px-4 py-3 bg-[#1A1D23] border-b border-gray-800/80 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                    <span className="text-sm font-semibold text-gray-200 flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-                        Chat da Negociação
-                        {(proposalData?.amount || initialAmount > 0) && (
-                            <span className="text-[11px] font-black text-[#FFAE00] bg-[#FFAE00]/10 px-2 py-0.5 rounded-md border border-[#FFAE00]/20 ml-1">
-                                R$ {(proposalData?.amount || initialAmount).toFixed(2)}
-                            </span>
-                        )}
-                    </span>
-                    <div className="flex items-center gap-1.5 border-l border-gray-800 ml-2 pl-3">
-                        <button 
-                            onClick={async () => {
-                                setSyncing(true)
-                                await loadMessages()
-                                await loadProposal()
-                                setSyncing(false)
-                            }}
-                            disabled={syncing || loading}
-                            className="p-1.5 text-gray-500 hover:text-[#FFAE00] hover:bg-[#FFAE00]/5 rounded-md transition-all active:rotate-180 duration-500 disabled:opacity-50"
-                            title="Sincronizar mensagens"
-                        >
-                            <RefreshCw className={`w-3.5 h-3.5 ${syncing ? 'animate-spin' : ''}`} />
-                        </button>
+    const renderAttachment = (url?: string) => {
+        if (!url) return null
+        const ext = url.split('.').pop()?.toLowerCase() || ''
+        const isImage = ['png', 'jpg', 'jpeg', 'webp', 'gif'].includes(ext)
+        const rawFileName = decodeURIComponent(url.split('/').pop() || 'arquivo')
+        const fileName = rawFileName.replace(/^\d+-[a-z0-9]+_/i, '')
 
-                        {isOwner && (
-                            <button 
-                                onClick={() => setShowQuickDeal(!showQuickDeal)}
-                                className={`flex items-center gap-1 text-[11px] font-bold px-2 py-1 rounded transition-all ${
-                                    showQuickDeal 
-                                    ? 'bg-[#FFAE00] text-black shadow-[0_0_10px_rgba(255,174,0,0.3)]' 
-                                    : 'text-gray-400 hover:text-[#FFAE00] hover:bg-[#FFAE00]/5'
-                                }`}
-                                title="Fechar negócio agora"
-                            >
-                                <CheckCircle2 className="w-3.5 h-3.5" />
-                                FECHAR NEGÓCIO
-                            </button>
-                        )}
+        if (isImage) {
+            return (
+                <div className="mb-2 overflow-hidden rounded-xl border border-black/20 bg-black/40">
+                    <a href={url} target="_blank" rel="noopener noreferrer" className="block relative group/img">
+                        <img
+                            src={url}
+                            alt="Anexo"
+                            className="max-w-full h-auto object-cover rounded-xl hover:opacity-95 transition-opacity"
+                            style={{ maxHeight: '240px' }}
+                        />
+                        <div className="absolute inset-0 bg-black/30 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center">
+                            <span className="bg-black/70 text-white text-[11px] font-medium px-2.5 py-1 rounded-md backdrop-blur-sm flex items-center gap-1.5 shadow">
+                                <FileImage className="w-3.5 h-3.5" /> Ver imagem completa
+                            </span>
+                        </div>
+                    </a>
+                </div>
+            )
+        }
+
+        return (
+            <div className="mb-2">
+                <a
+                    href={url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    download
+                    className="flex items-center gap-2.5 bg-black/30 hover:bg-black/45 border border-white/10 text-gray-100 p-2.5 rounded-xl transition-all group/file text-left"
+                >
+                    <div className="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 group-hover/file:scale-105 transition-transform">
+                        <Package className="w-4 h-4" />
+                    </div>
+                    <div className="flex flex-col min-w-0 flex-1">
+                        <span className="truncate text-xs font-semibold text-white group-hover/file:underline">
+                            {fileName}
+                        </span>
+                        <span className="text-[9.5px] text-gray-400 uppercase tracking-wider font-bold">
+                            Arquivo .{(ext).toUpperCase()}
+                        </span>
+                    </div>
+                    <Download className="w-3.5 h-3.5 text-gray-300 group-hover/file:text-white shrink-0 ml-1" />
+                </a>
+            </div>
+        )
+    }
+
+    return (
+        <div className="flex flex-col h-full bg-[#111b21] rounded-2xl overflow-hidden shadow-2xl border border-white/10 relative">
+            {/* WhatsApp Header */}
+            <div className="px-4 py-3 bg-[#202c33] border-b border-white/5 flex items-center justify-between z-10 shrink-0">
+                <div className="flex items-center gap-3 min-w-0">
+                    <div className="relative">
+                        <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-700 border border-white/10 flex items-center justify-center text-sm font-bold text-gray-200 shrink-0">
+                            {otherUserData?.avatar_url ? (
+                                <img src={otherUserData.avatar_url} alt="" className="w-full h-full object-cover" />
+                            ) : (
+                                <span>{(otherUserData?.name || 'C').charAt(0).toUpperCase()}</span>
+                            )}
+                        </div>
+                        <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-[#202c33]"></span>
+                    </div>
+
+                    <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                            <h3 className="text-sm font-semibold text-white truncate leading-tight">
+                                {otherUserData?.name || 'Negociação Privada'}
+                            </h3>
+                            {otherUserData?.role && (
+                                <span className="text-[10px] font-semibold text-gray-400 bg-white/5 border border-white/10 px-2 py-0.5 rounded-full shrink-0">
+                                    {otherUserData.role}
+                                </span>
+                            )}
+                        </div>
+                        <p className="text-[11px] text-emerald-400 flex items-center gap-1.5 mt-0.5 font-medium">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                            Online • Proposta #{proposalId.slice(0, 8)}
+                        </p>
                     </div>
                 </div>
-                <span className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold">Ao Vivo</span>
+
+                <div className="flex items-center gap-2 shrink-0">
+                    {(proposalData?.amount || initialAmount > 0) && (
+                        <div className="hidden sm:flex items-center gap-1.5 bg-[#111b21] border border-white/10 px-2.5 py-1 rounded-lg">
+                            <span className="text-[10px] uppercase font-bold text-gray-400">Valor</span>
+                            <span className="text-xs font-black text-[#FFAE00]">
+                                R$ {(proposalData?.amount || initialAmount).toFixed(2)}
+                            </span>
+                        </div>
+                    )}
+
+                    <button 
+                        onClick={async () => {
+                            setSyncing(true)
+                            await loadMessages()
+                            await loadProposal()
+                            setSyncing(false)
+                        }}
+                        disabled={syncing || loading}
+                        className="p-2 text-gray-400 hover:text-white hover:bg-white/5 rounded-full transition-colors active:rotate-180 duration-500 disabled:opacity-50"
+                        title="Sincronizar mensagens"
+                    >
+                        <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
+                    </button>
+
+                    {isOwner && (
+                        <button 
+                            onClick={() => setShowQuickDeal(!showQuickDeal)}
+                            className={`flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-lg transition-all ${
+                                showQuickDeal 
+                                ? 'bg-[#FFAE00] text-black shadow-lg shadow-[#FFAE00]/20' 
+                                : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow'
+                            }`}
+                            title="Fechar negócio"
+                        >
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                            <span className="hidden sm:inline">Fechar Negócio</span>
+                        </button>
+                    )}
+
+                    {onClose && (
+                        <button 
+                            onClick={onClose}
+                            className="p-2 text-gray-400 hover:text-white hover:bg-white/5 rounded-full transition-colors ml-1"
+                            title="Fechar chat"
+                        >
+                            <X className="w-4 h-4" />
+                        </button>
+                    )}
+                </div>
             </div>
 
             {/* Producer Counter-Proposal Action Banner */}
             {!isOwner && proposalData?.status === 'contraproposta' && proposalData.counter_amount && (
-                <div className="bg-[#FFAE00]/15 border-b border-[#FFAE00]/30 p-3 sm:p-4 animate-in slide-in-from-top duration-300">
+                <div className="bg-[#FFAE00]/15 border-b border-[#FFAE00]/30 p-3 sm:p-4 animate-in slide-in-from-top duration-300 z-10 shrink-0">
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                         <div className="flex items-center gap-3">
                             <div className="w-9 h-9 rounded-xl bg-[#FFAE00]/20 text-[#FFAE00] flex items-center justify-center shrink-0 border border-[#FFAE00]/30 shadow-sm">
@@ -481,7 +640,7 @@ export default function NegotiationChat({ proposalId, currentUserId, senderName,
 
             {/* Buyer Waiting Banner */}
             {isOwner && proposalData?.status === 'contraproposta' && proposalData.counter_amount && (
-                <div className="bg-yellow-500/10 border-b border-yellow-500/20 p-3 flex items-center justify-between">
+                <div className="bg-yellow-500/10 border-b border-yellow-500/20 p-3 flex items-center justify-between z-10 shrink-0">
                     <div className="flex items-center gap-2">
                         <Clock className="w-4 h-4 text-yellow-500 shrink-0" />
                         <span className="text-xs text-yellow-400 font-bold">
@@ -493,11 +652,11 @@ export default function NegotiationChat({ proposalId, currentUserId, senderName,
 
             {/* Quick Deal Panel (Owner Only) */}
             {isOwner && showQuickDeal && (
-                <div className="bg-[#FFAE00]/10 border-b border-[#FFAE00]/20 p-3 animate-in slide-in-from-top duration-300">
-                    <div className="flex flex-col gap-3">
+                <div className="bg-[#FFAE00]/10 border-b border-[#FFAE00]/20 p-3 animate-in slide-in-from-top duration-300 z-10 shrink-0">
+                    <div className="flex flex-col gap-3 max-w-2xl mx-auto w-full">
                         <div className="flex items-center justify-between">
                             <h4 className="text-[11px] font-black text-[#FFAE00] uppercase tracking-widest">Ajuste de Valor Final</h4>
-                            <span className="text-[10px] text-gray-500">Acordado no chat</span>
+                            <span className="text-[10px] text-gray-400">Acordado no chat</span>
                         </div>
                         <div className="flex items-center gap-2">
                             <div className="relative flex-1">
@@ -522,108 +681,121 @@ export default function NegotiationChat({ proposalId, currentUserId, senderName,
                 </div>
             )}
 
-
-            {/* Messages Area */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin scrollbar-thumb-gray-800 scrollbar-track-transparent">
-                {loading ? (
-                    <div className="flex justify-center items-center h-full text-gray-500 text-sm">
-                        <span className="animate-pulse">Carregando mensagens...</span>
-                    </div>
-                ) : messages.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center h-full text-gray-500 space-y-3 opacity-80">
-                        <div className="w-12 h-12 bg-gray-800/50 rounded-full flex items-center justify-center">
-                            <Send className="w-5 h-5 text-gray-400" />
+            {/* Messages Area - WhatsApp Web Style Centered Column */}
+            <div className="flex-1 overflow-y-auto p-3 sm:p-4 scrollbar-thin scrollbar-thumb-gray-700/40 scrollbar-track-transparent bg-[#0b141a]">
+                <div className="max-w-2xl mx-auto w-full space-y-2.5">
+                    {loading ? (
+                        <div className="flex justify-center items-center h-48 text-gray-400 text-xs">
+                            <span className="animate-pulse">Carregando mensagens...</span>
                         </div>
-                        <p className="text-sm text-center">Nenhuma mensagem ainda.<br/>Inicie a negociação!</p>
-                    </div>
-                ) : (
-                    messages.map(msg => {
-                        const isMe = msg.sender_id === currentUserId
-                        return (
-                            <div key={msg.id} className={`flex w-full ${isMe ? 'justify-end' : 'justify-start'}`}>
-                                <div className={`max-w-[85%] sm:max-w-[75%] rounded-2xl px-4 py-2.5 shadow-sm ${isMe
-                                        ? 'bg-[#FFAE00]/10 border border-[#FFAE00]/20 text-gray-100 rounded-br-sm'
-                                        : 'bg-[#1A1D23] border border-gray-800 text-gray-200 rounded-bl-sm'
-                                    }`}>
-                                    {!isMe && (
-                                        <p className="text-[10px] font-bold text-[#FFAE00] mb-1 uppercase tracking-tighter">
-                                            {msg.users?.name || 'Sistema'}
-                                        </p>
-                                    )}
-                                    {isMe && (
-                                        <p className="text-[10px] font-bold text-gray-500 mb-1 uppercase tracking-tighter text-right">
-                                            Você
-                                        </p>
-                                    )}
-                                    {msg.attachment_url && (() => {
-                                        const url = msg.attachment_url
-                                        const ext = url.split('.').pop()?.toLowerCase() || ''
-                                        const isImage = ['png', 'jpg', 'jpeg', 'webp', 'gif'].includes(ext)
-                                        const rawFileName = decodeURIComponent(url.split('/').pop() || 'arquivo')
-                                        const fileName = rawFileName.replace(/^\d+-[a-z0-9]+_/i, '')
-
-                                        if (isImage) {
-                                            return (
-                                                <div className="mb-2 overflow-hidden rounded-lg">
-                                                    <a href={url} target="_blank" rel="noopener noreferrer">
-                                                        <img
-                                                            src={url}
-                                                            alt="Anexo"
-                                                            className="max-w-full h-auto object-cover rounded-lg border border-white/10 hover:scale-105 transition-transform duration-300"
-                                                            style={{ maxHeight: '200px' }}
-                                                        />
-                                                    </a>
-                                                </div>
-                                            )
-                                        }
-
-                                        return (
-                                            <div className="mb-2">
-                                                <a
-                                                    href={url}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    download
-                                                    className="inline-flex items-center gap-2.5 bg-[#0F1115] hover:bg-[#FFAE00]/10 border border-[#FFAE00]/30 hover:border-[#FFAE00] text-gray-200 px-3.5 py-2.5 rounded-xl transition-all text-xs font-semibold group shadow"
-                                                >
-                                                    <div className="w-8 h-8 rounded-lg bg-[#FFAE00]/10 text-[#FFAE00] flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
-                                                        <Package className="w-4 h-4" />
-                                                    </div>
-                                                    <div className="flex flex-col text-left">
-                                                        <span className="truncate max-w-[200px] text-white group-hover:text-[#FFAE00] transition-colors">{fileName}</span>
-                                                        <span className="text-[10px] text-gray-500 uppercase tracking-wider font-bold">Baixar Arquivo (.{(ext).toUpperCase()})</span>
-                                                    </div>
-                                                    <Download className="w-4 h-4 text-gray-400 group-hover:text-[#FFAE00] ml-1 shrink-0" />
-                                                </a>
-                                            </div>
-                                        )
-                                    })()}
-                                    {(() => {
-                                        const cleanContent = msg.content
-                                            ? msg.content.replace(/^\[SOLICITAÇÃO DE AJUSTE NA MÁQUINA\]\s*/i, '').replace(/^\[AJUSTE NA MÁQUINA\]\s*/i, '')
-                                            : ''
-                                        return cleanContent ? (
-                                            <p className="text-sm leading-relaxed whitespace-pre-wrap">{cleanContent}</p>
-                                        ) : null
-                                    })()}
-                                    <span className="text-[10px] opacity-40 mt-1 block text-right font-medium">
-                                        {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                    </span>
-                                </div>
+                    ) : messages.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center h-48 text-gray-400 space-y-2 opacity-70">
+                            <div className="w-10 h-10 bg-white/5 rounded-full flex items-center justify-center">
+                                <Send className="w-4 h-4 text-gray-400" />
                             </div>
-                        )
-                    })
-                )}
-                <div ref={messagesEndRef} />
+                            <p className="text-xs text-center">Nenhuma mensagem ainda.<br/>Inicie a conversa!</p>
+                        </div>
+                    ) : (
+                        messages.map(msg => {
+                            const isMe = msg.sender_id === currentUserId
+                            const isSystemNotice = msg.content?.startsWith('[CONTRAOFERTA') || 
+                                                  msg.content?.startsWith('[SISTEMA]') || 
+                                                  msg.content?.includes('NEGÓCIO FECHADO')
+
+                            // Render centered WhatsApp-style pill for system updates
+                            if (isSystemNotice) {
+                                const cleanSystemContent = msg.content
+                                    .replace(/^\[CONTRAOFERTA ACEITA\]\s*/i, 'Contraproposta aceita: ')
+                                    .replace(/^\[CONTRAOFERTA RECUSADA\]\s*/i, 'Contraproposta recusada: ')
+                                    .replace(/^\[SISTEMA\]\s*/i, '')
+                                    .replace(/\[NEGÓCIO FECHADO\]/i, 'Negócio fechado!')
+                                    .replace(/🤝\s*/g, '')
+
+                                return (
+                                    <div key={msg.id} className="flex justify-center my-2.5 select-none">
+                                        <div className="bg-[#182229] border border-white/10 text-gray-300 text-[11px] sm:text-xs px-3.5 py-1.5 rounded-lg shadow-sm max-w-md text-center flex items-center gap-2">
+                                            <Handshake className="w-3.5 h-3.5 text-[#FFAE00] shrink-0" />
+                                            <span>{cleanSystemContent}</span>
+                                            <span className="text-[10px] text-gray-500 ml-1">
+                                                {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                            </span>
+                                        </div>
+                                    </div>
+                                )
+                            }
+
+                            const cleanContent = msg.content
+                                ? msg.content
+                                    .replace(/^\[SOLICITAÇÃO DE AJUSTE NA MÁQUINA\]\s*/i, '')
+                                    .replace(/^\[AJUSTE NA MÁQUINA\]\s*/i, '')
+                                : ''
+
+                            return (
+                                <div key={msg.id} className={`flex w-full ${isMe ? 'justify-end' : 'justify-start'}`}>
+                                    <div className={`flex items-end gap-2 max-w-[85%] sm:max-w-[75%] md:max-w-[70%] ${isMe ? 'flex-row-reverse' : 'flex-row'}`}>
+                                        {/* Avatar on other user's message */}
+                                        {!isMe && (
+                                            <div className="w-7 h-7 rounded-full overflow-hidden bg-gray-800 border border-white/10 shrink-0 mb-1 flex items-center justify-center text-[10px] font-bold text-gray-300 select-none">
+                                                {msg.users?.avatar_url || otherUserData?.avatar_url ? (
+                                                    <img 
+                                                        src={msg.users?.avatar_url || otherUserData?.avatar_url || ''} 
+                                                        alt="" 
+                                                        className="w-full h-full object-cover" 
+                                                    />
+                                                ) : (
+                                                    <span>{(msg.users?.name || otherUserData?.name || 'C').charAt(0).toUpperCase()}</span>
+                                                )}
+                                            </div>
+                                        )}
+
+                                        {/* Speech Bubble */}
+                                        <div className={`relative px-3.5 py-2 shadow-sm ${
+                                            isMe 
+                                                ? 'bg-[#005c4b] text-[#e9edef] rounded-2xl rounded-tr-xs border border-[#02735e]/30' 
+                                                : 'bg-[#202c33] text-[#e9edef] rounded-2xl rounded-tl-xs border border-white/5'
+                                        }`}>
+                                            {/* Contact name header for incoming message */}
+                                            {!isMe && (
+                                                <p className="text-[11px] font-bold text-sky-400 mb-1 leading-tight select-none">
+                                                    {msg.users?.name || otherUserData?.name || 'Contato'}
+                                                </p>
+                                            )}
+
+                                            {renderAttachment(msg.attachment_url)}
+
+                                            {/* Content & Time Layout (WhatsApp inline/wrap style) */}
+                                            <div className="flex flex-wrap items-end justify-between gap-x-3 gap-y-1">
+                                                {cleanContent && (
+                                                    <p className="text-[13.5px] leading-relaxed whitespace-pre-wrap break-words text-[#e9edef] flex-1 min-w-[60px]">
+                                                        {cleanContent}
+                                                    </p>
+                                                )}
+                                                <div className={`flex items-center gap-1 select-none text-[10px] ml-auto shrink-0 pb-0.5 ${
+                                                    isMe ? 'text-emerald-200/75' : 'text-gray-400'
+                                                }`}>
+                                                    <span>{new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                                    {isMe && (
+                                                        <CheckCheck className="w-3.5 h-3.5 text-sky-400 shrink-0" />
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )
+                        })
+                    )}
+                    <div ref={messagesEndRef} />
+                </div>
             </div>
 
-            {/* Input Area */}
-            <form onSubmit={handleSendMessage} className="p-3 bg-[#1A1D23] border-t border-gray-800/80 flex gap-2 items-center w-full">
+            {/* WhatsApp Input Area */}
+            <form onSubmit={handleSendMessage} className="p-2.5 sm:p-3 bg-[#202c33] border-t border-white/5 flex gap-2 items-center w-full shrink-0">
                 <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    className="flex-shrink-0 p-2.5 text-gray-400 hover:text-[#FFAE00] hover:bg-[#FFAE00]/10 rounded-full transition-all focus:outline-none"
-                    title="Anexar Imagem ou Matriz de Bordado"
+                    className="flex-shrink-0 p-2.5 text-gray-400 hover:text-gray-200 hover:bg-white/5 rounded-full transition-colors focus:outline-none"
+                    title="Anexar arquivo ou imagem"
                 >
                     <Paperclip className="w-5 h-5" />
                 </button>
@@ -641,17 +813,18 @@ export default function NegotiationChat({ proposalId, currentUserId, senderName,
                         type="text"
                         value={newMessage}
                         onChange={e => setNewMessage(e.target.value)}
-                        placeholder="Digite sua mensagem ou anexe arquivos..."
-                        className="w-full bg-[#0F1115] border border-gray-700/50 rounded-full px-5 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#FFAE00]/50 transition-colors shadow-inner"
+                        placeholder="Mensagem"
+                        className="w-full bg-[#2a3942] border border-transparent focus:border-white/10 rounded-lg px-4 py-2.5 text-sm text-[#e9edef] placeholder-gray-400 focus:outline-none transition-colors"
                     />
                 </div>
 
                 <button
                     type="submit"
                     disabled={sending || !newMessage.trim()}
-                    className="flex-shrink-0 p-3 bg-[#FFAE00] text-[#0F1115] rounded-full hover:bg-[#D97706] disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md focus:outline-none"
+                    className="flex-shrink-0 w-10 h-10 rounded-full bg-[#00a884] hover:bg-[#029071] text-white flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-md focus:outline-none active:scale-95"
+                    title="Enviar mensagem"
                 >
-                    <Send className="w-4 h-4 ml-[2px]" />
+                    <Send className="w-4 h-4 ml-0.5" />
                 </button>
             </form>
         </div>

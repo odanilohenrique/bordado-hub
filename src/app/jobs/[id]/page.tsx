@@ -129,7 +129,7 @@ function JobDetailClient({ jobId }: { jobId: string }) {
 
         const { data: jobData } = await supabase
             .from('jobs')
-            .select('*')
+            .select('*, users!jobs_cliente_id_fkey(name, avatar_url)')
             .eq('id', jobId)
             .single()
 
@@ -2046,17 +2046,8 @@ function JobDetailClient({ jobId }: { jobId: string }) {
 
                 {/* 3. BOTTOM SECTION: Chat */}
                 {negotiatingProposalId && (
-                    <div id="negotiation-chat-section" className="bg-[#1A1D23] border border-[#FFAE00]/30 rounded-xl overflow-hidden shadow-2xl mt-2 mb-8 animate-in slide-in-from-bottom-4 fade-in duration-300">
-                        <div className="bg-[#FFAE00]/10 border-b border-[#FFAE00]/20 px-4 py-3 flex justify-between items-center">
-                            <h3 className="text-sm font-bold text-[#FFAE00] flex items-center gap-2">
-                                <MessageSquare className="w-4 h-4" /> 
-                                Negociação Privada (Proposta #{negotiatingProposalId.split('-')[0]})
-                            </h3>
-                            <button onClick={() => setNegotiatingProposalId(null)} className="text-gray-400 hover:text-white p-1 rounded-md hover:bg-white/5 transition-colors">
-                                <X className="w-4 h-4" />
-                            </button>
-                        </div>
-                        <div className="h-[400px]">
+                    <div id="negotiation-chat-section" className="bg-[#111b21] border border-white/10 rounded-2xl overflow-hidden shadow-2xl mt-4 mb-8 animate-in slide-in-from-bottom-4 fade-in duration-300">
+                        <div className="h-[560px]">
                             <NegotiationChat
                                 proposalId={negotiatingProposalId}
                                 currentUserId={currentUser?.id}
@@ -2065,6 +2056,23 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                 jobId={jobId}
                                 initialAmount={proposals.find(p => p.id === negotiatingProposalId)?.amount || 0}
                                 onProposalUpdated={loadData}
+                                onClose={() => setNegotiatingProposalId(null)}
+                                otherUser={(() => {
+                                    const p = proposals.find(p => p.id === negotiatingProposalId)
+                                    if (isOwner) {
+                                        return {
+                                            name: p?.users?.name || 'Programador',
+                                            avatar_url: p?.users?.avatar_url || null,
+                                            role: 'Programador'
+                                        }
+                                    } else {
+                                        return {
+                                            name: (job as any)?.users?.name || 'Cliente',
+                                            avatar_url: (job as any)?.users?.avatar_url || null,
+                                            role: 'Cliente'
+                                        }
+                                    }
+                                })()}
                             />
                         </div>
                     </div>
