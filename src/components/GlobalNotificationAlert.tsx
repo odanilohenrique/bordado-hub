@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
-import { Bell, X, ExternalLink } from 'lucide-react'
+import { Bell, X, ExternalLink, Zap, CheckCircle2 } from 'lucide-react'
 import Link from 'next/link'
 
 interface Notification {
@@ -67,6 +67,10 @@ export default function GlobalNotificationAlert() {
                         const newNotification = payload.new as Notification
                         setNotifications(prev => [newNotification, ...prev])
                         setCurrentAlert(newNotification)
+                        if (typeof window !== 'undefined') {
+                            window.dispatchEvent(new CustomEvent('bordadohub_notification', { detail: newNotification }))
+                            window.dispatchEvent(new CustomEvent('bordadohub_reload_job'))
+                        }
                     }
                 )
                 .subscribe((status) => {
@@ -92,6 +96,9 @@ export default function GlobalNotificationAlert() {
             if (currentAlert?.id === id) {
                 setCurrentAlert(null)
             }
+            if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('bordadohub_reload_job'))
+            }
         } catch (error) {
             console.error('Error marking as read:', error)
         }
@@ -104,6 +111,9 @@ export default function GlobalNotificationAlert() {
     }
 
     if (!currentAlert) return null
+
+    const payProposalId = currentAlert.link_url?.match(/[?&]pay=([^&]+)/)?.[1]
+    const isCounterAccepted = currentAlert.type === 'contraproposta_aceita' || currentAlert.title?.toLowerCase().includes('contraproposta aceita')
 
     return (
         <div className="fixed inset-0 z-50 flex items-end sm:items-start justify-center p-4 sm:p-6 pointer-events-none">
@@ -126,7 +136,11 @@ export default function GlobalNotificationAlert() {
                 {/* Content */}
                 <div className="px-6 flex items-start gap-4">
                     <div className="flex-shrink-0 bg-[#FFAE00]/20 p-3 rounded-full border border-[#FFAE00]/40 shadow-[0_0_15px_rgba(255,174,0,0.4)]">
-                        <Bell className="w-6 h-6 text-[#FFAE00] animate-wiggle" />
+                        {isCounterAccepted ? (
+                            <Zap className="w-6 h-6 text-[#FFAE00] animate-bounce" />
+                        ) : (
+                            <Bell className="w-6 h-6 text-[#FFAE00] animate-wiggle" />
+                        )}
                     </div>
                     <div className="flex-1 mt-1">
                         <h3 className="text-lg font-bold text-white leading-tight mb-1">
@@ -140,7 +154,26 @@ export default function GlobalNotificationAlert() {
 
                 {/* Action Area */}
                 <div className="px-6 mt-6 mb-4">
-                    {currentAlert.link_url ? (
+                    {isCounterAccepted && payProposalId ? (
+                        <div className="flex flex-col gap-2 w-full">
+                            <Link 
+                                href={`/checkout/${payProposalId}`}
+                                onClick={() => markAsRead(currentAlert.id)}
+                                className="flex items-center justify-center gap-2 w-full bg-[#FFAE00] hover:bg-[#FFB92E] text-[#0F1115] font-black py-3 rounded-xl transition-transform active:scale-95 uppercase tracking-wide text-xs shadow-lg shadow-[#FFAE00]/20"
+                            >
+                                <Zap className="w-4 h-4 fill-black" /> Pagar Agora
+                            </Link>
+                            {currentAlert.link_url && (
+                                <Link 
+                                    href={currentAlert.link_url}
+                                    onClick={() => markAsRead(currentAlert.id)}
+                                    className="flex items-center justify-center gap-1.5 w-full bg-white/5 hover:bg-white/10 text-gray-300 font-semibold py-2.5 rounded-xl text-xs transition-colors border border-white/10"
+                                >
+                                    Ver Detalhes do Pedido <ExternalLink className="w-3.5 h-3.5" />
+                                </Link>
+                            )}
+                        </div>
+                    ) : currentAlert.link_url ? (
                         <Link 
                             href={currentAlert.link_url}
                             onClick={() => markAsRead(currentAlert.id)}

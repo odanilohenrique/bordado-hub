@@ -160,6 +160,7 @@ export default function NegotiationChat({ proposalId, currentUserId, senderName,
             const { error: propError } = await supabase
                 .from('proposals')
                 .update({
+                    job_id: jobId,
                     amount: targetAmount,
                     status: 'pendente',
                     counter_amount: null,
@@ -189,7 +190,7 @@ export default function NegotiationChat({ proposalId, currentUserId, senderName,
                     type: 'contraproposta_aceita',
                     title: 'Contraproposta Aceita!',
                     message: `O produtor aceitou sua oferta de R$ ${Number(targetAmount).toFixed(2)} no pedido "${jobInfo.title}". Conclua o pagamento para iniciar a produção.`,
-                    link_url: `/jobs/${jobId}`
+                    link_url: `/jobs/${jobId}?pay=${proposalId}`
                 })
             }
 

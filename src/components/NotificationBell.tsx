@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabaseClient'
-import { Bell, Wrench, MessageSquare, CheckCircle, ExternalLink, Check } from 'lucide-react'
+import { Bell, Wrench, MessageSquare, CheckCircle, ExternalLink, Check, Zap } from 'lucide-react'
 import Link from 'next/link'
 
 interface NotificationItem {
@@ -203,6 +203,8 @@ export default function NotificationBell() {
                         ) : (
                             notifications.map((n) => {
                                 const isAdjustment = n.type?.includes('ajuste') || n.title?.includes('Ajuste')
+                                const isCounterAccepted = n.type === 'contraproposta_aceita' || n.title?.toLowerCase().includes('contraproposta aceita')
+                                const payProposalId = n.link_url?.match(/[?&]pay=([^&]+)/)?.[1]
                                 return (
                                     <div
                                         key={n.id}
@@ -212,9 +214,9 @@ export default function NotificationBell() {
                                     >
                                         <div className="flex items-start gap-3">
                                             <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${
-                                                isAdjustment ? 'bg-amber-500/20 text-[#FFAE00]' : 'bg-blue-500/20 text-blue-400'
+                                                isCounterAccepted ? 'bg-amber-500/20 text-[#FFAE00]' : isAdjustment ? 'bg-amber-500/20 text-[#FFAE00]' : 'bg-blue-500/20 text-blue-400'
                                             }`}>
-                                                {isAdjustment ? <Wrench className="w-4 h-4" /> : <MessageSquare className="w-4 h-4" />}
+                                                {isCounterAccepted ? <Zap className="w-4 h-4 fill-[#FFAE00]" /> : isAdjustment ? <Wrench className="w-4 h-4" /> : <MessageSquare className="w-4 h-4" />}
                                             </div>
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex items-center justify-between gap-2">
@@ -227,16 +229,32 @@ export default function NotificationBell() {
                                                     {n.message}
                                                 </p>
                                                 {n.link_url && (
-                                                    <Link
-                                                        href={n.link_url}
-                                                        onClick={() => {
-                                                            markAsRead(n.id)
-                                                            setIsOpen(false)
-                                                        }}
-                                                        className="inline-flex items-center gap-1 text-[11px] font-bold text-[#FFAE00] hover:text-yellow-400 mt-2"
-                                                    >
-                                                        Abrir Pedido / Chat <ExternalLink className="w-3 h-3" />
-                                                    </Link>
+                                                    <div className="flex items-center gap-3 mt-2">
+                                                        {isCounterAccepted && payProposalId ? (
+                                                            <Link
+                                                                href={`/checkout/${payProposalId}`}
+                                                                onClick={() => {
+                                                                    markAsRead(n.id)
+                                                                    setIsOpen(false)
+                                                                    if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('bordadohub_reload_job'))
+                                                                }}
+                                                                className="inline-flex items-center gap-1 text-[11px] font-black bg-[#FFAE00] text-black px-2.5 py-1 rounded-md hover:bg-yellow-400 transition-colors shadow-sm"
+                                                            >
+                                                                <Zap className="w-3 h-3 fill-black" /> Pagar Agora
+                                                            </Link>
+                                                        ) : null}
+                                                        <Link
+                                                            href={n.link_url}
+                                                            onClick={() => {
+                                                                markAsRead(n.id)
+                                                                setIsOpen(false)
+                                                                if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('bordadohub_reload_job'))
+                                                            }}
+                                                            className="inline-flex items-center gap-1 text-[11px] font-bold text-[#FFAE00] hover:text-yellow-400"
+                                                        >
+                                                            {isCounterAccepted ? 'Ver Pedido' : 'Abrir Pedido / Chat'} <ExternalLink className="w-3 h-3" />
+                                                        </Link>
+                                                    </div>
                                                 )}
                                             </div>
                                         </div>

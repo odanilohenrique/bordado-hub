@@ -87,6 +87,7 @@ function JobDetailClient({ jobId }: { jobId: string }) {
     // Negotiation state
     const searchParams = useSearchParams()
     const chatParam = searchParams.get('chat')
+    const payParam = searchParams.get('pay')
     const [negotiatingProposalId, setNegotiatingProposalId] = useState<string | null>(null)
     const [counterAmount, setCounterAmount] = useState('')
     const [counterMessage, setCounterMessage] = useState('')
@@ -199,7 +200,7 @@ function JobDetailClient({ jobId }: { jobId: string }) {
     useEffect(() => {
         loadData()
 
-        // Listen for new proposals and messages
+        // 1. Listen for new proposals and messages
         const channel = supabase
             .channel(`job_updates_${jobId}`)
             .on('postgres_changes', {
@@ -223,14 +224,44 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                 event: '*',
                 schema: 'public',
                 table: 'proposals',
-                filter: `job_id=eq.${jobId}`
-            }, () => {
-                loadData() // Reload proposals on changes
+            }, (payload) => {
+                const newRow = payload.new as any
+                const oldRow = payload.old as any
+                // If it belongs to this job, or if job_id is null in partial update, reload
+                if (!newRow?.job_id || newRow?.job_id === jobId || oldRow?.job_id === jobId) {
+                    loadData()
+                }
             })
             .subscribe()
 
+        // 2. High-speed silent polling fallback (every 3s) while the job page is open to guarantee zero-F5 sync
+        const syncInterval = setInterval(() => {
+            loadData()
+        }, 3000)
+
+        // 3. Sync immediately when window is refocused or tab becomes active
+        const handleVisibilityOrFocus = () => {
+            if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+                loadData()
+            }
+        }
+        window.addEventListener('focus', handleVisibilityOrFocus)
+        document.addEventListener('visibilitychange', handleVisibilityOrFocus)
+
+        // 4. Custom events triggered by notifications / popups
+        const handleNotificationReload = () => {
+            loadData()
+        }
+        window.addEventListener('bordadohub_reload_job', handleNotificationReload)
+        window.addEventListener('bordadohub_notification', handleNotificationReload)
+
         return () => {
             supabase.removeChannel(channel)
+            clearInterval(syncInterval)
+            window.removeEventListener('focus', handleVisibilityOrFocus)
+            document.removeEventListener('visibilitychange', handleVisibilityOrFocus)
+            window.removeEventListener('bordadohub_reload_job', handleNotificationReload)
+            window.removeEventListener('bordadohub_notification', handleNotificationReload)
         }
     }, [jobId, loadData, currentUser?.id])
 
@@ -278,6 +309,21 @@ function JobDetailClient({ jobId }: { jobId: string }) {
             }, 300)
         }
     }, [chatParam, proposals.length, currentUser?.id])
+
+    // Auto-open payment modal when arriving via notification with ?pay=...
+    useEffect(() => {
+        if (!payParam || proposals.length === 0) return
+        const found = proposals.find((p: any) => p.id === payParam)
+        if (found) {
+            setConfirmAcceptModal(found.id)
+            setTimeout(() => {
+                const propCard = document.getElementById(`proposal-card-${found.id}`)
+                if (propCard) {
+                    propCard.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                }
+            }, 300)
+        }
+    }, [payParam, proposals])
 
     const handleOpenChatForAdjustment = async () => {
         if (!acceptedProposal) return
@@ -515,6 +561,7 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                 const { error } = await supabase
                     .from('proposals')
                     .update({
+                        job_id: jobId,
                         amount: targetAmount,
                         status: 'pendente',
                         counter_amount: null,
@@ -538,7 +585,7 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                         type: 'contraproposta_aceita',
                         title: 'Contraproposta Aceita!',
                         message: `O produtor aceitou sua oferta de R$ ${Number(targetAmount).toFixed(2)} para o pedido "${job.title}". Conclua o pagamento para iniciar a produção.`,
-                        link_url: `/jobs/${job.id}`
+                        link_url: `/jobs/${job.id}?pay=${proposalId}`
                     })
                 }
 
@@ -1781,7 +1828,7 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                 <div className="w-full text-center py-6 text-gray-500 text-sm">Nenhuma proposta enviada.</div>
                             ) : (
                                 proposals.map((proposal: any) => (
-                                    <div key={proposal.id} className={`min-w-[280px] max-w-[320px] shrink-0 bg-[#0F1115] rounded-xl border p-4 snap-start transition-all ${negotiatingProposalId === proposal.id ? 'border-[#FFAE00] shadow-[0_0_15px_rgba(255,174,0,0.1)]' : 'border-white/5 hover:border-white/10'}`}>
+                                    <div key={proposal.id} id={`proposal-card-${proposal.id}`} className={`min-w-[280px] max-w-[320px] shrink-0 bg-[#0F1115] rounded-xl border p-4 snap-start transition-all ${negotiatingProposalId === proposal.id ? 'border-[#FFAE00] shadow-[0_0_15px_rgba(255,174,0,0.1)]' : 'border-white/5 hover:border-white/10'}`}>
                                         <div className="flex flex-col mb-3 bg-[#1A1D23] p-3 rounded-xl border border-white/5 relative shadow-inner">
                                             <div className="flex items-center gap-3 mb-3">
                                                 <div className="w-10 h-10 rounded-full bg-gray-800 border border-gray-700 overflow-hidden relative shadow-sm">
@@ -1815,8 +1862,8 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                             <div className="flex gap-2 relative">
                                                 {isOwner && proposal.status === 'pendente' && (
                                                     <>
-                                                        <button onClick={() => setConfirmAcceptModal(proposal.id)} className="flex-1 bg-[#FFAE00] text-black text-xs font-bold py-2 rounded-lg transition-colors flex items-center justify-center gap-1 hover:brightness-110"><Zap className="w-3 h-3"/> Pagar</button>
-                                                        <button onClick={() => handleNegotiate(proposal.id)} className={`flex-1 border text-xs font-bold py-2 rounded-lg transition-colors flex items-center justify-center gap-1 relative ${negotiatingProposalId === proposal.id ? 'bg-white/10 text-white border-white/20' : 'border-white/10 text-gray-400 hover:text-white'}`}>
+                                                        <button onClick={() => setConfirmAcceptModal(proposal.id)} className="flex-1 bg-[#FFAE00] hover:bg-yellow-400 text-black text-xs font-black py-2.5 rounded-lg transition-all shadow-md shadow-[#FFAE00]/10 flex items-center justify-center gap-1.5 active:scale-95"><Zap className="w-3.5 h-3.5 fill-black"/> Pagar Agora</button>
+                                                        <button onClick={() => handleNegotiate(proposal.id)} className={`flex-1 border text-xs font-bold py-2.5 rounded-lg transition-colors flex items-center justify-center gap-1 relative ${negotiatingProposalId === proposal.id ? 'bg-white/10 text-white border-white/20' : 'border-white/10 text-gray-400 hover:text-white'}`}>
                                                             <MessageSquare className="w-3 h-3"/> {negotiatingProposalId === proposal.id ? 'Ocultar' : 'Chat'}
                                                             {unreadCounts[proposal.id] > 0 && <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white shadow-lg animate-bounce">{unreadCounts[proposal.id]}</span>}
                                                         </button>
@@ -1865,9 +1912,15 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                             )}
 
                                             {isOwner && proposal.status === 'contraproposta' && (
-                                                <div className="p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg text-center mt-2">
-                                                    <p className="text-[10px] text-yellow-500 font-bold uppercase tracking-wider mb-1"><Clock className="w-3 h-3 inline mr-1"/> Aguardando Resposta</p>
-                                                    <p className="text-xs text-gray-300">Você ofereceu <strong>R$ {Number(proposal.counter_amount).toFixed(2)}</strong></p>
+                                                <div className="flex flex-col gap-2 mt-2">
+                                                    <div className="p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg text-center">
+                                                        <p className="text-[10px] text-yellow-500 font-bold uppercase tracking-wider mb-1"><Clock className="w-3 h-3 inline mr-1"/> Aguardando Resposta</p>
+                                                        <p className="text-xs text-gray-300">Você ofereceu <strong>R$ {Number(proposal.counter_amount).toFixed(2)}</strong></p>
+                                                    </div>
+                                                    <button onClick={() => handleNegotiate(proposal.id)} className={`w-full border text-xs font-bold py-2 rounded-lg transition-colors flex items-center justify-center gap-1 relative ${negotiatingProposalId === proposal.id ? 'bg-white/10 text-white border-white/20' : 'border-white/10 text-gray-400 hover:text-white'}`}>
+                                                        <MessageSquare className="w-3 h-3"/> {negotiatingProposalId === proposal.id ? 'Ocultar Chat' : 'Abrir Chat'}
+                                                        {unreadCounts[proposal.id] > 0 && <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white shadow-lg animate-bounce">{unreadCounts[proposal.id]}</span>}
+                                                    </button>
                                                 </div>
                                             )}
 
