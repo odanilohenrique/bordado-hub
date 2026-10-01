@@ -457,8 +457,37 @@ export default function NegotiationChat({
         if (!url) return null
         const ext = url.split('.').pop()?.toLowerCase() || ''
         const isImage = ['png', 'jpg', 'jpeg', 'webp', 'gif'].includes(ext)
-        const rawFileName = decodeURIComponent(url.split('/').pop() || 'arquivo')
-        const fileName = rawFileName.replace(/^\d+-[a-z0-9]+_/i, '')
+
+        const getCleanFileName = (rawUrl: string) => {
+            try {
+                const raw = decodeURIComponent(rawUrl.split('/').pop() || 'arquivo')
+
+                // 1. Remove UUID prefixes (e.g. "ff4cd8ca-20b1-40d5-a596-a0733d3ce8cb_")
+                let clean = raw.replace(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}[_-]/i, '')
+
+                // 2. Remove timestamp/random hash prefixes (e.g. "1790855437637-saxfc_", "1790855437637_")
+                clean = clean.replace(/^\d+[-_][a-z0-9]+[_-]/i, '').replace(/^\d+_/i, '')
+
+                const fileExtension = clean.split('.').pop() || ext || 'arquivo'
+                const baseWithoutExt = clean.substring(0, clean.lastIndexOf('.')) || clean
+
+                // If what's left is only random codes/timestamps (such as legacy uploads)
+                const isOnlyCodeOrHash = 
+                    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(baseWithoutExt) ||
+                    /^\d{10,14}(-[a-z0-9]+)?$/i.test(baseWithoutExt) ||
+                    /^[a-z0-9]{5,10}$/i.test(baseWithoutExt)
+
+                if (isOnlyCodeOrHash) {
+                    return `anexo_revisao.${fileExtension}`
+                }
+
+                return clean || raw
+            } catch {
+                return 'arquivo'
+            }
+        }
+
+        const fileName = getCleanFileName(url)
 
         if (isImage) {
             return (

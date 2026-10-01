@@ -30,8 +30,9 @@ export async function POST(request: Request) {
 
         // 2. Upload file to storage using service client (bypasses RLS issues)
         const fileExt = file.name.split('.').pop() || 'file'
-        const safeName = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}_${file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_')}`
-        const filePath = `chat-attachments/${proposalId}/${safeName}`
+        const cleanName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_')
+        const uniqueFolder = `${Date.now()}-${Math.random().toString(36).substring(2, 7)}`
+        const filePath = `chat-attachments/${proposalId}/${uniqueFolder}/${cleanName}`
         const fileBuffer = Buffer.from(await file.arrayBuffer())
 
         const { error: uploadError } = await supabase.storage

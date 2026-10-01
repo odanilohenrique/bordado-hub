@@ -19,9 +19,9 @@ export async function POST(request: Request) {
             const file = formData.get('photo') as File | null
 
             if (file && file.size > 0) {
-                const fileExt = file.name.split('.').pop() || 'jpg'
-                const safeName = `${Date.now()}-${Math.random().toString(36).substring(2, 7)}.${fileExt}`
-                const path = `revisions/${jobId}_${safeName}`
+                const cleanOriginalName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_')
+                const uniqueFolder = `${Date.now()}-${Math.random().toString(36).substring(2, 7)}`
+                const path = `revisions/${jobId}/${uniqueFolder}/${cleanOriginalName}`
                 const buffer = Buffer.from(await file.arrayBuffer())
 
                 const { error: uploadError } = await supabase.storage
