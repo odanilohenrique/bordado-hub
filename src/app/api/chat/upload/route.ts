@@ -75,27 +75,65 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: `Erro ao registrar mensagem: ${msgError.message}` }, { status: 500 })
         }
 
-        // 5. Notify the recipient in real-time
+        // 5. Check if programmer is delivering a revision or regular message
         try {
             const { data: proposal } = await supabase
                 .from('proposals')
-                .select('id, criador_id, job_id, jobs(id, title, cliente_id)')
+                .select('id, criador_id, job_id, jobs(id, title, cliente_id, status, delivery_url)')
                 .eq('id', proposalId)
                 .single()
 
             if (proposal) {
                 const jobData = Array.isArray(proposal.jobs) ? proposal.jobs[0] : proposal.jobs
-                const recipientId = senderId === proposal.criador_id ? jobData?.cliente_id : proposal.criador_id
-                const senderName = messageData?.users?.name || 'Alguém'
+                const isProgrammer = senderId === proposal.criador_id
+                const senderName = messageData?.users?.name || 'Programador'
 
-                if (recipientId) {
-                    await supabase.from('notifications').insert({
-                        user_id: recipientId,
-                        type: isEmbroidery ? 'matriz_recebida' : 'anexo_recebido',
-                        title: isEmbroidery ? 'Nova Matriz no Chat' : `Novo Anexo de ${senderName}`,
-                        message: isEmbroidery ? `${senderName} enviou a matriz "${file.name}" no chat.` : `${senderName} enviou um arquivo no pedido.`,
-                        link_url: `/jobs/${proposal.job_id}?chat=${proposalId}`
+                if (isProgrammer && jobData?.status === 'em_revisao') {
+                    // Combine previous delivery_url and the new file URL
+                    const existingUrls = jobData.delivery_url ? jobData.delivery_url.split(',') : []
+                    if (!existingUrls.includes(publicUrl)) {
+                        existingUrls.push(publicUrl)
+                    }
+
+                    // Automatically mark job as delivered
+                    await supabase
+                        .from('jobs')
+                        .update({
+                            status: 'entregue',
+                            delivery_url: existingUrls.join(','),
+                            delivered_at: new Date().toISOString()
+                        })
+                        .eq('id', proposal.job_id)
+
+                    // Notify buyer that revised matrix was delivered
+                    if (jobData?.cliente_id) {
+                        await supabase.from('notifications').insert({
+                            user_id: jobData.cliente_id,
+                            type: 'matriz_revisada_entregue',
+                            title: 'Matriz Revisada Entregue!',
+                            message: `${senderName} enviou a versão corrigida da matriz no chat. Baixe e teste o arquivo!`,
+                            link_url: `/jobs/${proposal.job_id}`
+                        })
+                    }
+
+                    // System message in chat
+                    await supabase.from('proposal_messages').insert({
+                        proposal_id: proposalId,
+                        sender_id: senderId,
+                        content: '[SISTEMA] Correção da matriz enviada! O pedido foi marcado como entregue para teste do cliente.'
                     })
+                } else {
+                    const recipientId = isProgrammer ? jobData?.cliente_id : proposal.criador_id
+
+                    if (recipientId) {
+                        await supabase.from('notifications').insert({
+                            user_id: recipientId,
+                            type: isEmbroidery ? 'matriz_recebida' : 'anexo_recebido',
+                            title: isEmbroidery ? 'Nova Matriz no Chat' : `Novo Anexo de ${senderName}`,
+                            message: isEmbroidery ? `${senderName} enviou a matriz "${file.name}" no chat.` : `${senderName} enviou um arquivo no pedido.`,
+                            link_url: `/jobs/${proposal.job_id}?chat=${proposalId}`
+                        })
+                    }
                 }
             }
         } catch (notifErr) {

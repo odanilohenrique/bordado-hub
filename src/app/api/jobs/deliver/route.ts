@@ -5,21 +5,22 @@ export async function POST(request: Request) {
     try {
         const { jobId, deliveryUrls, deliveryNotes } = await request.json()
 
-        if (!jobId || !deliveryUrls) {
-            return NextResponse.json({ error: 'Faltam dados da entrega.' }, { status: 400 })
-        }
-
         const supabase = createServiceClient()
 
         // Verify job
         const { data: job, error: jobError } = await supabase
             .from('jobs')
-            .select('id, cliente_id, title, status, revision_notes')
+            .select('id, cliente_id, title, status, revision_notes, delivery_url')
             .eq('id', jobId)
             .single()
 
         if (jobError || !job) {
             return NextResponse.json({ error: 'Pedido não encontrado.' }, { status: 404 })
+        }
+
+        const targetUrls = deliveryUrls || job.delivery_url
+        if (!targetUrls) {
+            return NextResponse.json({ error: 'Faltam dados da entrega.' }, { status: 400 })
         }
 
         const isRevision = job.status === 'em_revisao' || Boolean(job.revision_notes)
@@ -29,8 +30,8 @@ export async function POST(request: Request) {
             .from('jobs')
             .update({
                 status: 'entregue',
-                delivery_url: deliveryUrls,
-                delivery_notes: deliveryNotes,
+                delivery_url: targetUrls,
+                delivery_notes: deliveryNotes || (isRevision ? 'Matriz revisada e entregue.' : 'Matriz entregue.'),
                 delivered_at: new Date().toISOString()
             })
             .eq('id', jobId)

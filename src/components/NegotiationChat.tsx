@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabaseClient'
-import { Send, Paperclip, User, FileImage, RefreshCw, CheckCircle2, DollarSign, Package, Download, Handshake, X, Check, Clock, CheckCheck } from 'lucide-react'
+import { Send, Paperclip, User, FileImage, RefreshCw, CheckCircle2, DollarSign, Package, Download, Handshake, X, Check, Clock, CheckCheck, Wrench } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 
@@ -65,6 +65,9 @@ export default function NegotiationChat({
         avatar_url?: string | null
         role?: string
     } | null>(otherUser || null)
+    const [jobStatus, setJobStatus] = useState<string | null>(null)
+    const [jobRevisionNotes, setJobRevisionNotes] = useState<string | null>(null)
+    const [deliveringRevision, setDeliveringRevision] = useState(false)
 
     const messagesEndRef = useRef<HTMLDivElement>(null)
     const router = useRouter()
@@ -80,6 +83,7 @@ export default function NegotiationChat({
         loadMessages()
         loadProposal()
         fetchOtherUser()
+        fetchJobDetails()
 
         // 1. Subscribe to Realtime postgres_changes
         const channel = supabase
@@ -201,6 +205,54 @@ export default function NegotiationChat({
             }
         } catch (e) {
             // silent
+        }
+    }
+
+    const fetchJobDetails = async () => {
+        try {
+            const { data: jobInfo } = await supabase
+                .from('jobs')
+                .select('id, status, revision_notes')
+                .eq('id', jobId)
+                .single()
+            if (jobInfo) {
+                setJobStatus(jobInfo.status)
+                setJobRevisionNotes(jobInfo.revision_notes)
+            }
+        } catch (e) {
+            // silent
+        }
+    }
+
+    const handleMarkRevisionDelivered = async () => {
+        setDeliveringRevision(true)
+        try {
+            const res = await fetch('/api/jobs/deliver', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    jobId,
+                    deliveryNotes: 'Correção revisada e entregue pelo chat.'
+                })
+            })
+
+            const data = await res.json()
+            if (!res.ok) throw new Error(data.error || 'Erro ao marcar correção como entregue')
+
+            // Insert system message into chat
+            await supabase.from('proposal_messages').insert({
+                proposal_id: proposalId,
+                sender_id: currentUserId,
+                content: '[SISTEMA] O programador marcou a correção da matriz como pronta e entregue!'
+            })
+
+            setJobStatus('entregue')
+            toast.success('Correção entregue com sucesso!')
+            onProposalUpdated?.()
+        } catch (err: any) {
+            toast.error('Erro ao marcar correção: ' + err.message)
+        } finally {
+            setDeliveringRevision(false)
         }
     }
 
@@ -619,6 +671,40 @@ export default function NegotiationChat({
                     )}
                 </div>
             </div>
+
+            {/* Producer Revision Action Banner */}
+            {!isOwner && jobStatus === 'em_revisao' && (
+                <div className="bg-yellow-500/15 border-b border-yellow-500/30 p-3 sm:p-4 animate-in slide-in-from-top duration-300 z-10 shrink-0">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-xl bg-yellow-500/20 text-yellow-400 flex items-center justify-center shrink-0 border border-yellow-500/30 shadow-sm">
+                                <Wrench className="w-5 h-5" />
+                            </div>
+                            <div>
+                                <div className="flex items-center gap-2 mb-0.5">
+                                    <span className="text-[10px] font-black uppercase tracking-wider bg-yellow-500 text-black px-2 py-0.5 rounded-full">
+                                        Ajuste Solicitado
+                                    </span>
+                                </div>
+                                <p className="text-sm font-bold text-white leading-tight">
+                                    {jobRevisionNotes ? `"${jobRevisionNotes}"` : 'O cliente solicitou ajustes nesta matriz.'}
+                                </p>
+                                <p className="text-[11px] text-gray-400 mt-0.5">
+                                    Ao enviar novos arquivos no chat ou clicar no botão, a matriz é marcada como pronta e corrigida.
+                                </p>
+                            </div>
+                        </div>
+                        <button
+                            onClick={handleMarkRevisionDelivered}
+                            disabled={deliveringRevision}
+                            className="w-full sm:w-auto bg-green-500 hover:bg-green-600 text-white font-black text-xs px-4 py-2.5 rounded-xl transition-all shadow-lg shadow-green-500/20 flex items-center justify-center gap-1.5 active:scale-95 disabled:opacity-50 shrink-0"
+                        >
+                            <Check className="w-4 h-4" />
+                            {deliveringRevision ? 'Atualizando...' : 'Marcar Correção como Entregue'}
+                        </button>
+                    </div>
+                </div>
+            )}
 
             {/* Producer Counter-Proposal Action Banner */}
             {!isOwner && proposalData?.status === 'contraproposta' && proposalData.counter_amount && (

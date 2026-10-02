@@ -215,11 +215,11 @@ export default function Sidebar() {
                                             : 'text-gray-400 hover:text-[#FFAE00] hover:bg-[#FFAE00]/5'
                                     }`}
                                 >
-                                    <item.icon className={`w-5 h-5 ${isActive ? 'text-[#FFAE00]' : 'text-gray-500'}`} />
-                                    <span>{item.name}</span>
+                                    <item.icon className={`w-5 h-5 shrink-0 ${isActive ? 'text-[#FFAE00]' : 'text-gray-500'}`} />
+                                    <span className="truncate">{item.name}</span>
                                     {item.href === '/producao' && revisionsCount > 0 && (
-                                        <span className="ml-auto bg-amber-500 text-black font-black text-[10px] px-2 py-0.5 rounded-full shadow-md animate-pulse">
-                                            {revisionsCount} Ajuste{revisionsCount > 1 ? 's' : ''}
+                                        <span className="ml-auto shrink-0 whitespace-nowrap bg-amber-500 text-black font-black text-[10px] px-2 py-0.5 rounded-full shadow-sm tracking-tight">
+                                            {revisionsCount} {revisionsCount === 1 ? 'Ajuste' : 'Ajustes'}
                                         </span>
                                     )}
                                 </Link>
