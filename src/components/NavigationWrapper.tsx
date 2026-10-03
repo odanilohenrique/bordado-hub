@@ -5,13 +5,24 @@ import { supabase } from '@/lib/supabaseClient'
 import { User } from '@supabase/supabase-js'
 import Navbar from './Navbar'
 import Sidebar from './Sidebar'
-import { Menu, X } from 'lucide-react'
+import MobileBottomNav from './MobileBottomNav'
+import MobileDrawer from './MobileDrawer'
+import { Menu } from 'lucide-react'
 import Link from 'next/link'
 import NotificationBell from './NotificationBell'
 import GlobalNotificationAlert from './GlobalNotificationAlert'
 
+interface UserProfile {
+    id: string
+    name: string
+    role: string
+    avatar_url?: string | null
+    email?: string | null
+}
+
 export default function NavigationWrapper({ children }: { children: React.ReactNode }) {
     const [user, setUser] = useState<User | null>(null)
+    const [profile, setProfile] = useState<UserProfile | null>(null)
     const [loading, setLoading] = useState(true)
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
@@ -19,13 +30,31 @@ export default function NavigationWrapper({ children }: { children: React.ReactN
         const checkAuth = async () => {
             const { data: { session } } = await supabase.auth.getSession()
             setUser(session?.user ?? null)
+            if (session?.user) {
+                const { data } = await supabase
+                    .from('users')
+                    .select('id, name, role, avatar_url, email')
+                    .eq('supabase_user_id', session.user.id)
+                    .maybeSingle()
+                if (data) setProfile(data)
+            }
             setLoading(false)
         }
 
         checkAuth()
 
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
             setUser(session?.user ?? null)
+            if (session?.user) {
+                const { data } = await supabase
+                    .from('users')
+                    .select('id, name, role, avatar_url, email')
+                    .eq('supabase_user_id', session.user.id)
+                    .maybeSingle()
+                if (data) setProfile(data)
+            } else {
+                setProfile(null)
+            }
             setLoading(false)
         })
 
@@ -47,55 +76,53 @@ export default function NavigationWrapper({ children }: { children: React.ReactN
 
     // Authenticated Layout
     return (
-        <div className="min-h-screen bg-[#0F1115] flex">
+        <div className="min-h-screen bg-[#0F1115] flex flex-col md:flex-row">
             {/* Desktop Sidebar */}
             <Sidebar />
 
-            {/* Mobile Header (Only visible on small screens when logged in) */}
-            <div className="md:hidden fixed top-0 w-full bg-[#1A1D23] border-b border-[#FFAE00]/10 z-40 flex items-center justify-between px-4 h-16">
-                <Link href="/" className="text-xl font-black text-transparent bg-clip-text bg-gradient-to-r from-[#FFAE00] to-yellow-300">
+            {/* Mobile Top Header (Fixed on mobile screens) */}
+            <div className="md:hidden fixed top-0 left-0 right-0 h-14 bg-[#14171E]/95 backdrop-blur-md border-b border-white/5 z-30 flex items-center justify-between px-4">
+                <Link href="/" className="text-lg font-black text-transparent bg-clip-text bg-gradient-to-r from-[#FFAE00] to-yellow-300">
                     BordadoHub
                 </Link>
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-3">
                     <NotificationBell />
-                    <button onClick={() => setMobileMenuOpen(true)}>
-                        <Menu className="w-6 h-6 text-gray-300" />
+                    <button 
+                        onClick={() => setMobileMenuOpen(true)}
+                        className="p-1.5 text-gray-300 hover:text-white rounded-lg active:bg-white/5 transition-colors"
+                        aria-label="Abrir menu"
+                    >
+                        <Menu className="w-5 h-5" />
                     </button>
                 </div>
             </div>
 
-            {/* Mobile Sidebar Overlay */}
-            {mobileMenuOpen && (
-                <div className="md:hidden fixed inset-0 z-50 flex">
-                    <div className="fixed inset-0 bg-black/80" onClick={() => setMobileMenuOpen(false)}></div>
-                    <div className="relative w-64 bg-[#1A1D23] h-full shadow-2xl flex flex-col pt-16 animate-in slide-in-from-left duration-200">
-                        <button 
-                            className="absolute top-4 right-4 text-gray-400 p-2"
-                            onClick={() => setMobileMenuOpen(false)}
-                        >
-                            <X className="w-6 h-6" />
-                        </button>
-                        {/* We reuse the Sidebar component by rendering it inside here, but we pass a prop or just wrap it. 
-                            Since Sidebar has 'fixed left-0 hidden md:flex', we can't easily reuse the exact component without passing a prop or refactoring.
-                            Actually, let's just make Sidebar handle the mobile state internally, or copy the links.
-                            For now, let's close the menu on route change. We'll update Sidebar to accept mobile overlay styling.
-                        */}
-                    </div>
-                </div>
-            )}
+            {/* Mobile Slide-over Drawer */}
+            <MobileDrawer
+                isOpen={mobileMenuOpen}
+                onClose={() => setMobileMenuOpen(false)}
+                profile={profile}
+                userId={user?.id}
+            />
 
             {/* Main Content Area */}
-            <div className="flex-1 md:ml-64 mt-16 md:mt-0 w-full">
-                {/* Desktop top-right contextual stuff (like bell) can go here if we want, or we keep it simple */}
-                <header className="hidden md:flex justify-end p-4 absolute top-0 right-0 w-full pointer-events-none">
+            <div className="flex-1 md:ml-64 mt-14 md:mt-0 w-full min-w-0 flex flex-col">
+                {/* Desktop top-right notification bell */}
+                <header className="hidden md:flex justify-end p-4 absolute top-0 right-0 w-full pointer-events-none z-30">
                     <div className="pointer-events-auto">
                         <NotificationBell />
                     </div>
                 </header>
-                <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+
+                {/* Content with bottom padding to avoid overlapping the bottom nav on mobile */}
+                <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-24 md:pb-8 w-full flex-1">
                     {children}
                 </main>
             </div>
+
+            {/* Mobile Bottom Navigation Bar (Fixed at bottom on mobile) */}
+            <MobileBottomNav profile={profile} userId={user?.id} />
+
             {/* Real-time Popups */}
             <GlobalNotificationAlert />
         </div>

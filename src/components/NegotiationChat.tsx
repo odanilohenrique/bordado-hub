@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabaseClient'
-import { Send, Paperclip, User, FileImage, RefreshCw, CheckCircle2, DollarSign, Package, Download, Handshake, X, Check, Clock, CheckCheck, Wrench } from 'lucide-react'
+import { Send, Paperclip, User, FileImage, RefreshCw, CheckCircle2, DollarSign, Package, Download, Handshake, X, Check, Clock, CheckCheck, Wrench, ArrowLeft } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 
@@ -588,12 +588,24 @@ export default function NegotiationChat({
     }
 
     return (
-        <div className="flex flex-col h-full bg-[#111b21] rounded-2xl overflow-hidden shadow-2xl border border-white/10 relative">
+        <div className="flex flex-col h-full bg-[#111b21] md:rounded-2xl overflow-hidden shadow-2xl md:border md:border-white/10 relative">
             {/* WhatsApp Header */}
-            <div className="px-4 py-3 bg-[#202c33] border-b border-white/5 flex items-center justify-between z-10 shrink-0">
-                <div className="flex items-center gap-3 min-w-0">
+            <div className="px-3 sm:px-4 py-2.5 sm:py-3 bg-[#202c33] border-b border-white/5 flex items-center justify-between z-10 shrink-0">
+                <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                    {onClose && (
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="md:hidden -ml-1 p-1.5 text-gray-400 hover:text-white rounded-full transition-colors shrink-0"
+                            title="Voltar ao pedido"
+                            aria-label="Voltar"
+                        >
+                            <ArrowLeft className="w-5 h-5" />
+                        </button>
+                    )}
+
                     <div className="relative">
-                        <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-700 border border-white/10 flex items-center justify-center text-sm font-bold text-gray-200 shrink-0">
+                        <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full overflow-hidden bg-gray-700 border border-white/10 flex items-center justify-center text-sm font-bold text-gray-200 shrink-0">
                             {otherUserData?.avatar_url ? (
                                 <img src={otherUserData.avatar_url} alt="" className="w-full h-full object-cover" />
                             ) : (
@@ -604,12 +616,12 @@ export default function NegotiationChat({
                     </div>
 
                     <div className="min-w-0">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1.5 sm:gap-2">
                             <h3 className="text-sm font-semibold text-white truncate leading-tight">
                                 {otherUserData?.name || 'Negociação Privada'}
                             </h3>
                             {otherUserData?.role && (
-                                <span className="text-[10px] font-semibold text-gray-400 bg-white/5 border border-white/10 px-2 py-0.5 rounded-full shrink-0">
+                                <span className="text-[9px] sm:text-[10px] font-semibold text-gray-400 bg-white/5 border border-white/10 px-1.5 sm:px-2 py-0.5 rounded-full shrink-0">
                                     {otherUserData.role}
                                 </span>
                             )}

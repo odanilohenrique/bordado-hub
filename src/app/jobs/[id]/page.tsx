@@ -2046,8 +2046,11 @@ function JobDetailClient({ jobId }: { jobId: string }) {
 
                 {/* 3. BOTTOM SECTION: Chat */}
                 {negotiatingProposalId && (
-                    <div id="negotiation-chat-section" className="bg-[#111b21] border border-white/10 rounded-2xl overflow-hidden shadow-2xl mt-4 mb-8 animate-in slide-in-from-bottom-4 fade-in duration-300">
-                        <div className="h-[560px]">
+                    <div 
+                        id="negotiation-chat-section" 
+                        className="fixed inset-0 z-50 md:static md:z-auto h-[100dvh] md:h-[560px] w-full bg-[#111b21] md:border md:border-white/10 md:rounded-2xl overflow-hidden shadow-2xl md:mt-4 md:mb-8 animate-in slide-in-from-bottom-4 fade-in duration-300"
+                    >
+                        <div className="h-full">
                             <NegotiationChat
                                 proposalId={negotiatingProposalId}
                                 currentUserId={currentUser?.id}
