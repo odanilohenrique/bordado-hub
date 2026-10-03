@@ -86,52 +86,51 @@ export default function Hero() {
                     {/* Right Column: High Converting Visual Card */}
                     <div className="lg:col-span-5 relative">
                         {/* Glassmorphic Showcase Card */}
-                        <div className="relative mx-auto max-w-md bg-[#16191F] border border-white/10 rounded-3xl p-5 shadow-2xl">
+                        <div className="relative mx-auto max-w-lg bg-[#16191F] border border-white/10 rounded-3xl p-4 sm:p-5 shadow-2xl">
                             {/* Card Header */}
-                            <div className="flex items-center justify-between pb-3.5 mb-3.5 border-b border-white/5">
-                                <div className="flex items-center gap-2.5">
-                                    <div className="w-3 h-3 rounded-full bg-red-500/80" />
-                                    <div className="w-3 h-3 rounded-full bg-yellow-500/80" />
-                                    <div className="w-3 h-3 rounded-full bg-green-500/80" />
-                                    <span className="text-xs font-mono text-gray-400 ml-1">entrega_final.dst</span>
+                            <div className="flex items-center justify-between pb-3 mb-3 border-b border-white/5">
+                                <div className="flex items-center gap-2">
+                                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                                    <span className="text-xs font-bold text-white">Como Funciona na Prática</span>
                                 </div>
                                 <span className="bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full flex items-center gap-1">
                                     <CheckCircle2 className="w-3 h-3" /> Testado na Máquina
                                 </span>
                             </div>
 
-                            {/* Main Preview Image */}
-                            <div className="relative rounded-2xl overflow-hidden mb-4 border border-white/5 group bg-[#0F1115]">
+                            {/* Main Preview Image: Before & After */}
+                            <div className="relative rounded-2xl overflow-hidden mb-3.5 border border-white/10 group bg-[#0F1115]">
                                 <img
-                                    src="/images/carousel1.png"
-                                    alt="Exemplo de matriz bordada computadorizada"
-                                    className="w-full h-56 sm:h-64 object-cover group-hover:scale-105 transition-transform duration-500"
+                                    src="/images/hero-before-after.jpg"
+                                    alt="Transformação de imagem em matriz de bordado computadorizada"
+                                    className="w-full h-auto object-cover group-hover:scale-[1.02] transition-transform duration-500"
                                 />
-                                <div className="absolute bottom-3 left-3 right-3 bg-[#0F1115]/90 backdrop-blur-md p-3 rounded-xl border border-white/10 flex items-center justify-between">
+                                <div className="p-3 bg-[#0F1115]/95 border-t border-white/5 flex items-center justify-between">
                                     <div>
-                                        <p className="text-xs font-bold text-white">Logo Bordado Computadorizado</p>
-                                        <p className="text-[10px] text-gray-400">12.450 pontos • 8 cores</p>
+                                        <p className="text-xs font-bold text-white">Sua Imagem ➔ Matriz Bordada</p>
+                                        <p className="text-[10px] sm:text-[11px] text-gray-400">Pronta para máquinas Brother, Janome, Barudan, Tajima...</p>
                                     </div>
-                                    <div className="flex items-center gap-1 bg-[#FFAE00]/15 text-[#FFAE00] px-2 py-0.5 rounded-lg text-xs font-black">
+                                    <div className="flex items-center gap-1 bg-[#FFAE00]/15 text-[#FFAE00] px-2 py-1 rounded-lg text-xs font-black shrink-0">
                                         <span>5.0</span>
-                                        <Sparkles className="w-3 h-3" />
+                                        <Sparkles className="w-3.5 h-3.5" />
                                     </div>
                                 </div>
                             </div>
 
                             {/* Format Badges & Live Action */}
                             <div className="flex items-center justify-between pt-1">
-                                <div className="flex items-center gap-1.5">
+                                <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap">
                                     <span className="text-[10px] font-black bg-white/5 border border-white/10 text-gray-300 px-2 py-1 rounded-lg">.DST</span>
                                     <span className="text-[10px] font-black bg-white/5 border border-white/10 text-gray-300 px-2 py-1 rounded-lg">.PES</span>
                                     <span className="text-[10px] font-black bg-white/5 border border-white/10 text-gray-300 px-2 py-1 rounded-lg">.JEF</span>
                                     <span className="text-[10px] font-black bg-white/5 border border-white/10 text-gray-300 px-2 py-1 rounded-lg">.EMB</span>
+                                    <span className="text-[10px] font-black bg-white/5 border border-white/10 text-gray-300 px-2 py-1 rounded-lg">.EXP</span>
                                 </div>
                                 <Link
                                     href="/jobs/new"
-                                    className="text-xs font-bold text-[#FFAE00] hover:text-yellow-300 flex items-center gap-1 transition-colors"
+                                    className="text-xs font-bold text-[#FFAE00] hover:text-yellow-300 flex items-center gap-1 transition-colors shrink-0 ml-2"
                                 >
-                                    Pedir Igual <ArrowRight className="w-3.5 h-3.5" />
+                                    Pedir Matriz <ArrowRight className="w-3.5 h-3.5" />
                                 </Link>
                             </div>
                         </div>
