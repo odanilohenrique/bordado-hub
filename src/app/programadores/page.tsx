@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import Link from 'next/link'
-import { Star, Code, Target, UserCircle, Search, Zap } from 'lucide-react'
+import { Star, Code, Target, UserCircle, Search, Zap, Users as UsersIcon } from 'lucide-react'
+import { getCached, setCached } from '@/lib/clientCache'
 
 interface Programmer {
     id: string
@@ -16,46 +17,62 @@ interface Programmer {
     portfolio_urls: string[] | null
 }
 
+function ProgrammerCardSkeleton() {
+    return (
+        <div className="bg-[#1A1D23] border border-gray-800 rounded-2xl p-6 animate-pulse flex flex-col justify-between h-72">
+            <div className="flex items-center gap-4">
+                <div className="w-16 h-16 rounded-full bg-white/5 shrink-0" />
+                <div className="space-y-2 flex-1">
+                    <div className="h-5 bg-white/5 rounded w-3/4" />
+                    <div className="h-3 bg-white/5 rounded w-1/2" />
+                </div>
+            </div>
+            <div className="space-y-2 my-4">
+                <div className="h-3 bg-white/5 rounded w-full" />
+                <div className="h-3 bg-white/5 rounded w-4/5" />
+            </div>
+            <div className="h-10 bg-white/5 rounded-xl w-full" />
+        </div>
+    )
+}
+
 export default function ProgrammersDirectory() {
-    const [programmers, setProgrammers] = useState<Programmer[]>([])
-    const [loading, setLoading] = useState(true)
+    // Instant mount from cache if available (0ms delay!)
+    const [programmers, setProgrammers] = useState<Programmer[]>(() => getCached<Programmer[]>('programmers_list') || [])
+    const [loading, setLoading] = useState(() => !getCached<Programmer[]>('programmers_list'))
     const [searchTerm, setSearchTerm] = useState('')
     const [hiredIds, setHiredIds] = useState<string[]>([])
     const [currentUserId, setCurrentUserId] = useState<string | null>(null)
 
     useEffect(() => {
         async function fetchData() {
-            setLoading(true)
-            
-            // 1. Get Current User to check hired history
-            const { data: { session } } = await supabase.auth.getSession()
-            let myId = null
-            if (session?.user) {
-                const { data: profile } = await supabase
-                    .from('users')
-                    .select('id')
-                    .eq('supabase_user_id', session.user.id)
-                    .single()
-                if (profile) {
-                    myId = profile.id
-                    setCurrentUserId(profile.id)
-                }
-            }
-
-            // 2. Fetch programmers: role is 'criador' OR they have skills OR they have accepted proposals
-            // For simplicity and performance, we'll fetch based on 'role' first, then complement.
-            const { data: creators, error } = await supabase
+            // 1. Fetch creators query promise
+            const creatorsPromise = supabase
                 .from('users')
                 .select('*')
                 .or('role.eq.criador,skills.not.is.null')
                 .order('rating', { ascending: false })
 
-            if (creators) {
-                setProgrammers(creators)
-            }
+            // 2. Fetch current user and hired history promise
+            const hiredPromise = async () => {
+                const { data: { session } } = await supabase.auth.getSession()
+                if (!session?.user) return { myId: null, ids: [] as string[] }
 
-            // 3. If logged in, fetch IDs of programmers I have already hired
-            if (myId) {
+                let myId = getCached<string>('current_user_profile_id')
+                if (!myId) {
+                    const { data: profile } = await supabase
+                        .from('users')
+                        .select('id')
+                        .eq('supabase_user_id', session.user.id)
+                        .maybeSingle()
+                    if (profile) {
+                        myId = profile.id
+                        setCached('current_user_profile_id', profile.id, 300000)
+                    }
+                }
+
+                if (!myId) return { myId: null, ids: [] as string[] }
+
                 const { data: myHires } = await supabase
                     .from('jobs')
                     .select('target_programmer_id, proposals(criador_id, status)')
@@ -75,9 +92,22 @@ export default function ProgrammersDirectory() {
                         }
                     })
                 }
-                setHiredIds([...new Set(ids)])
+                return { myId, ids: [...new Set(ids)] }
             }
-            
+
+            // Run creators query and user history IN PARALLEL!
+            const [{ data: creators }, { myId, ids }] = await Promise.all([
+                creatorsPromise,
+                hiredPromise(),
+            ])
+
+            if (creators) {
+                setProgrammers(creators)
+                setCached('programmers_list', creators, 120000) // cache for 2 mins
+            }
+            if (myId) setCurrentUserId(myId)
+            if (ids) setHiredIds(ids)
+
             setLoading(false)
         }
 
@@ -120,8 +150,13 @@ export default function ProgrammersDirectory() {
 
             {/* Content Array */}
             {loading ? (
-                <div className="flex justify-center items-center py-20">
-                    <div className="w-16 h-16 border-4 border-[#FFAE00]/30 border-t-[#FFAE00] rounded-full animate-spin" />
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <ProgrammerCardSkeleton />
+                    <ProgrammerCardSkeleton />
+                    <ProgrammerCardSkeleton />
+                    <ProgrammerCardSkeleton />
+                    <ProgrammerCardSkeleton />
+                    <ProgrammerCardSkeleton />
                 </div>
             ) : filteredProgrammers.length === 0 ? (
                 <div className="bg-[#1A1D23] border border-[#FFAE00]/20 rounded-2xl p-16 text-center max-w-3xl mx-auto shadow-2xl">
@@ -211,27 +246,5 @@ export default function ProgrammersDirectory() {
                 </div>
             )}
         </div>
-    )
-}
-
-function UsersIcon(props: any) {
-    return (
-        <svg
-            {...props}
-            xmlns="http://www.w3.org/2000/svg"
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-        >
-            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-            <circle cx="9" cy="7" r="4" />
-            <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
-            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-        </svg>
     )
 }

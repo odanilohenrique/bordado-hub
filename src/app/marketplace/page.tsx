@@ -5,11 +5,28 @@ import { supabase } from '@/lib/supabaseClient'
 import Link from 'next/link'
 import { Search, Store, UploadCloud, TrendingUp, Tag, Plus } from 'lucide-react'
 import ProductCard from '@/components/ProductCard'
+import { getCached, setCached } from '@/lib/clientCache'
+
+function ProductCardSkeleton() {
+    return (
+        <div className="bg-[#1A1D23] border border-gray-800 rounded-2xl overflow-hidden animate-pulse flex flex-col h-80">
+            <div className="w-full h-48 bg-white/5" />
+            <div className="p-5 flex flex-col justify-between flex-1 space-y-3">
+                <div className="h-5 bg-white/5 rounded w-3/4" />
+                <div className="h-3 bg-white/5 rounded w-1/2" />
+                <div className="flex justify-between items-center pt-3 border-t border-gray-800">
+                    <div className="h-6 bg-white/5 rounded w-20" />
+                    <div className="h-9 w-9 bg-white/5 rounded-xl" />
+                </div>
+            </div>
+        </div>
+    )
+}
 
 export default function MarketplacePage() {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const [products, setProducts] = useState<any[]>([])
-    const [loading, setLoading] = useState(true)
+    // Instant mount from cache if available (0ms delay!)
+    const [products, setProducts] = useState<any[]>(() => getCached<any[]>('marketplace_products') || [])
+    const [loading, setLoading] = useState(() => !getCached<any[]>('marketplace_products'))
     const [searchTerm, setSearchTerm] = useState('')
 
     useEffect(() => {
@@ -21,6 +38,7 @@ export default function MarketplacePage() {
 
             if (data) {
                 setProducts(data)
+                setCached('marketplace_products', data, 60000) // cache for 60s
             } else if (error) {
                 console.error("Erro ao buscar produtos do marketplace:", error)
             }
@@ -97,8 +115,11 @@ export default function MarketplacePage() {
 
             {/* Grid */}
             {loading ? (
-                <div className="flex justify-center items-center py-20">
-                    <div className="w-16 h-16 border-4 border-[#FFAE00]/30 border-t-[#FFAE00] rounded-full animate-spin" />
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-20">
+                    <ProductCardSkeleton />
+                    <ProductCardSkeleton />
+                    <ProductCardSkeleton />
+                    <ProductCardSkeleton />
                 </div>
             ) : filteredProducts.length === 0 ? (
                 <div className="bg-[#1A1D23] border border-gray-800 border-dashed rounded-3xl p-16 text-center max-w-3xl mx-auto mt-10">

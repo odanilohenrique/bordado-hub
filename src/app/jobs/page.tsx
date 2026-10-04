@@ -3,49 +3,43 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import JobCard from '@/components/JobCard'
-import { Search, Plus } from 'lucide-react'
+import { Search, Plus, Handshake } from 'lucide-react'
 import Link from 'next/link'
+import { getCached, setCached } from '@/lib/clientCache'
+
+function JobCardSkeleton() {
+    return (
+        <div className="bg-[#1A1D23] border border-white/5 rounded-xl overflow-hidden p-6 animate-pulse flex flex-col md:flex-row gap-6 mb-4">
+            <div className="w-full md:w-64 h-48 bg-white/5 rounded-lg shrink-0" />
+            <div className="flex-1 flex flex-col justify-between space-y-4 py-2">
+                <div className="space-y-3">
+                    <div className="h-6 bg-white/5 rounded w-3/4" />
+                    <div className="h-4 bg-white/5 rounded w-1/3" />
+                </div>
+                <div className="h-4 bg-white/5 rounded w-full" />
+                <div className="h-10 bg-white/5 rounded-xl w-36" />
+            </div>
+        </div>
+    )
+}
 
 export default function JobsPage() {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const [jobs, setJobs] = useState<any[]>([])
-    const [loading, setLoading] = useState(true)
     const [filter, setFilter] = useState<string>('all')
+    // Instant mount from client cache if available (0ms delay!)
+    const [jobs, setJobs] = useState<any[]>(() => getCached<any[]>('jobs_all') || [])
+    const [loading, setLoading] = useState<boolean>(() => !getCached<any[]>('jobs_all'))
     const [currentUserId, setCurrentUserId] = useState<string | null>(null)
 
     useEffect(() => {
+        // If cached for this filter, display instantly without spinner
+        const cached = getCached<any[]>(`jobs_${filter}`)
+        if (cached) {
+            setJobs(cached)
+            setLoading(false)
+        }
+
         async function fetchJobs() {
-            // Get current user profile id from local session
-            const { data: { session } } = await supabase.auth.getSession()
-            const user = session?.user ?? null
-            let myProfileId: string | null = null
-            if (user) {
-                const { data: profile } = await supabase
-                    .from('users')
-                    .select('id')
-                    .eq('supabase_user_id', user.id)
-                    .maybeSingle()
-                if (profile) {
-                    myProfileId = profile.id
-                    setCurrentUserId(profile.id)
-                }
-            }
-
-            // Fetch my sent proposals if logged in
-            const myProposalsMap: Record<string, string> = {}
-            if (myProfileId) {
-                const { data: myProps } = await supabase
-                    .from('proposals')
-                    .select('job_id, status')
-                    .eq('criador_id', myProfileId)
-                if (myProps) {
-                    myProps.forEach(p => {
-                        myProposalsMap[p.job_id] = p.status
-                    })
-                }
-            }
-
-            // Fetch jobs with proposals (status + producer)
+            // 1. Build jobs query
             let query = supabase
                 .from('jobs')
                 .select('*, users!jobs_cliente_id_fkey(name, avatar_url), proposals(status, users:criador_id(name))')
@@ -58,17 +52,57 @@ export default function JobsPage() {
             } else if (filter === 'em_progresso') {
                 query = query.eq('status', 'em_progresso')
             } else {
-                // "all" = aberto + em_progresso (hide entregue/finalizado)
                 query = query.in('status', ['aberto', 'em_progresso'])
             }
 
-            const { data } = await query
-            
+            // 2. Fetch user profile + proposals concurrently
+            const fetchUserData = async () => {
+                const { data: { session } } = await supabase.auth.getSession()
+                const user = session?.user ?? null
+                let myProfileId: string | null = null
+                const myProposalsMap: Record<string, string> = {}
+
+                if (user) {
+                    const cachedProfileId = getCached<string>('current_user_profile_id')
+                    if (cachedProfileId) {
+                        myProfileId = cachedProfileId
+                    } else {
+                        const { data: profile } = await supabase
+                            .from('users')
+                            .select('id')
+                            .eq('supabase_user_id', user.id)
+                            .maybeSingle()
+                        if (profile) {
+                            myProfileId = profile.id
+                            setCached('current_user_profile_id', profile.id, 300000)
+                        }
+                    }
+
+                    if (myProfileId) {
+                        setCurrentUserId(myProfileId)
+                        const { data: myProps } = await supabase
+                            .from('proposals')
+                            .select('job_id, status')
+                            .eq('criador_id', myProfileId)
+                        if (myProps) {
+                            myProps.forEach(p => {
+                                myProposalsMap[p.job_id] = p.status
+                            })
+                        }
+                    }
+                }
+                return { myProfileId, myProposalsMap }
+            }
+
+            // Execute jobs query and user data fetch IN PARALLEL!
+            const [{ data: rawJobs }, { myProfileId, myProposalsMap }] = await Promise.all([
+                query,
+                fetchUserData(),
+            ])
+
             // Extract proposal count, ownership and sent proposal status
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const enriched = (data || []).map((job: any) => {
+            const enriched = (rawJobs || []).map((job: any) => {
                 const proposals = job.proposals || []
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const acceptedProposal = proposals.find((p: any) => p.status === 'aceita')
                 const myProposalStatus = myProposalsMap[job.id] || null
                 const isOwner = !!(myProfileId && job.cliente_id === myProfileId)
@@ -84,6 +118,7 @@ export default function JobsPage() {
             })
 
             setJobs(enriched)
+            setCached(`jobs_${filter}`, enriched, 45000) // cache for 45s
             setLoading(false)
         }
 
@@ -146,12 +181,12 @@ export default function JobsPage() {
                             </button>
                             <button
                                 onClick={() => setFilter('em_progresso')}
-                                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${filter === 'em_progresso'
+                                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all inline-flex items-center gap-1.5 ${filter === 'em_progresso'
                                     ? 'bg-[#FFAE00] text-[#0F1115] shadow-lg shadow-[#FFAE00]/20 font-bold'
                                     : 'text-gray-400 hover:text-white'
                                     }`}
                             >
-                                🤝 Match Feito
+                                <Handshake className="w-4 h-4" /> Match Feito
                             </button>
                         </div>
 
@@ -166,8 +201,10 @@ export default function JobsPage() {
                 </div>
 
                 {loading ? (
-                    <div className="flex justify-center py-20">
-                        <div className="w-12 h-12 border-4 border-[#FFAE00]/30 border-t-[#FFAE00] rounded-full animate-spin" />
+                    <div className="grid grid-cols-1 gap-6">
+                        <JobCardSkeleton />
+                        <JobCardSkeleton />
+                        <JobCardSkeleton />
                     </div>
                 ) : jobs.length === 0 ? (
                     <div className="text-center py-20 bg-[#1A1D23] rounded-xl border border-[#FFAE00]/10">

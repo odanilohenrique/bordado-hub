@@ -10,6 +10,7 @@ import MobileDrawer from './MobileDrawer'
 import { Menu } from 'lucide-react'
 import Link from 'next/link'
 import NotificationBell from './NotificationBell'
+import { setCached, getCached } from '@/lib/clientCache'
 
 interface UserProfile {
     id: string
@@ -35,7 +36,10 @@ export default function NavigationWrapper({ children }: { children: React.ReactN
                     .select('id, name, role, avatar_url, email')
                     .eq('supabase_user_id', session.user.id)
                     .maybeSingle()
-                if (data) setProfile(data)
+                if (data) {
+                    setProfile(data)
+                    setCached('current_user_profile_id', data.id, 300000)
+                }
             }
             setLoading(false)
         }
@@ -50,14 +54,45 @@ export default function NavigationWrapper({ children }: { children: React.ReactN
                     .select('id, name, role, avatar_url, email')
                     .eq('supabase_user_id', session.user.id)
                     .maybeSingle()
-                if (data) setProfile(data)
+                if (data) {
+                    setProfile(data)
+                    setCached('current_user_profile_id', data.id, 300000)
+                }
             } else {
                 setProfile(null)
             }
             setLoading(false)
         })
 
-        return () => subscription.unsubscribe()
+        // Pre-warm jobs cache during browser idle time (1.5s after load)
+        const warmTimer = setTimeout(async () => {
+            try {
+                if (!getCached('jobs_all')) {
+                    const { data: warmJobs } = await supabase
+                        .from('jobs')
+                        .select('*, users!jobs_cliente_id_fkey(name, avatar_url), proposals(status, users:criador_id(name))')
+                        .is('target_programmer_id', null)
+                        .in('status', ['aberto', 'em_progresso'])
+                        .order('created_at', { ascending: false })
+                        .limit(30)
+                    if (warmJobs) {
+                        const enriched = warmJobs.map((job: any) => ({
+                            ...job,
+                            proposalCount: job.proposals?.length || 0,
+                            hasAcceptedProposal: !!job.proposals?.some((p: any) => p.status === 'aceita'),
+                        }))
+                        setCached('jobs_all', enriched, 45000)
+                    }
+                }
+            } catch {
+                // silent
+            }
+        }, 1500)
+
+        return () => {
+            subscription.unsubscribe()
+            clearTimeout(warmTimer)
+        }
     }, [])
 
     // While loading, or if not authenticated, render the public layout.

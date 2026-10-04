@@ -5,60 +5,76 @@ import { supabase } from '@/lib/supabaseClient'
 import JobCard from '@/components/JobCard'
 import Link from 'next/link'
 import { Plus, Inbox } from 'lucide-react'
+import { getCached, setCached } from '@/lib/clientCache'
+
+function PedidoCardSkeleton() {
+    return (
+        <div className="bg-[#1A1D23] border border-white/5 rounded-xl overflow-hidden p-6 animate-pulse flex flex-col md:flex-row gap-6 mb-4">
+            <div className="w-full md:w-64 h-48 bg-white/5 rounded-lg shrink-0" />
+            <div className="flex-1 flex flex-col justify-between space-y-4 py-2">
+                <div className="space-y-3">
+                    <div className="h-6 bg-white/5 rounded w-3/4" />
+                    <div className="h-4 bg-white/5 rounded w-1/3" />
+                </div>
+                <div className="h-4 bg-white/5 rounded w-full" />
+                <div className="h-10 bg-white/5 rounded-xl w-36" />
+            </div>
+        </div>
+    )
+}
 
 export default function PedidosPage() {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const [jobs, setJobs] = useState<any[]>([])
-    const [loading, setLoading] = useState(true)
+    // Instant mount from cache if available (0ms delay!)
+    const [jobs, setJobs] = useState<any[]>(() => getCached<any[]>('pedidos_jobs') || [])
+    const [loading, setLoading] = useState(() => !getCached<any[]>('pedidos_jobs'))
     const [filter, setFilter] = useState<string>('all')
 
     useEffect(() => {
         async function fetchJobs() {
-            const { data: { user } } = await supabase.auth.getUser()
-            if (!user) return
+            const { data: { session } } = await supabase.auth.getSession()
+            const user = session?.user
+            if (!user) {
+                setLoading(false)
+                return
+            }
 
-            const { data: profile } = await supabase
-                .from('users')
-                .select('id')
-                .eq('supabase_user_id', user.id)
-                .single()
+            let profileId = getCached<string>('current_user_profile_id')
+            if (!profileId) {
+                const { data: profile } = await supabase
+                    .from('users')
+                    .select('id')
+                    .eq('supabase_user_id', user.id)
+                    .maybeSingle()
+                if (profile) {
+                    profileId = profile.id
+                    setCached('current_user_profile_id', profile.id, 300000)
+                }
+            }
 
-            if (profile) {
+            if (profileId) {
+                // Fetch jobs with direct relational join to avoid N+1 queries!
                 const { data: jobsData } = await supabase
                     .from('jobs')
-                    .select('*, proposals(status)')
-                    .eq('cliente_id', profile.id)
+                    .select('*, proposals(status), target_programmer:target_programmer_id(name, avatar_url)')
+                    .eq('cliente_id', profileId)
                     .order('created_at', { ascending: false })
 
                 if (jobsData) {
-                    // For direct request jobs, fetch programmer names separately
-                    const jobsWithProgrammer = await Promise.all(
-                        jobsData.map(async (job) => {
-                            let enrichedJob = { ...job }
-                            if (job.target_programmer_id) {
-                                const { data: programmer } = await supabase
-                                    .from('users')
-                                    .select('name, avatar_url')
-                                    .eq('id', job.target_programmer_id)
-                                    .single()
-                                enrichedJob = { ...enrichedJob, target_programmer: programmer }
+                    const enriched = jobsData.map((job: any) => {
+                        const enrichedJob = { ...job }
+                        if (enrichedJob.status === 'aberto') {
+                            const proposals = enrichedJob.proposals || []
+                            if (proposals.length === 0) {
+                                enrichedJob.my_proposal_status = 'aguardando_propostas'
+                            } else {
+                                const hasCounter = proposals.some((p: any) => p.status === 'contraproposta')
+                                enrichedJob.my_proposal_status = hasCounter ? 'acao_necessaria' : 'com_propostas'
                             }
-                            
-                            // Calculate client specific status if job is Open
-                            if (enrichedJob.status === 'aberto') {
-                                const proposals = enrichedJob.proposals || []
-                                if (proposals.length === 0) {
-                                    enrichedJob.my_proposal_status = 'aguardando_propostas'
-                                } else {
-                                    const hasCounter = proposals.some((p: any) => p.status === 'contraproposta')
-                                    enrichedJob.my_proposal_status = hasCounter ? 'acao_necessaria' : 'com_propostas'
-                                }
-                            }
-                            
-                            return enrichedJob
-                        })
-                    )
-                    setJobs(jobsWithProgrammer)
+                        }
+                        return enrichedJob
+                    })
+                    setJobs(enriched)
+                    setCached('pedidos_jobs', enriched, 30000)
                 } else {
                     setJobs([])
                 }
@@ -122,11 +138,9 @@ export default function PedidosPage() {
 
             {/* Content */}
             {loading ? (
-                <div className="flex items-center justify-center py-20">
-                    <div className="text-center">
-                        <div className="w-16 h-16 border-4 border-[#FFAE00]/30 border-t-[#FFAE00] rounded-full animate-spin mx-auto mb-4" />
-                        <p className="text-gray-400">Carregando pedidos...</p>
-                    </div>
+                <div className="grid grid-cols-1 gap-6">
+                    <PedidoCardSkeleton />
+                    <PedidoCardSkeleton />
                 </div>
             ) : jobs.length === 0 ? (
                 <div className="bg-[#1A1D23] border border-[#FFAE00]/20 rounded-xl p-12 text-center">
