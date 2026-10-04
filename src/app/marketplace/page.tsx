@@ -28,6 +28,7 @@ export default function MarketplacePage() {
     const [products, setProducts] = useState<any[]>(() => getCached<any[]>('marketplace_products') || [])
     const [loading, setLoading] = useState(() => !getCached<any[]>('marketplace_products'))
     const [searchTerm, setSearchTerm] = useState('')
+    const [activeFilter, setActiveFilter] = useState<string>('all')
 
     useEffect(() => {
         async function fetchProducts() {
@@ -48,9 +49,23 @@ export default function MarketplacePage() {
         fetchProducts()
     }, [])
 
-    const filteredProducts = products.filter(p => 
-        p.title.toLowerCase().includes(searchTerm.toLowerCase())
-    )
+    const filteredProducts = products
+        .filter(p => {
+            const matchesSearch = p.title.toLowerCase().includes(searchTerm.toLowerCase())
+            if (!matchesSearch) return false
+
+            if (activeFilter === 'bundle') return p.is_bundle
+            if (activeFilter === 'single') return !p.is_bundle
+            if (activeFilter === 'trending') return (p.sales_count || 0) > 0 || true
+            if (activeFilter !== 'all') return p.category === activeFilter
+            return true
+        })
+        .sort((a, b) => {
+            if (activeFilter === 'trending') {
+                return (b.sales_count || 0) - (a.sales_count || 0)
+            }
+            return 0
+        })
 
     return (
         <div className="min-h-screen">
@@ -68,7 +83,7 @@ export default function MarketplacePage() {
                              Minhas <span className="text-[#FFAE00]">Matrizes</span>
                         </h1>
                         <p className="text-gray-500 text-sm max-w-xl">
-                            Compre arquivos prontos e coleções ou venda suas próprias criações instantaneamente.
+                            Compre matrizes prontas e coleções com download instantâneo via Pix ou venda suas criações com 85% de lucro líquido.
                         </p>
                     </div>
                     
@@ -98,18 +113,86 @@ export default function MarketplacePage() {
             </div>
 
             {/* Categories/Trending quick actions */}
-            <div className="flex flex-wrap gap-3 mb-8">
-                <button className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 text-white text-sm font-medium hover:bg-[#FFAE00]/10 hover:border-[#FFAE00]/50 hover:text-[#FFAE00] transition-colors">
-                    <TrendingUp className="w-4 h-4" /> Em Alta
+            <div className="flex flex-wrap items-center gap-2 mb-8">
+                <button
+                    onClick={() => setActiveFilter('all')}
+                    className={`px-4 py-2 rounded-full text-xs font-bold transition-all ${
+                        activeFilter === 'all'
+                            ? 'bg-[#FFAE00] text-[#0F1115] shadow-md shadow-[#FFAE00]/20'
+                            : 'bg-white/5 border border-white/10 text-gray-300 hover:text-white hover:bg-white/10'
+                    }`}
+                >
+                    Todas
                 </button>
-                <button className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 text-gray-300 text-sm font-medium hover:bg-white/10 transition-colors">
-                    <Tag className="w-4 h-4" /> Pacotes / Coleções
+                <button
+                    onClick={() => setActiveFilter('trending')}
+                    className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold transition-all ${
+                        activeFilter === 'trending'
+                            ? 'bg-[#FFAE00] text-[#0F1115] shadow-md shadow-[#FFAE00]/20'
+                            : 'bg-white/5 border border-white/10 text-gray-300 hover:text-white hover:bg-white/10'
+                    }`}
+                >
+                    <TrendingUp className="w-3.5 h-3.5" /> Mais Vendidas
                 </button>
-                <button className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 text-gray-300 text-sm font-medium hover:bg-white/10 transition-colors">
-                    Geral
+                <button
+                    onClick={() => setActiveFilter('bundle')}
+                    className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold transition-all ${
+                        activeFilter === 'bundle'
+                            ? 'bg-[#FFAE00] text-[#0F1115] shadow-md shadow-[#FFAE00]/20'
+                            : 'bg-white/5 border border-white/10 text-gray-300 hover:text-white hover:bg-white/10'
+                    }`}
+                >
+                    <Tag className="w-3.5 h-3.5" /> Pacotes & Coleções
                 </button>
-                <button className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 text-gray-300 text-sm font-medium hover:bg-white/10 transition-colors">
-                    Infantil
+                <button
+                    onClick={() => setActiveFilter('infantil')}
+                    className={`px-4 py-2 rounded-full text-xs font-bold transition-all ${
+                        activeFilter === 'infantil'
+                            ? 'bg-[#FFAE00] text-[#0F1115] shadow-md shadow-[#FFAE00]/20'
+                            : 'bg-white/5 border border-white/10 text-gray-300 hover:text-white hover:bg-white/10'
+                    }`}
+                >
+                    Infantil & Bebê
+                </button>
+                <button
+                    onClick={() => setActiveFilter('animais')}
+                    className={`px-4 py-2 rounded-full text-xs font-bold transition-all ${
+                        activeFilter === 'animais'
+                            ? 'bg-[#FFAE00] text-[#0F1115] shadow-md shadow-[#FFAE00]/20'
+                            : 'bg-white/5 border border-white/10 text-gray-300 hover:text-white hover:bg-white/10'
+                    }`}
+                >
+                    Animais
+                </button>
+                <button
+                    onClick={() => setActiveFilter('floral')}
+                    className={`px-4 py-2 rounded-full text-xs font-bold transition-all ${
+                        activeFilter === 'floral'
+                            ? 'bg-[#FFAE00] text-[#0F1115] shadow-md shadow-[#FFAE00]/20'
+                            : 'bg-white/5 border border-white/10 text-gray-300 hover:text-white hover:bg-white/10'
+                    }`}
+                >
+                    Floral
+                </button>
+                <button
+                    onClick={() => setActiveFilter('religioso')}
+                    className={`px-4 py-2 rounded-full text-xs font-bold transition-all ${
+                        activeFilter === 'religioso'
+                            ? 'bg-[#FFAE00] text-[#0F1115] shadow-md shadow-[#FFAE00]/20'
+                            : 'bg-white/5 border border-white/10 text-gray-300 hover:text-white hover:bg-white/10'
+                    }`}
+                >
+                    Religioso
+                </button>
+                <button
+                    onClick={() => setActiveFilter('logos')}
+                    className={`px-4 py-2 rounded-full text-xs font-bold transition-all ${
+                        activeFilter === 'logos'
+                            ? 'bg-[#FFAE00] text-[#0F1115] shadow-md shadow-[#FFAE00]/20'
+                            : 'bg-white/5 border border-white/10 text-gray-300 hover:text-white hover:bg-white/10'
+                    }`}
+                >
+                    Logotipos
                 </button>
             </div>
 

@@ -11,10 +11,11 @@ const formatPrice = (price: number) => {
 }
 
 export default function ProductCard({ product }: { product: any }) {
-    // Basic rendering of a marketplace product card
     return (
-        <div className="bg-[#1A1D23] border border-gray-800 hover:border-[#FFAE00]/50 rounded-2xl overflow-hidden transition-all duration-300 hover:shadow-[0_0_30px_rgba(255,174,0,0.1)] group flex flex-col h-full relative cursor-pointer">
-            
+        <Link
+            href={`/marketplace/${product.id}`}
+            className="bg-[#1A1D23] border border-gray-800 hover:border-[#FFAE00]/50 rounded-2xl overflow-hidden transition-all duration-300 hover:shadow-[0_0_30px_rgba(255,174,0,0.1)] group flex flex-col h-full relative cursor-pointer"
+        >
             {/* Image Container */}
             <div className="relative w-full h-48 bg-[#0F1115] overflow-hidden">
                 <Image
@@ -25,10 +26,18 @@ export default function ProductCard({ product }: { product: any }) {
                     className="object-cover group-hover:scale-110 transition-transform duration-500"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-[#1A1D23] via-transparent to-transparent opacity-80" />
+
+                {/* Bundle Badge */}
+                {product.is_bundle && (
+                    <div className="absolute top-3 left-3 bg-[#FFAE00] text-[#0F1115] text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-md shadow-md">
+                        Pacote ({product.items_count || 2} Matrizes)
+                    </div>
+                )}
+
                 <div className="absolute bottom-3 left-3 flex gap-1">
                     {product.formats?.slice(0, 3).map((fmt: string) => (
                         <span key={fmt} className="bg-[#0F1115]/80 backdrop-blur-sm border border-white/10 text-xs font-bold px-2 py-0.5 rounded text-gray-300">
-                            {fmt}
+                            .{fmt}
                         </span>
                     ))}
                 </div>
@@ -62,11 +71,11 @@ export default function ProductCard({ product }: { product: any }) {
                         )}
                     </div>
                     
-                    <button className="bg-[#FFAE00] hover:bg-yellow-400 text-[#0F1115] p-2.5 rounded-xl font-bold transition-transform transform active:scale-95 shadow-lg shadow-[#FFAE00]/20">
-                        <ShoppingCart className="w-5 h-5" />
-                    </button>
+                    <span className="bg-[#FFAE00] group-hover:bg-yellow-400 text-[#0F1115] p-2.5 rounded-xl font-bold transition-all shadow-lg shadow-[#FFAE00]/20 flex items-center justify-center">
+                        <ShoppingCart className="w-4 h-4" />
+                    </span>
                 </div>
             </div>
-        </div>
+        </Link>
     )
 }
