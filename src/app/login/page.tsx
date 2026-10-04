@@ -161,6 +161,18 @@ export default function Login() {
                         </div>
                     </div>
                 </div>
+
+                {/* Footer Info */}
+                <div className="mt-6 text-center text-xs text-gray-500">
+                    Protegido por BordadoHUB •{' '}
+                    <Link href="/termos" className="text-gray-400 hover:text-[#FFAE00] underline">
+                        Termos
+                    </Link>{' '}
+                    e{' '}
+                    <Link href="/privacidade" className="text-gray-400 hover:text-[#FFAE00] underline">
+                        Privacidade
+                    </Link>
+                </div>
             </div>
         </div>
     )

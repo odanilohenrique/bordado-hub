@@ -282,10 +282,14 @@ export default function Register() {
 
                 {/* Footer Info */}
                 <div className="mt-8 text-center">
-                    <p className="text-gray-500 text-sm">
+                    <p className="text-gray-500 text-xs sm:text-sm">
                         Ao criar uma conta, você concorda com nossos{' '}
-                        <Link href="/terms" className="text-[#FFAE00] hover:underline">
+                        <Link href="/termos" className="text-[#FFAE00] hover:underline font-medium">
                             Termos de Uso
+                        </Link>{' '}
+                        e nossa{' '}
+                        <Link href="/privacidade" className="text-[#FFAE00] hover:underline font-medium">
+                            Política de Privacidade
                         </Link>
                     </p>
                 </div>
