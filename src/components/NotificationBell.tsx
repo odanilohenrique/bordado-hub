@@ -5,6 +5,8 @@ import { supabase } from '@/lib/supabaseClient'
 import { Bell, Wrench, MessageSquare, CheckCircle, ExternalLink, Check, Zap } from 'lucide-react'
 import Link from 'next/link'
 
+import { getCached, setCached } from '@/lib/clientCache'
+
 interface NotificationItem {
     id: string
     user_id: string
@@ -16,82 +18,93 @@ interface NotificationItem {
     created_at: string
 }
 
-export default function NotificationBell() {
-    const [unreadCount, setUnreadCount] = useState(0)
+interface NotificationBellProps {
+    profileId?: string
+}
+
+export default function NotificationBell({ profileId }: NotificationBellProps = {}) {
+    const [unreadCount, setUnreadCount] = useState<number>(() => {
+        const cached = getCached<number>('unread_notification_count')
+        return cached !== null ? cached : 0
+    })
     const [notifications, setNotifications] = useState<NotificationItem[]>([])
     const [isOpen, setIsOpen] = useState(false)
     const [loading, setLoading] = useState(false)
-    const [userId, setUserId] = useState<string | null>(null)
+    const [userId, setUserId] = useState<string | null>(profileId || null)
     const dropdownRef = useRef<HTMLDivElement>(null)
 
     useEffect(() => {
-        let channel: any = null
-        
-        const setup = async () => {
-            const { data: { session } } = await supabase.auth.getSession()
-            const user = session?.user
-            if (!user) return
+        if (profileId) {
+            setUserId(profileId)
+        }
+    }, [profileId])
 
-            const { data: profile } = await supabase
-                .from('users')
-                .select('id')
-                .eq('supabase_user_id', user.id)
-                .maybeSingle()
-
-            if (!profile) return
-            setUserId(profile.id)
-
-            // Fetch initial count
-            const { count } = await supabase
-                .from('notifications')
-                .select('*', { count: 'exact', head: true })
-                .eq('user_id', profile.id)
-                .eq('is_read', false)
-
-            setUnreadCount(count || 0)
-
-            // Listen in real-time
-            channel = supabase
-                .channel(`bell:${profile.id}`)
-                .on(
-                    'postgres_changes',
-                    {
-                        event: 'INSERT',
-                        schema: 'public',
-                        table: 'notifications',
-                        filter: `user_id=eq.${profile.id}`
-                    },
-                    (payload) => {
-                        const newNotif = payload.new as NotificationItem
-                        setUnreadCount(prev => prev + 1)
-                        setNotifications(prev => [newNotif, ...prev])
-                    }
-                )
-                .on(
-                    'postgres_changes',
-                    {
-                        event: 'UPDATE',
-                        schema: 'public',
-                        table: 'notifications',
-                        filter: `user_id=eq.${profile.id}`
-                    },
-                    (payload) => {
-                        const updated = payload.new as NotificationItem
-                        if (updated.is_read) {
-                            setUnreadCount(prev => Math.max(0, prev - 1))
-                            setNotifications(prev => prev.map(n => n.id === updated.id ? updated : n))
-                        }
-                    }
-                )
-                .subscribe()
+    useEffect(() => {
+        const handleUnreadCount = (e: any) => {
+            if (typeof e.detail === 'number') {
+                setUnreadCount(e.detail)
+            }
         }
 
-        setup()
+        const handleNewNotification = (e: any) => {
+            const newNotif = e.detail as NotificationItem
+            if (newNotif) {
+                setUnreadCount(prev => prev + 1)
+                setNotifications(prev => [newNotif, ...prev])
+            }
+        }
+
+        const handleNotificationUpdate = (e: any) => {
+            const updated = e.detail as NotificationItem
+            if (updated?.is_read) {
+                setUnreadCount(prev => Math.max(0, prev - 1))
+                setNotifications(prev => prev.map(n => n.id === updated.id ? updated : n))
+            }
+        }
+
+        window.addEventListener('bordadohub_unread_count', handleUnreadCount)
+        window.addEventListener('bordadohub_notification', handleNewNotification)
+        window.addEventListener('bordadohub_notification_update', handleNotificationUpdate)
+
+        const resolveUser = async () => {
+            let activeId = profileId || getCached<string>('current_user_profile_id')
+            if (!activeId) {
+                const { data: { session } } = await supabase.auth.getSession()
+                if (!session?.user) return
+                const { data: profile } = await supabase
+                    .from('users')
+                    .select('id')
+                    .eq('supabase_user_id', session.user.id)
+                    .maybeSingle()
+                if (profile) {
+                    activeId = profile.id
+                    setCached('current_user_profile_id', profile.id, 300000)
+                }
+            }
+            if (activeId) {
+                setUserId(activeId)
+                if (getCached<number>('unread_notification_count') === null) {
+                    const { count } = await supabase
+                        .from('notifications')
+                        .select('*', { count: 'exact', head: true })
+                        .eq('user_id', activeId)
+                        .eq('is_read', false)
+                    if (count !== null) {
+                        setUnreadCount(count)
+                        setCached('unread_notification_count', count, 60000)
+                    }
+                }
+            }
+        }
+
+        resolveUser()
 
         return () => {
-            if (channel) supabase.removeChannel(channel)
+            window.removeEventListener('bordadohub_unread_count', handleUnreadCount)
+            window.removeEventListener('bordadohub_notification', handleNewNotification)
+            window.removeEventListener('bordadohub_notification_update', handleNotificationUpdate)
         }
-    }, [])
+    }, [profileId])
 
     // Close on click outside
     useEffect(() => {

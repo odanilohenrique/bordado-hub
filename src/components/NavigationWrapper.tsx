@@ -64,34 +64,8 @@ export default function NavigationWrapper({ children }: { children: React.ReactN
             setLoading(false)
         })
 
-        // Pre-warm jobs cache during browser idle time (1.5s after load)
-        const warmTimer = setTimeout(async () => {
-            try {
-                if (!getCached('jobs_all')) {
-                    const { data: warmJobs } = await supabase
-                        .from('jobs')
-                        .select('*, users!jobs_cliente_id_fkey(name, avatar_url), proposals(status, users:criador_id(name))')
-                        .is('target_programmer_id', null)
-                        .in('status', ['aberto', 'em_progresso'])
-                        .order('created_at', { ascending: false })
-                        .limit(30)
-                    if (warmJobs) {
-                        const enriched = warmJobs.map((job: any) => ({
-                            ...job,
-                            proposalCount: job.proposals?.length || 0,
-                            hasAcceptedProposal: !!job.proposals?.some((p: any) => p.status === 'aceita'),
-                        }))
-                        setCached('jobs_all', enriched, 45000)
-                    }
-                }
-            } catch {
-                // silent
-            }
-        }, 1500)
-
         return () => {
             subscription.unsubscribe()
-            clearTimeout(warmTimer)
         }
     }, [])
 
@@ -120,7 +94,7 @@ export default function NavigationWrapper({ children }: { children: React.ReactN
                     BordadoHub
                 </Link>
                 <div className="flex items-center gap-3">
-                    <NotificationBell />
+                    <NotificationBell profileId={profile?.id} />
                     <button 
                         onClick={() => setMobileMenuOpen(true)}
                         className="p-1.5 text-gray-300 hover:text-white rounded-lg active:bg-white/5 transition-colors"
@@ -144,7 +118,7 @@ export default function NavigationWrapper({ children }: { children: React.ReactN
                 {/* Desktop top-right notification bell */}
                 <header className="hidden md:flex justify-end p-4 absolute top-0 right-0 w-full pointer-events-none z-30">
                     <div className="pointer-events-auto">
-                        <NotificationBell />
+                        <NotificationBell profileId={profile?.id} />
                     </div>
                 </header>
 

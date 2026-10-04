@@ -29,6 +29,7 @@ export default function JobsPage() {
     const [jobs, setJobs] = useState<any[]>(() => getCached<any[]>('jobs_all') || [])
     const [loading, setLoading] = useState<boolean>(() => !getCached<any[]>('jobs_all'))
     const [currentUserId, setCurrentUserId] = useState<string | null>(null)
+    const [lostBids, setLostBids] = useState<Set<string>>(new Set())
 
     useEffect(() => {
         // If cached for this filter, display instantly without spinner
@@ -88,6 +89,12 @@ export default function JobsPage() {
                             myProps.forEach(p => {
                                 myProposalsMap[p.job_id] = p.status
                             })
+                            const lostSet = new Set(
+                                myProps
+                                    .filter(p => p.status === 'recusada' || p.status === 'pendente')
+                                    .map(p => p.job_id)
+                            )
+                            setLostBids(lostSet)
                         }
                     }
                 }
@@ -118,37 +125,12 @@ export default function JobsPage() {
             })
 
             setJobs(enriched)
-            setCached(`jobs_${filter}`, enriched, 45000) // cache for 45s
+            setCached(`jobs_${filter}`, enriched, 60000) // cache for 60s
             setLoading(false)
         }
 
         fetchJobs()
     }, [filter])
-
-    // Check if the current user sent a proposal to a job that is now em_progresso (lost the bid)
-    // We'll fetch this separately for the logged-in user
-    const [lostBids, setLostBids] = useState<Set<string>>(new Set())
-
-    useEffect(() => {
-        async function fetchLostBids() {
-            if (!currentUserId) return
-            
-            // Get proposals I sent that were rejected, or proposals I sent on jobs that went to someone else
-            const { data } = await supabase
-                .from('proposals')
-                .select('job_id, status')
-                .eq('criador_id', currentUserId)
-                .in('status', ['recusada', 'pendente'])
-            
-            if (data) {
-                const jobIds = new Set(data
-                    .filter(p => p.status === 'recusada' || p.status === 'pendente')
-                    .map(p => p.job_id))
-                setLostBids(jobIds)
-            }
-        }
-        fetchLostBids()
-    }, [currentUserId])
 
     return (
         <div className="min-h-screen bg-[#0F1115] py-8 px-4 sm:px-6 lg:px-8">

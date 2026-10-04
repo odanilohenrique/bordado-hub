@@ -5,6 +5,8 @@ import { supabase } from '@/lib/supabaseClient'
 import { Bell, X, ExternalLink, Zap, CheckCircle2 } from 'lucide-react'
 import Link from 'next/link'
 
+import { getCached, setCached } from '@/lib/clientCache'
+
 interface Notification {
     id: string
     user_id: string
@@ -25,46 +27,54 @@ export default function GlobalNotificationAlert() {
         let channel: any = null
 
         const setup = async () => {
-            const { data: { session } } = await supabase.auth.getSession()
-            const user = session?.user
-            if (!user) return
+            let myProfileId = getCached<string>('current_user_profile_id')
+            if (!myProfileId) {
+                const { data: { session } } = await supabase.auth.getSession()
+                const user = session?.user
+                if (!user) return
 
-            const { data: profile } = await supabase
-                .from('users')
-                .select('id')
-                .eq('supabase_user_id', user.id)
-                .maybeSingle()
+                const { data: profile } = await supabase
+                    .from('users')
+                    .select('id')
+                    .eq('supabase_user_id', user.id)
+                    .maybeSingle()
 
-            if (!profile) return
-            setUserId(profile.id)
+                if (!profile) return
+                myProfileId = profile.id
+                setCached('current_user_profile_id', profile.id, 300000)
+            }
+            setUserId(myProfileId)
 
             // Fetch existing unread notifications
             const { data: unreads } = await supabase
                 .from('notifications')
                 .select('*')
-                .eq('user_id', profile.id)
+                .eq('user_id', myProfileId)
                 .eq('is_read', false)
                 .order('created_at', { ascending: false })
 
             if (unreads && unreads.length > 0) {
                 setNotifications(unreads)
-                // If there's an unread, show the most recent as an alert
                 setCurrentAlert(unreads[0])
             }
+            const count = unreads?.length || 0
+            setCached('unread_notification_count', count, 60000)
+            if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('bordadohub_unread_count', { detail: count }))
+            }
 
-            // Listen for new notifications in real-time
+            // Listen for notifications in real-time (INSERT and UPDATE)
             channel = supabase
-                .channel(`popup:${profile.id}`)
+                .channel(`notifs:${myProfileId}`)
                 .on(
                     'postgres_changes',
                     {
                         event: 'INSERT',
                         schema: 'public',
                         table: 'notifications',
-                        filter: `user_id=eq.${profile.id}`
+                        filter: `user_id=eq.${myProfileId}`
                     },
                     (payload) => {
-                        console.log('Popup: New notification received!', payload.new)
                         const newNotification = payload.new as Notification
                         setNotifications(prev => [newNotification, ...prev])
                         setCurrentAlert(newNotification)
@@ -74,9 +84,28 @@ export default function GlobalNotificationAlert() {
                         }
                     }
                 )
-                .subscribe((status) => {
-                    console.log(`Popup subscription status: ${status}`)
-                })
+                .on(
+                    'postgres_changes',
+                    {
+                        event: 'UPDATE',
+                        schema: 'public',
+                        table: 'notifications',
+                        filter: `user_id=eq.${myProfileId}`
+                    },
+                    (payload) => {
+                        const updated = payload.new as Notification
+                        if (updated.is_read) {
+                            setNotifications(prev => prev.filter(n => n.id !== updated.id))
+                            if (currentAlert?.id === updated.id) {
+                                setCurrentAlert(null)
+                            }
+                        }
+                        if (typeof window !== 'undefined') {
+                            window.dispatchEvent(new CustomEvent('bordadohub_notification_update', { detail: updated }))
+                        }
+                    }
+                )
+                .subscribe()
         }
 
         setup()

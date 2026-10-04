@@ -16,6 +16,8 @@ import {
     UserCircle
 } from 'lucide-react'
 
+import { getCached, setCached } from '@/lib/clientCache'
+
 interface UserProfile {
     id: string
     name: string
@@ -43,6 +45,11 @@ export default function Sidebar({ initialUser, initialProfile }: SidebarProps = 
     }, [initialUser, initialProfile])
 
     const checkRevisions = async (profileId: string) => {
+        const cached = getCached<number>(`revisions_count_${profileId}`)
+        if (cached !== null) {
+            setRevisionsCount(cached)
+            return
+        }
         try {
             const { data } = await supabase
                 .from('proposals')
@@ -56,6 +63,7 @@ export default function Sidebar({ initialUser, initialProfile }: SidebarProps = 
                     return j?.status === 'em_revisao'
                 })
                 setRevisionsCount(inRev.length)
+                setCached(`revisions_count_${profileId}`, inRev.length, 60000)
             }
         } catch (e) {
             // silent
@@ -68,7 +76,7 @@ export default function Sidebar({ initialUser, initialProfile }: SidebarProps = 
             return
         }
 
-        let channel: any = null
+        let activeProfileId: string | null = null
 
         const init = async () => {
             let activeUser = initialUser
@@ -81,30 +89,39 @@ export default function Sidebar({ initialUser, initialProfile }: SidebarProps = 
             }
 
             if (activeUser && !activeProfile) {
-                const { data } = await supabase
-                    .from('users')
-                    .select('id, name, avatar_url, bio, role')
-                    .eq('supabase_user_id', activeUser.id)
-                    .maybeSingle()
-                if (data) {
-                    activeProfile = data
-                    setProfile(data)
+                const cachedProfileId = getCached<string>('current_user_profile_id')
+                if (cachedProfileId) {
+                    activeProfileId = cachedProfileId
+                } else {
+                    const { data } = await supabase
+                        .from('users')
+                        .select('id, name, avatar_url, bio, role')
+                        .eq('supabase_user_id', activeUser.id)
+                        .maybeSingle()
+                    if (data) {
+                        activeProfile = data
+                        setProfile(data)
+                        setCached('current_user_profile_id', data.id, 300000)
+                    }
                 }
             }
 
-            if (activeProfile?.id) {
-                checkRevisions(activeProfile.id)
-
-                channel = supabase
-                    .channel(`sidebar_notifs:${activeProfile.id}`)
-                    .on('postgres_changes', { event: '*', schema: 'public', table: 'jobs' }, () => {
-                        if (activeProfile?.id) checkRevisions(activeProfile.id)
-                    })
-                    .subscribe()
+            const targetId = activeProfile?.id || activeProfileId
+            if (targetId) {
+                checkRevisions(targetId)
             }
         }
 
         init()
+
+        const handleReload = () => {
+            const targetId = profile?.id || initialProfile?.id || getCached<string>('current_user_profile_id')
+            if (targetId) {
+                checkRevisions(targetId)
+            }
+        }
+
+        window.addEventListener('bordadohub_reload_job', handleReload)
 
         const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
             if (session?.user) {
@@ -118,7 +135,7 @@ export default function Sidebar({ initialUser, initialProfile }: SidebarProps = 
 
         return () => {
             subscription.unsubscribe()
-            if (channel) supabase.removeChannel(channel)
+            window.removeEventListener('bordadohub_reload_job', handleReload)
         }
     }, [initialUser, initialProfile])
 
