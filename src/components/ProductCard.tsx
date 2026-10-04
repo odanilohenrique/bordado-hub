@@ -21,8 +21,8 @@ export default function ProductCard({ product }: { product: any }) {
                     src={product.image_url}
                     alt={product.title}
                     fill
+                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 300px"
                     className="object-cover group-hover:scale-110 transition-transform duration-500"
-                    unoptimized
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-[#1A1D23] via-transparent to-transparent opacity-80" />
                 <div className="absolute bottom-3 left-3 flex gap-1">

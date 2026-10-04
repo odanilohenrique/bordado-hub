@@ -15,15 +15,16 @@ export default function JobsPage() {
 
     useEffect(() => {
         async function fetchJobs() {
-            // Get current user profile id
-            const { data: { user } } = await supabase.auth.getUser()
+            // Get current user profile id from local session
+            const { data: { session } } = await supabase.auth.getSession()
+            const user = session?.user ?? null
             let myProfileId: string | null = null
             if (user) {
                 const { data: profile } = await supabase
                     .from('users')
                     .select('id')
                     .eq('supabase_user_id', user.id)
-                    .single()
+                    .maybeSingle()
                 if (profile) {
                     myProfileId = profile.id
                     setCurrentUserId(profile.id)
@@ -50,6 +51,7 @@ export default function JobsPage() {
                 .select('*, users!jobs_cliente_id_fkey(name, avatar_url), proposals(status, users:criador_id(name))')
                 .is('target_programmer_id', null)
                 .order('created_at', { ascending: false })
+                .limit(30)
 
             if (filter === 'aberto') {
                 query = query.eq('status', 'aberto')

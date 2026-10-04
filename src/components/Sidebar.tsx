@@ -19,16 +19,28 @@ import {
 interface UserProfile {
     id: string
     name: string
-    avatar_url: string | null
-    bio: string | null
+    avatar_url?: string | null
+    bio?: string | null
+    role?: string
 }
 
-export default function Sidebar() {
+interface SidebarProps {
+    initialUser?: SupabaseUser | null
+    initialProfile?: UserProfile | null
+}
+
+export default function Sidebar({ initialUser, initialProfile }: SidebarProps = {}) {
     const pathname = usePathname()
     const router = useRouter()
-    const [user, setUser] = useState<SupabaseUser | null>(null)
-    const [profile, setProfile] = useState<UserProfile | null>(null)
+    const [user, setUser] = useState<SupabaseUser | null>(initialUser ?? null)
+    const [profile, setProfile] = useState<UserProfile | null>(initialProfile ?? null)
     const [revisionsCount, setRevisionsCount] = useState(0)
+
+    // Sync if parent props change
+    useEffect(() => {
+        if (initialUser !== undefined) setUser(initialUser)
+        if (initialProfile !== undefined) setProfile(initialProfile)
+    }, [initialUser, initialProfile])
 
     const checkRevisions = async (profileId: string) => {
         try {
@@ -51,33 +63,48 @@ export default function Sidebar() {
     }
 
     useEffect(() => {
+        // Skip all queries and channel subscriptions on mobile devices (hidden md:flex)
+        if (typeof window !== 'undefined' && window.innerWidth < 768) {
+            return
+        }
+
         let channel: any = null
 
-        const fetchUser = async () => {
-            const { data: { session } } = await supabase.auth.getSession()
-            if (session?.user) {
-                setUser(session.user)
+        const init = async () => {
+            let activeUser = initialUser
+            let activeProfile = initialProfile
+
+            if (!activeUser) {
+                const { data: { session } } = await supabase.auth.getSession()
+                activeUser = session?.user ?? null
+                if (activeUser) setUser(activeUser)
+            }
+
+            if (activeUser && !activeProfile) {
                 const { data } = await supabase
                     .from('users')
-                    .select('id, name, avatar_url, bio')
-                    .eq('supabase_user_id', session.user.id)
-                    .single()
-                
+                    .select('id, name, avatar_url, bio, role')
+                    .eq('supabase_user_id', activeUser.id)
+                    .maybeSingle()
                 if (data) {
+                    activeProfile = data
                     setProfile(data)
-                    checkRevisions(data.id)
-
-                    channel = supabase
-                        .channel(`sidebar_notifs:${data.id}`)
-                        .on('postgres_changes', { event: '*', schema: 'public', table: 'jobs' }, () => {
-                            checkRevisions(data.id)
-                        })
-                        .subscribe()
                 }
+            }
+
+            if (activeProfile?.id) {
+                checkRevisions(activeProfile.id)
+
+                channel = supabase
+                    .channel(`sidebar_notifs:${activeProfile.id}`)
+                    .on('postgres_changes', { event: '*', schema: 'public', table: 'jobs' }, () => {
+                        if (activeProfile?.id) checkRevisions(activeProfile.id)
+                    })
+                    .subscribe()
             }
         }
 
-        fetchUser()
+        init()
 
         const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
             if (session?.user) {
@@ -93,7 +120,7 @@ export default function Sidebar() {
             subscription.unsubscribe()
             if (channel) supabase.removeChannel(channel)
         }
-    }, [])
+    }, [initialUser, initialProfile])
 
     const handleLogout = async () => {
         await supabase.auth.signOut()

@@ -1,11 +1,12 @@
 import Link from 'next/link'
+import Image from 'next/image'
 import { ArrowRight, ShieldCheck, Zap, CheckCircle2, Sparkles, Download, Layers } from 'lucide-react'
 
 export default function Hero() {
     return (
         <section className="relative bg-[#0F1115] pt-6 pb-16 sm:pt-12 sm:pb-24 overflow-hidden border-b border-white/5">
-            {/* Ambient Background Glow */}
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[350px] bg-[#FFAE00]/10 blur-[130px] rounded-full pointer-events-none -z-10" />
+            {/* Ambient Background Glow (GPU accelerated and lightweight on mobile) */}
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[320px] sm:w-[500px] h-[250px] bg-[#FFAE00]/10 blur-[60px] md:blur-[100px] rounded-full pointer-events-none -z-10 transform-gpu" />
 
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-center">
@@ -100,9 +101,13 @@ export default function Hero() {
 
                             {/* Main Preview Image: Before & After */}
                             <div className="relative rounded-2xl overflow-hidden mb-3.5 border border-white/10 group bg-[#0F1115]">
-                                <img
+                                <Image
                                     src="/images/hero-before-after.jpg"
                                     alt="Transformação de imagem em matriz de bordado computadorizada"
+                                    width={960}
+                                    height={540}
+                                    priority
+                                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 480px"
                                     className="w-full h-auto object-cover group-hover:scale-[1.02] transition-transform duration-500"
                                 />
                                 <div className="p-3 bg-[#0F1115]/95 border-t border-white/5 flex items-center justify-between">

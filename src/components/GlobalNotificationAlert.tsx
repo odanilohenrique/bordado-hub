@@ -25,14 +25,15 @@ export default function GlobalNotificationAlert() {
         let channel: any = null
 
         const setup = async () => {
-            const { data: { user } } = await supabase.auth.getUser()
+            const { data: { session } } = await supabase.auth.getSession()
+            const user = session?.user
             if (!user) return
 
             const { data: profile } = await supabase
                 .from('users')
                 .select('id')
                 .eq('supabase_user_id', user.id)
-                .single()
+                .maybeSingle()
 
             if (!profile) return
             setUserId(profile.id)

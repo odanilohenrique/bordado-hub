@@ -87,8 +87,8 @@ export default function JobCard({ job, hasNegotiation, viewerRole, proposalCount
                                 src={mainImage}
                                 alt={job.title}
                                 fill
+                                sizes="(max-width: 768px) 100vw, 288px"
                                 className="object-contain p-3"
-                                unoptimized
                             />
                         ) : (
                             <div className="w-full h-full flex flex-col items-center justify-center text-gray-700">
@@ -165,8 +165,8 @@ export default function JobCard({ job, hasNegotiation, viewerRole, proposalCount
                             src={mainImage}
                             alt={job.title}
                             fill
+                            sizes="(max-width: 768px) 100vw, 256px"
                             className="object-contain p-3 group-hover:scale-105 transition-transform duration-500"
-                            unoptimized
                         />
                     ) : (
                         <div className="w-full h-full flex flex-col items-center justify-center text-gray-700/60 min-h-[180px]">

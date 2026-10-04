@@ -10,7 +10,6 @@ import MobileDrawer from './MobileDrawer'
 import { Menu } from 'lucide-react'
 import Link from 'next/link'
 import NotificationBell from './NotificationBell'
-import GlobalNotificationAlert from './GlobalNotificationAlert'
 
 interface UserProfile {
     id: string
@@ -78,7 +77,7 @@ export default function NavigationWrapper({ children }: { children: React.ReactN
     return (
         <div className="min-h-screen bg-[#0F1115] flex flex-col md:flex-row">
             {/* Desktop Sidebar */}
-            <Sidebar />
+            <Sidebar initialUser={user} initialProfile={profile} />
 
             {/* Mobile Top Header (Fixed on mobile screens) */}
             <div className="md:hidden fixed top-0 left-0 right-0 h-14 bg-[#14171E]/95 backdrop-blur-md border-b border-white/5 z-30 flex items-center justify-between px-4">
@@ -122,9 +121,6 @@ export default function NavigationWrapper({ children }: { children: React.ReactN
 
             {/* Mobile Bottom Navigation Bar (Fixed at bottom on mobile) */}
             <MobileBottomNav profile={profile} userId={user?.id} />
-
-            {/* Real-time Popups */}
-            <GlobalNotificationAlert />
         </div>
     )
 }

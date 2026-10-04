@@ -6,16 +6,16 @@ import GlobalNotificationAlert from '@/components/GlobalNotificationAlert'
 
 export default function ClientProviders({ children }: { children: React.ReactNode }) {
     useEffect(() => {
-        // Dispara de forma assíncrona a finalização automática de jobs atrasados (Lazy Evaluation)
-        // Isso roda em background para fechar e liberar pagamento de jobs entregues há mais de 24h
-        const autoFinalize = async () => {
+        // Run auto-finalize lazily after page has fully loaded without blocking initial render
+        const timer = setTimeout(async () => {
             try {
                 await supabase.rpc('auto_finalize_expired_jobs')
-            } catch (err) {
-                console.error('Failed to auto-finalize jobs:', err)
+            } catch {
+                // silent
             }
-        }
-        autoFinalize()
+        }, 3000)
+
+        return () => clearTimeout(timer)
     }, [])
 
     return (
