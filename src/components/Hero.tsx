@@ -78,7 +78,7 @@ export default function Hero() {
                                 <CheckCircle2 className="w-5 h-5 text-sky-400 shrink-0" />
                                 <div className="text-xs">
                                     <p className="font-bold text-white">Todas as Máquinas</p>
-                                    <p className="text-gray-400 text-[11px]">.DST, .PES, .JEF, .EMB</p>
+                                    <p className="text-gray-400 text-[11px]">.DST, .PES, .JEF, .EXP</p>
                                 </div>
                             </div>
                         </div>
@@ -92,31 +92,31 @@ export default function Hero() {
                             <div className="flex items-center justify-between pb-3 mb-3 border-b border-white/5">
                                 <div className="flex items-center gap-2">
                                     <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                                    <span className="text-xs font-bold text-white">Como Funciona na Prática</span>
+                                    <span className="text-xs font-bold text-white">Exemplos Reais Produzidos</span>
                                 </div>
-                                <span className="bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full flex items-center gap-1">
-                                    <CheckCircle2 className="w-3 h-3" /> Testado na Máquina
+                                <span className="bg-[#FFAE00]/10 border border-[#FFAE00]/30 text-[#FFAE00] text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full flex items-center gap-1">
+                                    <CheckCircle2 className="w-3 h-3" /> Arquivos de Leitura
                                 </span>
                             </div>
 
                             {/* Main Preview Image: Before & After */}
                             <div className="relative rounded-2xl overflow-hidden mb-3.5 border border-white/10 group bg-[#0F1115]">
                                 <Image
-                                    src="/images/hero-before-after.jpg"
-                                    alt="Transformação de imagem em matriz de bordado computadorizada"
-                                    width={960}
-                                    height={540}
+                                    src="/images/antes-depois.jpg"
+                                    alt="Exemplos reais de imagem convertida em matriz de bordado"
+                                    width={991}
+                                    height={1024}
                                     priority
                                     sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 480px"
-                                    className="w-full h-auto object-cover group-hover:scale-[1.02] transition-transform duration-500"
+                                    className="w-full h-auto object-contain transition-transform duration-500 group-hover:scale-[1.01]"
                                 />
                                 <div className="p-3 bg-[#0F1115]/95 border-t border-white/5 flex items-center justify-between">
                                     <div>
-                                        <p className="text-xs font-bold text-white">Sua Imagem ➔ Matriz Bordada</p>
-                                        <p className="text-[10px] sm:text-[11px] text-gray-400">Pronta para máquinas Brother, Janome, Barudan, Tajima...</p>
+                                        <p className="text-xs font-bold text-white">Imagem do Cliente ➔ Matriz Bordada</p>
+                                        <p className="text-[10px] sm:text-[11px] text-gray-400">Pronta para carregar direto no pendrive da máquina</p>
                                     </div>
                                     <div className="flex items-center gap-1 bg-[#FFAE00]/15 text-[#FFAE00] px-2 py-1 rounded-lg text-xs font-black shrink-0">
-                                        <span>5.0</span>
+                                        <span>100%</span>
                                         <Sparkles className="w-3.5 h-3.5" />
                                     </div>
                                 </div>
@@ -128,8 +128,8 @@ export default function Hero() {
                                     <span className="text-[10px] font-black bg-white/5 border border-white/10 text-gray-300 px-2 py-1 rounded-lg">.DST</span>
                                     <span className="text-[10px] font-black bg-white/5 border border-white/10 text-gray-300 px-2 py-1 rounded-lg">.PES</span>
                                     <span className="text-[10px] font-black bg-white/5 border border-white/10 text-gray-300 px-2 py-1 rounded-lg">.JEF</span>
-                                    <span className="text-[10px] font-black bg-white/5 border border-white/10 text-gray-300 px-2 py-1 rounded-lg">.EMB</span>
                                     <span className="text-[10px] font-black bg-white/5 border border-white/10 text-gray-300 px-2 py-1 rounded-lg">.EXP</span>
+                                    <span className="text-[10px] font-black bg-white/5 border border-white/10 text-gray-300 px-2 py-1 rounded-lg">.XXX</span>
                                 </div>
                                 <Link
                                     href="/jobs/new"
@@ -146,8 +146,8 @@ export default function Hero() {
                                 <Download className="w-5 h-5" />
                             </div>
                             <div>
-                                <p className="text-xs font-bold text-white">+5.000 Matrizes</p>
-                                <p className="text-[10px] text-gray-400">Entregues com sucesso</p>
+                                <p className="text-xs font-bold text-white">Download Imediato</p>
+                                <p className="text-[10px] text-gray-400">Arquivos prontos para bordar</p>
                             </div>
                         </div>
                     </div>

@@ -128,7 +128,23 @@ export default function PrivacidadePage() {
                     <section className="pt-6 border-t border-white/5">
                         <h2 className="text-xl font-bold text-white mb-3 flex items-center gap-2.5">
                             <span className="w-2 h-2 rounded-full bg-emerald-400" />
-                            6. Encarregado de Dados (DPO) e Contato
+                            6. Conformidade com Serviços Google e Dados do Google OAuth
+                        </h2>
+                        <p className="text-gray-400 mb-3">
+                            O <strong>BordadoHUB</strong> oferece a opção de autenticação simplificada através do Google Sign-In (OAuth). Em estrita conformidade com a <em>Google API Services User Data Policy</em> e os <em>Termos de Serviço de APIs do Google</em>:
+                        </p>
+                        <ul className="space-y-2 list-disc list-inside text-gray-400 mb-3">
+                            <li><strong>Finalidade Única:</strong> Os dados obtidos via Google (nome, endereço de e-mail e foto pública) são utilizados <strong>exclusivamente para autenticação, criação e identificação da sua conta</strong> de usuário no marketplace.</li>
+                            <li><strong>Não Compartilhamento:</strong> Não compartilhamos, transferimos ou vendemos dados de contas do Google para terceiros, anunciantes ou redes de publicidade.</li>
+                            <li><strong>Sem Uso de IA para Conteúdo Íntimo (AI NCII):</strong> O BordadoHUB é uma plataforma estritamente dedicada à confecção e comércio de arquivos técnicos de bordado computadorizado industrial/artesanal (.DST, .PES, etc.). Nossos sistemas e eventuais ferramentas não utilizam APIs do Google para gerar, modificar ou processar qualquer conteúdo íntimo não consensual (Non-Consensual Intimate Imagery - AI NCII) ou material adulto/ilegal.</li>
+                        </ul>
+                    </section>
+
+                    {/* Section 7 */}
+                    <section className="pt-6 border-t border-white/5">
+                        <h2 className="text-xl font-bold text-white mb-3 flex items-center gap-2.5">
+                            <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                            7. Encarregado de Dados (DPO) e Contato
                         </h2>
                         <p className="text-gray-400">
                             Para exercer qualquer um dos seus direitos ou esclarecer dúvidas sobre esta Política de Privacidade, envie sua solicitação para: <span className="text-emerald-400 font-semibold">contato@bordadohub.com</span>.

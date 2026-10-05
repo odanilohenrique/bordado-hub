@@ -16,7 +16,7 @@ const categories = [
     },
     {
         name: 'Conversão de Formato',
-        description: 'Converta arquivos entre .DST, .PES, .JEF, .EMB, .EXP para sua máquina.',
+        description: 'Converta arquivos entre .DST, .PES, .JEF, .EXP, .XXX para sua máquina.',
         icon: FileCode2,
         tag: 'Técnico',
     },

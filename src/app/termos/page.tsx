@@ -137,7 +137,26 @@ export default function TermosPage() {
                     <section className="pt-6 border-t border-white/5">
                         <h2 className="text-xl font-bold text-white mb-3 flex items-center gap-2.5">
                             <span className="w-2 h-2 rounded-full bg-[#FFAE00]" />
-                            7. Contato e Suporte
+                            7. Conteúdos Proibidos e Conformidade com APIs do Google
+                        </h2>
+                        <p className="text-gray-400 mb-3">
+                            O <strong>BordadoHUB</strong> é uma plataforma profissional voltada exclusivamente para o setor têxtil e de bordado computadorizado. É expressamente proibido enviar, solicitar ou comercializar:
+                        </p>
+                        <ul className="space-y-2 list-disc list-inside text-gray-400 mb-3">
+                            <li>Conteúdo sexualmente explícito, pornográfico, pedofilia ou imagens íntimas sem consentimento (AI NCII - Non-Consensual Intimate Imagery), em estrita conformidade com os Termos de Serviço da Google API.</li>
+                            <li>Material de ódio, violência, discriminação ou promoção de atividades ilegais.</li>
+                            <li>Arquivos maliciosos, scripts ou vírus sob pretexto de arquivos de bordado.</li>
+                        </ul>
+                        <p className="text-gray-400">
+                            O descumprimento resultará no banimento imediato da conta, cancelamento de saldos retidos e comunicação às autoridades legais pertinentes.
+                        </p>
+                    </section>
+
+                    {/* Section 8 */}
+                    <section className="pt-6 border-t border-white/5">
+                        <h2 className="text-xl font-bold text-white mb-3 flex items-center gap-2.5">
+                            <span className="w-2 h-2 rounded-full bg-[#FFAE00]" />
+                            8. Contato e Suporte
                         </h2>
                         <p className="text-gray-400">
                             Para qualquer dúvida, disputa ou esclarecimento relativo a estes termos, entre em contato através do e-mail oficial: <span className="text-[#FFAE00] font-semibold">contato@bordadohub.com</span>.

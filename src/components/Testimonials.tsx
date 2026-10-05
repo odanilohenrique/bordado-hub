@@ -91,20 +91,20 @@ export default function Testimonials() {
                 {/* Trust Metrics Bar */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto text-center pt-8 border-t border-white/5">
                     <div>
-                        <p className="text-2xl sm:text-3xl font-black text-white">4.9 / 5.0</p>
-                        <p className="text-xs text-gray-400 mt-0.5">Avaliação Média</p>
+                        <p className="text-2xl sm:text-3xl font-black text-white">100% Digital</p>
+                        <p className="text-xs text-gray-400 mt-0.5">Envio Imediato</p>
                     </div>
                     <div>
-                        <p className="text-2xl sm:text-3xl font-black text-[#FFAE00]">+5.000</p>
-                        <p className="text-xs text-gray-400 mt-0.5">Matrizes Criadas</p>
+                        <p className="text-2xl sm:text-3xl font-black text-[#FFAE00]">Multi-Formato</p>
+                        <p className="text-xs text-gray-400 mt-0.5">.DST, .PES, .JEF, .EXP</p>
                     </div>
                     <div>
-                        <p className="text-2xl sm:text-3xl font-black text-white">99.4%</p>
-                        <p className="text-xs text-gray-400 mt-0.5">Aprovação na Máquina</p>
-                    </div>
-                    <div>
-                        <p className="text-2xl sm:text-3xl font-black text-[#FFAE00]">24 Horas</p>
+                        <p className="text-2xl sm:text-3xl font-black text-white">24 Horas</p>
                         <p className="text-xs text-gray-400 mt-0.5">Garantia para Teste</p>
+                    </div>
+                    <div>
+                        <p className="text-2xl sm:text-3xl font-black text-[#FFAE00]">Zero Risco</p>
+                        <p className="text-xs text-gray-400 mt-0.5">Pagamento Protegido</p>
                     </div>
                 </div>
             </div>
