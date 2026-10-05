@@ -34,34 +34,34 @@ const steps = [
 
 export default function HowItWorks() {
     return (
-        <section className="bg-[#0F1115] py-16 sm:py-24 border-b border-white/5">
+        <section className="bg-[#0F1115] py-10 sm:py-14 border-b border-white/5">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 {/* Header */}
-                <div className="text-center max-w-2xl mx-auto mb-14">
-                    <span className="text-[11px] font-black uppercase tracking-widest text-[#FFAE00] bg-[#FFAE00]/10 px-3 py-1 rounded-full border border-[#FFAE00]/20">
+                <div className="text-center max-w-2xl mx-auto mb-8 sm:mb-10">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-[#FFAE00] bg-[#FFAE00]/10 px-2.5 py-0.5 rounded-full border border-[#FFAE00]/20">
                         Simples e Sem Burocracia
                     </span>
-                    <h2 className="text-3xl sm:text-4xl font-black text-white mt-4 tracking-tight">
+                    <h2 className="text-2xl sm:text-3xl font-extrabold text-white mt-3 tracking-tight">
                         Como funciona o BordadoHUB?
                     </h2>
-                    <p className="mt-2 text-sm sm:text-base text-gray-400">
+                    <p className="mt-1.5 text-xs sm:text-sm text-gray-400">
                         Um processo simples de 4 passos pensado para facilitar a vida de quem borda.
                     </p>
                 </div>
 
                 {/* 4 Connected Step Cards */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 relative mb-12">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4 relative mb-8">
                     {steps.map((step) => (
                         <div
                             key={step.number}
-                            className="bg-[#16191F] p-6 rounded-2xl border border-white/5 relative flex flex-col justify-between shadow-lg"
+                            className="bg-[#16191F] p-5 rounded-xl border border-white/5 relative flex flex-col justify-between shadow-md"
                         >
                             <div>
-                                <div className="flex items-center justify-between mb-5">
-                                    <div className="w-12 h-12 rounded-xl bg-[#FFAE00]/10 text-[#FFAE00] flex items-center justify-center border border-[#FFAE00]/20">
-                                        <step.icon className="w-6 h-6 stroke-[2]" />
+                                <div className="flex items-center justify-between mb-3.5">
+                                    <div className="w-10 h-10 rounded-lg bg-[#FFAE00]/10 text-[#FFAE00] flex items-center justify-center border border-[#FFAE00]/20">
+                                        <step.icon className="w-5 h-5 stroke-[2]" />
                                     </div>
-                                    <span className="text-2xl font-black text-white/20">
+                                    <span className="text-xl font-black text-white/20">
                                         {step.number}
                                     </span>
                                 </div>
@@ -84,17 +84,17 @@ export default function HowItWorks() {
                 </div>
 
                 {/* Bottom Assurance Card */}
-                <div className="bg-gradient-to-r from-[#1A1D23] via-[#1F242D] to-[#1A1D23] border border-[#FFAE00]/25 rounded-3xl p-6 sm:p-8 flex flex-col sm:flex-row items-center justify-between gap-6 shadow-2xl">
-                    <div className="flex items-center gap-4 text-center sm:text-left">
-                        <div className="w-14 h-14 rounded-2xl bg-[#FFAE00]/15 text-[#FFAE00] flex items-center justify-center shrink-0 border border-[#FFAE00]/30 shadow-md">
-                            <ShieldCheck className="w-8 h-8" />
+                <div className="bg-gradient-to-r from-[#1A1D23] via-[#1F242D] to-[#1A1D23] border border-[#FFAE00]/25 rounded-2xl p-5 sm:p-6 flex flex-col sm:flex-row items-center justify-between gap-5 shadow-xl">
+                    <div className="flex items-center gap-3.5 text-center sm:text-left">
+                        <div className="w-12 h-12 rounded-xl bg-[#FFAE00]/15 text-[#FFAE00] flex items-center justify-center shrink-0 border border-[#FFAE00]/30 shadow-sm">
+                            <ShieldCheck className="w-6 h-6" />
                         </div>
                         <div>
-                            <h4 className="text-lg sm:text-xl font-bold text-white mb-1">
+                            <h4 className="text-base sm:text-lg font-bold text-white mb-0.5">
                                 Garantia Total BordadoHUB
                             </h4>
-                            <p className="text-xs sm:text-sm text-gray-400 max-w-xl">
-                                Seu dinheiro fica protegido em garantia. Você tem 24h para testar na máquina. Se não ficar perfeito, você solicita ajustes ou recebe seu dinheiro de volta.
+                            <p className="text-xs sm:text-[13px] text-gray-400 max-w-xl">
+                                Seu pagamento fica retido com segurança. Você tem 24h para conferir seus arquivos e solicitar ajustes gratuitos ao criador.
                             </p>
                         </div>
                     </div>

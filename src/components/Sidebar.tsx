@@ -164,14 +164,14 @@ export default function Sidebar({ initialUser, initialProfile }: SidebarProps = 
     return (
         <div className="flex flex-col w-64 h-screen fixed left-0 top-0 bg-[#1A1D23] border-r border-[#FFAE00]/10 shrink-0 shadow-2xl z-50 overflow-y-auto hidden md:flex">
             {/* Logo */}
-            <div className="p-6 pb-4">
-                <Link href="/" className="inline-block group">
+            <div className="pt-6 pb-4 px-4 flex justify-center items-center">
+                <Link href="/" className="flex items-center justify-center group">
                     <Image
                         src="/brand/logo-dark.png"
                         alt="BordadoHub"
                         width={140}
                         height={61}
-                        className="h-11 w-auto object-contain transition-transform group-hover:scale-105"
+                        className="h-10 w-auto object-contain transition-transform group-hover:scale-105"
                         priority
                     />
                 </Link>

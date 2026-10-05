@@ -29,27 +29,27 @@ const testimonials = [
 
 export default function Testimonials() {
     return (
-        <section className="bg-[#121418] py-16 sm:py-24 border-b border-white/5">
+        <section className="bg-[#121418] py-10 sm:py-14 border-b border-white/5">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 {/* Header */}
-                <div className="text-center max-w-2xl mx-auto mb-14">
-                    <span className="text-[11px] font-black uppercase tracking-widest text-[#FFAE00] bg-[#FFAE00]/10 px-3 py-1 rounded-full border border-[#FFAE00]/20">
+                <div className="text-center max-w-2xl mx-auto mb-8 sm:mb-10">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-[#FFAE00] bg-[#FFAE00]/10 px-2.5 py-0.5 rounded-full border border-[#FFAE00]/20">
                         Quem Usa Recomenda
                     </span>
-                    <h2 className="text-3xl sm:text-4xl font-black text-white mt-4 tracking-tight">
+                    <h2 className="text-2xl sm:text-3xl font-extrabold text-white mt-3 tracking-tight">
                         O que nossos clientes dizem
                     </h2>
-                    <p className="mt-2 text-sm sm:text-base text-gray-400">
+                    <p className="mt-1.5 text-xs sm:text-sm text-gray-400">
                         Mais de centenas de confecções, bordadeiras e ateliês contratando com segurança.
                     </p>
                 </div>
 
                 {/* Cards Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
                     {testimonials.map((item, index) => (
                         <div
                             key={index}
-                            className="bg-[#16191F] p-6 rounded-2xl border border-white/5 flex flex-col justify-between shadow-xl relative"
+                            className="bg-[#16191F] p-5 rounded-xl border border-white/5 flex flex-col justify-between shadow-md relative"
                         >
                             <div>
                                 {/* Stars & Verified Badge */}
