@@ -7,8 +7,29 @@ import NavigationWrapper from "@/components/NavigationWrapper";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://bordadohub.com'),
   title: "BordadoHub - Marketplace de Matrizes",
   description: "Conectando clientes e criadores de matrizes de bordado",
+  icons: {
+    icon: [
+      { url: '/brand/icon-dark.png', sizes: '1080x1080', type: 'image/png' },
+    ],
+    apple: [
+      { url: '/brand/icon-amber.png', sizes: '1080x1080', type: 'image/png' },
+    ],
+  },
+  openGraph: {
+    title: "BordadoHub - Marketplace de Matrizes de Bordado",
+    description: "Conectando clientes e criadores de matrizes de bordado",
+    images: [
+      {
+        url: '/brand/icon-dark.png',
+        width: 1082,
+        height: 1082,
+        alt: 'BordadoHub',
+      }
+    ],
+  },
 };
 
 import { Toaster } from 'sonner';

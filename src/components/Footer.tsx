@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import Image from 'next/image'
 import { ShieldCheck } from 'lucide-react'
 
 export default function Footer() {
@@ -7,8 +8,14 @@ export default function Footer() {
             <div className="max-w-7xl mx-auto">
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-10">
                     <div className="col-span-1 md:col-span-1">
-                        <Link href="/" className="inline-flex items-center gap-1.5 text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-[#FFAE00] to-yellow-300">
-                            Bordado<span className="text-white">Hub</span>
+                        <Link href="/" className="inline-block group mb-1">
+                            <Image
+                                src="/brand/logo-dark.png"
+                                alt="BordadoHub"
+                                width={130}
+                                height={56}
+                                className="h-10 w-auto object-contain transition-transform group-hover:scale-105"
+                            />
                         </Link>
                         <p className="mt-3 text-gray-400 text-xs sm:text-sm leading-relaxed">
                             A maior plataforma de matrizes de bordado computadorizado do Brasil. Conectando quem precisa bordar aos melhores programadores do país.

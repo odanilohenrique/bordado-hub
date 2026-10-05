@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { User } from '@supabase/supabase-js'
@@ -40,11 +41,15 @@ export default function Navbar() {
                 <div className="flex justify-between h-16 items-center">
                     {/* Brand Logo */}
                     <div className="flex items-center gap-8">
-                        <Link href="/" className="flex items-center gap-1.5 group">
-                            <span className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-[#FFAE00] to-yellow-300 tracking-tight">
-                                Bordado<span className="text-white">Hub</span>
-                            </span>
-                            <span className="w-1.5 h-1.5 rounded-full bg-[#FFAE00] animate-pulse"></span>
+                        <Link href="/" className="flex items-center group py-1">
+                            <Image
+                                src="/brand/logo-dark.png"
+                                alt="BordadoHub"
+                                width={92}
+                                height={40}
+                                className="h-10 w-auto object-contain transition-transform group-hover:scale-105"
+                                priority
+                            />
                         </Link>
 
                         {/* Desktop Links */}

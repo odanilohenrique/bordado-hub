@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
 import { X, LayoutDashboard, Users, Store, ShoppingBag, Palette, Wallet, LogOut, UserCircle, PlusCircle, HelpCircle, Shield, FileText } from 'lucide-react'
 import { supabase } from '@/lib/supabaseClient'
@@ -48,8 +49,14 @@ export default function MobileDrawer({ isOpen, onClose, profile, userId }: Mobil
             <div className="relative w-80 max-w-[85vw] bg-[#16191F] h-full shadow-2xl flex flex-col z-10 animate-in slide-in-from-left duration-300 border-r border-white/10">
                 {/* Header with Close */}
                 <div className="p-4 border-b border-white/5 flex items-center justify-between">
-                    <Link href="/" onClick={onClose} className="text-xl font-black text-transparent bg-clip-text bg-gradient-to-r from-[#FFAE00] to-yellow-300">
-                        BordadoHub
+                    <Link href="/" onClick={onClose} className="flex items-center py-1">
+                        <Image
+                            src="/brand/logo-dark.png"
+                            alt="BordadoHub"
+                            width={100}
+                            height={40}
+                            className="h-8 w-auto object-contain"
+                        />
                     </Link>
                     <button 
                         onClick={onClose}

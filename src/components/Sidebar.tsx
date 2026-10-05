@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
@@ -163,9 +164,16 @@ export default function Sidebar({ initialUser, initialProfile }: SidebarProps = 
     return (
         <div className="flex flex-col w-64 h-screen fixed left-0 top-0 bg-[#1A1D23] border-r border-[#FFAE00]/10 shrink-0 shadow-2xl z-50 overflow-y-auto hidden md:flex">
             {/* Logo */}
-            <div className="p-6">
-                <Link href="/" className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-[#FFAE00] to-yellow-300">
-                    BordadoHub
+            <div className="p-6 pb-4">
+                <Link href="/" className="inline-block group">
+                    <Image
+                        src="/brand/logo-dark.png"
+                        alt="BordadoHub"
+                        width={140}
+                        height={61}
+                        className="h-11 w-auto object-contain transition-transform group-hover:scale-105"
+                        priority
+                    />
                 </Link>
             </div>
 

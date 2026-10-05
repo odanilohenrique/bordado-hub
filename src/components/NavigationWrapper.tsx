@@ -9,6 +9,7 @@ import MobileBottomNav from './MobileBottomNav'
 import MobileDrawer from './MobileDrawer'
 import { Menu } from 'lucide-react'
 import Link from 'next/link'
+import Image from 'next/image'
 import NotificationBell from './NotificationBell'
 import { setCached, getCached } from '@/lib/clientCache'
 
@@ -90,8 +91,15 @@ export default function NavigationWrapper({ children }: { children: React.ReactN
 
             {/* Mobile Top Header (Fixed on mobile screens) */}
             <div className="md:hidden fixed top-0 left-0 right-0 h-14 bg-[#14171E]/95 backdrop-blur-md border-b border-white/5 z-30 flex items-center justify-between px-4">
-                <Link href="/" className="text-lg font-black text-transparent bg-clip-text bg-gradient-to-r from-[#FFAE00] to-yellow-300">
-                    BordadoHub
+                <Link href="/" className="flex items-center py-1">
+                    <Image
+                        src="/brand/logo-dark.png"
+                        alt="BordadoHub"
+                        width={92}
+                        height={36}
+                        className="h-8 w-auto object-contain"
+                        priority
+                    />
                 </Link>
                 <div className="flex items-center gap-3">
                     <NotificationBell profileId={profile?.id} />

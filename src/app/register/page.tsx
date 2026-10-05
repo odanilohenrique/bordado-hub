@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 import { User, Mail, Lock, Zap, UserPlus, ShoppingBag, Code } from 'lucide-react'
 import GoogleSignInButton from '@/components/GoogleSignInButton'
 
@@ -85,14 +86,18 @@ export default function Register() {
             <div className="sm:mx-auto sm:w-full sm:max-w-md">
                 {/* Header */}
                 <div className="text-center mb-8">
-                    <div className="flex justify-center mb-4">
-                        <div className="bg-[#FFAE00]/10 p-4 rounded-full border border-[#FFAE00]/20 shadow-lg shadow-[#FFAE00]/10">
-                            <UserPlus className="w-10 h-10 text-[#FFAE00]" />
-                        </div>
+                    <div className="flex justify-center mb-5">
+                        <Link href="/" className="inline-block group">
+                            <Image
+                                src="/brand/logo-dark.png"
+                                alt="BordadoHub"
+                                width={180}
+                                height={78}
+                                className="h-16 w-auto object-contain transition-transform group-hover:scale-105 drop-shadow-[0_0_25px_rgba(255,174,0,0.25)]"
+                                priority
+                            />
+                        </Link>
                     </div>
-                    <h2 className="text-3xl font-black text-[#F3F4F6] mb-1">
-                        Bordado<span className="text-[#FFAE00]">HUB</span>
-                    </h2>
                     <p className="text-gray-400 text-sm">
                         Cadastre-se para comprar ou vender matrizes de bordado
                     </p>
