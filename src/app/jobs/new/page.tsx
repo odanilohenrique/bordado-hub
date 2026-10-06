@@ -5,7 +5,10 @@ import { supabase } from '@/lib/supabaseClient'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Upload, FileText, Image as ImageIcon, Zap, Clock, Package, Plus, Trash2, Check, Sparkles, X } from 'lucide-react'
 import Link from 'next/link'
+import { toast } from 'sonner'
 import { createNotification } from '@/lib/notifications'
+
+const PRESET_FORMATS = ['.PES', '.JEF', '.DST', '.XXX', '.VP3', '.HUS', '.EXP']
 
 const COMMON_POSITIONS = [
     { label: 'Peito / Frente', value: 'Peito / Frente' },
@@ -42,10 +45,14 @@ export interface MatrixItem {
 }
 
 function NewJobContent() {
+    const router = useRouter()
+    const searchParams = useSearchParams()
+
     const [title, setTitle] = useState('')
     const [description, setDescription] = useState('')
     const [urgency, setUrgency] = useState('sem_pressa')
-    const [formats, setFormats] = useState<string[]>([])
+    const [formats, setFormats] = useState<string[]>(['.PES'])
+    const [customFormatInput, setCustomFormatInput] = useState('')
     const [images, setImages] = useState<File[]>([])
     const [imagePreviews, setImagePreviews] = useState<string[]>([])
     const [loading, setLoading] = useState(false)
@@ -58,9 +65,6 @@ function NewJobContent() {
     const [matrixItems, setMatrixItems] = useState<MatrixItem[]>([
         { id: '1', location: 'Peito / Frente', customLocation: '', size: '', fabric: '', file: null, previewUrl: null }
     ])
-
-    const router = useRouter()
-    const searchParams = useSearchParams()
 
     // Check authentication on page load
     useEffect(() => {
@@ -92,20 +96,6 @@ function NewJobContent() {
         }
     }, [searchParams])
 
-    if (checkingAuth) {
-        return (
-            <div className="min-h-screen bg-[#0F1115] flex items-center justify-center">
-                <div className="text-center">
-                    <div className="w-16 h-16 border-4 border-[#FFAE00]/30 border-t-[#FFAE00] rounded-full animate-spin mx-auto mb-4" />
-                    <p className="text-gray-400">Verificando autenticação...</p>
-                </div>
-            </div>
-        )
-    }
-
-    const PRESET_FORMATS = ['.PES', '.JEF', '.DST', '.XXX', '.VP3', '.HUS', '.EXP']
-    const [customFormatInput, setCustomFormatInput] = useState('')
-
     const handleFormatToggle = (format: string) => {
         setFormats(prev =>
             prev.includes(format)
@@ -122,6 +112,17 @@ function NewJobContent() {
             setFormats(prev => [...prev, formatted])
         }
         setCustomFormatInput('')
+    }
+
+    if (checkingAuth) {
+        return (
+            <div className="min-h-screen bg-[#0F1115] flex items-center justify-center">
+                <div className="text-center">
+                    <div className="w-16 h-16 border-4 border-[#FFAE00]/30 border-t-[#FFAE00] rounded-full animate-spin mx-auto mb-4" />
+                    <p className="text-gray-400">Verificando autenticação...</p>
+                </div>
+            </div>
+        )
     }
 
     // Matrix Items Handlers
@@ -205,37 +206,56 @@ function NewJobContent() {
 
         try {
             const { data: { user } } = await supabase.auth.getUser()
-            if (!user) throw new Error('Usuário não autenticado')
+            if (!user) {
+                toast.error('Sessão expirada. Por favor, faça login novamente.')
+                throw new Error('Usuário não autenticado')
+            }
 
-            // 1. Get User ID from public.users
-            const { data: userData, error: userError } = await supabase
+            // 1. Obter ID do perfil em public.users
+            let { data: userData } = await supabase
                 .from('users')
                 .select('id')
                 .eq('supabase_user_id', user.id)
-                .single()
+                .maybeSingle()
 
-            if (userError || !userData) throw new Error('Perfil de usuário não encontrado')
+            if (!userData) {
+                const { data: userById } = await supabase
+                    .from('users')
+                    .select('id')
+                    .eq('id', user.id)
+                    .maybeSingle()
+                if (userById) userData = userById
+            }
+
+            if (!userData) {
+                toast.error('Perfil de usuário não localizado. Recarregue a página.')
+                throw new Error('Perfil de usuário não encontrado')
+            }
 
             // Valida se cada matriz tem tamanho informado
             for (let i = 0; i < matrixItems.length; i++) {
                 const item = matrixItems[i]
                 const locName = item.location === 'outro' && item.customLocation.trim() ? item.customLocation.trim() : item.location
                 if (!item.size.trim()) {
-                    setError(`Por favor, informe o tamanho desejado da ${matrixItems.length > 1 ? `Matriz ${i + 1}` : 'Matriz'} (${locName}).`)
+                    const msg = `Por favor, informe o tamanho desejado da ${matrixItems.length > 1 ? `Matriz ${i + 1}` : 'Matriz'} (${locName}).`
+                    setError(msg)
+                    toast.error(msg)
                     setLoading(false)
                     return
                 }
             }
 
-            // Valida se enviou pelo menos uma foto/desenho (seja no card ou nas fotos complementares)
+            // Valida se enviou pelo menos uma foto/desenho
             const hasAnyFile = matrixItems.some(item => item.file !== null) || images.length > 0
             if (!hasAnyFile) {
-                setError('Por favor, envie ao menos uma foto, logo ou desenho para a criação da matriz.')
+                const msg = 'Por favor, envie ao menos uma foto, logo ou desenho para a criação da matriz.'
+                setError(msg)
+                toast.error(msg)
                 setLoading(false)
                 return
             }
 
-            // 2. Upload das fotos individuais de cada matriz
+            // 2. Upload das fotos individuais via API com service client (sem bloqueio de RLS)
             const imageUrls: string[] = []
             const itemParts: string[] = []
 
@@ -246,43 +266,43 @@ function NewJobContent() {
                     : item.location
 
                 if (item.file) {
-                    const fileExt = item.file.name.split('.').pop()
-                    const fileName = `matriz_${i + 1}_${Math.random()}.${fileExt}`
-                    const filePath = `jobs/${userData.id}/${fileName}`
+                    const uploadFormData = new FormData()
+                    uploadFormData.append('file', item.file)
+                    uploadFormData.append('userId', userData.id)
 
-                    const { error: uploadError } = await supabase.storage
-                        .from('portfolio')
-                        .upload(filePath, item.file)
+                    const uploadRes = await fetch('/api/jobs/upload', {
+                        method: 'POST',
+                        body: uploadFormData
+                    })
+                    const uploadJson = await uploadRes.json()
 
-                    if (uploadError) throw uploadError
+                    if (!uploadRes.ok || uploadJson.error) {
+                        throw new Error(uploadJson.error || 'Erro no upload da foto da matriz')
+                    }
 
-                    const { data: { publicUrl } } = supabase.storage
-                        .from('portfolio')
-                        .getPublicUrl(filePath)
-
-                    imageUrls.push(publicUrl)
+                    imageUrls.push(uploadJson.publicUrl)
                 }
 
                 itemParts.push(`${matrixItems.length > 1 ? `${i + 1}. ` : ''}${loc}: ${item.size.trim()}${item.fabric.trim() ? ` (Tecido: ${item.fabric.trim()})` : ''}`)
             }
 
-            // 3. Upload de fotos complementares (se houver)
+            // 3. Upload de fotos complementares
             for (const file of images) {
-                const fileExt = file.name.split('.').pop()
-                const fileName = `extra_${Math.random()}.${fileExt}`
-                const filePath = `jobs/${userData.id}/${fileName}`
+                const uploadFormData = new FormData()
+                uploadFormData.append('file', file)
+                uploadFormData.append('userId', userData.id)
 
-                const { error: uploadError } = await supabase.storage
-                    .from('portfolio')
-                    .upload(filePath, file)
+                const uploadRes = await fetch('/api/jobs/upload', {
+                    method: 'POST',
+                    body: uploadFormData
+                })
+                const uploadJson = await uploadRes.json()
 
-                if (uploadError) throw uploadError
+                if (!uploadRes.ok || uploadJson.error) {
+                    throw new Error(uploadJson.error || 'Erro no upload de foto complementar')
+                }
 
-                const { data: { publicUrl } } = supabase.storage
-                    .from('portfolio')
-                    .getPublicUrl(filePath)
-
-                imageUrls.push(publicUrl)
+                imageUrls.push(uploadJson.publicUrl)
             }
 
             const isKit = matrixItems.length > 1
@@ -314,6 +334,8 @@ function NewJobContent() {
                 ? Array.from(new Set(fabricsCollected)).join(', ')
                 : 'A combinar com o programador'
 
+            const finalFormats = formats.length > 0 ? formats : ['.PES', '.DST']
+
             // 4. Criação do Pedido
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const baseJobPayload: any = {
@@ -323,7 +345,7 @@ function NewJobContent() {
                 dimensions: finalDimensions,
                 fabric_type: finalFabricType,
                 urgency,
-                formats,
+                formats: finalFormats,
                 image_urls: imageUrls,
                 status: 'aberto',
                 order_type: isKit ? 'kit' : 'individual',
@@ -337,7 +359,7 @@ function NewJobContent() {
                 .select()
                 .single()
 
-            // Fallback inteligente se as colunas items_count ou order_type ainda não tiverem sido adicionadas no Supabase
+            // Fallback se colunas de kit não existirem no Supabase
             if (jobError && (jobError.message?.includes('items_count') || jobError.message?.includes('order_type'))) {
                 console.warn('Colunas de kit não encontradas, tentando inserção com campos básicos...')
                 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -364,10 +386,13 @@ function NewJobContent() {
                 })
             }
 
+            toast.success('Pedido publicado com sucesso!')
             router.push(`/jobs/${createdJob.id}`)
         } catch (err: any) {
             console.error('Error creating job:', err)
-            setError(err.message || 'Erro ao criar pedido')
+            const msg = err.message || 'Erro ao criar pedido'
+            setError(msg)
+            toast.error(msg)
         } finally {
             setLoading(false)
         }
