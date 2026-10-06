@@ -121,11 +121,31 @@ function JobDetailClient({ jobId }: { jobId: string }) {
             return
         }
 
-        const { data: profile } = await supabase
+        let { data: profile } = await supabase
             .from('users')
             .select('*')
             .eq('supabase_user_id', user.id)
-            .single()
+            .maybeSingle()
+
+        if (!profile && user.email) {
+            try {
+                const res = await fetch('/api/create-profile', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userId: user.id,
+                        email: user.email,
+                        name: user.user_metadata?.full_name || user.user_metadata?.name || user.email.split('@')[0],
+                        avatar_url: user.user_metadata?.avatar_url || user.user_metadata?.picture || null,
+                        role: 'criador'
+                    })
+                })
+                const resData = await res.json()
+                profile = resData?.data || null
+            } catch (healErr) {
+                console.error('Error auto-healing profile in loadData:', healErr)
+            }
+        }
 
         const { data: jobData } = await supabase
             .from('jobs')
@@ -364,11 +384,50 @@ function JobDetailClient({ jobId }: { jobId: string }) {
         setSubmitting(true)
 
         try {
+            let creatorId = currentUser?.id
+
+            if (!creatorId) {
+                const { data: { user } } = await supabase.auth.getUser()
+                if (!user) {
+                    toast.error('Você precisa estar logado para enviar uma proposta.')
+                    router.push('/login')
+                    return
+                }
+
+                const { data: userProfile } = await supabase
+                    .from('users')
+                    .select('id')
+                    .eq('supabase_user_id', user.id)
+                    .maybeSingle()
+
+                if (userProfile?.id) {
+                    creatorId = userProfile.id
+                } else if (user.email) {
+                    const res = await fetch('/api/create-profile', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            userId: user.id,
+                            email: user.email,
+                            name: user.user_metadata?.full_name || user.user_metadata?.name || user.email.split('@')[0],
+                            avatar_url: user.user_metadata?.avatar_url || user.user_metadata?.picture || null,
+                            role: 'criador'
+                        })
+                    })
+                    const resData = await res.json()
+                    creatorId = resData?.data?.id
+                }
+            }
+
+            if (!creatorId) {
+                throw new Error('Não foi possível identificar o seu perfil de usuário. Por favor, recarregue a página e tente novamente.')
+            }
+
             const { error } = await supabase
                 .from('proposals')
                 .insert([{
                     job_id: jobId,
-                    criador_id: currentUser.id,
+                    criador_id: creatorId,
                     amount: parseFloat(amount),
                     message,
                     deadline_text: deadline,
@@ -381,7 +440,7 @@ function JobDetailClient({ jobId }: { jobId: string }) {
             router.refresh()
             window.location.reload()
         } catch (err: any) {
-            toast.error('Erro ao enviar proposta: ' + err.message)
+            toast.error('Erro ao enviar proposta: ' + (err.message || 'Erro desconhecido'))
         } finally {
             setSubmitting(false)
         }
@@ -450,7 +509,7 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     jobId,
-                    reviewerId: currentUser.id,
+                    reviewerId: currentUser?.id,
                     revieweeId: acceptedProposal.criador_id,
                     ratingMatrix: mRating,
                     ratingService: sRating,

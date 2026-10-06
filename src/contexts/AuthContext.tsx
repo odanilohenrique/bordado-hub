@@ -40,7 +40,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [profile, setProfile] = useState<UserProfile | null>(() => getCached<UserProfile>('current_user_profile'))
     const [loading, setLoading] = useState<boolean>(() => !getCached<User>('current_user_auth'))
 
-    const fetchUserProfile = useCallback(async (supabaseUserId: string): Promise<UserProfile | null> => {
+    const fetchUserProfile = useCallback(async (supabaseUserId: string, authUserParam?: User | null): Promise<UserProfile | null> => {
         try {
             const { data, error } = await supabase
                 .from('users')
@@ -59,17 +59,50 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 setCached('current_user_profile_id', data.id, 300000)
                 return data
             }
+
+            // Auto-heal missing profile row if user is authenticated in Supabase Auth
+            let authUser = authUserParam || user
+            if (!authUser) {
+                const { data: authData } = await supabase.auth.getUser()
+                authUser = authData?.user ?? null
+            }
+
+            if (authUser?.email) {
+                try {
+                    const res = await fetch('/api/create-profile', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            userId: supabaseUserId,
+                            email: authUser.email,
+                            name: authUser.user_metadata?.full_name || authUser.user_metadata?.name || authUser.email.split('@')[0],
+                            avatar_url: authUser.user_metadata?.avatar_url || authUser.user_metadata?.picture || null,
+                            role: 'criador'
+                        })
+                    })
+                    const resJson = await res.json()
+                    const newProfile = resJson?.data
+                    if (newProfile) {
+                        setProfile(newProfile)
+                        setCached('current_user_profile', newProfile, 300000)
+                        setCached('current_user_profile_id', newProfile.id, 300000)
+                        return newProfile
+                    }
+                } catch (autoErr) {
+                    console.error('Failed to auto-provision user profile:', autoErr)
+                }
+            }
         } catch (err) {
             console.error('Exception fetching user profile:', err)
         }
         return null
-    }, [])
+    }, [user])
 
     const refreshProfile = useCallback(async () => {
         if (user?.id) {
-            await fetchUserProfile(user.id)
+            await fetchUserProfile(user.id, user)
         }
-    }, [user?.id, fetchUserProfile])
+    }, [user, fetchUserProfile])
 
     useEffect(() => {
         let isMounted = true
@@ -86,7 +119,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     setUser(currentUser)
                     if (currentUser) {
                         setCached('current_user_auth', currentUser, 300000)
-                        await fetchUserProfile(currentUser.id)
+                        await fetchUserProfile(currentUser.id, currentUser)
                     } else {
                         clearCache('current_user_auth')
                         clearCache('current_user_profile')
@@ -114,7 +147,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             if (currentUser) {
                 setCached('current_user_auth', currentUser, 300000)
                 if (event === 'SIGNED_IN' || !profile) {
-                    await fetchUserProfile(currentUser.id)
+                    await fetchUserProfile(currentUser.id, currentUser)
                 }
             } else {
                 clearCache('current_user_auth')

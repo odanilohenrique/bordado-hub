@@ -48,7 +48,22 @@ function AuthCallbackContent() {
                     else if (profile.role === 'criador') router.push('/jobs')
                     else router.push(next === '/pedidos' ? '/producao' : next)
                 } else {
-                    router.push(`/profile/${userId}`)
+                    try {
+                        await fetch('/api/create-profile', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                userId,
+                                name: user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email?.split('@')[0],
+                                email: user?.email,
+                                role: 'criador',
+                                avatar_url: googleAvatar
+                            })
+                        })
+                    } catch (e) {
+                        console.error('Auto create profile error:', e)
+                    }
+                    router.push(next || '/pedidos')
                 }
                 router.refresh()
             } catch (err) {

@@ -21,22 +21,24 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Dados incompletos: userId ou email faltando.' }, { status: 400 })
         }
 
+        const validRole = role === 'criador' ? 'criador' : 'cliente'
+
         const { data, error } = await supabase
             .from('users')
             .upsert([
                 {
                     supabase_user_id: userId,
-                    name,
+                    name: name || email.split('@')[0],
                     email,
-                    role: role || 'cliente',
+                    role: validRole,
                     ...(avatar_url ? { avatar_url } : {})
                 },
             ], { onConflict: 'supabase_user_id' })
             .select()
+            .single()
 
         if (error) {
             console.error('Error creating profile:', error)
-            // Handle duplicate key error gracefully if needed, but for now show raw error
             return NextResponse.json({ error: `Erro no banco de dados: ${error.message}` }, { status: 500 })
         }
 
