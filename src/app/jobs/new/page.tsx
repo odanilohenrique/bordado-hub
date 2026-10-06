@@ -3,21 +3,21 @@
 import { useState, useEffect, Suspense } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Upload, FileText, Image as ImageIcon, Zap, Clock, Package, Plus, Trash2, Check, Sparkles } from 'lucide-react'
+import { Upload, FileText, Image as ImageIcon, Zap, Clock, Package, Plus, Trash2, Check, Sparkles, X } from 'lucide-react'
 import Link from 'next/link'
 import { createNotification } from '@/lib/notifications'
 
 const COMMON_POSITIONS = [
-    { label: '👕 Peito / Frente', value: 'Peito / Frente' },
-    { label: '🧥 Costas (Grande)', value: 'Costas (Grande)' },
-    { label: '💪 Manga (Lateral)', value: 'Manga (Lateral)' },
-    { label: '🧢 Boné / Touca', value: 'Boné / Touca' },
-    { label: '👜 Bolso', value: 'Bolso' },
-    { label: '👖 Calça / Perna', value: 'Calça / Perna' },
-    { label: '🏷️ Gola / Nuca', value: 'Gola / Nuca' },
-    { label: '🍽️ Pano de Prato / Cozinha', value: 'Pano de Prato / Cozinha' },
-    { label: '🛁 Toalha de Banho / Rosto', value: 'Toalha de Banho / Rosto' },
-    { label: '✨ Outro local...', value: 'outro' },
+    { label: 'Peito / Frente', value: 'Peito / Frente' },
+    { label: 'Costas (Grande)', value: 'Costas (Grande)' },
+    { label: 'Manga (Lateral)', value: 'Manga (Lateral)' },
+    { label: 'Boné / Touca', value: 'Boné / Touca' },
+    { label: 'Bolso', value: 'Bolso' },
+    { label: 'Calça / Perna', value: 'Calça / Perna' },
+    { label: 'Gola / Nuca', value: 'Gola / Nuca' },
+    { label: 'Pano de Prato / Cozinha', value: 'Pano de Prato / Cozinha' },
+    { label: 'Toalha de Banho / Rosto', value: 'Toalha de Banho / Rosto' },
+    { label: 'Outro local...', value: 'outro' },
 ]
 
 const FABRIC_SUGGESTIONS = [
@@ -103,14 +103,25 @@ function NewJobContent() {
         )
     }
 
-    const availableFormats = ['.PES', '.DST', '.JEF', '.XXX', '.EXP']
+    const PRESET_FORMATS = ['.PES', '.JEF', '.DST', '.XXX', '.VP3', '.HUS', '.EXP']
+    const [customFormatInput, setCustomFormatInput] = useState('')
 
-    const handleFormatChange = (format: string) => {
+    const handleFormatToggle = (format: string) => {
         setFormats(prev =>
             prev.includes(format)
                 ? prev.filter(f => f !== format)
                 : [...prev, format]
         )
+    }
+
+    const handleAddCustomFormat = () => {
+        const trimmed = customFormatInput.trim()
+        if (!trimmed) return
+        const formatted = trimmed.startsWith('.') ? trimmed.toUpperCase() : `.${trimmed.toUpperCase()}`
+        if (!formats.includes(formatted)) {
+            setFormats(prev => [...prev, formatted])
+        }
+        setCustomFormatInput('')
     }
 
     // Matrix Items Handlers
@@ -381,11 +392,11 @@ function NewJobContent() {
                     )}
                 </div>
 
-                <form onSubmit={handleSubmit} className="bg-[#1A1D23] border border-[#FFAE00]/20 rounded-xl p-6 sm:p-8 space-y-6 shadow-xl">
+                <form onSubmit={handleSubmit} className="bg-[#1A1D23] border border-[#FFAE00]/20 rounded-xl p-5 sm:p-7 space-y-5 shadow-xl">
                     {/* Título do Pedido */}
-                    <div className="space-y-2">
-                        <label className="flex items-center gap-2 text-sm font-medium text-gray-300">
-                            <FileText className="w-4 h-4 text-[#FFAE00]" />
+                    <div className="space-y-1.5">
+                        <label className="flex items-center gap-2 text-xs font-semibold text-gray-300">
+                            <FileText className="w-3.5 h-3.5 text-[#FFAE00]" />
                             Título do Pedido
                         </label>
                         <input
@@ -394,14 +405,14 @@ function NewJobContent() {
                             value={title}
                             onChange={e => setTitle(e.target.value)}
                             placeholder="Ex: Logo da Empresa no Peito e Costas, Brasão Escolar, etc."
-                            className="w-full bg-[#0F1115] border border-[#FFAE00]/20 rounded-lg px-4 py-3 text-[#F3F4F6] placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#FFAE00] focus:border-transparent transition-all"
+                            className="w-full bg-[#0F1115] border border-white/10 rounded-lg px-3.5 py-2.5 text-sm text-[#F3F4F6] placeholder-gray-500 focus:outline-none focus:border-[#FFAE00] transition-all"
                         />
                     </div>
 
                     {/* Descrição Detalhada */}
-                    <div className="space-y-2">
-                        <label className="flex items-center gap-2 text-sm font-medium text-gray-300">
-                            <FileText className="w-4 h-4 text-[#FFAE00]" />
+                    <div className="space-y-1.5">
+                        <label className="flex items-center gap-2 text-xs font-semibold text-gray-300">
+                            <FileText className="w-3.5 h-3.5 text-[#FFAE00]" />
                             Descrição Geral do Pedido
                         </label>
                         <textarea
@@ -410,35 +421,86 @@ function NewJobContent() {
                             value={description}
                             onChange={e => setDescription(e.target.value)}
                             placeholder="Descreva detalhes como cores desejadas, instruções especiais, máquina que você utiliza..."
-                            className="w-full bg-[#0F1115] border border-[#FFAE00]/20 rounded-lg px-4 py-3 text-[#F3F4F6] placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#FFAE00] focus:border-transparent transition-all resize-none"
+                            className="w-full bg-[#0F1115] border border-white/10 rounded-lg px-3.5 py-2.5 text-sm text-[#F3F4F6] placeholder-gray-500 focus:outline-none focus:border-[#FFAE00] transition-all resize-none"
                         />
                     </div>
 
                     {/* Formatos Desejados */}
                     <div className="space-y-2">
-                        <label className="flex items-center gap-2 text-sm font-medium text-gray-300">
-                            <Package className="w-4 h-4 text-[#FFAE00]" />
+                        <label className="flex items-center gap-2 text-xs font-semibold text-gray-300">
+                            <Package className="w-3.5 h-3.5 text-[#FFAE00]" />
                             Formatos Desejados para Sua Máquina
                         </label>
-                        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-                            {availableFormats.map(fmt => (
-                                <label
-                                    key={fmt}
-                                    className={`flex items-center justify-center gap-2 px-4 py-3 rounded-lg border-2 cursor-pointer transition-all ${
-                                        formats.includes(fmt)
-                                            ? 'bg-[#FFAE00]/10 border-[#FFAE00] text-[#FFAE00]'
-                                            : 'bg-[#0F1115] border-[#FFAE00]/20 text-gray-400 hover:border-[#FFAE00]/50'
-                                    }`}
-                                >
-                                    <input
-                                        type="checkbox"
-                                        checked={formats.includes(fmt)}
-                                        onChange={() => handleFormatChange(fmt)}
-                                        className="hidden"
-                                    />
-                                    <span className="font-medium">{fmt}</span>
-                                </label>
-                            ))}
+
+                        {/* Atalhos Rápidos dos Formatos Mais Usados */}
+                        <div className="flex flex-wrap gap-2">
+                            {PRESET_FORMATS.map(fmt => {
+                                const isSelected = formats.includes(fmt)
+                                return (
+                                    <button
+                                        key={fmt}
+                                        type="button"
+                                        onClick={() => handleFormatToggle(fmt)}
+                                        className={`px-3 py-1.5 rounded-lg border text-xs font-bold transition-all flex items-center gap-1.5 ${
+                                            isSelected
+                                                ? 'bg-[#FFAE00]/15 border-[#FFAE00] text-[#FFAE00] shadow-sm shadow-[#FFAE00]/10'
+                                                : 'bg-[#0F1115] border-white/10 text-gray-400 hover:border-white/20 hover:text-white'
+                                        }`}
+                                    >
+                                        {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
+                                        {fmt}
+                                    </button>
+                                )
+                            })}
+                        </div>
+
+                        {/* Formatos personalizados adicionados pelo usuário */}
+                        {formats.filter(f => !PRESET_FORMATS.includes(f)).length > 0 && (
+                            <div className="flex flex-wrap items-center gap-2 pt-1">
+                                <span className="text-[11px] text-gray-400">Outros formatos:</span>
+                                {formats.filter(f => !PRESET_FORMATS.includes(f)).map(fmt => (
+                                    <span
+                                        key={fmt}
+                                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#FFAE00]/15 border border-[#FFAE00] text-[#FFAE00] text-xs font-bold"
+                                    >
+                                        {fmt}
+                                        <button
+                                            type="button"
+                                            onClick={() => handleFormatToggle(fmt)}
+                                            className="hover:text-red-400 transition-colors p-0.5"
+                                            title={`Remover ${fmt}`}
+                                        >
+                                            <X className="w-3 h-3" />
+                                        </button>
+                                    </span>
+                                ))}
+                            </div>
+                        )}
+
+                        {/* Campo para Digitar Formato Específico */}
+                        <div className="flex items-center gap-2 pt-1">
+                            <input
+                                type="text"
+                                value={customFormatInput}
+                                onChange={e => setCustomFormatInput(e.target.value)}
+                                onKeyDown={e => {
+                                    if (e.key === 'Enter') {
+                                        e.preventDefault()
+                                        handleAddCustomFormat()
+                                    }
+                                }}
+                                placeholder="Outro formato (ex: .ART, .VIP, .PEC)"
+                                className="bg-[#0F1115] border border-white/10 focus:border-[#FFAE00] rounded-lg px-3 py-1.5 text-xs text-white placeholder-gray-500 focus:outline-none w-52 sm:w-60 uppercase"
+                            />
+                            <button
+                                type="button"
+                                onClick={handleAddCustomFormat}
+                                disabled={!customFormatInput.trim()}
+                                className="px-3 py-1.5 bg-white/5 hover:bg-[#FFAE00]/10 text-gray-300 hover:text-[#FFAE00] border border-white/10 hover:border-[#FFAE00]/30 rounded-lg text-xs font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1"
+                            >
+                                <Plus className="w-3 h-3" />
+                                Adicionar
+                            </button>
                         </div>
                     </div>
 
@@ -574,7 +636,7 @@ function NewJobContent() {
                                                     Foto / Referência da Matriz {index + 1}
                                                 </label>
                                                 {item.previewUrl ? (
-                                                    <div className="relative group rounded-lg overflow-hidden border border-[#FFAE00]/30 bg-black/40 h-[195px] flex items-center justify-center">
+                                                    <div className="relative group rounded-lg overflow-hidden border border-[#FFAE00]/30 bg-black/40 h-[170px] flex items-center justify-center">
                                                         <img src={item.previewUrl} alt={`Matriz ${index + 1}`} className="max-h-full max-w-full object-contain p-2" />
                                                         <button
                                                             type="button"
@@ -589,8 +651,8 @@ function NewJobContent() {
                                                         </span>
                                                     </div>
                                                 ) : (
-                                                    <label className="flex flex-col items-center justify-center h-[195px] border-2 border-dashed border-[#FFAE00]/30 hover:border-[#FFAE00] rounded-lg p-4 cursor-pointer bg-[#1A1D23]/50 hover:bg-[#FFAE00]/5 transition-all text-center group">
-                                                        <Upload className="w-6 h-6 text-[#FFAE00] group-hover:scale-110 transition-transform mb-2" />
+                                                    <label className="flex flex-col items-center justify-center h-[170px] border border-dashed border-[#FFAE00]/30 hover:border-[#FFAE00] rounded-lg p-3.5 cursor-pointer bg-[#1A1D23]/50 hover:bg-[#FFAE00]/5 transition-all text-center group">
+                                                        <Upload className="w-5 h-5 text-[#FFAE00] group-hover:scale-110 transition-transform mb-1.5" />
                                                         <span className="text-xs font-bold text-gray-200">Clique para enviar a foto desta matriz</span>
                                                         <span className="text-[10px] text-gray-500 mt-1">PNG, JPG, PDF até 10MB</span>
                                                         <input
@@ -612,14 +674,14 @@ function NewJobContent() {
                         <button
                             type="button"
                             onClick={addMatrixItem}
-                            className="w-full py-3.5 border-2 border-dashed border-[#FFAE00]/40 hover:border-[#FFAE00] bg-[#FFAE00]/5 hover:bg-[#FFAE00]/10 text-[#FFAE00] rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 active:scale-[0.99]"
+                            className="w-full py-2.5 border border-dashed border-[#FFAE00]/40 hover:border-[#FFAE00] bg-[#FFAE00]/5 hover:bg-[#FFAE00]/10 text-[#FFAE00] rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 active:scale-[0.99]"
                         >
-                            <Plus className="w-4 h-4" />
+                            <Plus className="w-3.5 h-3.5" />
                             Adicionar Outra Matriz ou Tamanho (ex: Costas, Manga, Boné)
                         </button>
 
                         {/* Fotos extras complementares (Opcional) */}
-                        <div className="space-y-2 pt-3 border-t border-gray-800">
+                        <div className="space-y-1.5 pt-3 border-t border-gray-800">
                             <label className="flex items-center gap-2 text-xs font-medium text-gray-400">
                                 <ImageIcon className="w-3.5 h-3.5 text-gray-400" />
                                 Fotos Adicionais ou Visão Geral <span className="text-gray-500">(Opcional)</span>
@@ -635,9 +697,9 @@ function NewJobContent() {
                                 />
                                 <label
                                     htmlFor="extra-images-upload"
-                                    className="flex items-center justify-center gap-3 w-full bg-[#0F1115] border border-dashed border-gray-700 rounded-lg px-4 py-3.5 cursor-pointer hover:border-gray-500 transition-all"
+                                    className="flex items-center justify-center gap-2.5 w-full bg-[#0F1115] border border-dashed border-gray-700 rounded-lg px-4 py-2.5 cursor-pointer hover:border-gray-500 transition-all"
                                 >
-                                    <Upload className="w-4 h-4 text-gray-400" />
+                                    <Upload className="w-3.5 h-3.5 text-gray-400" />
                                     <p className="text-gray-400 text-xs">Enviar fotos complementares (mockups, peça pronta, uniforme montado, etc.)</p>
                                 </label>
                             </div>
@@ -661,51 +723,51 @@ function NewJobContent() {
                     </div>
 
                     {/* Urgência */}
-                    <div className="space-y-2 pt-2 border-t border-gray-800">
-                        <label className="flex items-center gap-2 text-sm font-medium text-gray-300">
-                            <Clock className="w-4 h-4 text-[#FFAE00]" />
+                    <div className="space-y-1.5 pt-2 border-t border-gray-800">
+                        <label className="flex items-center gap-2 text-xs font-semibold text-gray-300">
+                            <Clock className="w-3.5 h-3.5 text-[#FFAE00]" />
                             Urgência
                         </label>
                         <select
                             value={urgency}
                             onChange={e => setUrgency(e.target.value)}
-                            className="w-full bg-[#0F1115] border border-[#FFAE00]/20 rounded-lg px-4 py-3 text-[#F3F4F6] focus:outline-none focus:ring-2 focus:ring-[#FFAE00] focus:border-transparent transition-all cursor-pointer"
+                            className="w-full bg-[#0F1115] border border-white/10 rounded-lg px-3.5 py-2.5 text-sm text-[#F3F4F6] focus:outline-none focus:border-[#FFAE00] transition-all cursor-pointer"
                         >
                             <option value="sem_pressa" className="bg-[#1A1D23]">Sem Pressa (Padrão - até 7 dias)</option>
                             <option value="prazo_curto" className="bg-[#1A1D23]">Prazo Curto (3-5 dias)</option>
-                            <option value="urgente" className="bg-[#1A1D23]">Urgente (24-48 horas)</option>
+                            <option value="urgente" className="bg-[#1A1D23]">Urgente (24 horas)</option>
                         </select>
                     </div>
 
                     {/* Error Message */}
                     {error && (
-                        <div className="bg-red-500/10 border border-red-500/50 text-red-400 px-4 py-3 rounded-lg flex items-start gap-3">
-                            <Zap className="w-5 h-5 flex-shrink-0 mt-0.5" />
-                            <p className="text-sm">{error}</p>
+                        <div className="bg-red-500/10 border border-red-500/50 text-red-400 px-3.5 py-2.5 rounded-lg flex items-start gap-2.5">
+                            <Zap className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                            <p className="text-xs">{error}</p>
                         </div>
                     )}
 
                     {/* Submit Button */}
-                    <div className="flex gap-4 pt-4">
+                    <div className="flex gap-3 pt-3">
                         <Link
                             href="/"
-                            className="flex-1 flex items-center justify-center px-6 py-4 border border-[#FFAE00]/20 text-[#F3F4F6] rounded-lg hover:bg-[#FFAE00]/10 transition-all font-medium"
+                            className="flex-1 flex items-center justify-center px-4 py-2.5 border border-white/10 hover:border-[#FFAE00]/30 text-gray-300 hover:text-white rounded-lg hover:bg-white/5 transition-all text-xs font-bold"
                         >
                             Cancelar
                         </Link>
                         <button
                             type="submit"
                             disabled={loading}
-                            className="flex-1 flex items-center justify-center gap-2 px-6 py-4 bg-[#FFAE00] text-[#0F1115] rounded-lg hover:bg-[#D97706] transition-all font-bold disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-[#FFAE00]/20"
+                            className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 bg-[#FFAE00] text-black rounded-lg hover:bg-[#D97706] transition-all text-xs font-black disabled:opacity-50 disabled:cursor-not-allowed shadow-md shadow-[#FFAE00]/20"
                         >
                             {loading ? (
                                 <>
-                                    <div className="w-5 h-5 border-2 border-[#0F1115]/30 border-t-[#0F1115] rounded-full animate-spin" />
+                                    <div className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" />
                                     Enviando...
                                 </>
                             ) : (
                                 <>
-                                    <Zap className="w-5 h-5" />
+                                    <Zap className="w-4 h-4" />
                                     Enviar Pedido
                                 </>
                             )}

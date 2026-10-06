@@ -718,9 +718,9 @@ function JobDetailClient({ jobId }: { jobId: string }) {
     const showProposalForm = !isOwner && !isJobLocked && !hasAlreadySentProposal
 
     const urgencyLabels: Record<string, string> = {
-        'urgente': '🔥 Urgente',
-        'prazo_curto': '⏱️ Prazo Curto',
-        'sem_pressa': '✅ Sem Pressa'
+        'urgente': 'Urgente (24h)',
+        'prazo_curto': 'Prazo Curto (3-5 dias)',
+        'sem_pressa': 'Sem Pressa'
     }
 
     return (
