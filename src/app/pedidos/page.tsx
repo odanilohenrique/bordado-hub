@@ -24,9 +24,8 @@ function PedidoCardSkeleton() {
 }
 
 export default function PedidosPage() {
-    // Instant mount from cache if available (0ms delay!)
-    const [jobs, setJobs] = useState<any[]>(() => getCached<any[]>('pedidos_jobs') || [])
-    const [loading, setLoading] = useState(() => !getCached<any[]>('pedidos_jobs'))
+    const [jobs, setJobs] = useState<any[]>([])
+    const [loading, setLoading] = useState(true)
     const [filter, setFilter] = useState<string>('all')
 
     useEffect(() => {
@@ -35,27 +34,21 @@ export default function PedidosPage() {
                 const { data: { session } } = await supabase.auth.getSession()
                 const user = session?.user
                 if (!user) {
+                    setLoading(false)
                     return
                 }
 
-                let profileId = getCached<string>('current_user_profile_id')
-                if (!profileId) {
-                    const { data: profile } = await supabase
-                        .from('users')
-                        .select('id')
-                        .eq('supabase_user_id', user.id)
-                        .maybeSingle()
-                    if (profile) {
-                        profileId = profile.id
-                        setCached('current_user_profile_id', profile.id, 300000)
-                    }
-                }
+                const { data: profile } = await supabase
+                    .from('users')
+                    .select('id')
+                    .eq('supabase_user_id', user.id)
+                    .maybeSingle()
 
-                if (profileId) {
+                if (profile?.id) {
                     const { data: jobsData } = await supabase
                         .from('jobs')
                         .select('*, proposals(status), target_programmer:target_programmer_id(name, avatar_url)')
-                        .eq('cliente_id', profileId)
+                        .eq('cliente_id', profile.id)
                         .order('created_at', { ascending: false })
 
                     if (jobsData) {
@@ -73,10 +66,11 @@ export default function PedidosPage() {
                             return enrichedJob
                         })
                         setJobs(enriched)
-                        setCached('pedidos_jobs', enriched, 30000)
                     } else {
                         setJobs([])
                     }
+                } else {
+                    setJobs([])
                 }
             } catch (err) {
                 console.error('Erro ao buscar pedidos:', err)

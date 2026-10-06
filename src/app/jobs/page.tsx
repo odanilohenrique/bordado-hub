@@ -65,22 +65,14 @@ export default function JobsPage() {
                     const myProposalsMap: Record<string, string> = {}
 
                     if (user) {
-                        const cachedProfileId = getCached<string>('current_user_profile_id')
-                        if (cachedProfileId) {
-                            myProfileId = cachedProfileId
-                        } else {
-                            const { data: profile } = await supabase
-                                .from('users')
-                                .select('id')
-                                .eq('supabase_user_id', user.id)
-                                .maybeSingle()
-                            if (profile) {
-                                myProfileId = profile.id
-                                setCached('current_user_profile_id', profile.id, 300000)
-                            }
-                        }
+                        const { data: profile } = await supabase
+                            .from('users')
+                            .select('id')
+                            .eq('supabase_user_id', user.id)
+                            .maybeSingle()
 
-                        if (myProfileId) {
+                        if (profile?.id) {
+                            myProfileId = profile.id
                             setCurrentUserId(myProfileId)
                             const { data: myProps } = await supabase
                                 .from('proposals')

@@ -59,18 +59,12 @@ export default function ProgrammersDirectory() {
                     const { data: { session } } = await supabase.auth.getSession()
                     if (!session?.user) return { myId: null, ids: [] as string[] }
 
-                    let myId = getCached<string>('current_user_profile_id')
-                    if (!myId) {
-                        const { data: profile } = await supabase
-                            .from('users')
-                            .select('id')
-                            .eq('supabase_user_id', session.user.id)
-                            .maybeSingle()
-                        if (profile) {
-                            myId = profile.id
-                            setCached('current_user_profile_id', profile.id, 300000)
-                        }
-                    }
+                    const { data: profile } = await supabase
+                        .from('users')
+                        .select('id')
+                        .eq('supabase_user_id', session.user.id)
+                        .maybeSingle()
+                    const myId = profile?.id || null
 
                     if (!myId) return { myId: null, ids: [] as string[] }
 

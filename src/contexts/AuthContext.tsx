@@ -35,10 +35,9 @@ const AuthContext = createContext<AuthContextType>({
 })
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-    // Instant sync mount from memory cache
-    const [user, setUser] = useState<User | null>(() => getCached<User>('current_user_auth'))
-    const [profile, setProfile] = useState<UserProfile | null>(() => getCached<UserProfile>('current_user_profile'))
-    const [loading, setLoading] = useState<boolean>(() => !getCached<User>('current_user_auth'))
+    const [user, setUser] = useState<User | null>(null)
+    const [profile, setProfile] = useState<UserProfile | null>(null)
+    const [loading, setLoading] = useState<boolean>(true)
 
     const fetchUserProfile = useCallback(async (supabaseUserId: string, authUserParam?: User | null): Promise<UserProfile | null> => {
         try {
@@ -61,7 +60,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }
 
             // Auto-heal missing profile row if user is authenticated in Supabase Auth
-            let authUser = authUserParam || user
+            let authUser = authUserParam
             if (!authUser) {
                 const { data: authData } = await supabase.auth.getUser()
                 authUser = authData?.user ?? null
@@ -96,13 +95,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             console.error('Exception fetching user profile:', err)
         }
         return null
-    }, [user])
+    }, [])
 
     const refreshProfile = useCallback(async () => {
-        if (user?.id) {
-            await fetchUserProfile(user.id, user)
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session?.user) {
+            await fetchUserProfile(session.user.id, session.user)
         }
-    }, [user, fetchUserProfile])
+    }, [fetchUserProfile])
 
     useEffect(() => {
         let isMounted = true
@@ -146,7 +146,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
             if (currentUser) {
                 setCached('current_user_auth', currentUser, 300000)
-                if (event === 'SIGNED_IN' || !profile) {
+                if (event === 'SIGNED_IN') {
                     await fetchUserProfile(currentUser.id, currentUser)
                 }
             } else {
@@ -164,7 +164,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
     }, [fetchUserProfile])
 
-    const profileId = profile?.id ?? getCached<string>('current_user_profile_id') ?? null
+    const profileId = profile?.id ?? null
 
     return (
         <AuthContext.Provider value={{ user, profile, profileId, loading, refreshProfile }}>

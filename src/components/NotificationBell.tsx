@@ -67,7 +67,7 @@ export default function NotificationBell({ profileId }: NotificationBellProps = 
         window.addEventListener('bordadohub_notification_update', handleNotificationUpdate)
 
         const resolveUser = async () => {
-            let activeId = profileId || getCached<string>('current_user_profile_id')
+            let activeId = profileId
             if (!activeId) {
                 const { data: { session } } = await supabase.auth.getSession()
                 if (!session?.user) return
@@ -78,7 +78,6 @@ export default function NotificationBell({ profileId }: NotificationBellProps = 
                     .maybeSingle()
                 if (profile) {
                     activeId = profile.id
-                    setCached('current_user_profile_id', profile.id, 300000)
                 }
             }
             if (activeId) {

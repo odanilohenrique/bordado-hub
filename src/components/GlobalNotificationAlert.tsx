@@ -27,22 +27,18 @@ export default function GlobalNotificationAlert() {
         let channel: any = null
 
         const setup = async () => {
-            let myProfileId = getCached<string>('current_user_profile_id')
-            if (!myProfileId) {
-                const { data: { session } } = await supabase.auth.getSession()
-                const user = session?.user
-                if (!user) return
+            const { data: { session } } = await supabase.auth.getSession()
+            const user = session?.user
+            if (!user) return
 
-                const { data: profile } = await supabase
-                    .from('users')
-                    .select('id')
-                    .eq('supabase_user_id', user.id)
-                    .maybeSingle()
+            const { data: profile } = await supabase
+                .from('users')
+                .select('id')
+                .eq('supabase_user_id', user.id)
+                .maybeSingle()
 
-                if (!profile) return
-                myProfileId = profile.id
-                setCached('current_user_profile_id', profile.id, 300000)
-            }
+            if (!profile) return
+            const myProfileId = profile.id
             setUserId(myProfileId)
 
             // Fetch existing unread notifications
