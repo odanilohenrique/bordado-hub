@@ -62,9 +62,23 @@ export default function NotificationBell({ profileId }: NotificationBellProps = 
             }
         }
 
+        const handleNotificationRead = async () => {
+            if (!userId) return
+            const { count } = await supabase
+                .from('notifications')
+                .select('*', { count: 'exact', head: true })
+                .eq('user_id', userId)
+                .eq('is_read', false)
+            if (count !== null) {
+                setUnreadCount(count)
+                setCached('unread_notification_count', count, 60000)
+            }
+        }
+
         window.addEventListener('bordadohub_unread_count', handleUnreadCount)
         window.addEventListener('bordadohub_notification', handleNewNotification)
         window.addEventListener('bordadohub_notification_update', handleNotificationUpdate)
+        window.addEventListener('bordadohub_notification_read', handleNotificationRead)
 
         const resolveUser = async () => {
             let activeId = profileId
@@ -82,16 +96,14 @@ export default function NotificationBell({ profileId }: NotificationBellProps = 
             }
             if (activeId) {
                 setUserId(activeId)
-                if (getCached<number>('unread_notification_count') === null) {
-                    const { count } = await supabase
-                        .from('notifications')
-                        .select('*', { count: 'exact', head: true })
-                        .eq('user_id', activeId)
-                        .eq('is_read', false)
-                    if (count !== null) {
-                        setUnreadCount(count)
-                        setCached('unread_notification_count', count, 60000)
-                    }
+                const { count } = await supabase
+                    .from('notifications')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('user_id', activeId)
+                    .eq('is_read', false)
+                if (count !== null) {
+                    setUnreadCount(count)
+                    setCached('unread_notification_count', count, 60000)
                 }
             }
         }
@@ -102,6 +114,7 @@ export default function NotificationBell({ profileId }: NotificationBellProps = 
             window.removeEventListener('bordadohub_unread_count', handleUnreadCount)
             window.removeEventListener('bordadohub_notification', handleNewNotification)
             window.removeEventListener('bordadohub_notification_update', handleNotificationUpdate)
+            window.removeEventListener('bordadohub_notification_read', handleNotificationRead)
         }
     }, [profileId])
 

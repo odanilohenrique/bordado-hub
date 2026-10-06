@@ -56,6 +56,23 @@ export default function Sidebar({ initialUser, initialProfile }: { initialUser?:
         }
     }
 
+    const [unreadNotifCount, setUnreadNotifCount] = useState(0)
+
+    const checkUnreadNotifs = async (targetId: string) => {
+        try {
+            const { count } = await supabase
+                .from('notifications')
+                .select('*', { count: 'exact', head: true })
+                .eq('user_id', targetId)
+                .eq('is_read', false)
+            if (count !== null) {
+                setUnreadNotifCount(count)
+            }
+        } catch {
+            // silent
+        }
+    }
+
     useEffect(() => {
         // Skip all queries on mobile devices (hidden md:flex)
         if (typeof window !== 'undefined' && window.innerWidth < 768) {
@@ -64,18 +81,32 @@ export default function Sidebar({ initialUser, initialProfile }: { initialUser?:
 
         if (profileId) {
             checkRevisions(profileId)
+            checkUnreadNotifs(profileId)
         }
 
         const handleReload = () => {
             if (profileId) {
                 checkRevisions(profileId)
+                checkUnreadNotifs(profileId)
+            }
+        }
+
+        const handleNotifUpdate = () => {
+            if (profileId) {
+                checkUnreadNotifs(profileId)
             }
         }
 
         window.addEventListener('bordadohub_reload_job', handleReload)
+        window.addEventListener('bordadohub_notification', handleNotifUpdate)
+        window.addEventListener('bordadohub_notification_read', handleNotifUpdate)
+        window.addEventListener('bordadohub_notification_update', handleNotifUpdate)
 
         return () => {
             window.removeEventListener('bordadohub_reload_job', handleReload)
+            window.removeEventListener('bordadohub_notification', handleNotifUpdate)
+            window.removeEventListener('bordadohub_notification_read', handleNotifUpdate)
+            window.removeEventListener('bordadohub_notification_update', handleNotifUpdate)
         }
     }, [profileId])
 
@@ -186,6 +217,11 @@ export default function Sidebar({ initialUser, initialProfile }: { initialUser?:
                                 >
                                     <item.icon className={`w-5 h-5 ${isActive ? 'text-indigo-400' : 'text-gray-500'}`} />
                                     {item.name}
+                                    {item.href === '/pedidos' && unreadNotifCount > 0 && (
+                                        <span className="ml-auto bg-indigo-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 animate-pulse">
+                                            {unreadNotifCount}
+                                        </span>
+                                    )}
                                 </Link>
                             )
                         })}

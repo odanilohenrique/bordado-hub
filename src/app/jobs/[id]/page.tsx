@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback, Suspense } from 'react'
+import React, { useEffect, useState, useCallback, useRef, Suspense } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { useRouter, useParams, useSearchParams } from 'next/navigation'
 import { formatDate } from '@/lib/helpers'
@@ -215,7 +215,27 @@ function JobDetailClient({ jobId }: { jobId: string }) {
         }
 
         setLoading(false)
+
+        // Auto-mark notifications for this job as read
+        if (profile?.id) {
+            supabase
+                .from('notifications')
+                .update({ is_read: true })
+                .eq('user_id', profile.id)
+                .eq('is_read', false)
+                .like('link_url', `%${jobId}%`)
+                .then(() => {
+                    // Dispatch event so NotificationBell updates its count
+                    window.dispatchEvent(new CustomEvent('bordadohub_notification_read'))
+                })
+        }
     }, [jobId, router])
+
+    // Ref to track currentUser id for realtime callbacks without causing re-renders
+    const currentUserIdRef = useRef<string | null>(null)
+    useEffect(() => {
+        currentUserIdRef.current = currentUser?.id || null
+    }, [currentUser?.id])
 
     useEffect(() => {
         loadData()
@@ -230,8 +250,7 @@ function JobDetailClient({ jobId }: { jobId: string }) {
             }, (payload) => {
                 const newMsg = payload.new as any
                 setUnreadCounts(prev => {
-                    // Only increment if not sent by us, and not currently negotiating this one
-                    if (newMsg.sender_id !== currentUser?.id) {
+                    if (newMsg.sender_id !== currentUserIdRef.current) {
                         return {
                             ...prev,
                             [newMsg.proposal_id]: (prev[newMsg.proposal_id] || 0) + 1
@@ -247,19 +266,18 @@ function JobDetailClient({ jobId }: { jobId: string }) {
             }, (payload) => {
                 const newRow = payload.new as any
                 const oldRow = payload.old as any
-                // If it belongs to this job, or if job_id is null in partial update, reload
                 if (!newRow?.job_id || newRow?.job_id === jobId || oldRow?.job_id === jobId) {
                     loadData()
                 }
             })
             .subscribe()
 
-        // 2. High-speed silent polling fallback (every 3s) while the job page is open to guarantee zero-F5 sync
+        // 2. Polling fallback (every 5s)
         const syncInterval = setInterval(() => {
             loadData()
-        }, 3000)
+        }, 5000)
 
-        // 3. Sync immediately when window is refocused or tab becomes active
+        // 3. Sync immediately when window is refocused
         const handleVisibilityOrFocus = () => {
             if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
                 loadData()
@@ -283,7 +301,7 @@ function JobDetailClient({ jobId }: { jobId: string }) {
             window.removeEventListener('bordadohub_reload_job', handleNotificationReload)
             window.removeEventListener('bordadohub_notification', handleNotificationReload)
         }
-    }, [jobId, loadData, currentUser?.id])
+    }, [jobId, loadData])
 
     const acceptedProposal = proposals.find((p: any) => p.status === 'aceita')
 
@@ -435,6 +453,19 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                 }])
 
             if (error) throw error
+
+            // Notify the job owner about the new proposal
+            if (job?.cliente_id) {
+                const creatorName = currentUser?.name || 'Um produtor'
+                await supabase.from('notifications').insert({
+                    user_id: job.cliente_id,
+                    type: 'nova_proposta',
+                    title: 'Nova proposta recebida',
+                    message: `${creatorName} enviou uma proposta de R$ ${parseFloat(amount).toFixed(2)} para "${job.title || 'seu pedido'}"`,
+                    link_url: `/jobs/${jobId}`,
+                    is_read: false
+                })
+            }
 
             toast.success('Proposta enviada com sucesso!')
             router.refresh()
