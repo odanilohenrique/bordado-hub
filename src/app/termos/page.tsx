@@ -84,6 +84,7 @@ export default function TermosPage() {
                         </div>
                         <ul className="space-y-2.5 text-gray-400">
                             <li><strong>Entrega e Teste:</strong> Uma vez que o programador envia o arquivo (.DST, .PES, .JEF, etc.), o cliente possui até <strong>24 horas corridas</strong> para realizar o teste de bordado em sua máquina física.</li>
+                            <li><strong>Taxa de Intermediação:</strong> O BordadoHub aplica uma taxa de intermediação de 5% sobre cada venda concluída, cobrada de forma proporcional de ambas as partes: 5% adicionados ao total do comprador no checkout e 5% retidos da comissão do produtor no repasse (garantindo 95% de recebimento líquido).</li>
                             <li><strong>Solicitação de Ajustes:</strong> Caso a matriz apresente falhas técnicas de bordado (como cortes excessivos, repuxo ou quebra de agulha), o cliente pode solicitar ajustes fundamentados através do sistema antes da aprovação final.</li>
                             <li><strong>Finalização Automática:</strong> Não havendo manifestação ou solicitação de revisão no prazo de 24 horas após a entrega, o pedido é finalizado automaticamente e o saldo liberado ao programador.</li>
                         </ul>

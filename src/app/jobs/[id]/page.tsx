@@ -1752,6 +1752,13 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                         </button>
                                     </div>
                                 </form>
+                                {amount && Number(amount) > 0 && (
+                                    <div className="mt-2.5 pt-2 border-t border-white/5 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-gray-400">
+                                        <span>Proposta: <strong className="text-white">R$ {Number(amount).toFixed(2)}</strong></span>
+                                        <span>Taxa da plataforma (5%): <strong className="text-[#FFAE00]">R$ {(Number(amount) * 0.05).toFixed(2)}</strong></span>
+                                        <span>Você recebe líquido: <strong className="text-green-400">R$ {(Number(amount) * 0.95).toFixed(2)}</strong></span>
+                                    </div>
+                                )}
                             </div>
                         )}
 

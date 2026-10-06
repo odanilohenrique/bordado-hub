@@ -57,7 +57,7 @@ export async function GET(request: Request) {
                     await supabase.from('notifications').insert({
                         user_id: tx.criador_id,
                         type: 'pagamento_aprovado',
-                        title: '💰 Pagamento Aprovado!',
+                        title: 'Pagamento Aprovado!',
                         message: `O pagamento do pedido "${jobTitle}" foi confirmado. O dinheiro já está retido em segurança. Você já pode iniciar a produção e enviar a matriz!`,
                         link_url: `/jobs/${tx.job_id}`
                     })

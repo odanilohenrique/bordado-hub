@@ -131,7 +131,7 @@ export default function FinancialDashboard() {
 
                         const tx = txMap.get(job.id)
                         const gross = tx?.amount ? Number(tx.amount) : Number(prop.amount)
-                        const net = tx?.valor_liquido ? Number(tx.valor_liquido) : gross
+                        const net = tx?.valor_liquido ? Number(tx.valor_liquido) : Math.round(gross * 0.95 * 100) / 100
                         const method = tx?.metodo || 'asaas_pix'
 
                         // Determina status financeiro:

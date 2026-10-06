@@ -62,7 +62,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         // Notify Creator
         await supabase.from('notifications').insert({
             user_id: transaction.criador_id,
-            title: '💰 Pagamento Liberado!',
+            title: 'Pagamento Liberado!',
             message: `O cliente aprovou o trabalho "${transaction.jobs?.title}". R$ ${Number(transaction.valor_liquido).toFixed(2)} foram enviados para seu PIX!`,
             link_url: `/producao`,
         })

@@ -52,7 +52,7 @@ export async function POST(request: Request) {
                 // Create notification for creator
                 await supabase.from('notifications').insert({
                     user_id: transaction.criador_id,
-                    title: '🎉 Pagamento Confirmado!',
+                    title: 'Pagamento Confirmado!',
                     message: `O pagamento do pedido "${transaction.jobs?.title}" foi confirmado. Você pode iniciar o trabalho!`,
                     link_url: `/producao`,
                 })

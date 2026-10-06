@@ -6,6 +6,7 @@ import { useRouter, useParams } from 'next/navigation'
 import { QrCode, Copy, CheckCircle2, ShieldCheck, ArrowLeft, Loader2, Zap, CreditCard, Lock } from 'lucide-react'
 import Image from 'next/image'
 import { toast } from 'sonner'
+import { calculateTotals } from '@/lib/payments'
 
 type PaymentMethod = 'pix' | 'cartao'
 
@@ -119,11 +120,8 @@ function CheckoutClient({ proposalId }: { proposalId: string }) {
 
     // Create Transaction helper
     const createTransaction = async (metodo: string) => {
-        const baseAmount = proposal.amount
-        const clientFee = 5.00
-        const creatorFee = 5.00
-        const totalAmount = baseAmount + clientFee
-        const valorLiquido = baseAmount - creatorFee
+        const baseAmount = Number(proposal.amount)
+        const { taxaCliente, taxaCriador, totalPago, valorLiquido } = calculateTotals(baseAmount)
 
         const { data: { user } } = await supabase.auth.getUser()
         const { data: profile } = await supabase
@@ -139,9 +137,9 @@ function CheckoutClient({ proposalId }: { proposalId: string }) {
                 cliente_id: profile!.id,
                 criador_id: proposal.criador_id,
                 amount: baseAmount,
-                taxa_cliente: clientFee,
-                taxa_criador: creatorFee,
-                total_pago: totalAmount,
+                taxa_cliente: taxaCliente,
+                taxa_criador: taxaCriador,
+                total_pago: totalPago,
                 valor_liquido: valorLiquido,
                 metodo,
                 status: 'pendente'
@@ -279,8 +277,7 @@ function CheckoutClient({ proposalId }: { proposalId: string }) {
     }
 
     const baseAmount = Number(proposal.amount)
-    const clientFee = 5.00
-    const totalAmount = baseAmount + clientFee
+    const { taxaCliente: clientFee, totalPago: totalAmount } = calculateTotals(baseAmount)
 
     // Generate installment options
     const installmentOptions = []
@@ -326,7 +323,7 @@ function CheckoutClient({ proposalId }: { proposalId: string }) {
                                 <span className="font-semibold text-white">R$ {baseAmount.toFixed(2)}</span>
                             </div>
                             <div className="flex justify-between text-gray-400 text-xs">
-                                <span>Taxa de Intermediação:</span>
+                                <span>Taxa de Intermediação (5%):</span>
                                 <span>R$ {clientFee.toFixed(2)}</span>
                             </div>
                             <div className="flex justify-between text-base font-extrabold text-white border-t border-gray-800 pt-2">
@@ -450,7 +447,7 @@ function CheckoutClient({ proposalId }: { proposalId: string }) {
                                 )}
                             </button>
 
-                            <p className="text-[11px] text-gray-500 text-center">PIX: R$ 0,99 de taxa • Confirmação instantânea</p>
+                            <p className="text-[11px] text-gray-500 text-center">PIX Instantâneo • Confirmação em segundos</p>
                         </form>
                     ) : (
                         /* CREDIT CARD FORM */

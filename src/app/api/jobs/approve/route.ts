@@ -103,7 +103,7 @@ export async function POST(request: Request) {
                 await supabase.from('notifications').insert({
                     user_id: revieweeId,
                     type: 'pagamento_liberado',
-                    title: '🎉 Pagamento Liberado!',
+                    title: 'Pagamento Liberado!',
                     message: `O cliente aprovou seu trabalho e o pagamento de R$ ${tx.valor_liquido.toFixed(2)} foi enviado para sua chave PIX!`,
                     link_url: `/jobs/${jobId}`
                 })
