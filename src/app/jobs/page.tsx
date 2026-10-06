@@ -40,93 +40,98 @@ export default function JobsPage() {
         }
 
         async function fetchJobs() {
-            // 1. Build jobs query
-            let query = supabase
-                .from('jobs')
-                .select('*, users!jobs_cliente_id_fkey(name, avatar_url), proposals(status, users:criador_id(name))')
-                .is('target_programmer_id', null)
-                .order('created_at', { ascending: false })
-                .limit(30)
+            try {
+                // 1. Build jobs query
+                let query = supabase
+                    .from('jobs')
+                    .select('*, users!jobs_cliente_id_fkey(name, avatar_url), proposals(status, users:criador_id(name))')
+                    .is('target_programmer_id', null)
+                    .order('created_at', { ascending: false })
+                    .limit(30)
 
-            if (filter === 'aberto') {
-                query = query.eq('status', 'aberto')
-            } else if (filter === 'em_progresso') {
-                query = query.eq('status', 'em_progresso')
-            } else {
-                query = query.in('status', ['aberto', 'em_progresso'])
-            }
+                if (filter === 'aberto') {
+                    query = query.eq('status', 'aberto')
+                } else if (filter === 'em_progresso') {
+                    query = query.eq('status', 'em_progresso')
+                } else {
+                    query = query.in('status', ['aberto', 'em_progresso'])
+                }
 
-            // 2. Fetch user profile + proposals concurrently
-            const fetchUserData = async () => {
-                const { data: { session } } = await supabase.auth.getSession()
-                const user = session?.user ?? null
-                let myProfileId: string | null = null
-                const myProposalsMap: Record<string, string> = {}
+                // 2. Fetch user profile + proposals concurrently
+                const fetchUserData = async () => {
+                    const { data: { session } } = await supabase.auth.getSession()
+                    const user = session?.user ?? null
+                    let myProfileId: string | null = null
+                    const myProposalsMap: Record<string, string> = {}
 
-                if (user) {
-                    const cachedProfileId = getCached<string>('current_user_profile_id')
-                    if (cachedProfileId) {
-                        myProfileId = cachedProfileId
-                    } else {
-                        const { data: profile } = await supabase
-                            .from('users')
-                            .select('id')
-                            .eq('supabase_user_id', user.id)
-                            .maybeSingle()
-                        if (profile) {
-                            myProfileId = profile.id
-                            setCached('current_user_profile_id', profile.id, 300000)
+                    if (user) {
+                        const cachedProfileId = getCached<string>('current_user_profile_id')
+                        if (cachedProfileId) {
+                            myProfileId = cachedProfileId
+                        } else {
+                            const { data: profile } = await supabase
+                                .from('users')
+                                .select('id')
+                                .eq('supabase_user_id', user.id)
+                                .maybeSingle()
+                            if (profile) {
+                                myProfileId = profile.id
+                                setCached('current_user_profile_id', profile.id, 300000)
+                            }
+                        }
+
+                        if (myProfileId) {
+                            setCurrentUserId(myProfileId)
+                            const { data: myProps } = await supabase
+                                .from('proposals')
+                                .select('job_id, status')
+                                .eq('criador_id', myProfileId)
+                            if (myProps) {
+                                myProps.forEach(p => {
+                                    myProposalsMap[p.job_id] = p.status
+                                })
+                                const lostSet = new Set(
+                                    myProps
+                                        .filter(p => p.status === 'recusada' || p.status === 'pendente')
+                                        .map(p => p.job_id)
+                                )
+                                setLostBids(lostSet)
+                            }
                         }
                     }
+                    return { myProfileId, myProposalsMap }
+                }
 
-                    if (myProfileId) {
-                        setCurrentUserId(myProfileId)
-                        const { data: myProps } = await supabase
-                            .from('proposals')
-                            .select('job_id, status')
-                            .eq('criador_id', myProfileId)
-                        if (myProps) {
-                            myProps.forEach(p => {
-                                myProposalsMap[p.job_id] = p.status
-                            })
-                            const lostSet = new Set(
-                                myProps
-                                    .filter(p => p.status === 'recusada' || p.status === 'pendente')
-                                    .map(p => p.job_id)
-                            )
-                            setLostBids(lostSet)
-                        }
+                // Execute jobs query and user data fetch IN PARALLEL!
+                const [{ data: rawJobs }, { myProfileId, myProposalsMap }] = await Promise.all([
+                    query,
+                    fetchUserData(),
+                ])
+
+                // Extract proposal count, ownership and sent proposal status
+                const enriched = (rawJobs || []).map((job: any) => {
+                    const proposals = job.proposals || []
+                    const acceptedProposal = proposals.find((p: any) => p.status === 'aceita')
+                    const myProposalStatus = myProposalsMap[job.id] || null
+                    const isOwner = !!(myProfileId && job.cliente_id === myProfileId)
+
+                    return {
+                        ...job,
+                        proposalCount: proposals.length,
+                        hasAcceptedProposal: !!acceptedProposal,
+                        matchedProducerName: acceptedProposal?.users?.name || null,
+                        my_proposal_status: myProposalStatus,
+                        isOwner: isOwner,
                     }
-                }
-                return { myProfileId, myProposalsMap }
+                })
+
+                setJobs(enriched)
+                setCached(`jobs_${filter}`, enriched, 60000)
+            } catch (err) {
+                console.error('Erro ao buscar jobs:', err)
+            } finally {
+                setLoading(false)
             }
-
-            // Execute jobs query and user data fetch IN PARALLEL!
-            const [{ data: rawJobs }, { myProfileId, myProposalsMap }] = await Promise.all([
-                query,
-                fetchUserData(),
-            ])
-
-            // Extract proposal count, ownership and sent proposal status
-            const enriched = (rawJobs || []).map((job: any) => {
-                const proposals = job.proposals || []
-                const acceptedProposal = proposals.find((p: any) => p.status === 'aceita')
-                const myProposalStatus = myProposalsMap[job.id] || null
-                const isOwner = !!(myProfileId && job.cliente_id === myProfileId)
-
-                return {
-                    ...job,
-                    proposalCount: proposals.length,
-                    hasAcceptedProposal: !!acceptedProposal,
-                    matchedProducerName: acceptedProposal?.users?.name || null,
-                    my_proposal_status: myProposalStatus,
-                    isOwner: isOwner,
-                }
-            })
-
-            setJobs(enriched)
-            setCached(`jobs_${filter}`, enriched, 60000) // cache for 60s
-            setLoading(false)
         }
 
         fetchJobs()

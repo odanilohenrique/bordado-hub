@@ -32,18 +32,23 @@ export default function MarketplacePage() {
 
     useEffect(() => {
         async function fetchProducts() {
-            const { data, error } = await supabase
-                .from('marketplace_products')
-                .select('*, seller:seller_id(name, avatar_url, rating)')
-                .order('created_at', { ascending: false })
+            try {
+                const { data, error } = await supabase
+                    .from('marketplace_products')
+                    .select('*, seller:seller_id(name, avatar_url, rating)')
+                    .order('created_at', { ascending: false })
 
-            if (data) {
-                setProducts(data)
-                setCached('marketplace_products', data, 60000) // cache for 60s
-            } else if (error) {
-                console.error("Erro ao buscar produtos do marketplace:", error)
+                if (data) {
+                    setProducts(data)
+                    setCached('marketplace_products', data, 60000)
+                } else if (error) {
+                    console.error("Erro ao buscar produtos do marketplace:", error)
+                }
+            } catch (err) {
+                console.error('Erro ao buscar marketplace:', err)
+            } finally {
+                setLoading(false)
             }
-            setLoading(false)
         }
 
         fetchProducts()

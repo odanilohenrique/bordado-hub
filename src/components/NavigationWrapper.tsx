@@ -1,8 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { supabase } from '@/lib/supabaseClient'
-import { User } from '@supabase/supabase-js'
+import { useState } from 'react'
 import Navbar from './Navbar'
 import Sidebar from './Sidebar'
 import MobileBottomNav from './MobileBottomNav'
@@ -11,64 +9,11 @@ import { Menu } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
 import NotificationBell from './NotificationBell'
-import { setCached, getCached } from '@/lib/clientCache'
-
-interface UserProfile {
-    id: string
-    name: string
-    role: string
-    avatar_url?: string | null
-    email?: string | null
-}
+import { useAuth } from '@/contexts/AuthContext'
 
 export default function NavigationWrapper({ children }: { children: React.ReactNode }) {
-    const [user, setUser] = useState<User | null>(null)
-    const [profile, setProfile] = useState<UserProfile | null>(null)
-    const [loading, setLoading] = useState(true)
+    const { user, profile } = useAuth()
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-
-    useEffect(() => {
-        const checkAuth = async () => {
-            const { data: { session } } = await supabase.auth.getSession()
-            setUser(session?.user ?? null)
-            if (session?.user) {
-                const { data } = await supabase
-                    .from('users')
-                    .select('id, name, role, avatar_url, email')
-                    .eq('supabase_user_id', session.user.id)
-                    .maybeSingle()
-                if (data) {
-                    setProfile(data)
-                    setCached('current_user_profile_id', data.id, 300000)
-                }
-            }
-            setLoading(false)
-        }
-
-        checkAuth()
-
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-            setUser(session?.user ?? null)
-            if (session?.user) {
-                const { data } = await supabase
-                    .from('users')
-                    .select('id, name, role, avatar_url, email')
-                    .eq('supabase_user_id', session.user.id)
-                    .maybeSingle()
-                if (data) {
-                    setProfile(data)
-                    setCached('current_user_profile_id', data.id, 300000)
-                }
-            } else {
-                setProfile(null)
-            }
-            setLoading(false)
-        })
-
-        return () => {
-            subscription.unsubscribe()
-        }
-    }, [])
 
     // While loading, or if not authenticated, render the public layout.
     // This prevents SEO blockers and hydration flickers.

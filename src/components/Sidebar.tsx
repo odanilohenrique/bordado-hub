@@ -5,7 +5,6 @@ import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
-import { User as SupabaseUser } from '@supabase/supabase-js'
 import { 
     LayoutDashboard, 
     ShoppingBag, 
@@ -18,35 +17,21 @@ import {
 } from 'lucide-react'
 
 import { getCached, setCached } from '@/lib/clientCache'
+import { useAuth } from '@/contexts/AuthContext'
 
-interface UserProfile {
-    id: string
-    name: string
-    avatar_url?: string | null
-    bio?: string | null
-    role?: string
-}
-
-interface SidebarProps {
-    initialUser?: SupabaseUser | null
-    initialProfile?: UserProfile | null
-}
-
-export default function Sidebar({ initialUser, initialProfile }: SidebarProps = {}) {
+export default function Sidebar({ initialUser, initialProfile }: { initialUser?: any, initialProfile?: any } = {}) {
     const pathname = usePathname()
     const router = useRouter()
-    const [user, setUser] = useState<SupabaseUser | null>(initialUser ?? null)
-    const [profile, setProfile] = useState<UserProfile | null>(initialProfile ?? null)
+    const { user: authUser, profile: authProfile, profileId: authProfileId } = useAuth()
+    
+    const user = authUser || initialUser || null
+    const profile = authProfile || initialProfile || null
+    const profileId = authProfileId || profile?.id || null
+
     const [revisionsCount, setRevisionsCount] = useState(0)
 
-    // Sync if parent props change
-    useEffect(() => {
-        if (initialUser !== undefined) setUser(initialUser)
-        if (initialProfile !== undefined) setProfile(initialProfile)
-    }, [initialUser, initialProfile])
-
-    const checkRevisions = async (profileId: string) => {
-        const cached = getCached<number>(`revisions_count_${profileId}`)
+    const checkRevisions = async (targetId: string) => {
+        const cached = getCached<number>(`revisions_count_${targetId}`)
         if (cached !== null) {
             setRevisionsCount(cached)
             return
@@ -55,7 +40,7 @@ export default function Sidebar({ initialUser, initialProfile }: SidebarProps = 
             const { data } = await supabase
                 .from('proposals')
                 .select('id, jobs(status)')
-                .eq('criador_id', profileId)
+                .eq('criador_id', targetId)
                 .eq('status', 'aceita')
 
             if (data) {
@@ -64,81 +49,35 @@ export default function Sidebar({ initialUser, initialProfile }: SidebarProps = 
                     return j?.status === 'em_revisao'
                 })
                 setRevisionsCount(inRev.length)
-                setCached(`revisions_count_${profileId}`, inRev.length, 60000)
+                setCached(`revisions_count_${targetId}`, inRev.length, 60000)
             }
-        } catch (e) {
+        } catch {
             // silent
         }
     }
 
     useEffect(() => {
-        // Skip all queries and channel subscriptions on mobile devices (hidden md:flex)
+        // Skip all queries on mobile devices (hidden md:flex)
         if (typeof window !== 'undefined' && window.innerWidth < 768) {
             return
         }
 
-        let activeProfileId: string | null = null
-
-        const init = async () => {
-            let activeUser = initialUser
-            let activeProfile = initialProfile
-
-            if (!activeUser) {
-                const { data: { session } } = await supabase.auth.getSession()
-                activeUser = session?.user ?? null
-                if (activeUser) setUser(activeUser)
-            }
-
-            if (activeUser && !activeProfile) {
-                const cachedProfileId = getCached<string>('current_user_profile_id')
-                if (cachedProfileId) {
-                    activeProfileId = cachedProfileId
-                } else {
-                    const { data } = await supabase
-                        .from('users')
-                        .select('id, name, avatar_url, bio, role')
-                        .eq('supabase_user_id', activeUser.id)
-                        .maybeSingle()
-                    if (data) {
-                        activeProfile = data
-                        setProfile(data)
-                        setCached('current_user_profile_id', data.id, 300000)
-                    }
-                }
-            }
-
-            const targetId = activeProfile?.id || activeProfileId
-            if (targetId) {
-                checkRevisions(targetId)
-            }
+        if (profileId) {
+            checkRevisions(profileId)
         }
 
-        init()
-
         const handleReload = () => {
-            const targetId = profile?.id || initialProfile?.id || getCached<string>('current_user_profile_id')
-            if (targetId) {
-                checkRevisions(targetId)
+            if (profileId) {
+                checkRevisions(profileId)
             }
         }
 
         window.addEventListener('bordadohub_reload_job', handleReload)
 
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-            if (session?.user) {
-                setUser(session.user)
-            } else {
-                setUser(null)
-                setProfile(null)
-                setRevisionsCount(0)
-            }
-        })
-
         return () => {
-            subscription.unsubscribe()
             window.removeEventListener('bordadohub_reload_job', handleReload)
         }
-    }, [initialUser, initialProfile])
+    }, [profileId])
 
     const handleLogout = async () => {
         await supabase.auth.signOut()
@@ -188,8 +127,12 @@ export default function Sidebar({ initialUser, initialProfile }: SidebarProps = 
                         </div>
                     )}
                     <div className="overflow-hidden">
-                        <p className="text-sm font-bold text-white truncate">{profile?.name || 'Carregando...'}</p>
-                        <p className="text-xs text-gray-500 uppercase tracking-widest mt-0.5">Perfil</p>
+                        <p className="text-sm font-bold text-white truncate">
+                            {profile?.name || user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Minha Conta'}
+                        </p>
+                        <p className="text-xs text-gray-500 uppercase tracking-widest mt-0.5">
+                            {profile?.role === 'criador' ? 'Programador' : 'Perfil'}
+                        </p>
                     </div>
                 </div>
             </div>

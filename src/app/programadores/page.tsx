@@ -46,69 +46,73 @@ export default function ProgrammersDirectory() {
 
     useEffect(() => {
         async function fetchData() {
-            // 1. Fetch creators query promise
-            const creatorsPromise = supabase
-                .from('users')
-                .select('*')
-                .or('role.eq.criador,skills.not.is.null')
-                .order('rating', { ascending: false })
+            try {
+                // 1. Fetch creators query promise
+                const creatorsPromise = supabase
+                    .from('users')
+                    .select('*')
+                    .or('role.eq.criador,skills.not.is.null')
+                    .order('rating', { ascending: false })
 
-            // 2. Fetch current user and hired history promise
-            const hiredPromise = async () => {
-                const { data: { session } } = await supabase.auth.getSession()
-                if (!session?.user) return { myId: null, ids: [] as string[] }
+                // 2. Fetch current user and hired history promise
+                const hiredPromise = async () => {
+                    const { data: { session } } = await supabase.auth.getSession()
+                    if (!session?.user) return { myId: null, ids: [] as string[] }
 
-                let myId = getCached<string>('current_user_profile_id')
-                if (!myId) {
-                    const { data: profile } = await supabase
-                        .from('users')
-                        .select('id')
-                        .eq('supabase_user_id', session.user.id)
-                        .maybeSingle()
-                    if (profile) {
-                        myId = profile.id
-                        setCached('current_user_profile_id', profile.id, 300000)
-                    }
-                }
-
-                if (!myId) return { myId: null, ids: [] as string[] }
-
-                const { data: myHires } = await supabase
-                    .from('jobs')
-                    .select('target_programmer_id, proposals(criador_id, status)')
-                    .eq('cliente_id', myId)
-
-                const ids: string[] = []
-                if (myHires) {
-                    myHires.forEach(job => {
-                        if (job.target_programmer_id) ids.push(job.target_programmer_id)
-                        if (job.proposals) {
-                            // @ts-ignore
-                            job.proposals.forEach(p => {
-                                if (p.status === 'aceita' || p.status === 'finalizado') {
-                                    ids.push(p.criador_id)
-                                }
-                            })
+                    let myId = getCached<string>('current_user_profile_id')
+                    if (!myId) {
+                        const { data: profile } = await supabase
+                            .from('users')
+                            .select('id')
+                            .eq('supabase_user_id', session.user.id)
+                            .maybeSingle()
+                        if (profile) {
+                            myId = profile.id
+                            setCached('current_user_profile_id', profile.id, 300000)
                         }
-                    })
+                    }
+
+                    if (!myId) return { myId: null, ids: [] as string[] }
+
+                    const { data: myHires } = await supabase
+                        .from('jobs')
+                        .select('target_programmer_id, proposals(criador_id, status)')
+                        .eq('cliente_id', myId)
+
+                    const ids: string[] = []
+                    if (myHires) {
+                        myHires.forEach(job => {
+                            if (job.target_programmer_id) ids.push(job.target_programmer_id)
+                            if (job.proposals) {
+                                // @ts-ignore
+                                job.proposals.forEach(p => {
+                                    if (p.status === 'aceita' || p.status === 'finalizado') {
+                                        ids.push(p.criador_id)
+                                    }
+                                })
+                            }
+                        })
+                    }
+                    return { myId, ids: [...new Set(ids)] }
                 }
-                return { myId, ids: [...new Set(ids)] }
+
+                // Run creators query and user history IN PARALLEL!
+                const [{ data: creators }, { myId, ids }] = await Promise.all([
+                    creatorsPromise,
+                    hiredPromise(),
+                ])
+
+                if (creators) {
+                    setProgrammers(creators)
+                    setCached('programmers_list', creators, 120000)
+                }
+                if (myId) setCurrentUserId(myId)
+                if (ids) setHiredIds(ids)
+            } catch (err) {
+                console.error('Erro ao buscar programadores:', err)
+            } finally {
+                setLoading(false)
             }
-
-            // Run creators query and user history IN PARALLEL!
-            const [{ data: creators }, { myId, ids }] = await Promise.all([
-                creatorsPromise,
-                hiredPromise(),
-            ])
-
-            if (creators) {
-                setProgrammers(creators)
-                setCached('programmers_list', creators, 120000) // cache for 2 mins
-            }
-            if (myId) setCurrentUserId(myId)
-            if (ids) setHiredIds(ids)
-
-            setLoading(false)
         }
 
         fetchData()

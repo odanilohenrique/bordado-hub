@@ -31,55 +31,58 @@ export default function PedidosPage() {
 
     useEffect(() => {
         async function fetchJobs() {
-            const { data: { session } } = await supabase.auth.getSession()
-            const user = session?.user
-            if (!user) {
-                setLoading(false)
-                return
-            }
-
-            let profileId = getCached<string>('current_user_profile_id')
-            if (!profileId) {
-                const { data: profile } = await supabase
-                    .from('users')
-                    .select('id')
-                    .eq('supabase_user_id', user.id)
-                    .maybeSingle()
-                if (profile) {
-                    profileId = profile.id
-                    setCached('current_user_profile_id', profile.id, 300000)
+            try {
+                const { data: { session } } = await supabase.auth.getSession()
+                const user = session?.user
+                if (!user) {
+                    return
                 }
-            }
 
-            if (profileId) {
-                // Fetch jobs with direct relational join to avoid N+1 queries!
-                const { data: jobsData } = await supabase
-                    .from('jobs')
-                    .select('*, proposals(status), target_programmer:target_programmer_id(name, avatar_url)')
-                    .eq('cliente_id', profileId)
-                    .order('created_at', { ascending: false })
+                let profileId = getCached<string>('current_user_profile_id')
+                if (!profileId) {
+                    const { data: profile } = await supabase
+                        .from('users')
+                        .select('id')
+                        .eq('supabase_user_id', user.id)
+                        .maybeSingle()
+                    if (profile) {
+                        profileId = profile.id
+                        setCached('current_user_profile_id', profile.id, 300000)
+                    }
+                }
 
-                if (jobsData) {
-                    const enriched = jobsData.map((job: any) => {
-                        const enrichedJob = { ...job }
-                        if (enrichedJob.status === 'aberto') {
-                            const proposals = enrichedJob.proposals || []
-                            if (proposals.length === 0) {
-                                enrichedJob.my_proposal_status = 'aguardando_propostas'
-                            } else {
-                                const hasCounter = proposals.some((p: any) => p.status === 'contraproposta')
-                                enrichedJob.my_proposal_status = hasCounter ? 'acao_necessaria' : 'com_propostas'
+                if (profileId) {
+                    const { data: jobsData } = await supabase
+                        .from('jobs')
+                        .select('*, proposals(status), target_programmer:target_programmer_id(name, avatar_url)')
+                        .eq('cliente_id', profileId)
+                        .order('created_at', { ascending: false })
+
+                    if (jobsData) {
+                        const enriched = jobsData.map((job: any) => {
+                            const enrichedJob = { ...job }
+                            if (enrichedJob.status === 'aberto') {
+                                const proposals = enrichedJob.proposals || []
+                                if (proposals.length === 0) {
+                                    enrichedJob.my_proposal_status = 'aguardando_propostas'
+                                } else {
+                                    const hasCounter = proposals.some((p: any) => p.status === 'contraproposta')
+                                    enrichedJob.my_proposal_status = hasCounter ? 'acao_necessaria' : 'com_propostas'
+                                }
                             }
-                        }
-                        return enrichedJob
-                    })
-                    setJobs(enriched)
-                    setCached('pedidos_jobs', enriched, 30000)
-                } else {
-                    setJobs([])
+                            return enrichedJob
+                        })
+                        setJobs(enriched)
+                        setCached('pedidos_jobs', enriched, 30000)
+                    } else {
+                        setJobs([])
+                    }
                 }
+            } catch (err) {
+                console.error('Erro ao buscar pedidos:', err)
+            } finally {
+                setLoading(false)
             }
-            setLoading(false)
         }
 
         fetchJobs()

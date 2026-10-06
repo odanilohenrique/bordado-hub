@@ -23,57 +23,52 @@ export default function CreatorDashboard() {
 
     useEffect(() => {
         async function fetchData() {
-            const { data: { user } } = await supabase.auth.getUser()
-            if (!user) { setLoading(false); return }
+            try {
+                const { data: { user } } = await supabase.auth.getUser()
+                if (!user) { return }
 
-            const { data: profile } = await supabase
-                .from('users')
-                .select('id')
-                .eq('supabase_user_id', user.id)
-                .single()
+                const { data: profile } = await supabase
+                    .from('users')
+                    .select('id')
+                    .eq('supabase_user_id', user.id)
+                    .single()
 
-            if (!profile) { setLoading(false); return }
+                if (!profile) { return }
 
-            // Fetch Direct Requests (jobs targeting this programmer)
-            const { data: directData } = await supabase
-                .from('jobs')
-                .select('*, users!jobs_cliente_id_fkey(name, avatar_url)')
-                .eq('target_programmer_id', profile.id)
-                .eq('status', 'aberto')
-                .order('created_at', { ascending: false })
+                // Fetch Direct Requests (jobs targeting this programmer)
+                const { data: directData } = await supabase
+                    .from('jobs')
+                    .select('*, users!jobs_cliente_id_fkey(name, avatar_url)')
+                    .eq('target_programmer_id', profile.id)
+                    .eq('status', 'aberto')
+                    .order('created_at', { ascending: false })
 
-            setDirectRequests(directData || [])
+                setDirectRequests(directData || [])
 
-            // Fetch My Proposals with their jobs
-            const { data: myProposalsData } = await supabase
-                .from('proposals')
-                .select('status, jobs(*, users!jobs_cliente_id_fkey(name, avatar_url))')
-                .eq('criador_id', profile.id)
-                .order('created_at', { ascending: false })
-            
-            if (myProposalsData) {
-                const mapped = myProposalsData.map(p => {
-                    const jobData = Array.isArray(p.jobs) ? p.jobs[0] : p.jobs
-                    return { ...jobData, my_proposal_status: p.status }
-                }).filter(Boolean)
+                // Fetch My Proposals with their jobs
+                const { data: myProposalsData } = await supabase
+                    .from('proposals')
+                    .select('status, jobs(*, users!jobs_cliente_id_fkey(name, avatar_url))')
+                    .eq('criador_id', profile.id)
+                    .order('created_at', { ascending: false })
+                
+                if (myProposalsData) {
+                    const mapped = myProposalsData.map(p => {
+                        const jobData = Array.isArray(p.jobs) ? p.jobs[0] : p.jobs
+                        return { ...jobData, my_proposal_status: p.status }
+                    }).filter(Boolean)
 
-                // 1. Em Revisão (Ação Prioritária)
-                setInRevision(mapped.filter(j => j.my_proposal_status === 'aceita' && j.status === 'em_revisao'))
-
-                // 2. Em Produção (Produzir e Entregar)
-                setInProduction(mapped.filter(j => j.my_proposal_status === 'aceita' && (j.status === 'em_progresso' || !j.status)))
-
-                // 3. Matrizes Entregues (Aguardando Aprovação do Cliente)
-                setDelivered(mapped.filter(j => j.my_proposal_status === 'aceita' && j.status === 'entregue'))
-
-                // 4. Concluídas & Pagas
-                setCompleted(mapped.filter(j => j.my_proposal_status === 'aceita' && j.status === 'finalizado'))
-
-                // 5. Propostas Pendentes / Contrapropostas
-                setPendingProposals(mapped.filter(j => j.my_proposal_status === 'pendente' || j.my_proposal_status === 'contraproposta'))
+                    setInRevision(mapped.filter(j => j.my_proposal_status === 'aceita' && j.status === 'em_revisao'))
+                    setInProduction(mapped.filter(j => j.my_proposal_status === 'aceita' && (j.status === 'em_progresso' || !j.status)))
+                    setDelivered(mapped.filter(j => j.my_proposal_status === 'aceita' && j.status === 'entregue'))
+                    setCompleted(mapped.filter(j => j.my_proposal_status === 'aceita' && j.status === 'finalizado'))
+                    setPendingProposals(mapped.filter(j => j.my_proposal_status === 'pendente' || j.my_proposal_status === 'contraproposta'))
+                }
+            } catch (err) {
+                console.error('Erro ao buscar producao:', err)
+            } finally {
+                setLoading(false)
             }
-
-            setLoading(false)
         }
 
         fetchData()
