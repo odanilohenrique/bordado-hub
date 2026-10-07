@@ -2,6 +2,8 @@
 
 import { useEffect, useState, useMemo } from 'react'
 import { supabase } from '@/lib/supabaseClient'
+import { useAuth } from '@/contexts/AuthContext'
+import { getCached, setCached } from '@/lib/clientCache'
 import Link from 'next/link'
 import { 
     Wallet, 
@@ -42,9 +44,12 @@ interface FinancialRecord {
 }
 
 export default function FinancialDashboard() {
-    const [loading, setLoading] = useState(true)
-    const [profile, setProfile] = useState<{ id: string; name: string; pix_key?: string; pix_key_type?: string } | null>(null)
-    const [records, setRecords] = useState<FinancialRecord[]>([])
+    const { user: authUser, profile: authProfile, profileId, loading: authLoading } = useAuth()
+    const [loading, setLoading] = useState(() => !getCached<FinancialRecord[]>('financeiro_records'))
+    const [profile, setProfile] = useState<{ id: string; name: string; pix_key?: string; pix_key_type?: string } | null>(
+        authProfile ? { id: authProfile.id, name: authProfile.name || '' } : null
+    )
+    const [records, setRecords] = useState<FinancialRecord[]>(() => getCached<FinancialRecord[]>('financeiro_records') || [])
     
     // Filtros
     const [statusFilter, setStatusFilter] = useState<'todos' | 'liberado' | 'custodia'>('todos')
@@ -58,61 +63,56 @@ export default function FinancialDashboard() {
 
     useEffect(() => {
         async function fetchFinancialData() {
+            if (authLoading) return
+            if (!profileId || !authUser?.id) {
+                setLoading(false)
+                return
+            }
+
             try {
-                const { data: { user } } = await supabase.auth.getUser()
-                if (!user) {
-                    setLoading(false)
-                    return
-                }
-
-                // 1. Carrega Perfil do Usuário
-                const { data: userProfile, error: profileErr } = await supabase
-                    .from('users')
-                    .select('id, name, pix_key, pix_key_type')
-                    .eq('supabase_user_id', user.id)
-                    .single()
-
-                if (profileErr || !userProfile) {
-                    setLoading(false)
-                    return
-                }
-
-                setProfile(userProfile)
-                setPixKey(userProfile.pix_key || '')
-                setPixKeyType(userProfile.pix_key_type || 'cpf')
-
-                // 2. Busca todas as Propostas Aceitas do Criador (com dados do Job e Comprador)
-                const { data: myProposals, error: propErr } = await supabase
-                    .from('proposals')
-                    .select(`
-                        id,
-                        amount,
-                        status,
-                        created_at,
-                        jobs (
+                // Run all 3 queries in PARALLEL
+                const [{ data: userProfile }, { data: myProposals }, { data: myTransactions }] = await Promise.all([
+                    supabase
+                        .from('users')
+                        .select('id, name, pix_key, pix_key_type')
+                        .eq('supabase_user_id', authUser.id)
+                        .maybeSingle(),
+                    supabase
+                        .from('proposals')
+                        .select(`
                             id,
-                            title,
+                            amount,
                             status,
-                            dimensions,
-                            items_count,
                             created_at,
-                            cliente:cliente_id (
+                            jobs (
                                 id,
-                                name,
-                                avatar_url
+                                title,
+                                status,
+                                dimensions,
+                                items_count,
+                                created_at,
+                                cliente:cliente_id (
+                                    id,
+                                    name,
+                                    avatar_url
+                                )
                             )
-                        )
-                    `)
-                    .eq('criador_id', userProfile.id)
-                    .eq('status', 'aceita')
-                    .order('created_at', { ascending: false })
+                        `)
+                        .eq('criador_id', profileId)
+                        .eq('status', 'aceita')
+                        .order('created_at', { ascending: false }),
+                    supabase
+                        .from('transactions')
+                        .select('*')
+                        .eq('criador_id', profileId)
+                        .order('created_at', { ascending: false })
+                ])
 
-                // 3. Busca transações do criador (para verificar método e valor líquido)
-                const { data: myTransactions } = await supabase
-                    .from('transactions')
-                    .select('*')
-                    .eq('criador_id', userProfile.id)
-                    .order('created_at', { ascending: false })
+                if (userProfile) {
+                    setProfile(userProfile)
+                    setPixKey(userProfile.pix_key || '')
+                    setPixKeyType(userProfile.pix_key_type || 'cpf')
+                }
 
                 const txMap = new Map<string, any>()
                 if (myTransactions) {
@@ -166,6 +166,7 @@ export default function FinancialDashboard() {
                 }
 
                 setRecords(consolidated)
+                setCached('financeiro_records', consolidated, 120000)
             } catch (err) {
                 console.error('Erro ao carregar dados financeiros:', err)
             } finally {
@@ -174,7 +175,7 @@ export default function FinancialDashboard() {
         }
 
         fetchFinancialData()
-    }, [])
+    }, [profileId, authLoading, authUser?.id])
 
     // Salvar Chave PIX
     const handleSavePix = async (e: React.FormEvent) => {

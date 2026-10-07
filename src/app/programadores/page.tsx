@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
+import { useAuth } from '@/contexts/AuthContext'
 import Link from 'next/link'
 import { Star, Code, Target, UserCircle, Search, Zap, Users as UsersIcon } from 'lucide-react'
 import { getCached, setCached } from '@/lib/clientCache'
@@ -37,14 +38,16 @@ function ProgrammerCardSkeleton() {
 }
 
 export default function ProgrammersDirectory() {
+    const { profileId, loading: authLoading } = useAuth()
     // Instant mount from cache if available (0ms delay!)
     const [programmers, setProgrammers] = useState<Programmer[]>(() => getCached<Programmer[]>('programmers_list') || [])
     const [loading, setLoading] = useState(() => !getCached<Programmer[]>('programmers_list'))
     const [searchTerm, setSearchTerm] = useState('')
     const [hiredIds, setHiredIds] = useState<string[]>([])
-    const [currentUserId, setCurrentUserId] = useState<string | null>(null)
 
     useEffect(() => {
+        if (authLoading) return
+
         async function fetchData() {
             try {
                 // 1. Fetch creators query promise
@@ -56,22 +59,12 @@ export default function ProgrammersDirectory() {
 
                 // 2. Fetch current user and hired history promise
                 const hiredPromise = async () => {
-                    const { data: { session } } = await supabase.auth.getSession()
-                    if (!session?.user) return { myId: null, ids: [] as string[] }
-
-                    const { data: profile } = await supabase
-                        .from('users')
-                        .select('id')
-                        .eq('supabase_user_id', session.user.id)
-                        .maybeSingle()
-                    const myId = profile?.id || null
-
-                    if (!myId) return { myId: null, ids: [] as string[] }
+                    if (!profileId) return { myId: null, ids: [] as string[] }
 
                     const { data: myHires } = await supabase
                         .from('jobs')
                         .select('target_programmer_id, proposals(criador_id, status)')
-                        .eq('cliente_id', myId)
+                        .eq('cliente_id', profileId)
 
                     const ids: string[] = []
                     if (myHires) {
@@ -87,7 +80,7 @@ export default function ProgrammersDirectory() {
                             }
                         })
                     }
-                    return { myId, ids: [...new Set(ids)] }
+                    return { myId: profileId, ids: [...new Set(ids)] }
                 }
 
                 // Run creators query and user history IN PARALLEL!
@@ -100,7 +93,6 @@ export default function ProgrammersDirectory() {
                     setProgrammers(creators)
                     setCached('programmers_list', creators, 120000)
                 }
-                if (myId) setCurrentUserId(myId)
                 if (ids) setHiredIds(ids)
             } catch (err) {
                 console.error('Erro ao buscar programadores:', err)
@@ -110,7 +102,7 @@ export default function ProgrammersDirectory() {
         }
 
         fetchData()
-    }, [])
+    }, [profileId, authLoading])
 
     const filteredProgrammers = programmers.filter(p => 
         p.name.toLowerCase().includes(searchTerm.toLowerCase()) || 

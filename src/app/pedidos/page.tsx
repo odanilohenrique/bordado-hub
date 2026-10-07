@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
+import { useAuth } from '@/contexts/AuthContext'
 import JobCard from '@/components/JobCard'
 import Link from 'next/link'
 import { Plus, Inbox } from 'lucide-react'
@@ -24,51 +25,41 @@ function PedidoCardSkeleton() {
 }
 
 export default function PedidosPage() {
-    const [jobs, setJobs] = useState<any[]>([])
-    const [loading, setLoading] = useState(true)
+    const { profileId, loading: authLoading } = useAuth()
+    const [jobs, setJobs] = useState<any[]>(() => getCached<any[]>('pedidos_jobs') || [])
+    const [loading, setLoading] = useState(() => !getCached<any[]>('pedidos_jobs'))
     const [filter, setFilter] = useState<string>('all')
 
     useEffect(() => {
+        if (authLoading) return
         async function fetchJobs() {
+            if (!profileId) {
+                setLoading(false)
+                return
+            }
             try {
-                const { data: { session } } = await supabase.auth.getSession()
-                const user = session?.user
-                if (!user) {
-                    setLoading(false)
-                    return
-                }
+                const { data: jobsData } = await supabase
+                    .from('jobs')
+                    .select('*, proposals(status), target_programmer:target_programmer_id(name, avatar_url)')
+                    .eq('cliente_id', profileId)
+                    .order('created_at', { ascending: false })
 
-                const { data: profile } = await supabase
-                    .from('users')
-                    .select('id')
-                    .eq('supabase_user_id', user.id)
-                    .maybeSingle()
-
-                if (profile?.id) {
-                    const { data: jobsData } = await supabase
-                        .from('jobs')
-                        .select('*, proposals(status), target_programmer:target_programmer_id(name, avatar_url)')
-                        .eq('cliente_id', profile.id)
-                        .order('created_at', { ascending: false })
-
-                    if (jobsData) {
-                        const enriched = jobsData.map((job: any) => {
-                            const enrichedJob = { ...job }
-                            if (enrichedJob.status === 'aberto') {
-                                const proposals = enrichedJob.proposals || []
-                                if (proposals.length === 0) {
-                                    enrichedJob.my_proposal_status = 'aguardando_propostas'
-                                } else {
-                                    const hasCounter = proposals.some((p: any) => p.status === 'contraproposta')
-                                    enrichedJob.my_proposal_status = hasCounter ? 'acao_necessaria' : 'com_propostas'
-                                }
+                if (jobsData) {
+                    const enriched = jobsData.map((job: any) => {
+                        const enrichedJob = { ...job }
+                        if (enrichedJob.status === 'aberto') {
+                            const proposals = enrichedJob.proposals || []
+                            if (proposals.length === 0) {
+                                enrichedJob.my_proposal_status = 'aguardando_propostas'
+                            } else {
+                                const hasCounter = proposals.some((p: any) => p.status === 'contraproposta')
+                                enrichedJob.my_proposal_status = hasCounter ? 'acao_necessaria' : 'com_propostas'
                             }
-                            return enrichedJob
-                        })
-                        setJobs(enriched)
-                    } else {
-                        setJobs([])
-                    }
+                        }
+                        return enrichedJob
+                    })
+                    setJobs(enriched)
+                    setCached('pedidos_jobs', enriched, 120000)
                 } else {
                     setJobs([])
                 }
@@ -78,9 +69,8 @@ export default function PedidosPage() {
                 setLoading(false)
             }
         }
-
         fetchJobs()
-    }, [])
+    }, [profileId, authLoading])
 
     return (
         <div>

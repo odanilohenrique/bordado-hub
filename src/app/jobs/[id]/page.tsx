@@ -115,123 +115,132 @@ function JobDetailClient({ jobId }: { jobId: string }) {
     const router = useRouter()
 
     const loadData = useCallback(async () => {
-        const { data: { user } } = await supabase.auth.getUser()
-        if (!user) {
-            router.push('/login')
-            return
-        }
-
-        let { data: profile } = await supabase
-            .from('users')
-            .select('*')
-            .eq('supabase_user_id', user.id)
-            .maybeSingle()
-
-        if (!profile && user.email) {
-            try {
-                const res = await fetch('/api/create-profile', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        userId: user.id,
-                        email: user.email,
-                        name: user.user_metadata?.full_name || user.user_metadata?.name || user.email.split('@')[0],
-                        avatar_url: user.user_metadata?.avatar_url || user.user_metadata?.picture || null,
-                        role: 'criador'
-                    })
-                })
-                const resData = await res.json()
-                profile = resData?.data || null
-            } catch (healErr) {
-                console.error('Error auto-healing profile in loadData:', healErr)
+        try {
+            const { data: { user } } = await supabase.auth.getUser()
+            if (!user) {
+                router.push('/login')
+                return
             }
-        }
 
-        const { data: jobData, error: jobError } = await supabase
-            .from('jobs')
-            .select('*, users!jobs_cliente_id_fkey(name, avatar_url)')
-            .eq('id', jobId)
-            .maybeSingle()
-
-        if (jobError) {
-            console.error('Error fetching job:', jobError)
-        }
-
-        setJob(jobData)
-        setCurrentUser(profile)
-
-        if (jobData?.status === 'finalizado') {
-            const { data: rev } = await supabase
-                .from('reviews')
+            let { data: profile } = await supabase
+                .from('users')
                 .select('*')
-                .eq('job_id', jobId)
+                .eq('supabase_user_id', user.id)
                 .maybeSingle()
-            if (rev) setJobReview(rev)
 
-            // Fetch transaction to determine payment method
-            const { data: txData } = await supabase
-                .from('transactions')
-                .select('metodo, status')
-                .eq('job_id', jobId)
-                .order('created_at', { ascending: false })
-                .limit(1)
-                .maybeSingle()
-            if (txData) setJobTransaction(txData)
-        }
-
-        const { data: proposalsData, error: proposalsError } = await supabase
-            .from('proposals')
-            .select(`
-                *,
-                users:criador_id (
-                    id,
-                    name,
-                    avatar_url,
-                    rating
-                )
-            `)
-            .eq('job_id', jobId)
-            .order('created_at', { ascending: false })
-
-        if (proposalsError) {
-            console.error('Error loading proposals:', proposalsError)
-            toast.error('Erro ao carregar propostas: ' + proposalsError.message)
-        }
-
-        setProposals(proposalsData || [])
-
-        if (proposalsData && proposalsData.length > 0) {
-            // Fetch unread messages count
-            const { data: messages } = await supabase
-                .from('proposal_messages')
-                .select('proposal_id, sender_id, read')
-                .eq('read', false)
-            
-            if (messages) {
-                const counts: Record<string, number> = {}
-                messages.forEach(msg => {
-                    if (msg.sender_id !== profile?.id) {
-                        counts[msg.proposal_id] = (counts[msg.proposal_id] || 0) + 1
-                    }
-                })
-                setUnreadCounts(counts)
+            if (!profile && user.email) {
+                try {
+                    const res = await fetch('/api/create-profile', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            userId: user.id,
+                            email: user.email,
+                            name: user.user_metadata?.full_name || user.user_metadata?.name || user.email.split('@')[0],
+                            avatar_url: user.user_metadata?.avatar_url || user.user_metadata?.picture || null,
+                            role: 'criador'
+                        })
+                    })
+                    const resData = await res.json()
+                    profile = resData?.data || null
+                } catch (healErr) {
+                    console.error('Error auto-healing profile in loadData:', healErr)
+                }
             }
-        }
 
-        setLoading(false)
+            // Fetch job and proposals IN PARALLEL
+            const [
+                { data: jobData, error: jobError },
+                { data: proposalsData, error: proposalsError }
+            ] = await Promise.all([
+                supabase
+                    .from('jobs')
+                    .select('*, users!jobs_cliente_id_fkey(name, avatar_url)')
+                    .eq('id', jobId)
+                    .maybeSingle(),
+                supabase
+                    .from('proposals')
+                    .select(`
+                        *,
+                        users:criador_id (
+                            id,
+                            name,
+                            avatar_url,
+                            rating
+                        )
+                    `)
+                    .eq('job_id', jobId)
+                    .order('created_at', { ascending: false })
+            ])
 
-        // Auto-mark notifications for this job as read
-        if (profile?.id) {
-            supabase
-                .from('notifications')
-                .update({ is_read: true })
-                .eq('user_id', profile.id)
-                .eq('is_read', false)
-                .like('link_url', `%${jobId}%`)
-                .then(() => {
-                    // Dispatch event so NotificationBell updates its count
-                    window.dispatchEvent(new CustomEvent('bordadohub_notification_read'))
-                })
+            if (jobError) {
+                console.error('Error fetching job:', jobError)
+            }
+            if (proposalsError) {
+                console.error('Error loading proposals:', proposalsError)
+                toast.error('Erro ao carregar propostas: ' + proposalsError.message)
+            }
+
+            setJob(jobData)
+            setCurrentUser(profile)
+            setProposals(proposalsData || [])
+
+            if (jobData?.status === 'finalizado') {
+                const [{ data: rev }, { data: txData }] = await Promise.all([
+                    supabase
+                        .from('reviews')
+                        .select('*')
+                        .eq('job_id', jobId)
+                        .maybeSingle(),
+                    supabase
+                        .from('transactions')
+                        .select('metodo, status')
+                        .eq('job_id', jobId)
+                        .order('created_at', { ascending: false })
+                        .limit(1)
+                        .maybeSingle()
+                ])
+                if (rev) setJobReview(rev)
+                if (txData) setJobTransaction(txData)
+            }
+
+            if (proposalsData && proposalsData.length > 0) {
+                const proposalIds = proposalsData.map(p => p.id)
+                // Fetch unread messages count SCOPED to this job's proposals
+                const { data: messages } = await supabase
+                    .from('proposal_messages')
+                    .select('proposal_id, sender_id, read')
+                    .in('proposal_id', proposalIds)
+                    .eq('read', false)
+                
+                if (messages) {
+                    const counts: Record<string, number> = {}
+                    messages.forEach(msg => {
+                        if (msg.sender_id !== profile?.id) {
+                            counts[msg.proposal_id] = (counts[msg.proposal_id] || 0) + 1
+                        }
+                    })
+                    setUnreadCounts(counts)
+                }
+            }
+
+            // Auto-mark notifications for this job as read
+            if (profile?.id) {
+                supabase
+                    .from('notifications')
+                    .update({ is_read: true })
+                    .eq('user_id', profile.id)
+                    .eq('is_read', false)
+                    .like('link_url', `%${jobId}%`)
+                    .then(() => {
+                        // Dispatch event so NotificationBell updates its count
+                        window.dispatchEvent(new CustomEvent('bordadohub_notification_read'))
+                    })
+            }
+        } catch (err) {
+            console.error('Error in loadData:', err)
+        } finally {
+            setLoading(false)
         }
     }, [jobId, router])
 

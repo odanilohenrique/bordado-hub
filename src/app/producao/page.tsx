@@ -2,67 +2,77 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
+import { useAuth } from '@/contexts/AuthContext'
+import { getCached, setCached } from '@/lib/clientCache'
 import JobCard from '@/components/JobCard'
 import Link from 'next/link'
 import { Briefcase, Target, Clock, CheckCircle, Wrench, AlertCircle, Package, Award, Wallet } from 'lucide-react'
 
 export default function CreatorDashboard() {
+    const { profileId, loading: authLoading } = useAuth()
+    const cachedData = getCached<any>('producao_data')
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const [inRevision, setInRevision] = useState<any[]>([])
+    const [inRevision, setInRevision] = useState<any[]>(() => cachedData?.inRevision || [])
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const [inProduction, setInProduction] = useState<any[]>([])
+    const [inProduction, setInProduction] = useState<any[]>(() => cachedData?.inProduction || [])
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const [delivered, setDelivered] = useState<any[]>([])
+    const [delivered, setDelivered] = useState<any[]>(() => cachedData?.delivered || [])
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const [completed, setCompleted] = useState<any[]>([])
+    const [completed, setCompleted] = useState<any[]>(() => cachedData?.completed || [])
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const [pendingProposals, setPendingProposals] = useState<any[]>([])
+    const [pendingProposals, setPendingProposals] = useState<any[]>(() => cachedData?.pendingProposals || [])
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const [directRequests, setDirectRequests] = useState<any[]>([])
-    const [loading, setLoading] = useState(true)
+    const [directRequests, setDirectRequests] = useState<any[]>(() => cachedData?.directRequests || [])
+    const [loading, setLoading] = useState(() => !cachedData)
 
     useEffect(() => {
+        if (authLoading) return
         async function fetchData() {
+            if (!profileId) {
+                setLoading(false)
+                return
+            }
             try {
-                const { data: { user } } = await supabase.auth.getUser()
-                if (!user) { return }
-
-                const { data: profile } = await supabase
-                    .from('users')
-                    .select('id')
-                    .eq('supabase_user_id', user.id)
-                    .single()
-
-                if (!profile) { return }
-
-                // Fetch Direct Requests (jobs targeting this programmer)
-                const { data: directData } = await supabase
-                    .from('jobs')
-                    .select('*, users!jobs_cliente_id_fkey(name, avatar_url)')
-                    .eq('target_programmer_id', profile.id)
-                    .eq('status', 'aberto')
-                    .order('created_at', { ascending: false })
+                const [{ data: directData }, { data: myProposalsData }] = await Promise.all([
+                    supabase
+                        .from('jobs')
+                        .select('*, users!jobs_cliente_id_fkey(name, avatar_url)')
+                        .eq('target_programmer_id', profileId)
+                        .eq('status', 'aberto')
+                        .order('created_at', { ascending: false }),
+                    supabase
+                        .from('proposals')
+                        .select('status, jobs(*, users!jobs_cliente_id_fkey(name, avatar_url))')
+                        .eq('criador_id', profileId)
+                        .order('created_at', { ascending: false })
+                ])
 
                 setDirectRequests(directData || [])
 
-                // Fetch My Proposals with their jobs
-                const { data: myProposalsData } = await supabase
-                    .from('proposals')
-                    .select('status, jobs(*, users!jobs_cliente_id_fkey(name, avatar_url))')
-                    .eq('criador_id', profile.id)
-                    .order('created_at', { ascending: false })
-                
                 if (myProposalsData) {
                     const mapped = myProposalsData.map(p => {
                         const jobData = Array.isArray(p.jobs) ? p.jobs[0] : p.jobs
                         return { ...jobData, my_proposal_status: p.status }
                     }).filter(Boolean)
 
-                    setInRevision(mapped.filter(j => j.my_proposal_status === 'aceita' && j.status === 'em_revisao'))
-                    setInProduction(mapped.filter(j => j.my_proposal_status === 'aceita' && (j.status === 'em_progresso' || !j.status)))
-                    setDelivered(mapped.filter(j => j.my_proposal_status === 'aceita' && j.status === 'entregue'))
-                    setCompleted(mapped.filter(j => j.my_proposal_status === 'aceita' && j.status === 'finalizado'))
-                    setPendingProposals(mapped.filter(j => j.my_proposal_status === 'pendente' || j.my_proposal_status === 'contraproposta'))
+                    const rev = mapped.filter(j => j.my_proposal_status === 'aceita' && j.status === 'em_revisao')
+                    const prod = mapped.filter(j => j.my_proposal_status === 'aceita' && (j.status === 'em_progresso' || !j.status))
+                    const deliv = mapped.filter(j => j.my_proposal_status === 'aceita' && j.status === 'entregue')
+                    const comp = mapped.filter(j => j.my_proposal_status === 'aceita' && j.status === 'finalizado')
+                    const pend = mapped.filter(j => j.my_proposal_status === 'pendente' || j.my_proposal_status === 'contraproposta')
+
+                    setInRevision(rev)
+                    setInProduction(prod)
+                    setDelivered(deliv)
+                    setCompleted(comp)
+                    setPendingProposals(pend)
+
+                    setCached('producao_data', {
+                        directRequests: directData || [],
+                        inRevision: rev, inProduction: prod, delivered: deliv,
+                        completed: comp, pendingProposals: pend
+                    }, 120000)
                 }
             } catch (err) {
                 console.error('Erro ao buscar producao:', err)
@@ -70,9 +80,8 @@ export default function CreatorDashboard() {
                 setLoading(false)
             }
         }
-
         fetchData()
-    }, [])
+    }, [profileId, authLoading])
 
     if (loading) {
         return (
