@@ -13,21 +13,7 @@ export async function POST(request: Request) {
 
         const supabase = createServiceClient()
 
-        // 1. Garante que o bucket 'portfolio' existe e é público
-        const { data: buckets } = await supabase.storage.listBuckets()
-        const bucketExists = buckets?.some(b => b.id === 'portfolio')
-
-        if (!bucketExists) {
-            const { error: bucketError } = await supabase.storage.createBucket('portfolio', {
-                public: true,
-                fileSizeLimit: 26214400, // 25MB
-            })
-            if (bucketError && !bucketError.message?.toLowerCase().includes('already exists')) {
-                console.error('Bucket creation error:', bucketError)
-            }
-        }
-
-        // 2. Upload com service client para contornar restrições de RLS no storage
+        // Upload com service client para contornar restrições de RLS no storage
         const fileExt = file.name.split('.').pop() || 'png'
         const cleanName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_')
         const uniqueId = `${Date.now()}_${Math.random().toString(36).substring(2, 7)}`

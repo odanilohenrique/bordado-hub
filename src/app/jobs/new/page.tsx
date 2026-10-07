@@ -7,6 +7,7 @@ import { Upload, FileText, Image as ImageIcon, Zap, Clock, Package, Plus, Trash2
 import Link from 'next/link'
 import { toast } from 'sonner'
 import { createNotification } from '@/lib/notifications'
+import { optimizeImageFile } from '@/lib/helpers'
 
 const PRESET_FORMATS = ['.PES', '.JEF', '.DST', '.XXX', '.VP3', '.HUS', '.EXP']
 
@@ -56,6 +57,7 @@ function NewJobContent() {
     const [images, setImages] = useState<File[]>([])
     const [imagePreviews, setImagePreviews] = useState<string[]>([])
     const [loading, setLoading] = useState(false)
+    const [uploadStatus, setUploadStatus] = useState('')
     const [error, setError] = useState<string | null>(null)
     const [checkingAuth, setCheckingAuth] = useState(true)
     const [directProgrammerId, setDirectProgrammerId] = useState<string | null>(null)
@@ -255,55 +257,80 @@ function NewJobContent() {
                 return
             }
 
-            // 2. Upload das fotos individuais via API com service client (sem bloqueio de RLS)
-            const imageUrls: string[] = []
-            const itemParts: string[] = []
+            // Função segura de upload com otimização client-side e timeout
+            const uploadSingleFile = async (file: File, label: string): Promise<string> => {
+                const controller = new AbortController()
+                const timeoutId = setTimeout(() => controller.abort(), 35000)
 
-            for (let i = 0; i < matrixItems.length; i++) {
-                const item = matrixItems[i]
-                const loc = item.location === 'outro' && item.customLocation.trim()
-                    ? item.customLocation.trim()
-                    : item.location
-
-                if (item.file) {
+                try {
+                    // Otimiza imagens (especialmente .BMP pesadas e fotos de celular)
+                    const readyFile = await optimizeImageFile(file)
                     const uploadFormData = new FormData()
-                    uploadFormData.append('file', item.file)
+                    uploadFormData.append('file', readyFile)
                     uploadFormData.append('userId', userData.id)
 
                     const uploadRes = await fetch('/api/jobs/upload', {
                         method: 'POST',
-                        body: uploadFormData
+                        body: uploadFormData,
+                        signal: controller.signal
                     })
-                    const uploadJson = await uploadRes.json()
 
-                    if (!uploadRes.ok || uploadJson.error) {
-                        throw new Error(uploadJson.error || 'Erro no upload da foto da matriz')
+                    if (!uploadRes.ok) {
+                        let errMsg = `Erro ao enviar ${label}`
+                        try {
+                            const errJson = await uploadRes.json()
+                            errMsg = errJson.error || errMsg
+                        } catch (_) {
+                            errMsg = `Erro no envio de ${label} (código ${uploadRes.status})`
+                        }
+                        throw new Error(errMsg)
                     }
 
-                    imageUrls.push(uploadJson.publicUrl)
-                }
+                    const uploadJson = await uploadRes.json()
+                    if (uploadJson.error || !uploadJson.publicUrl) {
+                        throw new Error(uploadJson.error || `URL não retornada para ${label}`)
+                    }
 
-                itemParts.push(`${matrixItems.length > 1 ? `${i + 1}. ` : ''}${loc}: ${item.size.trim()}${item.fabric.trim() ? ` (Tecido: ${item.fabric.trim()})` : ''}`)
+                    return uploadJson.publicUrl
+                } catch (err: any) {
+                    if (err.name === 'AbortError') {
+                        throw new Error(`Tempo limite excedido ao enviar ${label}. Tente com uma imagem menor ou verifique sua conexão.`)
+                    }
+                    throw err
+                } finally {
+                    clearTimeout(timeoutId)
+                }
             }
 
-            // 3. Upload de fotos complementares
-            for (const file of images) {
-                const uploadFormData = new FormData()
-                uploadFormData.append('file', file)
-                uploadFormData.append('userId', userData.id)
+            setUploadStatus('Otimizando e enviando imagens...')
 
-                const uploadRes = await fetch('/api/jobs/upload', {
-                    method: 'POST',
-                    body: uploadFormData
-                })
-                const uploadJson = await uploadRes.json()
+            // 2. Upload paralelo de todas as imagens das matrizes
+            const matrixUploadPromises = matrixItems.map((item, idx) => {
+                if (!item.file) return Promise.resolve(null)
+                return uploadSingleFile(item.file, `Matriz ${idx + 1}`)
+            })
 
-                if (!uploadRes.ok || uploadJson.error) {
-                    throw new Error(uploadJson.error || 'Erro no upload de foto complementar')
-                }
+            // 3. Upload paralelo de fotos complementares
+            const extraUploadPromises = images.map((file, idx) => {
+                return uploadSingleFile(file, `Foto adicional ${idx + 1}`)
+            })
 
-                imageUrls.push(uploadJson.publicUrl)
-            }
+            const [matrixUrls, extraUrls] = await Promise.all([
+                Promise.all(matrixUploadPromises),
+                Promise.all(extraUploadPromises)
+            ])
+
+            const imageUrls: string[] = [
+                ...matrixUrls.filter((url): url is string => Boolean(url)),
+                ...extraUrls.filter((url): url is string => Boolean(url))
+            ]
+
+            const itemParts: string[] = matrixItems.map((item, i) => {
+                const loc = item.location === 'outro' && item.customLocation.trim()
+                    ? item.customLocation.trim()
+                    : item.location
+                return `${matrixItems.length > 1 ? `${i + 1}. ` : ''}${loc}: ${item.size.trim()}${item.fabric.trim() ? ` (Tecido: ${item.fabric.trim()})` : ''}`
+            })
 
             const isKit = matrixItems.length > 1
             const totalCount = matrixItems.length
@@ -335,6 +362,8 @@ function NewJobContent() {
                 : 'A combinar com o programador'
 
             const finalFormats = formats.length > 0 ? formats : ['.PES', '.DST']
+
+            setUploadStatus('Publicando pedido...')
 
             // 4. Criação do Pedido
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -386,6 +415,7 @@ function NewJobContent() {
                 })
             }
 
+            setUploadStatus('Tudo pronto!')
             toast.success('Pedido publicado com sucesso!')
             router.push(`/jobs/${createdJob.id}`)
         } catch (err: any) {
@@ -395,6 +425,7 @@ function NewJobContent() {
             toast.error(msg)
         } finally {
             setLoading(false)
+            setUploadStatus('')
         }
     }
 
@@ -788,7 +819,7 @@ function NewJobContent() {
                             {loading ? (
                                 <>
                                     <div className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" />
-                                    Enviando...
+                                    <span>{uploadStatus || 'Enviando...'}</span>
                                 </>
                             ) : (
                                 <>
