@@ -7,35 +7,42 @@ import { resolve } from 'path'
 
 const ASAAS_API_URL = process.env.ASAAS_API_URL || 'https://sandbox.asaas.com/api/v3'
 
-// Read ASAAS_API_KEY directly from .env.local to avoid dotenv-expand
+// Read ASAAS_API_KEY from environment or directly from .env.local to avoid dotenv-expand
 // interpreting the leading $ as a variable reference
 function loadAsaasKey(): string {
-    // First try the env var
     const envKey = process.env.ASAAS_API_KEY
-    if (envKey && envKey.length > 10) return envKey
+    if (envKey && envKey.trim().length > 10) return envKey.trim().replace(/^['"]|['"]$/g, '')
 
-    // Fallback: read .env.local directly
     try {
         const envPath = resolve(process.cwd(), '.env.local')
         const content = readFileSync(envPath, 'utf8')
-        const match = content.match(/ASAAS_API_KEY=['"]?([^'"\r\n]+)['"]?/)
-        if (match) return match[1]
+        const lines = content.split(/\r?\n/)
+        const keyLine = lines.find(l => l.trim().startsWith('ASAAS_API_KEY='))
+        if (keyLine) {
+            const val = keyLine.substring(keyLine.indexOf('=') + 1).trim()
+            return val.replace(/^['"]|['"]$/g, '')
+        }
     } catch {}
     return ''
 }
-const ASAAS_API_KEY = loadAsaasKey()
+
+function getAsaasKey(): string {
+    return loadAsaasKey()
+}
 
 /**
  * Generic fetch wrapper for Asaas API
  */
 async function asaasFetch(endpoint: string, options: RequestInit = {}) {
-    if (!ASAAS_API_KEY) {
-        console.warn('⚠️ ASAAS_API_KEY environment variable is not set.')
+    const key = getAsaasKey()
+    if (!key) {
+        console.error('⚠️ ASAAS_API_KEY environment variable is not configured.')
+        throw new Error('Chave de API do Asaas não configurada no servidor.')
     }
 
     const headers = {
         'Content-Type': 'application/json',
-        'access_token': ASAAS_API_KEY,
+        'access_token': key,
         ...options.headers,
     }
 
@@ -50,12 +57,13 @@ async function asaasFetch(endpoint: string, options: RequestInit = {}) {
         data = rawText ? JSON.parse(rawText) : {}
     } catch (e) {
         console.error('Failed to parse Asaas response:', rawText)
-        throw new Error('Asaas retornou uma resposta inválida.')
+        throw new Error('Asaas retornou uma resposta inválida: ' + (rawText || 'vazio'))
     }
 
     if (!res.ok) {
         console.error('Asaas API Error:', res.status, rawText)
-        throw new Error(data?.errors?.[0]?.description || 'Erro na integração com o Asaas')
+        const errorDesc = data?.errors?.[0]?.description || data?.message || (typeof rawText === 'string' && rawText.length < 150 ? rawText : 'Erro na integração com o Asaas')
+        throw new Error(errorDesc)
     }
 
     return data
