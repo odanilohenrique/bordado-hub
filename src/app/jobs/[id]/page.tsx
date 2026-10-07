@@ -147,11 +147,15 @@ function JobDetailClient({ jobId }: { jobId: string }) {
             }
         }
 
-        const { data: jobData } = await supabase
+        const { data: jobData, error: jobError } = await supabase
             .from('jobs')
             .select('*, users!jobs_cliente_id_fkey(name, avatar_url)')
             .eq('id', jobId)
-            .single()
+            .maybeSingle()
+
+        if (jobError) {
+            console.error('Error fetching job:', jobError)
+        }
 
         setJob(jobData)
         setCurrentUser(profile)

@@ -30,6 +30,9 @@ export const metadata: Metadata = {
       }
     ],
   },
+  verification: {
+    google: 'lmhJrUB79rerghEs-1-TTinItK5_qKM43hHi2ePyLQE',
+  },
 };
 
 import { Toaster } from 'sonner';

@@ -85,6 +85,12 @@ export default function GoogleSignInButton({ mode = 'signin', text = 'Entrar com
 
     const handleCredentialResponse = async (response: any) => {
         setLoading(true)
+        const timeout = setTimeout(() => {
+            console.warn('Google Sign In timed out, triggering OAuth redirect fallback...')
+            setLoading(false)
+            handleFallbackOAuth()
+        }, 8000)
+
         try {
             const { data, error } = await supabase.auth.signInWithIdToken({
                 provider: 'google',
@@ -92,6 +98,7 @@ export default function GoogleSignInButton({ mode = 'signin', text = 'Entrar com
                 nonce: rawNonceRef.current || undefined,
             })
 
+            clearTimeout(timeout)
             if (error) throw error
 
             if (data?.user) {
@@ -99,6 +106,7 @@ export default function GoogleSignInButton({ mode = 'signin', text = 'Entrar com
                 await handleAuthSuccess(data.user)
             }
         } catch (err: any) {
+            clearTimeout(timeout)
             console.error('Google Sign In Error:', err)
             toast.error('Erro na autenticação do Google: ' + (err.message || 'Tente novamente'))
             setLoading(false)

@@ -93,7 +93,22 @@ export async function getOrCreateCustomer(data: CreateCustomerDTO): Promise<stri
     // Search existing customer by CPF/CNPJ
     const searchResult = await asaasFetch(`/customers?cpfCnpj=${cleanCpfCnpj}`)
     if (searchResult.data && searchResult.data.length > 0) {
-        return searchResult.data[0].id
+        const existing = searchResult.data[0]
+        // If name or email changed, update the customer in Asaas
+        if ((data.name && existing.name !== data.name) || (data.email && existing.email !== data.email)) {
+            try {
+                await asaasFetch(`/customers/${existing.id}`, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        name: data.name || existing.name,
+                        email: data.email || existing.email,
+                    }),
+                })
+            } catch (updateErr) {
+                console.warn('Could not update Asaas customer info:', updateErr)
+            }
+        }
+        return existing.id
     }
 
     // Create new customer
