@@ -11,36 +11,12 @@ import { optimizeImageFile } from '@/lib/helpers'
 
 const PRESET_FORMATS = ['.PES', '.JEF', '.DST', '.XXX', '.VP3', '.HUS', '.EXP']
 
-const COMMON_POSITIONS = [
-    { label: 'Peito / Frente', value: 'Peito / Frente' },
-    { label: 'Costas (Grande)', value: 'Costas (Grande)' },
-    { label: 'Manga (Lateral)', value: 'Manga (Lateral)' },
-    { label: 'Boné / Touca', value: 'Boné / Touca' },
-    { label: 'Bolso', value: 'Bolso' },
-    { label: 'Calça / Perna', value: 'Calça / Perna' },
-    { label: 'Gola / Nuca', value: 'Gola / Nuca' },
-    { label: 'Pano de Prato / Cozinha', value: 'Pano de Prato / Cozinha' },
-    { label: 'Toalha de Banho / Rosto', value: 'Toalha de Banho / Rosto' },
-    { label: 'Outro local...', value: 'outro' },
-]
-
-const FABRIC_SUGGESTIONS = [
-    'Pano de Prato',
-    'Toalha',
-    'Malha / Piquet',
-    'Algodão',
-    'Boné',
-    'Jeans / Brim',
-    'Dry-Fit',
-    'Moletom',
-]
-
 export interface MatrixItem {
     id: string
-    location: string
-    customLocation: string
+    name: string
     size: string
     fabric: string
+    notes: string
     file: File | null
     previewUrl: string | null
 }
@@ -65,7 +41,7 @@ function NewJobContent() {
 
     // Lista unificada de matrizes do pedido (começa com 1 matriz por padrão)
     const [matrixItems, setMatrixItems] = useState<MatrixItem[]>([
-        { id: '1', location: 'Peito / Frente', customLocation: '', size: '', fabric: '', file: null, previewUrl: null }
+        { id: '1', name: 'Matriz 1', size: '', fabric: '', notes: '', file: null, previewUrl: null }
     ])
 
     // Check authentication on page load
@@ -129,15 +105,10 @@ function NewJobContent() {
 
     // Matrix Items Handlers
     const addMatrixItem = () => {
-        const usedLocations = matrixItems.map(s => s.location)
-        let nextLoc = 'Costas (Grande)'
-        if (usedLocations.includes('Costas (Grande)')) nextLoc = 'Manga (Lateral)'
-        if (usedLocations.includes('Manga (Lateral)')) nextLoc = 'Boné / Touca'
-        if (usedLocations.includes('Boné / Touca')) nextLoc = 'Bolso'
-
+        const nextNum = matrixItems.length + 1
         setMatrixItems(prev => [
             ...prev,
-            { id: Date.now().toString(), location: nextLoc, customLocation: '', size: '', fabric: '', file: null, previewUrl: null }
+            { id: Date.now().toString(), name: `Matriz ${nextNum}`, size: '', fabric: '', notes: '', file: null, previewUrl: null }
         ])
     }
 
@@ -150,7 +121,7 @@ function NewJobContent() {
         })
     }
 
-    const updateMatrixItem = (id: string, field: 'location' | 'customLocation' | 'size' | 'fabric', value: string) => {
+    const updateMatrixItem = (id: string, field: 'name' | 'size' | 'fabric' | 'notes', value: string) => {
         setMatrixItems(prev => prev.map(item => item.id === id ? { ...item, [field]: value } : item))
     }
 
@@ -237,9 +208,9 @@ function NewJobContent() {
             // Valida se cada matriz tem tamanho informado
             for (let i = 0; i < matrixItems.length; i++) {
                 const item = matrixItems[i]
-                const locName = item.location === 'outro' && item.customLocation.trim() ? item.customLocation.trim() : item.location
+                const label = matrixItems.length > 1 ? `Matriz ${i + 1}` : 'Matriz'
                 if (!item.size.trim()) {
-                    const msg = `Por favor, informe o tamanho desejado da ${matrixItems.length > 1 ? `Matriz ${i + 1}` : 'Matriz'} (${locName}).`
+                    const msg = `Por favor, informe o tamanho desejado da ${label}.`
                     setError(msg)
                     toast.error(msg)
                     setLoading(false)
@@ -325,28 +296,34 @@ function NewJobContent() {
                 ...extraUrls.filter((url): url is string => Boolean(url))
             ]
 
-            const itemParts: string[] = matrixItems.map((item, i) => {
-                const loc = item.location === 'outro' && item.customLocation.trim()
-                    ? item.customLocation.trim()
-                    : item.location
-                return `${matrixItems.length > 1 ? `${i + 1}. ` : ''}${loc}: ${item.size.trim()}${item.fabric.trim() ? ` (Tecido: ${item.fabric.trim()})` : ''}`
-            })
-
             const isKit = matrixItems.length > 1
             const totalCount = matrixItems.length
-            const finalDimensions = itemParts.join(' | ')
+
+            // Estrutura de dados de cada matriz para o novo card interativo
+            const structuredMatrices = matrixItems.map((item, idx) => ({
+                name: item.name.trim() || `Matriz ${idx + 1}`,
+                size: item.size.trim(),
+                fabric: item.fabric.trim() || 'A combinar',
+                notes: item.notes.trim() || '',
+                image_url: matrixUrls[idx] || imageUrls[0] || null
+            }))
+
+            // Salva JSON das matrizes em dimensions (para leitura rica e interativa nas abas)
+            const finalDimensions = JSON.stringify(structuredMatrices)
 
             // Detalhamento para a descrição se for mais de 1 matriz
             let finalDescription = description.trim()
             if (isKit) {
-                const breakdown = matrixItems.map((item, idx) => {
-                    const loc = item.location === 'outro' && item.customLocation.trim()
-                        ? item.customLocation.trim()
-                        : item.location
-                    return `• Matriz ${idx + 1} [${loc}]: ${item.size.trim()}${item.fabric.trim() ? ` (Tecido: ${item.fabric.trim()})` : ''}`
+                const breakdown = structuredMatrices.map((m) => {
+                    const parts = [`• ${m.name}: Tamanho: ${m.size}`]
+                    if (m.fabric && m.fabric !== 'A combinar') parts.push(`Tecido: ${m.fabric}`)
+                    if (m.notes) parts.push(`Obs: ${m.notes}`)
+                    return parts.join(' | ')
                 }).join('\n')
 
                 finalDescription = `${finalDescription}\n\n📋 MATRIZES / APLICAÇÕES DO PEDIDO:\n${breakdown}`
+            } else if (structuredMatrices[0]?.notes) {
+                finalDescription = `${finalDescription}\n\nObservação da matriz: ${structuredMatrices[0].notes}`
             }
 
             // Título
@@ -579,9 +556,6 @@ function NewJobContent() {
                         {/* Lista de Cards de Matrizes */}
                         <div className="space-y-4">
                             {matrixItems.map((item, index) => {
-                                const isCustom = item.location === 'outro'
-                                const locTitle = isCustom && item.customLocation ? item.customLocation : item.location
-
                                 return (
                                     <div key={item.id} className="bg-[#0F1115] border border-amber-500/30 rounded-xl p-5 space-y-4 shadow-lg">
                                         {/* Topo do Card */}
@@ -591,7 +565,7 @@ function NewJobContent() {
                                                     {index + 1}
                                                 </span>
                                                 <span className="font-bold text-white text-base">
-                                                    Matriz {index + 1}: {locTitle}
+                                                    Matriz {index + 1}
                                                 </span>
                                             </div>
 
@@ -599,43 +573,18 @@ function NewJobContent() {
                                                 <button
                                                     type="button"
                                                     onClick={() => removeMatrixItem(item.id)}
-                                                    className="text-xs text-red-400 hover:text-red-300 flex items-center gap-1 hover:bg-red-500/10 px-2 py-1 rounded transition-colors"
+                                                    className="text-xs text-red-400 hover:text-red-300 flex items-center gap-1 hover:bg-red-500/10 px-2.5 py-1 rounded-lg transition-colors border border-red-500/20"
                                                 >
-                                                    <Trash2 className="w-3.5 h-3.5" /> Remover
+                                                    <Trash2 className="w-3.5 h-3.5" /> Remover Matriz
                                                 </button>
                                             )}
                                         </div>
 
                                         {/* Conteúdo do Card em 2 Colunas */}
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            {/* Coluna 1: Especificações */}
+                                            {/* Coluna 1: Campos Digitáveis */}
                                             <div className="space-y-3">
-                                                {/* Posição / Aplicação */}
-                                                <div>
-                                                    <label className="text-xs font-semibold text-gray-300 block mb-1">
-                                                        Posição / Peça
-                                                    </label>
-                                                    <select
-                                                        value={item.location}
-                                                        onChange={(e) => updateMatrixItem(item.id, 'location', e.target.value)}
-                                                        className="w-full bg-[#1A1D23] border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-gray-200 focus:outline-none focus:border-[#FFAE00] cursor-pointer"
-                                                    >
-                                                        {COMMON_POSITIONS.map(pos => (
-                                                            <option key={pos.value} value={pos.value}>{pos.label}</option>
-                                                        ))}
-                                                    </select>
-                                                    {isCustom && (
-                                                        <input
-                                                            type="text"
-                                                            placeholder="Ex: Pano de prato, Toalha de lavabo, Jaleco..."
-                                                            value={item.customLocation}
-                                                            onChange={(e) => updateMatrixItem(item.id, 'customLocation', e.target.value)}
-                                                            className="w-full mt-2 bg-[#1A1D23] border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-[#FFAE00]"
-                                                        />
-                                                    )}
-                                                </div>
-
-                                                {/* Tamanho Obrigatório */}
+                                                {/* 1. Tamanho Desejado (Obrigatório) */}
                                                 <div>
                                                     <label className="text-xs font-semibold text-gray-300 block mb-1">
                                                         Tamanho Desejado <span className="text-[#FFAE00]">*</span>
@@ -643,45 +592,38 @@ function NewJobContent() {
                                                     <input
                                                         type="text"
                                                         required
-                                                        placeholder="Ex: 10x10 cm, 8cm largura, Maior possível no bastidor..."
+                                                        placeholder="Ex: 10x10 cm, 8cm largura, maior possível..."
                                                         value={item.size}
                                                         onChange={(e) => updateMatrixItem(item.id, 'size', e.target.value)}
                                                         className="w-full bg-[#1A1D23] border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-[#FFAE00]"
                                                     />
                                                 </div>
 
-                                                {/* Tecido / Observação Específica com Sugestões Rápidas */}
+                                                {/* 2. Tipo de Tecido (Digitável) */}
                                                 <div>
-                                                    <div className="flex items-center justify-between mb-1">
-                                                        <label className="text-xs font-semibold text-gray-300">
-                                                            Tecido / Observação <span className="text-gray-500">(Opcional)</span>
-                                                        </label>
-                                                    </div>
-
-                                                    {/* Chips de Sugestão Rápida */}
-                                                    <div className="flex flex-wrap gap-1.5 mb-2">
-                                                        {FABRIC_SUGGESTIONS.map(fab => (
-                                                            <button
-                                                                key={fab}
-                                                                type="button"
-                                                                onClick={() => updateMatrixItem(item.id, 'fabric', fab)}
-                                                                className={`text-[10px] px-2 py-0.5 rounded transition-all border ${
-                                                                    item.fabric === fab
-                                                                        ? 'bg-[#FFAE00]/20 border-[#FFAE00] text-[#FFAE00] font-bold'
-                                                                        : 'bg-[#1A1D23] hover:bg-[#FFAE00]/10 border-gray-700 text-gray-400 hover:text-gray-200'
-                                                                }`}
-                                                            >
-                                                                {fab}
-                                                            </button>
-                                                        ))}
-                                                    </div>
-
+                                                    <label className="text-xs font-semibold text-gray-300 block mb-1">
+                                                        Tipo de Tecido <span className="text-gray-500">(Opcional)</span>
+                                                    </label>
                                                     <input
                                                         type="text"
-                                                        placeholder="Ex: Pano de prato, Toalha felpuda, Malha fria, Jeans..."
+                                                        placeholder="Ex: malha piquet, algodão, toalha, jeans..."
                                                         value={item.fabric}
                                                         onChange={(e) => updateMatrixItem(item.id, 'fabric', e.target.value)}
-                                                        className="w-full bg-[#1A1D23] border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-[#FFAE00]"
+                                                        className="w-full bg-[#1A1D23] border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-[#FFAE00]"
+                                                    />
+                                                </div>
+
+                                                {/* 3. Observação da Matriz */}
+                                                <div>
+                                                    <label className="text-xs font-semibold text-gray-300 block mb-1">
+                                                        Observação desta Matriz <span className="text-gray-500">(Opcional)</span>
+                                                    </label>
+                                                    <textarea
+                                                        rows={2}
+                                                        placeholder="Ex: onde vai aplicar (peito, costas, manga, boné), cores preferidas, detalhes..."
+                                                        value={item.notes}
+                                                        onChange={(e) => updateMatrixItem(item.id, 'notes', e.target.value)}
+                                                        className="w-full bg-[#1A1D23] border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-[#FFAE00] resize-none"
                                                     />
                                                 </div>
                                             </div>
@@ -689,10 +631,10 @@ function NewJobContent() {
                                             {/* Coluna 2: Upload da Foto Específica */}
                                             <div>
                                                 <label className="text-xs font-semibold text-gray-300 block mb-1">
-                                                    Foto / Referência da Matriz {index + 1}
+                                                    Foto / Referência da Matriz {index + 1} <span className="text-[#FFAE00]">*</span>
                                                 </label>
                                                 {item.previewUrl ? (
-                                                    <div className="relative group rounded-lg overflow-hidden border border-[#FFAE00]/30 bg-black/40 h-[170px] flex items-center justify-center">
+                                                    <div className="relative group rounded-lg overflow-hidden border border-[#FFAE00]/30 bg-black/40 h-[190px] flex items-center justify-center">
                                                         <img src={item.previewUrl} alt={`Matriz ${index + 1}`} className="max-h-full max-w-full object-contain p-2" />
                                                         <button
                                                             type="button"
@@ -707,10 +649,10 @@ function NewJobContent() {
                                                         </span>
                                                     </div>
                                                 ) : (
-                                                    <label className="flex flex-col items-center justify-center h-[170px] border border-dashed border-[#FFAE00]/30 hover:border-[#FFAE00] rounded-lg p-3.5 cursor-pointer bg-[#1A1D23]/50 hover:bg-[#FFAE00]/5 transition-all text-center group">
+                                                    <label className="flex flex-col items-center justify-center h-[190px] border border-dashed border-[#FFAE00]/30 hover:border-[#FFAE00] rounded-lg p-3.5 cursor-pointer bg-[#1A1D23]/50 hover:bg-[#FFAE00]/5 transition-all text-center group">
                                                         <Upload className="w-5 h-5 text-[#FFAE00] group-hover:scale-110 transition-transform mb-1.5" />
                                                         <span className="text-xs font-bold text-gray-200">Clique para enviar a foto desta matriz</span>
-                                                        <span className="text-[10px] text-gray-500 mt-1">PNG, JPG, PDF até 10MB</span>
+                                                        <span className="text-[10px] text-gray-500 mt-1">PNG, JPG, BMP, PDF até 10MB</span>
                                                         <input
                                                             type="file"
                                                             accept="image/*,application/pdf"
@@ -733,7 +675,7 @@ function NewJobContent() {
                             className="w-full py-2.5 border border-dashed border-[#FFAE00]/40 hover:border-[#FFAE00] bg-[#FFAE00]/5 hover:bg-[#FFAE00]/10 text-[#FFAE00] rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 active:scale-[0.99]"
                         >
                             <Plus className="w-3.5 h-3.5" />
-                            Adicionar Outra Matriz ou Tamanho (ex: Costas, Manga, Boné)
+                            Adicionar Outra Matriz ao Pedido (Kit)
                         </button>
 
                         {/* Fotos extras complementares (Opcional) */}

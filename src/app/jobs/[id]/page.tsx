@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useState, useCallback, useRef, Suspense } from 'react'
+import React, { useEffect, useState, useCallback, useRef, Suspense, useMemo } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { useRouter, useParams, useSearchParams } from 'next/navigation'
 import { formatDate } from '@/lib/helpers'
@@ -10,6 +10,79 @@ import NegotiationChat from '@/components/NegotiationChat'
 import { toast } from 'sonner'
 import JSZip from 'jszip'
 import { saveAs } from 'file-saver'
+
+interface ParsedMatrix {
+    name: string
+    size: string
+    fabric: string
+    notes?: string
+    image_url?: string | null
+}
+
+function getMatrixList(job: Job | null): ParsedMatrix[] {
+    if (!job) return []
+
+    // 1. JSON estruturado em dimensions
+    if (job.dimensions && typeof job.dimensions === 'string' && job.dimensions.trim().startsWith('[')) {
+        try {
+            const parsed = JSON.parse(job.dimensions)
+            if (Array.isArray(parsed) && parsed.length > 0) {
+                return parsed.map((item: any, idx: number) => ({
+                    name: item.name || `Matriz ${idx + 1}`,
+                    size: item.size || 'Conforme arte',
+                    fabric: item.fabric || job.fabric_type || 'A combinar',
+                    notes: item.notes || '',
+                    image_url: item.image_url || job.image_urls?.[idx] || job.image_urls?.[0] || null
+                }))
+            }
+        } catch (e) {
+            console.error('Failed to parse dimensions JSON:', e)
+        }
+    }
+
+    // 2. Legado com separador pipe '|'
+    if (job.dimensions && typeof job.dimensions === 'string' && job.dimensions.includes('|')) {
+        const parts = job.dimensions.split('|').map(s => s.trim()).filter(Boolean)
+        return parts.map((part, idx) => {
+            let name = `Matriz ${idx + 1}`
+            let size = part
+            let fabric = job.fabric_type || 'A combinar'
+            const notes = ''
+
+            const nameMatch = part.match(/^(?:\d+[\.\)]\s*)?([^:]+):/i)
+            if (nameMatch) {
+                name = nameMatch[1].trim()
+            }
+
+            const fabricMatch = part.match(/\(Tecido:\s*([^)]+)\)/i)
+            if (fabricMatch) {
+                fabric = fabricMatch[1].trim()
+                size = size.replace(/\(Tecido:[^)]+\)/i, '').trim()
+            }
+
+            if (size.includes(':')) {
+                size = size.split(':').slice(1).join(':').trim()
+            }
+
+            return {
+                name,
+                size: size || 'Conforme arte',
+                fabric,
+                notes,
+                image_url: job.image_urls?.[idx] || job.image_urls?.[0] || null
+            }
+        })
+    }
+
+    // 3. Matriz individual tradicional
+    return [{
+        name: 'Matriz Principal',
+        size: job.dimensions || 'Conforme arte',
+        fabric: job.fabric_type || 'A combinar',
+        notes: '',
+        image_url: job.image_urls?.[0] || null
+    }]
+}
 
 interface Job {
     id: string
@@ -73,6 +146,7 @@ export default function JobDetail() {
 
 function JobDetailClient({ jobId }: { jobId: string }) {
     const [job, setJob] = useState<Job | null>(null)
+    const [selectedMatrixIdx, setSelectedMatrixIdx] = useState(0)
     const [proposals, setProposals] = useState<Proposal[]>([])
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [currentUser, setCurrentUser] = useState<any>(null)
@@ -763,14 +837,14 @@ function JobDetailClient({ jobId }: { jobId: string }) {
         }
     }
 
-    const handleDownloadReferenceImage = async (url: string, index: number) => {
+    const handleDownloadReferenceImage = async (url: string, index: number, customName?: string) => {
         try {
             toast.info('Iniciando download da imagem...')
             const res = await fetch(url)
             const blob = await res.blob()
             const ext = url.split('.').pop()?.split('?')[0] || 'jpg'
-            const safeTitle = (job?.title || 'referencia').replace(/[^a-zA-Z0-9_-]/g, '_')
-            const fileName = `${safeTitle}_referencia_${index + 1}.${ext}`
+            const safeTitle = (customName || job?.title || 'referencia').replace(/[^a-zA-Z0-9_-]/g, '_')
+            const fileName = `${safeTitle}_arte_${index + 1}.${ext}`
             saveAs(blob, fileName)
             toast.success('Download da imagem concluído!')
         } catch (err) {
@@ -800,6 +874,17 @@ function JobDetailClient({ jobId }: { jobId: string }) {
             toast.error('Erro ao compactar imagens de referência.')
         }
     }
+
+    const matrixList = useMemo(() => getMatrixList(job), [job])
+    const safeMatrixIdx = Math.min(selectedMatrixIdx, Math.max(0, matrixList.length - 1))
+    const currentMatrix = matrixList[safeMatrixIdx] || matrixList[0] || {
+        name: 'Matriz Principal',
+        size: 'Conforme arte',
+        fabric: 'A combinar',
+        notes: '',
+        image_url: null
+    }
+    const activeImageUrl = currentMatrix?.image_url || job?.image_urls?.[safeMatrixIdx] || job?.image_urls?.[0] || null
 
     if (loading) return (
         <div className="min-h-screen bg-[#0F1115] flex items-center justify-center">
@@ -837,21 +922,43 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                     Voltar
                 </Link>
 
-                {/* 1. TOP SECTION: Job Detail */}
+                {/* 1. TOP SECTION: Job Detail (Unified Card for Single Matrix and Kits) */}
                 <div className="bg-[#1A1D23] border border-white/5 rounded-xl overflow-hidden shadow-lg">
                     <div className="flex flex-col md:flex-row">
-                        {/* Image Left */}
-                        {job.image_urls && job.image_urls.length > 0 && (
-                            <div className="w-full md:w-1/3 min-h-[220px] bg-black/40 border-r border-white/5 relative flex flex-col justify-between group">
-                                <div className="relative flex-1 min-h-[180px] flex items-center justify-center overflow-hidden">
-                                    {job.image_urls[0].toLowerCase().includes('.pdf') ? (
-                                        <iframe src={`${job.image_urls[0]}#toolbar=0&navpanes=0&scrollbar=0`} className="absolute inset-0 w-full h-full" />
+                        {/* Foto à esquerda */}
+                        <div className="w-full md:w-80 lg:w-96 min-h-[300px] bg-black/40 border-r border-white/5 relative flex flex-col justify-between group shrink-0">
+                            <div className="relative flex-1 min-h-[240px] flex items-center justify-center overflow-hidden p-4">
+                                {activeImageUrl ? (
+                                    activeImageUrl.toLowerCase().includes('.pdf') ? (
+                                        <iframe src={`${activeImageUrl}#toolbar=0&navpanes=0&scrollbar=0`} className="absolute inset-0 w-full h-full" />
                                     ) : (
-                                        <img src={job.image_urls[0]} alt="Referência" className="max-h-full max-w-full object-contain p-4 group-hover:scale-105 transition-transform duration-300" />
-                                    )}
+                                        <img
+                                            src={activeImageUrl}
+                                            alt={currentMatrix.name}
+                                            className="max-h-64 max-w-full object-contain group-hover:scale-105 transition-transform duration-300 drop-shadow-md"
+                                        />
+                                    )
+                                ) : (
+                                    <div className="flex flex-col items-center justify-center text-gray-500 py-12">
+                                        <Package className="w-12 h-12 opacity-30 mb-2" />
+                                        <span className="text-xs">Sem foto cadastrada</span>
+                                    </div>
+                                )}
+
+                                {/* Badge no topo da foto */}
+                                {activeImageUrl && (
+                                    <div className="absolute top-3 left-3 flex flex-col gap-1 z-10">
+                                        <span className="bg-black/80 backdrop-blur-md text-[#FFAE00] border border-[#FFAE00]/30 text-[10px] font-black px-2.5 py-1 rounded-md uppercase tracking-wider shadow">
+                                            {matrixList.length > 1 ? `Foto: ${currentMatrix.name} (${safeMatrixIdx + 1}/${matrixList.length})` : currentMatrix.name}
+                                        </span>
+                                    </div>
+                                )}
+
+                                {/* Hover overlay rápido para ver e baixar */}
+                                {activeImageUrl && (
                                     <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 p-2">
                                         <a
-                                            href={job.image_urls[0]}
+                                            href={activeImageUrl}
                                             target="_blank"
                                             rel="noopener noreferrer"
                                             className="inline-flex items-center gap-1.5 bg-white/20 hover:bg-white/30 text-white text-xs font-bold px-3 py-2 rounded-lg backdrop-blur-sm transition-all"
@@ -861,199 +968,209 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                         </a>
                                         <button
                                             type="button"
-                                            onClick={() => handleDownloadReferenceImage(job.image_urls[0], 0)}
+                                            onClick={() => handleDownloadReferenceImage(activeImageUrl, safeMatrixIdx, currentMatrix.name)}
                                             className="inline-flex items-center gap-1.5 bg-[#FFAE00] hover:bg-yellow-400 text-black text-xs font-black px-3 py-2 rounded-lg shadow-lg transition-all"
                                         >
                                             <Download className="w-3.5 h-3.5" />
                                             Baixar
                                         </button>
                                     </div>
-                                </div>
-                                <div className="p-2.5 bg-[#0F1115] border-t border-white/5 flex items-center justify-between gap-2">
-                                    <a
-                                        href={job.image_urls[0]}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="flex-1 inline-flex items-center justify-center gap-1.5 bg-[#1A1D23] hover:bg-white/5 text-gray-300 hover:text-white border border-white/10 text-xs font-semibold py-1.5 px-2 rounded-lg transition-colors"
-                                    >
-                                        <Maximize2 className="w-3.5 h-3.5 text-[#FFAE00]" />
-                                        Ver Imagem Completa
-                                    </a>
-                                    <button
-                                        type="button"
-                                        onClick={() => handleDownloadReferenceImage(job.image_urls[0], 0)}
-                                        className="flex-1 inline-flex items-center justify-center gap-1.5 bg-[#FFAE00]/10 hover:bg-[#FFAE00]/20 text-[#FFAE00] border border-[#FFAE00]/30 text-xs font-bold py-1.5 px-2 rounded-lg transition-colors"
-                                    >
-                                        <Download className="w-3.5 h-3.5" />
-                                        Baixar Imagem
-                                    </button>
-                                </div>
+                                )}
                             </div>
-                        )}
-                        {/* Info Right */}
+
+                            {/* Ações da Imagem no Rodapé */}
+                            {activeImageUrl && (
+                                <div className="p-3 bg-[#0F1115] border-t border-white/5 flex flex-col gap-2">
+                                    <div className="flex items-center justify-between gap-2">
+                                        <a
+                                            href={activeImageUrl}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="flex-1 inline-flex items-center justify-center gap-1.5 bg-[#1A1D23] hover:bg-white/5 text-gray-300 hover:text-white border border-white/10 text-xs font-semibold py-2 px-2 rounded-lg transition-colors"
+                                        >
+                                            <Maximize2 className="w-3.5 h-3.5 text-[#FFAE00]" />
+                                            Ver Completa
+                                        </a>
+                                        <button
+                                            type="button"
+                                            onClick={() => handleDownloadReferenceImage(activeImageUrl, safeMatrixIdx, currentMatrix.name)}
+                                            className="flex-1 inline-flex items-center justify-center gap-1.5 bg-[#FFAE00]/10 hover:bg-[#FFAE00]/20 text-[#FFAE00] border border-[#FFAE00]/30 text-xs font-bold py-2 px-2 rounded-lg transition-colors"
+                                        >
+                                            <Download className="w-3.5 h-3.5" />
+                                            Baixar Imagem
+                                        </button>
+                                    </div>
+                                    {job.image_urls && job.image_urls.length > 1 && (
+                                        <button
+                                            type="button"
+                                            onClick={handleDownloadAllReferenceImages}
+                                            className="w-full inline-flex items-center justify-center gap-1.5 bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white border border-white/10 text-[11px] font-medium py-1.5 px-2 rounded-lg transition-colors"
+                                        >
+                                            <Download className="w-3 h-3 text-[#FFAE00]" />
+                                            Baixar Todas as Imagens (.zip)
+                                        </button>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Informações à direita */}
                         <div className="w-full md:flex-1 p-6 flex flex-col justify-between">
                             <div>
-                                <div className="flex justify-between items-start mb-2">
+                                {/* Título Principal & Status */}
+                                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-4">
                                     <div>
-                                        <h1 className="text-2xl font-bold text-[#F3F4F6]">{job.title}</h1>
-                                        {(job.order_type === 'kit' || (job.items_count && job.items_count > 1) || job.title?.startsWith('[Kit')) && (
-                                            <div className="inline-flex items-center gap-1.5 text-xs font-bold text-[#FFAE00] bg-[#FFAE00]/10 border border-[#FFAE00]/30 px-3 py-1 rounded-full mt-2 shadow-sm">
-                                                <Package className="w-3.5 h-3.5" />
-                                                Kit com {job.items_count || (job.title?.match(/\[Kit\s*(\d+)/i)?.[1] ? Number(job.title.match(/\[Kit\s*(\d+)/i)?.[1]) : 2)} Matrizes
-                                            </div>
-                                        )}
+                                        <h1 className="text-2xl lg:text-3xl font-extrabold text-[#F3F4F6] tracking-tight">{job.title}</h1>
+                                        <div className="flex items-center gap-2 mt-2 flex-wrap">
+                                            {matrixList.length > 1 && (
+                                                <span className="inline-flex items-center gap-1.5 text-xs font-bold text-[#FFAE00] bg-[#FFAE00]/10 border border-[#FFAE00]/30 px-3 py-1 rounded-full shadow-sm">
+                                                    <Package className="w-3.5 h-3.5" />
+                                                    Kit com {matrixList.length} Matrizes
+                                                </span>
+                                            )}
+                                            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#0F1115] border border-gray-800 rounded-full text-xs text-gray-300">
+                                                <Clock className="w-3 h-3 text-[#FFAE00]" />
+                                                Prazo: {urgencyLabels[job.urgency] || job.urgency}
+                                            </span>
+                                        </div>
                                     </div>
-                                    <div className="flex items-center gap-2">
-                                        <span className="px-3 py-1 bg-[#FFAE00]/10 text-[#FFAE00] border border-[#FFAE00]/20 rounded-full text-[10px] font-bold tracking-wider uppercase">
+                                    <div className="flex items-center gap-2 self-start">
+                                        <span className="px-3.5 py-1.5 bg-[#FFAE00]/10 text-[#FFAE00] border border-[#FFAE00]/25 rounded-full text-xs font-bold tracking-wider uppercase">
                                             {job.status.replace('_', ' ')}
                                         </span>
                                     </div>
                                 </div>
-                                <div className="flex gap-2 mb-4 flex-wrap items-center">
-                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-[#0F1115] border border-gray-800 rounded-md text-xs text-gray-300">
-                                        <Clock className="w-3 h-3 text-[#FFAE00]" />
-                                        {urgencyLabels[job.urgency] || job.urgency}
-                                    </span>
-                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-[#0F1115] border border-gray-800 rounded-md text-xs text-gray-300">
-                                        <Package className="w-3 h-3 text-[#FFAE00]" />
-                                        Tecido: {job.fabric_type || 'N/A'}
-                                    </span>
-                                    {job.dimensions && (
-                                        job.dimensions.includes('|') ? (
-                                            job.dimensions.split('|').map((part, idx) => (
-                                                <span key={idx} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-[#FFAE00]/10 border border-[#FFAE00]/30 rounded-md text-xs text-[#FFAE00] font-bold">
-                                                    <Ruler className="w-3 h-3 text-[#FFAE00]" />
-                                                    {part.trim()}
+
+                                {/* Botões lado a lado para selecionar cada matriz contida no kit */}
+                                {matrixList.length > 1 && (
+                                    <div className="mb-4">
+                                        <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                                            <Sparkles className="w-3.5 h-3.5 text-[#FFAE00]" />
+                                            Selecione a matriz para carregar suas informações e foto:
+                                        </p>
+                                        <div className="flex items-center gap-2 overflow-x-auto pb-1.5 scrollbar-thin scrollbar-thumb-gray-800">
+                                            {matrixList.map((m, idx) => {
+                                                const isSelected = safeMatrixIdx === idx
+                                                return (
+                                                    <button
+                                                        key={idx}
+                                                        type="button"
+                                                        onClick={() => setSelectedMatrixIdx(idx)}
+                                                        className={`px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-2 whitespace-nowrap shrink-0 border ${
+                                                            isSelected
+                                                                ? 'bg-[#FFAE00] text-black border-[#FFAE00] shadow-[0_0_15px_rgba(255,174,0,0.35)] scale-[1.02]'
+                                                                : 'bg-[#0F1115] hover:bg-white/5 text-gray-300 hover:text-white border-white/10 hover:border-white/20'
+                                                        }`}
+                                                    >
+                                                        <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black ${
+                                                            isSelected ? 'bg-black text-[#FFAE00]' : 'bg-white/10 text-gray-400'
+                                                        }`}>
+                                                            {idx + 1}
+                                                        </span>
+                                                        <span>{m.name}</span>
+                                                    </button>
+                                                )
+                                            })}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Informações importantes logo abaixo */}
+                                <div className="bg-[#0F1115]/80 border border-white/10 rounded-xl p-4 sm:p-5 mb-4 shadow-inner">
+                                    <div className="flex items-center justify-between mb-3 border-b border-white/5 pb-2.5">
+                                        <h3 className="text-xs font-black text-[#FFAE00] uppercase tracking-wider flex items-center gap-1.5">
+                                            <Ruler className="w-4 h-4 text-[#FFAE00]" />
+                                            {matrixList.length > 1 ? `Especificações: ${currentMatrix.name}` : 'Especificações da Matriz'}
+                                        </h3>
+                                        {matrixList.length > 1 && (
+                                            <span className="text-[10px] text-gray-500 font-mono">
+                                                Matriz {safeMatrixIdx + 1} de {matrixList.length}
+                                            </span>
+                                        )}
+                                    </div>
+
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 mb-3">
+                                        <div className="bg-[#1A1D23] border border-white/5 rounded-lg p-3">
+                                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">
+                                                Tamanho Desejado
+                                            </span>
+                                            <span className="text-sm font-black text-white flex items-center gap-1.5">
+                                                <Ruler className="w-3.5 h-3.5 text-[#FFAE00]" />
+                                                {currentMatrix.size || 'Conforme arte'}
+                                            </span>
+                                        </div>
+
+                                        <div className="bg-[#1A1D23] border border-white/5 rounded-lg p-3">
+                                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">
+                                                Tipo de Tecido
+                                            </span>
+                                            <span className="text-sm font-black text-white flex items-center gap-1.5">
+                                                <Package className="w-3.5 h-3.5 text-[#FFAE00]" />
+                                                {currentMatrix.fabric || job.fabric_type || 'A combinar'}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    {/* Observação específica da matriz */}
+                                    {currentMatrix.notes && (
+                                        <div className="bg-[#1A1D23] border border-white/5 rounded-lg p-3 mb-3">
+                                            <span className="text-[10px] font-bold text-[#FFAE00] uppercase tracking-wider block mb-1 flex items-center gap-1">
+                                                <Sparkles className="w-3 h-3 text-[#FFAE00]" /> Observação desta Matriz
+                                            </span>
+                                            <p className="text-xs text-gray-200 leading-relaxed whitespace-pre-wrap">
+                                                {currentMatrix.notes}
+                                            </p>
+                                        </div>
+                                    )}
+
+                                    {/* Formatos Solicitados */}
+                                    <div className="flex items-center gap-2 flex-wrap pt-2 border-t border-white/5">
+                                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Formatos:</span>
+                                        {job.formats && job.formats.length > 0 ? (
+                                            job.formats.map((fmt, idx) => (
+                                                <span key={idx} className="px-2.5 py-0.5 bg-[#1A1D23] border border-[#FFAE00]/30 text-[#FFAE00] rounded text-[11px] uppercase font-black">
+                                                    {fmt}
                                                 </span>
                                             ))
                                         ) : (
-                                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-[#0F1115] border border-[#FFAE00]/20 rounded-md text-xs text-[#FFAE00] font-bold">
-                                                <Ruler className="w-3 h-3 text-[#FFAE00]" />
-                                                {job.dimensions}
-                                            </span>
-                                        )
-                                    )}
+                                            <span className="text-xs text-gray-400">Qualquer formato compatível</span>
+                                        )}
+                                    </div>
                                 </div>
-                                {(job.order_type === 'kit' || (job.items_count && job.items_count > 1) || job.title?.startsWith('[Kit')) && (
-                                    <div className="bg-amber-500/10 border-l-4 border-[#FFAE00] p-3 rounded-r-lg mb-4 text-xs text-amber-200/90">
-                                        <span className="font-bold text-[#FFAE00] flex items-center gap-1.5 mb-0.5">
-                                            <Sparkles className="w-3.5 h-3.5" /> Pacote de Matrizes (Kit de Uniforme):
+
+                                {/* Aviso sobre o pacote de matrizes */}
+                                {matrixList.length > 1 && (
+                                    <div className="bg-amber-500/10 border-l-4 border-[#FFAE00] p-3 rounded-r-lg mb-4 text-xs text-amber-200/90 leading-relaxed">
+                                        <span className="font-bold text-[#FFAE00] flex items-center gap-1.5 mb-1">
+                                            <Sparkles className="w-3.5 h-3.5" /> Aviso sobre o Pacote de Matrizes:
                                         </span>
-                                        Este pedido contempla a criação de todas as matrizes especificadas acima. Ao enviar uma proposta, considere o valor total para digitalizar todo o conjunto.
+                                        Este pedido contempla a digitalização de <strong>todas as {matrixList.length} matrizes</strong> do kit. Ao enviar sua proposta, considere o valor e prazo total para entregar o conjunto completo.
                                     </div>
                                 )}
-                                <p className="text-sm text-gray-300 line-clamp-3 leading-relaxed mb-4">
-                                    {job.description}
-                                </p>
-                            </div>
-                            
-                            <div className="flex items-center justify-between mt-auto pt-4 border-t border-gray-800/50">
-                                <div className="flex gap-2 flex-wrap">
-                                    {job.formats?.map((fmt, idx) => (
-                                        <span key={idx} className="px-2 py-0.5 bg-[#0F1115] border border-[#FFAE00]/20 text-[#FFAE00] rounded text-[10px] uppercase font-bold">
-                                            {fmt}
+
+                                {/* Descrição geral do pedido */}
+                                {job.description && (
+                                    <div className="mb-2">
+                                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">
+                                            Descrição Geral do Pedido:
                                         </span>
-                                    ))}
-                                </div>
-                                <div className="text-[10px] text-gray-500 flex items-center gap-1 uppercase tracking-wider font-bold">
-                                    <Calendar className="w-3 h-3" />
-                                    {formatDate(job.created_at)}
+                                        <p className="text-xs text-gray-300 leading-relaxed whitespace-pre-wrap bg-black/20 p-3 rounded-lg border border-white/5">
+                                            {job.description}
+                                        </p>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Rodapé do Card */}
+                            <div className="flex items-center justify-between mt-auto pt-4 border-t border-gray-800/50 text-[11px] text-gray-500">
+                                <span className="font-mono">ID: #{job.id.slice(0, 8)}</span>
+                                <div className="flex items-center gap-1 font-bold">
+                                    <Calendar className="w-3 h-3 text-gray-400" />
+                                    Publicado em {formatDate(job.created_at)}
                                 </div>
                             </div>
                         </div>
                     </div>
-
-                    {/* Galeria Detalhada das Matrizes de Referência */}
-                    {job.image_urls && job.image_urls.length > 0 && (
-                        <div className="p-5 bg-[#0F1115]/60 border-t border-white/5">
-                            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-3">
-                                <div>
-                                    <h3 className="text-xs font-bold text-[#FFAE00] uppercase tracking-wider flex items-center gap-2">
-                                        <Package className="w-3.5 h-3.5 text-[#FFAE00]" />
-                                        Artes e Imagens de Referência do Pedido ({job.image_urls.length} {job.image_urls.length === 1 ? 'arquivo' : 'arquivos'}):
-                                    </h3>
-                                    <p className="text-[11px] text-gray-400 mt-0.5">
-                                        Baixe a imagem original em alta resolução para abrir no seu programa de matrizes (Wilcom, Embird, PE-Design, etc.)
-                                    </p>
-                                </div>
-                                {job.image_urls.length > 1 && (
-                                    <button
-                                        type="button"
-                                        onClick={handleDownloadAllReferenceImages}
-                                        className="inline-flex items-center gap-1.5 bg-[#FFAE00] hover:bg-yellow-400 text-black px-3.5 py-1.5 rounded-lg text-xs font-bold shadow transition-all shrink-0 hover:scale-105 active:scale-95"
-                                    >
-                                        <Download className="w-3.5 h-3.5" />
-                                        Baixar Todas as Artes (.zip)
-                                    </button>
-                                )}
-                            </div>
-
-                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                                {job.image_urls.map((url, idx) => {
-                                    const isPdf = url.toLowerCase().includes('.pdf')
-                                    const dimParts = job.dimensions?.split('|') || []
-                                    const label = dimParts[idx] ? dimParts[idx].trim() : `Arte ${idx + 1}`
-
-                                    return (
-                                        <div key={idx} className="bg-[#1A1D23] border border-white/10 rounded-xl p-3 flex flex-col justify-between group hover:border-[#FFAE00]/50 transition-all shadow-md">
-                                            <div className="h-32 w-full bg-black/40 rounded-lg flex items-center justify-center overflow-hidden relative mb-2.5">
-                                                {isPdf ? (
-                                                    <iframe src={`${url}#toolbar=0&navpanes=0&scrollbar=0`} className="w-full h-full pointer-events-none" />
-                                                ) : (
-                                                    <img src={url} alt={label} className="max-h-full max-w-full object-contain p-2 group-hover:scale-105 transition-transform duration-300" />
-                                                )}
-                                                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-1.5 transition-opacity p-2">
-                                                    <a
-                                                        href={url}
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                        className="p-2 bg-white/20 hover:bg-white/30 text-white rounded-lg backdrop-blur-sm transition-all text-xs font-bold flex items-center gap-1"
-                                                        title="Ver em tamanho real"
-                                                    >
-                                                        <Maximize2 className="w-3.5 h-3.5 text-[#FFAE00]" />
-                                                    </a>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => handleDownloadReferenceImage(url, idx)}
-                                                        className="p-2 bg-[#FFAE00] hover:bg-yellow-400 text-black rounded-lg shadow transition-all text-xs font-bold flex items-center gap-1"
-                                                        title="Baixar imagem original"
-                                                    >
-                                                        <Download className="w-3.5 h-3.5" />
-                                                    </button>
-                                                </div>
-                                            </div>
-
-                                            <div className="mb-2">
-                                                <span className="text-xs font-bold text-gray-200 block truncate" title={label}>
-                                                    {label}
-                                                </span>
-                                            </div>
-
-                                            <div className="flex items-center gap-1.5 pt-2 border-t border-white/5">
-                                                <a
-                                                    href={url}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="flex-1 inline-flex items-center justify-center gap-1 bg-[#0F1115] hover:bg-white/5 text-gray-300 hover:text-white border border-white/10 text-[11px] font-semibold py-1.5 px-2 rounded-lg transition-colors"
-                                                >
-                                                    <Maximize2 className="w-3 h-3 text-[#FFAE00]" />
-                                                    Ver
-                                                </a>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => handleDownloadReferenceImage(url, idx)}
-                                                    className="flex-1 inline-flex items-center justify-center gap-1 bg-[#FFAE00]/10 hover:bg-[#FFAE00]/20 text-[#FFAE00] border border-[#FFAE00]/30 text-[11px] font-bold py-1.5 px-2 rounded-lg transition-colors"
-                                                >
-                                                    <Download className="w-3 h-3" />
-                                                    Baixar
-                                                </button>
-                                            </div>
-                                        </div>
-                                    )
-                                })}
-                            </div>
-                        </div>
-                    )}
                 </div>
 
                 {/* 2. MIDDLE SECTION: Proposals OR Production/Revision Hero OR Delivery OR Finalized */}
@@ -1129,122 +1246,6 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                 </div>
                             )}
 
-                            {/* ARTES DE REFERÊNCIA DO COMPRADOR (CARDS VISÍVEIS) */}
-                            {job.image_urls && job.image_urls.length > 0 && (
-                                <div className="mt-8 pt-8 border-t border-white/10 w-full max-w-2xl mx-auto text-left animate-in fade-in duration-300">
-                                    {/* Header da Seção */}
-                                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-4">
-                                        <div className="flex items-center gap-2.5">
-                                            <div className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-[#FFAE00] shrink-0">
-                                                <Package className="w-4 h-4" />
-                                            </div>
-                                            <div>
-                                                <div className="flex items-center gap-2">
-                                                    <h3 className="text-sm font-bold text-white">
-                                                        Artes de Referência
-                                                    </h3>
-                                                    <span className="text-[11px] px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-gray-400 font-medium whitespace-nowrap">
-                                                        {job.image_urls.length} {job.image_urls.length === 1 ? 'imagem' : 'imagens'}
-                                                    </span>
-                                                </div>
-                                                <p className="text-[11px] text-gray-400 mt-0.5">
-                                                    Arquivos enviados para a criação da matriz
-                                                </p>
-                                            </div>
-                                        </div>
-
-                                        {job.image_urls.length > 1 && (
-                                            <button
-                                                type="button"
-                                                onClick={handleDownloadAllReferenceImages}
-                                                className="inline-flex items-center gap-1.5 bg-[#FFAE00] hover:bg-yellow-400 text-black px-3.5 py-1.5 rounded-lg text-xs font-bold shadow-sm transition-all shrink-0 active:scale-95 whitespace-nowrap"
-                                            >
-                                                <Download className="w-3.5 h-3.5" /> Baixar Todas (.zip)
-                                            </button>
-                                        )}
-                                    </div>
-
-                                    {/* Grid de Cards das Artes */}
-                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-1">
-                                        {job.image_urls.map((url, idx) => {
-                                            const isPdf = url.toLowerCase().includes('.pdf')
-                                            const dimParts = job.dimensions ? job.dimensions.split('|') : []
-                                            const label = dimParts[idx]?.trim() || `Arte ${idx + 1}`
-
-                                            return (
-                                                <div 
-                                                    key={idx} 
-                                                    className="bg-[#0F1115] border border-white/10 hover:border-white/20 rounded-xl overflow-hidden transition-all duration-200 flex flex-col group shadow-sm hover:shadow-lg hover:shadow-black/50"
-                                                >
-                                                    {/* Canvas com Proporção Quadrada e Fundo Escuro */}
-                                                    <div className="relative aspect-square w-full bg-black/40 flex items-center justify-center p-3 overflow-hidden">
-                                                        {/* Badge de numeração discreto no topo */}
-                                                        <span className="absolute top-2 left-2 z-10 px-1.5 py-0.5 rounded bg-black/70 backdrop-blur-md text-[10px] font-mono font-medium text-gray-400 border border-white/10">
-                                                            #{idx + 1}
-                                                        </span>
-
-                                                        {isPdf ? (
-                                                            <div className="flex flex-col items-center justify-center text-gray-400 gap-2 p-4 text-center">
-                                                                <PenTool className="w-8 h-8 text-[#FFAE00]" />
-                                                                <span className="text-[11px] font-medium text-gray-300">Documento PDF</span>
-                                                            </div>
-                                                        ) : (
-                                                            <img 
-                                                                src={url} 
-                                                                alt={label} 
-                                                                className="max-h-full max-w-full object-contain p-1 transition-transform duration-300 group-hover:scale-105" 
-                                                            />
-                                                        )}
-
-                                                        {/* Hover overlay rápido para abrir original */}
-                                                        <a 
-                                                            href={url}
-                                                            target="_blank"
-                                                            rel="noopener noreferrer"
-                                                            className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"
-                                                            title="Ver imagem original em tela cheia"
-                                                        >
-                                                            <span className="bg-black/80 text-white text-[10px] font-bold px-2.5 py-1 rounded-md border border-white/20 flex items-center gap-1 backdrop-blur-sm">
-                                                                <Maximize2 className="w-3 h-3 text-[#FFAE00]" /> Abrir
-                                                            </span>
-                                                        </a>
-                                                    </div>
-
-                                                    {/* Rodapé do Card com Nome e Ações Alinhadas */}
-                                                    <div className="p-3 bg-[#0F1115] border-t border-white/5 flex flex-col gap-2">
-                                                        <p className="text-xs font-medium text-gray-200 truncate" title={label}>
-                                                            {label}
-                                                        </p>
-
-                                                        {/* Botões Perfeitamente Proporcionais (50% / 50%) */}
-                                                        <div className="grid grid-cols-2 gap-1.5">
-                                                            <a
-                                                                href={url}
-                                                                target="_blank"
-                                                                rel="noopener noreferrer"
-                                                                className="inline-flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white text-[11px] font-medium transition-colors border border-white/10 text-center whitespace-nowrap"
-                                                                title="Abrir em tamanho real"
-                                                            >
-                                                                <Maximize2 className="w-3 h-3 text-[#FFAE00] shrink-0" />
-                                                                <span>Ver</span>
-                                                            </a>
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => handleDownloadReferenceImage(url, idx)}
-                                                                className="inline-flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg bg-[#FFAE00] hover:bg-yellow-400 text-black text-[11px] font-bold transition-all shadow-sm active:scale-95 text-center whitespace-nowrap"
-                                                                title="Baixar arquivo original"
-                                                            >
-                                                                <Download className="w-3 h-3 shrink-0" />
-                                                                <span>Baixar</span>
-                                                            </button>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            )
-                                        })}
-                                    </div>
-                                </div>
-                            )}
 
                             {/* DELIVERY SECTION (Programmer Only) */}
                             {!isOwner && currentUser?.id === acceptedProposal.criador_id && (

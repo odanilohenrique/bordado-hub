@@ -259,26 +259,48 @@ export default function JobCard({ job, hasNegotiation, viewerRole, proposalCount
                     </div>
 
                     {/* Specs Row — inline chips */}
-                    <div className="flex flex-wrap items-center gap-2 mb-3">
-                        {job.formats && job.formats.length > 0 && (
-                            <div className="flex items-center gap-1.5 text-[11px] text-gray-400 bg-white/[0.03] border border-white/5 rounded-full px-2.5 py-1">
-                                <Layers className="w-3 h-3 text-[#FFAE00]/50" />
-                                <span>{job.formats.join(', ')}</span>
+                    {(() => {
+                        const formattedDimensions = (() => {
+                            if (!job.dimensions) return null
+                            const trimmed = job.dimensions.trim()
+                            if (trimmed.startsWith('[')) {
+                                try {
+                                    const parsed = JSON.parse(trimmed)
+                                    if (Array.isArray(parsed) && parsed.length > 0) {
+                                        if (parsed.length === 1) {
+                                            return parsed[0]?.size || 'Sob medida'
+                                        }
+                                        const sizes = parsed.map((p: any) => p.size).filter(Boolean).slice(0, 2).join(', ')
+                                        return `${parsed.length} Matrizes${sizes ? ` (${sizes}${parsed.length > 2 ? '...' : ''})` : ''}`
+                                    }
+                                } catch (_) {}
+                            }
+                            return job.dimensions
+                        })()
+
+                        return (
+                            <div className="flex flex-wrap items-center gap-2 mb-3">
+                                {job.formats && job.formats.length > 0 && (
+                                    <div className="flex items-center gap-1.5 text-[11px] text-gray-400 bg-white/[0.03] border border-white/5 rounded-full px-2.5 py-1">
+                                        <Layers className="w-3 h-3 text-[#FFAE00]/50" />
+                                        <span>{job.formats.join(', ')}</span>
+                                    </div>
+                                )}
+                                {job.fabric_type && (
+                                    <div className="flex items-center gap-1.5 text-[11px] text-gray-400 bg-white/[0.03] border border-white/5 rounded-full px-2.5 py-1">
+                                        <div className="w-2.5 h-2.5 rounded-sm bg-[#FFAE00]/20 border border-[#FFAE00]/30"></div>
+                                        <span>{job.fabric_type}</span>
+                                    </div>
+                                )}
+                                {formattedDimensions && (
+                                    <div className="flex items-center gap-1.5 text-[11px] text-[#FFAE00]/90 bg-[#FFAE00]/5 border border-[#FFAE00]/20 rounded-full px-2.5 py-1 max-w-full">
+                                        <Maximize2 className="w-3 h-3 text-[#FFAE00] shrink-0" />
+                                        <span className="truncate max-w-[280px]" title={formattedDimensions}>{formattedDimensions}</span>
+                                    </div>
+                                )}
                             </div>
-                        )}
-                        {job.fabric_type && (
-                            <div className="flex items-center gap-1.5 text-[11px] text-gray-400 bg-white/[0.03] border border-white/5 rounded-full px-2.5 py-1">
-                                <div className="w-2.5 h-2.5 rounded-sm bg-[#FFAE00]/20 border border-[#FFAE00]/30"></div>
-                                <span>{job.fabric_type}</span>
-                            </div>
-                        )}
-                        {job.dimensions && (
-                            <div className="flex items-center gap-1.5 text-[11px] text-[#FFAE00]/90 bg-[#FFAE00]/5 border border-[#FFAE00]/20 rounded-full px-2.5 py-1 max-w-full">
-                                <Maximize2 className="w-3 h-3 text-[#FFAE00] shrink-0" />
-                                <span className="truncate max-w-[280px]" title={job.dimensions}>{job.dimensions}</span>
-                            </div>
-                        )}
-                    </div>
+                        )
+                    })()}
 
                     {/* Description */}
                     {job.description && (
