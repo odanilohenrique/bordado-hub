@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Upload, FileText, Image as ImageIcon, Zap, Clock, Package, Plus, Trash2, Check, Sparkles, X } from 'lucide-react'
+import { Upload, FileText, Image as ImageIcon, Zap, Clock, Package, Plus, Trash2, Check, CheckCircle, AlertCircle, RefreshCw, Sparkles, X } from 'lucide-react'
 import Link from 'next/link'
 import { toast } from 'sonner'
 import { createNotification } from '@/lib/notifications'
@@ -19,6 +19,20 @@ export interface MatrixItem {
     notes: string
     file: File | null
     previewUrl: string | null
+    uploadedUrl: string | null
+    uploadProgress: number
+    uploadStatus: 'idle' | 'uploading' | 'success' | 'error'
+    uploadError?: string
+}
+
+export interface ExtraImageItem {
+    id: string
+    file: File
+    previewUrl: string
+    uploadedUrl: string | null
+    uploadProgress: number
+    uploadStatus: 'idle' | 'uploading' | 'success' | 'error'
+    uploadError?: string
 }
 
 function NewJobContent() {
@@ -30,31 +44,55 @@ function NewJobContent() {
     const [urgency, setUrgency] = useState('sem_pressa')
     const [formats, setFormats] = useState<string[]>(['.PES'])
     const [customFormatInput, setCustomFormatInput] = useState('')
-    const [images, setImages] = useState<File[]>([])
-    const [imagePreviews, setImagePreviews] = useState<string[]>([])
+    const [extraImages, setExtraImages] = useState<ExtraImageItem[]>([])
     const [loading, setLoading] = useState(false)
-    const [uploadStatus, setUploadStatus] = useState('')
     const [error, setError] = useState<string | null>(null)
     const [checkingAuth, setCheckingAuth] = useState(true)
+    const [currentUserProfileId, setCurrentUserProfileId] = useState<string | null>(null)
     const [directProgrammerId, setDirectProgrammerId] = useState<string | null>(null)
     const [directProgrammerName, setDirectProgrammerName] = useState<string | null>(null)
 
     // Lista unificada de matrizes do pedido (começa com 1 matriz por padrão)
     const [matrixItems, setMatrixItems] = useState<MatrixItem[]>([
-        { id: '1', name: 'Matriz 1', size: '', fabric: '', notes: '', file: null, previewUrl: null }
+        { id: '1', name: 'Matriz 1', size: '', fabric: '', notes: '', file: null, previewUrl: null, uploadedUrl: null, uploadProgress: 0, uploadStatus: 'idle' }
     ])
 
-    // Check authentication on page load
+    // Check authentication on page load and cache user ID to avoid locks on mobile
     useEffect(() => {
+        let isMounted = true
         const checkAuth = async () => {
-            const { data: { session } } = await supabase.auth.getSession()
-            if (!session) {
-                router.push('/login?redirect=/jobs/new')
-            } else {
-                setCheckingAuth(false)
+            try {
+                const { data: { session } } = await supabase.auth.getSession()
+                if (!session?.user) {
+                    router.push('/login?redirect=/jobs/new')
+                    return
+                }
+
+                const authUserId = session.user.id
+                let profileId = authUserId
+
+                // Busca o ID em public.users
+                const { data: userProfile } = await supabase
+                    .from('users')
+                    .select('id')
+                    .or(`supabase_user_id.eq.${authUserId},id.eq.${authUserId}`)
+                    .maybeSingle()
+
+                if (userProfile?.id) {
+                    profileId = userProfile.id
+                }
+
+                if (isMounted) {
+                    setCurrentUserProfileId(profileId)
+                    setCheckingAuth(false)
+                }
+            } catch (err) {
+                console.error('Erro na checagem de autenticação:', err)
+                if (isMounted) setCheckingAuth(false)
             }
         }
         checkAuth()
+        return () => { isMounted = false }
     }, [router])
 
     // Check for direct programmer ID from URL
@@ -92,15 +130,143 @@ function NewJobContent() {
         setCustomFormatInput('')
     }
 
-    if (checkingAuth) {
-        return (
-            <div className="min-h-screen bg-[#0F1115] flex items-center justify-center">
-                <div className="text-center">
-                    <div className="w-16 h-16 border-4 border-[#FFAE00]/30 border-t-[#FFAE00] rounded-full animate-spin mx-auto mb-4" />
-                    <p className="text-gray-400">Verificando autenticação...</p>
-                </div>
-            </div>
-        )
+    // Função de upload com barra de progresso em tempo real e fallback direto no storage
+    const performUpload = async (
+        file: File,
+        onProgress: (percent: number) => void
+    ): Promise<string> => {
+        onProgress(5)
+
+        // 1. Otimiza a imagem no cliente (timeout de 4s embutido para nunca travar no celular)
+        let readyFile: any = file
+        try {
+            readyFile = await optimizeImageFile(file)
+        } catch (optErr) {
+            console.warn('Erro ao otimizar imagem, mantendo arquivo original:', optErr)
+            readyFile = file
+        }
+
+        onProgress(20)
+
+        const fileName = (readyFile as any).name || (file as any).name || `arte_${Date.now()}.jpg`
+        const safeUserId = currentUserProfileId || 'geral'
+
+        // 2. Upload com monitoramento via XMLHttpRequest (reporta porcentagem real de envio)
+        try {
+            const publicUrl = await new Promise<string>((resolve, reject) => {
+                const formData = new FormData()
+                formData.append('file', readyFile, fileName)
+                formData.append('userId', safeUserId)
+
+                const xhr = new XMLHttpRequest()
+                xhr.open('POST', '/api/jobs/upload')
+                xhr.timeout = 50000
+
+                xhr.upload.onprogress = (evt) => {
+                    if (evt.lengthComputable) {
+                        const pct = Math.min(95, Math.round(20 + (evt.loaded / evt.total) * 75))
+                        onProgress(pct)
+                    }
+                }
+
+                xhr.onload = () => {
+                    if (xhr.status >= 200 && xhr.status < 300) {
+                        try {
+                            const res = JSON.parse(xhr.responseText)
+                            if (res.publicUrl) {
+                                resolve(res.publicUrl)
+                            } else {
+                                reject(new Error(res.error || 'Erro ao processar imagem'))
+                            }
+                        } catch {
+                            reject(new Error('Resposta inválida do servidor'))
+                        }
+                    } else {
+                        try {
+                            const res = JSON.parse(xhr.responseText)
+                            reject(new Error(res.error || `Erro ${xhr.status}`))
+                        } catch {
+                            reject(new Error(`Erro HTTP ${xhr.status}`))
+                        }
+                    }
+                }
+
+                xhr.onerror = () => reject(new Error('Falha de conexão durante o envio'))
+                xhr.ontimeout = () => reject(new Error('Tempo limite de envio excedido'))
+
+                xhr.send(formData)
+            })
+
+            onProgress(100)
+            return publicUrl
+        } catch (apiErr) {
+            console.warn('Upload via rota de API falhou, acionando fallback direto no Storage:', apiErr)
+            onProgress(50)
+
+            // Fallback direto no Supabase Storage (caso Vercel bloqueie payload no mobile)
+            const cleanName = fileName.replace(/[^a-zA-Z0-9.\-_]/g, '_')
+            const uniqueId = `${Date.now()}_${Math.random().toString(36).substring(2, 7)}`
+            const storagePath = `jobs/${safeUserId}/${uniqueId}_${cleanName}`
+
+            const { error: directUploadError } = await supabase.storage
+                .from('portfolio')
+                .upload(storagePath, readyFile, {
+                    contentType: readyFile.type || 'image/jpeg',
+                    upsert: true
+                })
+
+            if (directUploadError) {
+                throw new Error(`Falha no upload direto: ${directUploadError.message}`)
+            }
+
+            const { data: publicData } = supabase.storage
+                .from('portfolio')
+                .getPublicUrl(storagePath)
+
+            if (!publicData?.publicUrl) {
+                throw new Error('Não foi possível gerar link público da imagem')
+            }
+
+            onProgress(100)
+            return publicData.publicUrl
+        }
+    }
+
+    // Inicia upload imediato de imagem da matriz
+    const uploadMatrixFile = async (matrixId: string, file: File) => {
+        setMatrixItems(prev => prev.map(item => item.id === matrixId ? {
+            ...item,
+            uploadProgress: 5,
+            uploadStatus: 'uploading',
+            uploadError: undefined
+        } : item))
+
+        try {
+            const url = await performUpload(file, (pct) => {
+                setMatrixItems(prev => prev.map(item => item.id === matrixId ? {
+                    ...item,
+                    uploadProgress: pct,
+                    uploadStatus: pct >= 100 ? 'success' : 'uploading'
+                } : item))
+            })
+
+            setMatrixItems(prev => prev.map(item => item.id === matrixId ? {
+                ...item,
+                uploadedUrl: url,
+                uploadProgress: 100,
+                uploadStatus: 'success'
+            } : item))
+            toast.success('Imagem enviada com sucesso!')
+        } catch (err: any) {
+            console.error('Erro no upload da matriz:', err)
+            const errMsg = err.message || 'Erro ao enviar imagem'
+            setMatrixItems(prev => prev.map(item => item.id === matrixId ? {
+                ...item,
+                uploadStatus: 'error',
+                uploadError: errMsg
+            } : item))
+            toast.error(`Falha no envio da foto: ${errMsg}`)
+        }
     }
 
     // Matrix Items Handlers
@@ -108,7 +274,7 @@ function NewJobContent() {
         const nextNum = matrixItems.length + 1
         setMatrixItems(prev => [
             ...prev,
-            { id: Date.now().toString(), name: `Matriz ${nextNum}`, size: '', fabric: '', notes: '', file: null, previewUrl: null }
+            { id: Date.now().toString(), name: `Matriz ${nextNum}`, size: '', fabric: '', notes: '', file: null, previewUrl: null, uploadedUrl: null, uploadProgress: 0, uploadStatus: 'idle' }
         ])
     }
 
@@ -132,81 +298,153 @@ function NewJobContent() {
             setMatrixItems(prev => prev.map(item => {
                 if (item.id === id) {
                     if (item.previewUrl) URL.revokeObjectURL(item.previewUrl)
-                    return { ...item, file, previewUrl }
+                    return {
+                        ...item,
+                        file,
+                        previewUrl,
+                        uploadedUrl: null,
+                        uploadProgress: 5,
+                        uploadStatus: 'uploading',
+                        uploadError: undefined
+                    }
                 }
                 return item
             }))
+            // Inicia upload imediatamente
+            uploadMatrixFile(id, file)
         }
+        e.target.value = ''
     }
 
     const removeMatrixItemFile = (id: string) => {
         setMatrixItems(prev => prev.map(item => {
             if (item.id === id) {
                 if (item.previewUrl) URL.revokeObjectURL(item.previewUrl)
-                return { ...item, file: null, previewUrl: null }
+                return {
+                    ...item,
+                    file: null,
+                    previewUrl: null,
+                    uploadedUrl: null,
+                    uploadProgress: 0,
+                    uploadStatus: 'idle',
+                    uploadError: undefined
+                }
             }
             return item
         }))
     }
 
-    // Fotos complementares / gerais
-    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files) {
-            const newFiles = Array.from(e.target.files)
-            if (images.length + newFiles.length > 6) {
-                alert('Máximo de 6 fotos complementares permitidas')
-                return
-            }
-            const newPreviews = newFiles.map(file => URL.createObjectURL(file))
-            setImages(prev => [...prev, ...newFiles])
-            setImagePreviews(prev => [...prev, ...newPreviews])
+    // Inicia upload imediato de foto complementar
+    const uploadExtraFile = async (id: string, file: File) => {
+        setExtraImages(prev => prev.map(item => item.id === id ? {
+            ...item,
+            uploadProgress: 5,
+            uploadStatus: 'uploading',
+            uploadError: undefined
+        } : item))
+
+        try {
+            const url = await performUpload(file, (pct) => {
+                setExtraImages(prev => prev.map(item => item.id === id ? {
+                    ...item,
+                    uploadProgress: pct,
+                    uploadStatus: pct >= 100 ? 'success' : 'uploading'
+                } : item))
+            })
+
+            setExtraImages(prev => prev.map(item => item.id === id ? {
+                ...item,
+                uploadedUrl: url,
+                uploadProgress: 100,
+                uploadStatus: 'success'
+            } : item))
+        } catch (err: any) {
+            console.error('Erro no upload da foto complementar:', err)
+            const errMsg = err.message || 'Erro ao enviar imagem'
+            setExtraImages(prev => prev.map(item => item.id === id ? {
+                ...item,
+                uploadStatus: 'error',
+                uploadError: errMsg
+            } : item))
+            toast.error(`Falha no envio da foto complementar: ${errMsg}`)
         }
     }
 
-    const removeImage = (index: number) => {
-        setImages(prev => prev.filter((_, i) => i !== index))
-        setImagePreviews(prev => {
-            const newPreviews = prev.filter((_, i) => i !== index)
-            URL.revokeObjectURL(prev[index])
-            return newPreviews
+    // Fotos complementares / gerais
+    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files) {
+            const selectedFiles = Array.from(e.target.files)
+            if (extraImages.length + selectedFiles.length > 6) {
+                toast.error('Máximo de 6 fotos complementares permitidas')
+                return
+            }
+
+            const newItems: ExtraImageItem[] = selectedFiles.map(file => ({
+                id: `${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+                file,
+                previewUrl: URL.createObjectURL(file),
+                uploadedUrl: null,
+                uploadProgress: 5,
+                uploadStatus: 'uploading'
+            }))
+
+            setExtraImages(prev => [...prev, ...newItems])
+
+            // Dispara upload imediato para cada foto
+            newItems.forEach(item => {
+                uploadExtraFile(item.id, item.file)
+            })
+        }
+        e.target.value = ''
+    }
+
+    const removeExtraImage = (id: string) => {
+        setExtraImages(prev => {
+            const item = prev.find(i => i.id === id)
+            if (item?.previewUrl) URL.revokeObjectURL(item.previewUrl)
+            return prev.filter(i => i.id !== id)
         })
     }
+
+    if (checkingAuth) {
+        return (
+            <div className="min-h-screen bg-[#0F1115] flex items-center justify-center">
+                <div className="text-center">
+                    <div className="w-16 h-16 border-4 border-[#FFAE00]/30 border-t-[#FFAE00] rounded-full animate-spin mx-auto mb-4" />
+                    <p className="text-gray-400">Verificando autenticação...</p>
+                </div>
+            </div>
+        )
+    }
+
+    // Estados de validação do envio
+    const isAnyUploading = matrixItems.some(item => item.file && item.uploadStatus === 'uploading') ||
+                           extraImages.some(item => item.uploadStatus === 'uploading')
+    const hasAnyError = matrixItems.some(item => item.file && item.uploadStatus === 'error') ||
+                        extraImages.some(item => item.uploadStatus === 'error')
+    const hasUnuploadedFiles = matrixItems.some(item => item.file && !item.uploadedUrl) ||
+                              extraImages.some(item => !item.uploadedUrl)
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         setLoading(true)
-        setUploadStatus('Verificando dados...')
         setError(null)
 
         try {
-            const { data: { user } } = await supabase.auth.getUser()
-            if (!user) {
+            // 1. Obtém o usuário (usa cache seguro sem travar na autenticação móvel)
+            let userId = currentUserProfileId
+            if (!userId) {
+                const { data: { session } } = await supabase.auth.getSession()
+                userId = session?.user?.id || null
+            }
+
+            if (!userId) {
                 toast.error('Sessão expirada. Por favor, faça login novamente.')
-                throw new Error('Usuário não autenticado')
+                router.push('/login?redirect=/jobs/new')
+                return
             }
 
-            // 1. Obter ID do perfil em public.users
-            let { data: userData } = await supabase
-                .from('users')
-                .select('id')
-                .eq('supabase_user_id', user.id)
-                .maybeSingle()
-
-            if (!userData) {
-                const { data: userById } = await supabase
-                    .from('users')
-                    .select('id')
-                    .eq('id', user.id)
-                    .maybeSingle()
-                if (userById) userData = userById
-            }
-
-            if (!userData) {
-                toast.error('Perfil de usuário não localizado. Recarregue a página.')
-                throw new Error('Perfil de usuário não encontrado')
-            }
-
-            // Valida se cada matriz tem tamanho informado
+            // 2. Valida se cada matriz tem tamanho informado
             for (let i = 0; i < matrixItems.length; i++) {
                 const item = matrixItems[i]
                 const label = matrixItems.length > 1 ? `Matriz ${i + 1}` : 'Matriz'
@@ -219,9 +457,15 @@ function NewJobContent() {
                 }
             }
 
-            // Valida se enviou pelo menos uma foto/desenho
-            const hasAnyFile = matrixItems.some(item => item.file !== null) || images.length > 0
-            if (!hasAnyFile) {
+            // 3. Valida se as imagens já terminaram de subir
+            const matrixUrls = matrixItems.map(item => item.uploadedUrl)
+            const extraUrls = extraImages.map(item => item.uploadedUrl).filter(Boolean) as string[]
+            const imageUrls: string[] = [
+                ...matrixUrls.filter((url): url is string => Boolean(url)),
+                ...extraUrls
+            ]
+
+            if (imageUrls.length === 0) {
                 const msg = 'Por favor, envie ao menos uma foto, logo ou desenho para a criação da matriz.'
                 setError(msg)
                 toast.error(msg)
@@ -229,120 +473,16 @@ function NewJobContent() {
                 return
             }
 
-            // Função segura de upload com otimização client-side, fallback e timeout
-            const uploadSingleFile = async (file: File, label: string): Promise<string> => {
-                const controller = new AbortController()
-                const timeoutId = setTimeout(() => controller.abort(), 40000)
-
-                try {
-                    setUploadStatus(`Processando ${label}...`)
-
-                    // Otimiza imagens com timeout interno de 4s (nunca trava)
-                    let readyFile: any = file
-                    try {
-                        readyFile = await optimizeImageFile(file)
-                    } catch (optErr) {
-                        console.warn('Erro ao otimizar imagem, mantendo original:', optErr)
-                        readyFile = file
-                    }
-
-                    setUploadStatus(`Enviando ${label}...`)
-
-                    const fileName = (readyFile as any).name || (file as any).name || `arte_${Date.now()}.jpg`
-                    const cleanName = fileName.replace(/[^a-zA-Z0-9.\-_]/g, '_')
-                    const uniqueId = `${Date.now()}_${Math.random().toString(36).substring(2, 7)}`
-                    const storagePath = `jobs/${userData.id}/${uniqueId}_${cleanName}`
-
-                    // Tentativa 1: Via API Route do Next.js
-                    try {
-                        const uploadFormData = new FormData()
-                        uploadFormData.append('file', readyFile, fileName)
-                        uploadFormData.append('userId', userData.id)
-
-                        const uploadRes = await fetch('/api/jobs/upload', {
-                            method: 'POST',
-                            body: uploadFormData,
-                            signal: controller.signal
-                        })
-
-                        if (uploadRes.ok) {
-                            const uploadJson = await uploadRes.json()
-                            if (uploadJson.publicUrl) {
-                                return uploadJson.publicUrl
-                            }
-                        }
-                    } catch (apiErr) {
-                        console.warn('Upload via API route falhou, acionando fallback direto:', apiErr)
-                    }
-
-                    // Tentativa 2: Fallback direto no Supabase Storage (caso Vercel bloqueie payload pesado no mobile)
-                    setUploadStatus(`Salvando ${label}...`)
-                    const { error: directUploadError } = await supabase.storage
-                        .from('portfolio')
-                        .upload(storagePath, readyFile, {
-                            contentType: readyFile.type || 'image/jpeg',
-                            upsert: true
-                        })
-
-                    if (directUploadError) {
-                        throw new Error(`Falha no envio de ${label}: ${directUploadError.message}`)
-                    }
-
-                    const { data: publicData } = supabase.storage
-                        .from('portfolio')
-                        .getPublicUrl(storagePath)
-
-                    if (!publicData?.publicUrl) {
-                        throw new Error(`Não foi possível gerar URL pública para ${label}`)
-                    }
-
-                    return publicData.publicUrl
-                } catch (err: any) {
-                    if (err.name === 'AbortError') {
-                        throw new Error(`Tempo limite excedido ao enviar ${label}. Verifique sua conexão ou envie uma imagem menor.`)
-                    }
-                    throw err
-                } finally {
-                    clearTimeout(timeoutId)
-                }
-            }
-
-            // 2. Upload sequencial das imagens das matrizes (estabilidade garantida no celular)
-            const matrixUrls: (string | null)[] = []
-            for (let i = 0; i < matrixItems.length; i++) {
-                const item = matrixItems[i]
-                if (item.file) {
-                    const label = matrixItems.length > 1 ? `Matriz ${i + 1} de ${matrixItems.length}` : 'foto da matriz'
-                    const url = await uploadSingleFile(item.file, label)
-                    matrixUrls.push(url)
-                } else {
-                    matrixUrls.push(null)
-                }
-            }
-
-            // 3. Upload sequencial de fotos complementares
-            const extraUrls: string[] = []
-            for (let i = 0; i < images.length; i++) {
-                const label = `foto adicional ${i + 1} de ${images.length}`
-                const url = await uploadSingleFile(images[i], label)
-                extraUrls.push(url)
-            }
-
-            const imageUrls: string[] = [
-                ...matrixUrls.filter((url): url is string => Boolean(url)),
-                ...extraUrls.filter((url): url is string => Boolean(url))
-            ]
-
             const isKit = matrixItems.length > 1
             const totalCount = matrixItems.length
 
-            // Estrutura de dados de cada matriz para o novo card interativo
+            // Estrutura de dados de cada matriz para o card interativo
             const structuredMatrices = matrixItems.map((item, idx) => ({
                 name: item.name.trim() || `Matriz ${idx + 1}`,
                 size: item.size.trim(),
                 fabric: item.fabric.trim() || 'A combinar',
                 notes: item.notes.trim() || '',
-                image_url: matrixUrls[idx] || imageUrls[0] || null
+                image_url: item.uploadedUrl || imageUrls[0] || null
             }))
 
             // Salva JSON das matrizes em dimensions (para leitura rica e interativa nas abas)
@@ -377,12 +517,10 @@ function NewJobContent() {
 
             const finalFormats = formats.length > 0 ? formats : ['.PES', '.DST']
 
-            setUploadStatus('Publicando pedido...')
-
-            // 4. Criação do Pedido
+            // 4. Criação instantânea do Pedido (as fotos já foram carregadas no Storage!)
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const baseJobPayload: any = {
-                cliente_id: userData.id,
+                cliente_id: userId,
                 title: finalTitle,
                 description: finalDescription,
                 dimensions: finalDimensions,
@@ -429,7 +567,6 @@ function NewJobContent() {
                 })
             }
 
-            setUploadStatus('Tudo pronto!')
             toast.success('Pedido publicado com sucesso!')
             router.push(`/jobs/${createdJob.id}`)
         } catch (err: any) {
@@ -439,7 +576,6 @@ function NewJobContent() {
             toast.error(msg)
         } finally {
             setLoading(false)
-            setUploadStatus('')
         }
     }
 
@@ -560,7 +696,7 @@ function NewJobContent() {
                                     }
                                 }}
                                 placeholder="Outro formato (ex: .ART, .VIP, .PEC)"
-                                className="bg-[#0F1115] border border-white/10 focus:border-[#FFAE00] rounded-lg px-3 py-1.5 text-xs text-white placeholder-gray-500 focus:outline-none w-52 sm:w-60 uppercase"
+                                className="bg-[#0F1115] border border-white/10 focus:border-[#FFAE00] rounded-lg px-3.5 py-1.5 text-xs text-white placeholder-gray-500 focus:outline-none w-52 sm:w-60 uppercase"
                             />
                             <button
                                 type="button"
@@ -665,28 +801,76 @@ function NewJobContent() {
                                                 </div>
                                             </div>
 
-                                            {/* Coluna 2: Upload da Foto Específica */}
+                                            {/* Coluna 2: Upload da Foto Específica com Barra de Progresso */}
                                             <div>
                                                 <label className="text-xs font-semibold text-gray-300 block mb-1">
                                                     Foto / Referência da Matriz {index + 1} <span className="text-[#FFAE00]">*</span>
                                                 </label>
                                                 {item.previewUrl ? (
-                                                    <div className="relative group rounded-lg overflow-hidden border border-[#FFAE00]/30 bg-black/40 h-[190px] flex items-center justify-center">
-                                                        <img src={item.previewUrl} alt={`Matriz ${index + 1}`} className="max-h-full max-w-full object-contain p-2" />
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => removeMatrixItemFile(item.id)}
-                                                            className="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white p-1.5 rounded-full shadow-lg transition-colors"
-                                                            title="Trocar imagem"
-                                                        >
-                                                            <Trash2 className="w-3.5 h-3.5" />
-                                                        </button>
-                                                        <span className="absolute bottom-1 left-2 text-[10px] text-gray-400 truncate max-w-[90%] bg-black/70 px-2 py-0.5 rounded">
-                                                            {item.file?.name}
-                                                        </span>
+                                                    <div className="space-y-2">
+                                                        <div className="relative group rounded-lg overflow-hidden border border-[#FFAE00]/30 bg-black/40 h-[175px] flex items-center justify-center">
+                                                            <img src={item.previewUrl} alt={`Matriz ${index + 1}`} className="max-h-full max-w-full object-contain p-2" />
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => removeMatrixItemFile(item.id)}
+                                                                className="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white p-1.5 rounded-full shadow-lg transition-colors z-10"
+                                                                title="Trocar imagem"
+                                                            >
+                                                                <Trash2 className="w-3.5 h-3.5" />
+                                                            </button>
+                                                            <span className="absolute bottom-1 left-2 text-[10px] text-gray-400 truncate max-w-[85%] bg-black/70 px-2 py-0.5 rounded">
+                                                                {item.file?.name}
+                                                            </span>
+                                                        </div>
+
+                                                        {/* BARRA DE CARREGAMENTO EM TEMPO REAL */}
+                                                        {item.uploadStatus === 'uploading' && (
+                                                            <div className="bg-[#1A1D23] border border-amber-500/30 rounded-lg p-2.5 space-y-1.5 animate-pulse">
+                                                                <div className="flex items-center justify-between text-xs text-amber-400 font-semibold">
+                                                                    <span className="flex items-center gap-1.5">
+                                                                        <div className="w-3.5 h-3.5 border-2 border-amber-400/30 border-t-amber-400 rounded-full animate-spin" />
+                                                                        Enviando foto da matriz...
+                                                                    </span>
+                                                                    <span>{item.uploadProgress}%</span>
+                                                                </div>
+                                                                <div className="w-full h-2 bg-gray-800 rounded-full overflow-hidden">
+                                                                    <div
+                                                                        className="h-full bg-gradient-to-r from-amber-500 to-amber-400 rounded-full transition-all duration-300 ease-out"
+                                                                        style={{ width: `${Math.max(5, item.uploadProgress)}%` }}
+                                                                    />
+                                                                </div>
+                                                            </div>
+                                                        )}
+
+                                                        {item.uploadStatus === 'success' && (
+                                                            <div className="flex items-center justify-between py-1.5 px-3 bg-emerald-500/10 border border-emerald-500/30 rounded-lg text-emerald-400 text-xs">
+                                                                <span className="flex items-center gap-1.5 font-medium">
+                                                                    <CheckCircle className="w-3.5 h-3.5 flex-shrink-0" />
+                                                                    Imagem carregada com sucesso
+                                                                </span>
+                                                                <span className="text-[11px] font-bold text-emerald-500">100%</span>
+                                                            </div>
+                                                        )}
+
+                                                        {item.uploadStatus === 'error' && (
+                                                            <div className="flex items-center justify-between py-1.5 px-3 bg-red-500/10 border border-red-500/30 rounded-lg text-red-400 text-xs">
+                                                                <span className="flex items-center gap-1 text-[11px] truncate max-w-[170px]">
+                                                                    <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+                                                                    {item.uploadError || 'Falha no envio'}
+                                                                </span>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => item.file && uploadMatrixFile(item.id, item.file)}
+                                                                    className="px-2 py-0.5 bg-red-500/20 hover:bg-red-500/30 text-red-300 rounded text-[11px] font-bold transition-colors flex items-center gap-1"
+                                                                >
+                                                                    <RefreshCw className="w-3 h-3" />
+                                                                    Tentar de novo
+                                                                </button>
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 ) : (
-                                                    <label className="flex flex-col items-center justify-center h-[190px] border border-dashed border-[#FFAE00]/30 hover:border-[#FFAE00] rounded-lg p-3.5 cursor-pointer bg-[#1A1D23]/50 hover:bg-[#FFAE00]/5 transition-all text-center group">
+                                                    <label className="flex flex-col items-center justify-center h-[175px] border border-dashed border-[#FFAE00]/30 hover:border-[#FFAE00] rounded-lg p-3.5 cursor-pointer bg-[#1A1D23]/50 hover:bg-[#FFAE00]/5 transition-all text-center group">
                                                         <Upload className="w-5 h-5 text-[#FFAE00] group-hover:scale-110 transition-transform mb-1.5" />
                                                         <span className="text-xs font-bold text-gray-200">Clique para enviar a foto desta matriz</span>
                                                         <span className="text-[10px] text-gray-500 mt-1">PNG, JPG, BMP, PDF até 10MB</span>
@@ -716,7 +900,7 @@ function NewJobContent() {
                         </button>
 
                         {/* Fotos extras complementares (Opcional) */}
-                        <div className="space-y-1.5 pt-3 border-t border-gray-800">
+                        <div className="space-y-2 pt-3 border-t border-gray-800">
                             <label className="flex items-center gap-2 text-xs font-medium text-gray-400">
                                 <ImageIcon className="w-3.5 h-3.5 text-gray-400" />
                                 Fotos Adicionais ou Visão Geral <span className="text-gray-500">(Opcional)</span>
@@ -738,18 +922,58 @@ function NewJobContent() {
                                     <p className="text-gray-400 text-xs">Enviar fotos complementares (mockups, peça pronta, uniforme montado, etc.)</p>
                                 </label>
                             </div>
-                            {imagePreviews.length > 0 && (
-                                <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 mt-2">
-                                    {imagePreviews.map((preview, idx) => (
-                                        <div key={idx} className="relative group rounded-lg overflow-hidden border border-gray-700 bg-black/30 h-20 flex items-center justify-center">
-                                            <img src={preview} alt={`Extra ${idx + 1}`} className="max-h-full max-w-full object-contain p-1" />
-                                            <button
-                                                type="button"
-                                                onClick={() => removeImage(idx)}
-                                                className="absolute top-1 right-1 bg-red-600 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                                            >
-                                                <Trash2 className="w-3 h-3" />
-                                            </button>
+
+                            {extraImages.length > 0 && (
+                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5 mt-2">
+                                    {extraImages.map((extra) => (
+                                        <div key={extra.id} className="relative group rounded-lg overflow-hidden border border-gray-700 bg-black/40 p-1.5 flex flex-col justify-between">
+                                            <div className="relative h-20 flex items-center justify-center overflow-hidden">
+                                                <img src={extra.previewUrl} alt="Extra" className="max-h-full max-w-full object-contain" />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => removeExtraImage(extra.id)}
+                                                    className="absolute top-1 right-1 bg-red-600 hover:bg-red-700 text-white p-1 rounded-full shadow transition-colors z-10"
+                                                    title="Remover"
+                                                >
+                                                    <Trash2 className="w-3 h-3" />
+                                                </button>
+                                            </div>
+
+                                            {/* Barra de progresso da foto extra */}
+                                            {extra.uploadStatus === 'uploading' && (
+                                                <div className="w-full mt-1.5 px-0.5">
+                                                    <div className="flex items-center justify-between text-[10px] text-amber-400 font-semibold mb-0.5">
+                                                        <span>Enviando...</span>
+                                                        <span>{extra.uploadProgress}%</span>
+                                                    </div>
+                                                    <div className="w-full h-1.5 bg-gray-800 rounded-full overflow-hidden">
+                                                        <div
+                                                            className="h-full bg-amber-400 transition-all duration-300"
+                                                            style={{ width: `${Math.max(5, extra.uploadProgress)}%` }}
+                                                        />
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {extra.uploadStatus === 'success' && (
+                                                <div className="flex items-center justify-center gap-1 text-[10px] text-emerald-400 font-medium py-0.5 mt-1 bg-emerald-500/10 rounded">
+                                                    <CheckCircle className="w-3 h-3" />
+                                                    <span>Enviada</span>
+                                                </div>
+                                            )}
+
+                                            {extra.uploadStatus === 'error' && (
+                                                <div className="flex items-center justify-between text-[10px] text-red-400 py-0.5 mt-1 bg-red-500/10 rounded px-1">
+                                                    <span className="truncate max-w-[55px]">Erro</span>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => uploadExtraFile(extra.id, extra.file)}
+                                                        className="text-red-300 hover:underline flex items-center gap-0.5 font-bold"
+                                                    >
+                                                        <RefreshCw className="w-2.5 h-2.5" /> Retentar
+                                                    </button>
+                                                </div>
+                                            )}
                                         </div>
                                     ))}
                                 </div>
@@ -782,8 +1006,8 @@ function NewJobContent() {
                         </div>
                     )}
 
-                    {/* Submit Button */}
-                    <div className="flex gap-3 pt-3">
+                    {/* Botões de Ação com Bloqueio Inteligente até Término do Upload */}
+                    <div className="flex flex-col sm:flex-row gap-3 pt-3">
                         <Link
                             href="/"
                             className="flex-1 flex items-center justify-center px-4 py-2.5 border border-white/10 hover:border-[#FFAE00]/30 text-gray-300 hover:text-white rounded-lg hover:bg-white/5 transition-all text-xs font-bold"
@@ -792,18 +1016,28 @@ function NewJobContent() {
                         </Link>
                         <button
                             type="submit"
-                            disabled={loading}
-                            className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 bg-[#FFAE00] text-black rounded-lg hover:bg-[#D97706] transition-all text-xs font-black disabled:opacity-50 disabled:cursor-not-allowed shadow-md shadow-[#FFAE00]/20"
+                            disabled={loading || isAnyUploading || hasUnuploadedFiles || hasAnyError}
+                            className="flex-[2] flex items-center justify-center gap-2 px-4 py-3 bg-[#FFAE00] text-black rounded-lg hover:bg-[#D97706] transition-all text-sm font-black disabled:opacity-50 disabled:cursor-not-allowed shadow-md shadow-[#FFAE00]/20"
                         >
                             {loading ? (
                                 <>
                                     <div className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" />
-                                    <span>{uploadStatus || 'Enviando...'}</span>
+                                    <span>Publicando pedido...</span>
+                                </>
+                            ) : isAnyUploading ? (
+                                <>
+                                    <div className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" />
+                                    <span>Aguarde o envio das fotos...</span>
+                                </>
+                            ) : hasAnyError ? (
+                                <>
+                                    <AlertCircle className="w-4 h-4 text-red-900" />
+                                    <span>Corrija as fotos com erro antes de enviar</span>
                                 </>
                             ) : (
                                 <>
                                     <Zap className="w-4 h-4" />
-                                    Enviar Pedido
+                                    <span>Enviar Pedido</span>
                                 </>
                             )}
                         </button>
