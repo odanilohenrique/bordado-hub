@@ -113,15 +113,16 @@ export default function GlobalNotificationAlert() {
 
     const markAsRead = async (id: string) => {
         try {
-            await supabase
-                .from('notifications')
-                .update({ is_read: true })
-                .eq('id', id)
-            
             setNotifications(prev => prev.filter(n => n.id !== id))
             if (currentAlert?.id === id) {
                 setCurrentAlert(null)
             }
+
+            await supabase
+                .from('notifications')
+                .update({ is_read: true })
+                .eq('id', id)
+
             if (typeof window !== 'undefined') {
                 window.dispatchEvent(new CustomEvent('bordadohub_reload_job'))
             }
@@ -136,6 +137,46 @@ export default function GlobalNotificationAlert() {
         }
     }
 
+    const handleNavigate = (url: string) => {
+        if (!url) return
+        const targetAlertId = currentAlert?.id
+
+        // 1. Fecha o popup imediatamente para dar feedback instantâneo ao usuário no celular
+        setCurrentAlert(null)
+        if (targetAlertId) {
+            setNotifications(prev => prev.filter(n => n.id !== targetAlertId))
+            // Atualiza no banco em background
+            void (async () => {
+                try {
+                    await supabase
+                        .from('notifications')
+                        .update({ is_read: true })
+                        .eq('id', targetAlertId)
+
+                    if (typeof window !== 'undefined') {
+                        window.dispatchEvent(new CustomEvent('bordadohub_reload_job'))
+                    }
+                } catch (e) {
+                    console.error('Erro ao marcar notificação:', e)
+                }
+            })()
+        }
+
+        // 2. Navegação garantida no celular
+        if (typeof window !== 'undefined') {
+            const currentPath = window.location.pathname
+            const targetPath = url.split('?')[0]
+
+            if (currentPath === targetPath) {
+                // Se já estiver na página do pedido, força o recarregamento para exibir a proposta que acabou de chegar
+                window.location.reload()
+            } else {
+                // Redireciona diretamente para o pedido
+                window.location.href = url
+            }
+        }
+    }
+
     if (!currentAlert) return null
 
     const payProposalId = currentAlert.link_url?.match(/[?&]pay=([^&]+)/)?.[1]
@@ -143,18 +184,23 @@ export default function GlobalNotificationAlert() {
 
     return (
         <div className="fixed inset-0 z-50 flex items-end sm:items-start justify-center p-4 sm:p-6 pointer-events-none">
-            {/* Dark semi-transparent overlay just to draw attention without blocking completely */}
-            <div className="fixed inset-0 bg-black/40 backdrop-blur-[2px] transition-opacity duration-300 pointer-events-auto"></div>
+            {/* Dark semi-transparent overlay com z-index menor e clique para fechar */}
+            <div 
+                onClick={closeAlert}
+                className="fixed inset-0 z-40 bg-black/60 backdrop-blur-[2px] transition-opacity duration-300 pointer-events-auto cursor-pointer"
+            />
 
-            <div className="relative w-full max-w-sm bg-[#1A1D23] border border-[#FFAE00] rounded-2xl shadow-[0_0_50px_rgba(255,174,0,0.3)] pointer-events-auto transform transition-all duration-500 scale-100 flex flex-col pt-6 pb-2 overflow-hidden animate-bounce-in">
+            {/* Card com z-50 acima do overlay para garantir que o toque funcione no celular */}
+            <div className="relative z-50 w-full max-w-sm bg-[#1A1D23] border border-[#FFAE00] rounded-2xl shadow-[0_0_50px_rgba(255,174,0,0.3)] pointer-events-auto transform transition-all duration-500 scale-100 flex flex-col pt-6 pb-2 overflow-hidden animate-bounce-in">
                 
                 {/* Glow bar at top */}
                 <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#FFAE00] to-yellow-300 animate-pulse"></div>
                 
                 {/* Close Button */}
                 <button 
+                    type="button"
                     onClick={closeAlert}
-                    className="absolute top-3 right-3 text-gray-400 hover:text-white bg-gray-800/50 hover:bg-gray-700/50 rounded-full p-1 transition-colors"
+                    className="absolute top-3 right-3 text-gray-400 hover:text-white bg-gray-800/50 hover:bg-gray-700/50 rounded-full p-1.5 transition-colors z-10"
                 >
                     <X className="w-5 h-5" />
                 </button>
@@ -182,35 +228,36 @@ export default function GlobalNotificationAlert() {
                 <div className="px-6 mt-6 mb-4">
                     {isCounterAccepted && payProposalId ? (
                         <div className="flex flex-col gap-2 w-full">
-                            <Link 
-                                href={`/checkout/${payProposalId}`}
-                                onClick={() => markAsRead(currentAlert.id)}
-                                className="flex items-center justify-center gap-2 w-full bg-[#FFAE00] hover:bg-[#FFB92E] text-[#0F1115] font-black py-3 rounded-xl transition-transform active:scale-95 uppercase tracking-wide text-xs shadow-lg shadow-[#FFAE00]/20"
+                            <button 
+                                type="button"
+                                onClick={() => handleNavigate(`/checkout/${payProposalId}`)}
+                                className="flex items-center justify-center gap-2 w-full bg-[#FFAE00] hover:bg-[#FFB92E] text-[#0F1115] font-black py-3 rounded-xl transition-transform active:scale-95 uppercase tracking-wide text-xs shadow-lg shadow-[#FFAE00]/20 cursor-pointer"
                             >
                                 <Zap className="w-4 h-4 fill-black" /> Pagar Agora
-                            </Link>
+                            </button>
                             {currentAlert.link_url && (
-                                <Link 
-                                    href={currentAlert.link_url}
-                                    onClick={() => markAsRead(currentAlert.id)}
-                                    className="flex items-center justify-center gap-1.5 w-full bg-white/5 hover:bg-white/10 text-gray-300 font-semibold py-2.5 rounded-xl text-xs transition-colors border border-white/10"
+                                <button 
+                                    type="button"
+                                    onClick={() => handleNavigate(currentAlert.link_url!)}
+                                    className="flex items-center justify-center gap-1.5 w-full bg-white/5 hover:bg-white/10 text-gray-300 font-semibold py-2.5 rounded-xl text-xs transition-colors border border-white/10 cursor-pointer"
                                 >
                                     Ver Detalhes do Pedido <ExternalLink className="w-3.5 h-3.5" />
-                                </Link>
+                                </button>
                             )}
                         </div>
                     ) : currentAlert.link_url ? (
-                        <Link 
-                            href={currentAlert.link_url}
-                            onClick={() => markAsRead(currentAlert.id)}
-                            className="flex items-center justify-center gap-2 w-full bg-[#FFAE00] hover:bg-[#FFB92E] text-[#0F1115] font-bold py-3 rounded-xl transition-transform active:scale-95 uppercase tracking-wide text-sm shadow-lg shadow-[#FFAE00]/20"
+                        <button 
+                            type="button"
+                            onClick={() => handleNavigate(currentAlert.link_url!)}
+                            className="flex items-center justify-center gap-2 w-full bg-[#FFAE00] hover:bg-[#FFB92E] text-[#0F1115] font-bold py-3.5 rounded-xl transition-transform active:scale-95 uppercase tracking-wide text-sm shadow-lg shadow-[#FFAE00]/20 cursor-pointer"
                         >
                             Ver Detalhes <ExternalLink className="w-4 h-4 ml-1" />
-                        </Link>
+                        </button>
                     ) : (
                         <button 
+                            type="button"
                             onClick={closeAlert}
-                            className="w-full bg-gray-800 hover:bg-gray-700 text-white font-semibold py-3 rounded-xl transition-colors"
+                            className="w-full bg-gray-800 hover:bg-gray-700 text-white font-semibold py-3 rounded-xl transition-colors cursor-pointer"
                         >
                             Entendi
                         </button>
