@@ -49,9 +49,39 @@ export default function GlobalNotificationAlert() {
                 .eq('is_read', false)
                 .order('created_at', { ascending: false })
 
+            // Helper to check if chat popup should be suppressed (only show on first message of conversation)
+            const shouldShowPopup = (notif: Notification) => {
+                if (notif.type === 'nova_mensagem') {
+                    try {
+                        // If user is already on the page of this chat, never show popup
+                        if (typeof window !== 'undefined' && notif.link_url) {
+                            const currentPath = window.location.pathname + window.location.search
+                            if (currentPath === notif.link_url || (window.location.search.includes('chat=') && notif.link_url.includes(window.location.search))) {
+                                return false
+                            }
+                        }
+
+                        // Extract chat thread key from link_url (e.g., job_id or chat parameter)
+                        const chatKey = notif.link_url || 'chat'
+                        const seenKey = `bordadohub_chat_popup_seen_${chatKey}`
+                        const hasSeen = sessionStorage.getItem(seenKey)
+                        if (hasSeen) {
+                            return false // Already popped up for this conversation in this session!
+                        }
+                        sessionStorage.setItem(seenKey, '1')
+                        return true
+                    } catch {
+                        return true
+                    }
+                }
+                // All other critical notifications (nova_proposta, pagamento, entrega, etc.) always show popup
+                return true
+            }
+
             if (unreads && unreads.length > 0) {
                 setNotifications(unreads)
-                setCurrentAlert(unreads[0])
+                const firstToShow = unreads.find(n => shouldShowPopup(n)) || null
+                setCurrentAlert(firstToShow)
             }
             const count = unreads?.length || 0
             setCached('unread_notification_count', count, 60000)
@@ -73,7 +103,12 @@ export default function GlobalNotificationAlert() {
                     (payload) => {
                         const newNotification = payload.new as Notification
                         setNotifications(prev => [newNotification, ...prev])
-                        setCurrentAlert(newNotification)
+                        
+                        // Only show popup alert if allowed (e.g. first chat message or system alert)
+                        if (shouldShowPopup(newNotification)) {
+                            setCurrentAlert(newNotification)
+                        }
+
                         if (typeof window !== 'undefined') {
                             window.dispatchEvent(new CustomEvent('bordadohub_notification', { detail: newNotification }))
                             window.dispatchEvent(new CustomEvent('bordadohub_reload_job'))

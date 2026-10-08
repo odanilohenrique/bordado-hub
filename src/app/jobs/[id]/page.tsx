@@ -592,6 +592,7 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                 formData.append('file', file)
                 formData.append('bucket', 'job-deliveries')
                 formData.append('path', filePath)
+                formData.append('originalName', file.name)
 
                 const controller = new AbortController()
                 const timeoutId = setTimeout(() => controller.abort(), 60000) // 60s timeout
@@ -896,6 +897,45 @@ function JobDetailClient({ jobId }: { jobId: string }) {
         } catch (err) {
             console.error('Zip error:', err)
             toast.error('Erro ao compactar imagens de referência.')
+        }
+    }
+
+    const getCleanDeliveryFileName = (url: string) => {
+        try {
+            // First check URL query parameter ?download=
+            const urlObj = new URL(url, 'https://bordadohub.com')
+            const queryDownload = urlObj.searchParams.get('download')
+            if (queryDownload) {
+                return decodeURIComponent(queryDownload)
+            }
+        } catch {
+            // Fallback to path extraction
+        }
+        const lastPart = (url.split('?')[0] || '').split('/').pop() || 'arquivo'
+        const decoded = decodeURIComponent(lastPart)
+        const parts = decoded.split('_')
+        return parts.length > 1 ? parts.slice(1).join('_') : decoded
+    }
+
+    const handleDownloadDeliveryFile = async (url: string) => {
+        const fileName = getCleanDeliveryFileName(url)
+        try {
+            toast.info(`Baixando ${fileName}...`)
+            const res = await fetch(url)
+            if (!res.ok) throw new Error('Falha na resposta do servidor')
+            const blob = await res.blob()
+            saveAs(blob, fileName)
+            toast.success(`Download de ${fileName} concluído!`)
+        } catch (err) {
+            console.error('Download delivery file error:', err)
+            // Fallback: direct window open with download attribute
+            const a = document.createElement('a')
+            a.href = url
+            a.download = fileName
+            a.target = '_blank'
+            document.body.appendChild(a)
+            a.click()
+            document.body.removeChild(a)
         }
     }
 
@@ -1423,12 +1463,6 @@ function JobDetailClient({ jobId }: { jobId: string }) {
 
                                 {job.delivery_url && (() => {
                                     const urls = job.delivery_url.split(',')
-                                    const getFileName = (url: string) => {
-                                        const decoded = decodeURIComponent(url.split('/').pop() || 'arquivo')
-                                        const parts = decoded.split('_')
-                                        return parts.length > 1 ? parts.slice(1).join('_') : decoded
-                                    }
-
                                     const handleDownloadAll = async () => {
                                         toast.info('Compactando arquivos... aguarde.')
                                         try {
@@ -1436,7 +1470,7 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                             for (const url of urls) {
                                                 const res = await fetch(url)
                                                 const blob = await res.blob()
-                                                zip.file(getFileName(url), blob)
+                                                zip.file(getCleanDeliveryFileName(url), blob)
                                             }
                                             const content = await zip.generateAsync({ type: 'blob' })
                                             saveAs(content, `${job.title || 'matrizes'}.zip`)
@@ -1454,18 +1488,21 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                                     : (job.revision_notes ? `Arquivos da Matriz Revisada Entregues (${urls.length})` : `Arquivos Entregues (${urls.length})`)}
                                             </p>
                                             <div className="flex flex-wrap gap-2">
-                                                {urls.map((url, i) => (
-                                                    <a 
-                                                        key={i}
-                                                        href={url} 
-                                                        target="_blank" 
-                                                        rel="noopener noreferrer"
-                                                        className="inline-flex items-center gap-2 bg-[#0F1115] hover:bg-green-500/20 border border-white/10 hover:border-green-500/50 text-gray-300 hover:text-green-400 px-4 py-2 rounded-lg transition-all text-xs"
-                                                    >
-                                                        <Download className="w-3 h-3" />
-                                                        {getFileName(url)}
-                                                    </a>
-                                                ))}
+                                                {urls.map((url, i) => {
+                                                    const cleanName = getCleanDeliveryFileName(url)
+                                                    return (
+                                                        <button 
+                                                            key={i}
+                                                            type="button"
+                                                            onClick={() => handleDownloadDeliveryFile(url)}
+                                                            title={`Baixar ${cleanName}`}
+                                                            className="inline-flex items-center gap-2 bg-[#0F1115] hover:bg-green-500/20 border border-white/10 hover:border-green-500/50 text-gray-300 hover:text-green-400 px-4 py-2 rounded-lg transition-all text-xs cursor-pointer active:scale-95"
+                                                        >
+                                                            <Download className="w-3.5 h-3.5 text-green-400" />
+                                                            <span>{cleanName}</span>
+                                                        </button>
+                                                    )
+                                                })}
                                             </div>
                                             {urls.length > 1 && (
                                                 <button
@@ -1698,12 +1735,6 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                 
                                 {job.delivery_url && (() => {
                                     const urls = job.delivery_url.split(',')
-                                    const getFileName = (url: string) => {
-                                        const decoded = decodeURIComponent(url.split('/').pop() || 'arquivo')
-                                        const parts = decoded.split('_')
-                                        return parts.length > 1 ? parts.slice(1).join('_') : decoded
-                                    }
-
                                     const handleDownloadAll = async () => {
                                         toast.info('Compactando arquivos... aguarde.')
                                         try {
@@ -1711,7 +1742,7 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                             for (const url of urls) {
                                                 const res = await fetch(url)
                                                 const blob = await res.blob()
-                                                zip.file(getFileName(url), blob)
+                                                zip.file(getCleanDeliveryFileName(url), blob)
                                             }
                                             const content = await zip.generateAsync({ type: 'blob' })
                                             saveAs(content, `${job.title || 'matrizes'}.zip`)
@@ -1727,18 +1758,21 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                                 Arquivos da Matriz ({urls.length})
                                             </p>
                                             <div className="flex flex-wrap gap-2">
-                                                {urls.map((url, i) => (
-                                                    <a 
-                                                        key={i}
-                                                        href={url} 
-                                                        target="_blank" 
-                                                        rel="noopener noreferrer"
-                                                        className="inline-flex items-center gap-2 bg-[#0F1115] hover:bg-green-500/20 border border-white/10 hover:border-green-500/50 text-gray-300 hover:text-green-400 px-4 py-2 rounded-lg transition-all text-xs"
-                                                    >
-                                                        <Download className="w-3 h-3" />
-                                                        {getFileName(url)}
-                                                    </a>
-                                                ))}
+                                                {urls.map((url, i) => {
+                                                    const cleanName = getCleanDeliveryFileName(url)
+                                                    return (
+                                                        <button 
+                                                            key={i}
+                                                            type="button"
+                                                            onClick={() => handleDownloadDeliveryFile(url)}
+                                                            title={`Baixar ${cleanName}`}
+                                                            className="inline-flex items-center gap-2 bg-[#0F1115] hover:bg-green-500/20 border border-white/10 hover:border-green-500/50 text-gray-300 hover:text-green-400 px-4 py-2 rounded-lg transition-all text-xs cursor-pointer active:scale-95"
+                                                        >
+                                                            <Download className="w-3.5 h-3.5 text-green-400" />
+                                                            <span>{cleanName}</span>
+                                                        </button>
+                                                    )
+                                                })}
                                             </div>
                                             {urls.length > 1 && (
                                                 <button

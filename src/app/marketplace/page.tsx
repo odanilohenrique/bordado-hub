@@ -82,13 +82,13 @@ export default function MarketplacePage() {
                 <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative z-10">
                     <div>
                         <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-[#FFAE00]/10 border border-[#FFAE00]/20 text-[#FFAE00] text-[10px] font-bold mb-3 uppercase tracking-[0.2em]">
-                            <Store className="w-3 h-3" /> Marketplace
+                            <Store className="w-3 h-3" /> Marketplace • Em Breve
                         </div>
                         <h1 className="text-3xl md:text-3xl font-black text-[#F3F4F6] mb-2">
                              Minhas <span className="text-[#FFAE00]">Matrizes</span>
                         </h1>
-                        <p className="text-gray-500 text-sm max-w-xl">
-                            Compre matrizes prontas e coleções com download instantâneo via Pix ou venda suas criações com 85% de lucro líquido.
+                        <p className="text-gray-400 text-sm max-w-xl">
+                            Nosso catálogo de matrizes prontas e coleções estará disponível em breve! Estamos preparando tudo com muito carinho.
                         </p>
                     </div>
                     

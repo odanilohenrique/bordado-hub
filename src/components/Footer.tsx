@@ -33,7 +33,10 @@ export default function Footer() {
                         <ul className="space-y-2.5 text-sm">
                             <li><Link href="/jobs" className="text-gray-400 hover:text-white transition-colors">Mural de Pedidos</Link></li>
                             <li><Link href="/programadores" className="text-gray-400 hover:text-white transition-colors">Programadores</Link></li>
-                            <li><Link href="/marketplace" className="text-gray-400 hover:text-white transition-colors">Marketplace</Link></li>
+                            <li className="flex items-center gap-2 text-gray-500 cursor-not-allowed select-none">
+                                <span>Marketplace</span>
+                                <span className="text-[9px] font-bold uppercase tracking-wider bg-[#FFAE00]/15 text-[#FFAE00] border border-[#FFAE00]/30 px-1 py-0.2 rounded">Em breve</span>
+                            </li>
                             <li><Link href="/how-it-works" className="text-gray-400 hover:text-white transition-colors">Como Funciona</Link></li>
                         </ul>
                     </div>
