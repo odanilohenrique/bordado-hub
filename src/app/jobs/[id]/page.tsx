@@ -190,7 +190,8 @@ function JobDetailClient({ jobId }: { jobId: string }) {
 
     const loadData = useCallback(async () => {
         try {
-            const { data: { user } } = await supabase.auth.getUser()
+            const { data: { session } } = await supabase.auth.getSession()
+            const user = session?.user
             if (!user) {
                 router.push('/login')
                 return
@@ -327,7 +328,7 @@ function JobDetailClient({ jobId }: { jobId: string }) {
     useEffect(() => {
         loadData()
 
-        // 1. Listen for new proposals and messages
+        // 1. Listen for new proposals, messages, and job status changes
         const channel = supabase
             .channel(`job_updates_${jobId}`)
             .on('postgres_changes', {
@@ -356,6 +357,15 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                 if (!newRow?.job_id || newRow?.job_id === jobId || oldRow?.job_id === jobId) {
                     loadData()
                 }
+            })
+            .on('postgres_changes', {
+                event: 'UPDATE',
+                schema: 'public',
+                table: 'jobs',
+                filter: `id=eq.${jobId}`,
+            }, () => {
+                // Instantly reload when job status changes (e.g. payment confirmed)
+                loadData()
             })
             .subscribe()
 
