@@ -8,7 +8,16 @@ if (!supabaseUrl || !supabaseAnonKey) {
 }
 
 // Client for frontend usage (respects RLS)
-export const supabase = createClient(supabaseUrl || '', supabaseAnonKey || '')
+export const supabase = createClient(supabaseUrl || '', supabaseAnonKey || '', {
+    auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+        // Evita deadlock do navigator.locks em navegadores móveis (Safari iOS / Android)
+        // quando a aba entra em segundo plano ao abrir câmera/galeria nativa
+        lock: (name, acquireTimeout, fn) => fn()
+    }
+})
 
 // Client for server-side usage (bypasses RLS) - NEVER use in frontend components
 export function createServiceClient() {

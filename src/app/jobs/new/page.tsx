@@ -517,58 +517,46 @@ function NewJobContent() {
 
             const finalFormats = formats.length > 0 ? formats : ['.PES', '.DST']
 
-            // 4. Criação instantânea do Pedido (as fotos já foram carregadas no Storage!)
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const baseJobPayload: any = {
-                cliente_id: userId,
-                title: finalTitle,
-                description: finalDescription,
-                dimensions: finalDimensions,
-                fabric_type: finalFabricType,
-                urgency,
-                formats: finalFormats,
-                image_urls: imageUrls,
-                status: 'aberto',
-                order_type: isKit ? 'kit' : 'individual',
-                items_count: totalCount,
-                ...(directProgrammerId && { target_programmer_id: directProgrammerId })
-            }
+            // 4. Criação instantânea do Pedido via API Server-Side com timeout
+            const controller = new AbortController()
+            const timeoutId = setTimeout(() => controller.abort(), 15000)
 
-            let { data: createdJob, error: jobError } = await supabase
-                .from('jobs')
-                .insert([baseJobPayload])
-                .select()
-                .single()
-
-            // Fallback se colunas de kit não existirem no Supabase
-            if (jobError && (jobError.message?.includes('items_count') || jobError.message?.includes('order_type'))) {
-                console.warn('Colunas de kit não encontradas, tentando inserção com campos básicos...')
-                // eslint-disable-next-line @typescript-eslint/no-unused-vars
-                const { order_type, items_count, ...fallbackPayload } = baseJobPayload
-                const fallbackRes = await supabase
-                    .from('jobs')
-                    .insert([fallbackPayload])
-                    .select()
-                    .single()
-                createdJob = fallbackRes.data
-                jobError = fallbackRes.error
-            }
-
-            if (jobError) throw jobError
-
-            // Notificação se for pedido direto
-            if (directProgrammerId) {
-                await createNotification({
-                    userId: directProgrammerId,
-                    type: 'solicitacao_direta',
-                    title: 'Novo Pedido Direto!',
-                    message: `Você recebeu uma solicitação direta para o pedido "${finalTitle}".`,
-                    linkUrl: `/jobs/${createdJob.id}`,
+            try {
+                const apiRes = await fetch('/api/jobs/create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        cliente_id: userId,
+                        title: finalTitle,
+                        description: finalDescription,
+                        dimensions: finalDimensions,
+                        fabric_type: finalFabricType,
+                        urgency,
+                        formats: finalFormats,
+                        image_urls: imageUrls,
+                        order_type: isKit ? 'kit' : 'individual',
+                        items_count: totalCount,
+                        target_programmer_id: directProgrammerId
+                    }),
+                    signal: controller.signal
                 })
-            }
 
-            toast.success('Pedido publicado com sucesso!')
-            router.push(`/jobs/${createdJob.id}`)
+                clearTimeout(timeoutId)
+
+                const result = await apiRes.json()
+                if (!apiRes.ok || !result.success) {
+                    throw new Error(result.error || 'Erro ao publicar pedido no servidor')
+                }
+
+                toast.success('Pedido publicado com sucesso!')
+                window.location.href = `/jobs/${result.jobId}`
+            } catch (fetchErr: any) {
+                clearTimeout(timeoutId)
+                if (fetchErr.name === 'AbortError') {
+                    throw new Error('Tempo limite excedido ao salvar o pedido. Verifique sua conexão e tente novamente.')
+                }
+                throw fetchErr
+            }
         } catch (err: any) {
             console.error('Error creating job:', err)
             const msg = err.message || 'Erro ao criar pedido'
