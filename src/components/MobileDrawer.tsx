@@ -49,7 +49,7 @@ export default function MobileDrawer({ isOpen, onClose, profile, userId }: Mobil
             <div className="relative w-80 max-w-[85vw] bg-[#16191F] h-full shadow-2xl flex flex-col z-10 animate-in slide-in-from-left duration-300 border-r border-white/10">
                 {/* Header with Close */}
                 <div className="p-4 border-b border-white/5 flex items-center justify-between">
-                    <Link href="/" onClick={onClose} className="flex items-center py-1">
+                    <Link href={profile?.role === 'criador' ? '/jobs' : '/pedidos'} onClick={onClose} className="flex items-center py-1">
                         <Image
                             src="/brand/logo-dark.png"
                             alt="BordadoHub"
@@ -170,7 +170,7 @@ export default function MobileDrawer({ isOpen, onClose, profile, userId }: Mobil
                                 }`}
                             >
                                 <LayoutDashboard className="w-4 h-4 text-gray-400" />
-                                Mural de Pedidos
+                                Pedidos de Clientes
                             </Link>
 
                             <Link

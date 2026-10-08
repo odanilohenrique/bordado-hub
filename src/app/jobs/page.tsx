@@ -134,8 +134,8 @@ export default function JobsPage() {
             <div className="max-w-7xl mx-auto">
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
                     <div>
-                        <h1 className="text-3xl font-extrabold text-[#F3F4F6]">Feed Público</h1>
-                        <p className="text-gray-400 mt-1">Encontre projetos de bordado e envie sua proposta</p>
+                        <h1 className="text-3xl font-extrabold text-[#F3F4F6]">Pedidos de Clientes</h1>
+                        <p className="text-gray-400 mt-1">Mural público onde os clientes solicitam novas matrizes de bordado para você orçar e produzir</p>
                     </div>
 
                     <div className="flex flex-wrap items-center gap-3">

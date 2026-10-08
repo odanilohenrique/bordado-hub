@@ -152,7 +152,7 @@ export default function CreatorDashboard() {
                     </div>
                     <h3 className="text-xl font-bold text-[#F3F4F6] mb-2">Nenhum trabalho ainda</h3>
                     <p className="text-gray-400 mb-2 max-w-md mx-auto">
-                        Você não tem matrizes em produção nem propostas enviadas. Explore o <strong className="text-[#FFAE00]">Feed Público</strong> para encontrar oportunidades!
+                        Você não tem matrizes em produção nem propostas enviadas. Explore os <strong className="text-[#FFAE00]">Pedidos de Clientes</strong> para encontrar novas oportunidades!
                     </p>
                 </div>
             )}

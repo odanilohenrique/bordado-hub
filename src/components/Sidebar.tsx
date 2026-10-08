@@ -117,7 +117,7 @@ export default function Sidebar({ initialUser, initialProfile }: { initialUser?:
     }
 
     const navigation = [
-        { name: 'Feed Público', href: '/jobs', icon: LayoutDashboard },
+        { name: 'Pedidos de Clientes', href: '/jobs', icon: LayoutDashboard },
         { name: 'Encontrar Programadores', href: '/programadores', icon: Users },
         { name: 'Marketplace', href: '/marketplace', icon: Store },
     ]
@@ -135,7 +135,7 @@ export default function Sidebar({ initialUser, initialProfile }: { initialUser?:
         <div className="flex flex-col w-64 h-screen fixed left-0 top-0 bg-[#1A1D23] border-r border-[#FFAE00]/10 shrink-0 shadow-2xl z-50 overflow-y-auto hidden md:flex">
             {/* Logo */}
             <div className="pt-6 pb-4 px-4 flex justify-center items-center">
-                <Link href="/" className="flex items-center justify-center group">
+                <Link href={profile?.role === 'criador' ? '/jobs' : '/pedidos'} className="flex items-center justify-center group" title="Ir para o início">
                     <Image
                         src="/brand/logo-dark.png"
                         alt="BordadoHub"

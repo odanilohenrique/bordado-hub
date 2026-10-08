@@ -31,7 +31,7 @@ export default function Footer() {
                             Navegação
                         </h3>
                         <ul className="space-y-2.5 text-sm">
-                            <li><Link href="/jobs" className="text-gray-400 hover:text-white transition-colors">Mural de Pedidos</Link></li>
+                            <li><Link href="/jobs" className="text-gray-400 hover:text-white transition-colors">Pedidos de Clientes (Mural)</Link></li>
                             <li><Link href="/programadores" className="text-gray-400 hover:text-white transition-colors">Programadores</Link></li>
                             <li className="flex items-center gap-2 text-gray-500 cursor-not-allowed select-none">
                                 <span>Marketplace</span>

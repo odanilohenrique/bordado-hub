@@ -837,7 +837,7 @@ function JobDetailClient({ jobId }: { jobId: string }) {
 
     const handleCancelReservation = async (proposalId: string, role: 'programmer' | 'client') => {
         const confirmMsg = role === 'programmer'
-            ? 'Deseja realmente cancelar a espera por este pagamento? O pedido será liberado no feed público e sua proposta será descartada para você não ficar preso.'
+            ? 'Deseja realmente cancelar a espera por este pagamento? O pedido será liberado no mural de pedidos de clientes e sua proposta será descartada para você não ficar preso.'
             : 'Deseja desistir desta contratação e voltar a ver outras propostas para seu pedido?'
         
         if (!window.confirm(confirmMsg)) return
