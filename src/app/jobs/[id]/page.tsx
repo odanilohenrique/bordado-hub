@@ -581,51 +581,64 @@ function JobDetailClient({ jobId }: { jobId: string }) {
             const publicUrls: string[] = []
 
             for (const file of selectedFiles) {
-                // Sanitize file name to avoid weird characters in URLs
+                // Sanitize file name
                 const safeName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_')
                 const fileName = `${jobId}_${safeName}`
                 const filePath = `deliveries/${fileName}`
 
-                const { error: uploadError } = await supabase.storage
-                    .from('job-deliveries')
-                    .upload(filePath, file, { upsert: true })
+                // Use fetch-based upload to avoid supabase client auth issues
+                const formData = new FormData()
+                formData.append('file', file)
+                formData.append('bucket', 'job-deliveries')
+                formData.append('path', filePath)
 
-                if (uploadError) throw uploadError
+                const controller = new AbortController()
+                const timeoutId = setTimeout(() => controller.abort(), 60000) // 60s timeout
 
-                const { data: { publicUrl } } = supabase.storage
-                    .from('job-deliveries')
-                    .getPublicUrl(filePath)
-                
-                publicUrls.push(publicUrl)
+                try {
+                    const uploadRes = await fetch('/api/upload-delivery', {
+                        method: 'POST',
+                        body: formData,
+                        signal: controller.signal
+                    })
+                    clearTimeout(timeoutId)
+
+                    const uploadData = await uploadRes.json()
+                    if (!uploadRes.ok) throw new Error(uploadData.error || 'Erro no upload')
+
+                    publicUrls.push(uploadData.publicUrl)
+                } catch (uploadErr: any) {
+                    clearTimeout(timeoutId)
+                    if (uploadErr.name === 'AbortError') {
+                        throw new Error(`Upload do arquivo "${file.name}" excedeu o tempo limite. Tente novamente.`)
+                    }
+                    throw new Error(`Erro no upload de "${file.name}": ${uploadErr.message}`)
+                }
             }
 
             await handleDeliverMatrix(deliveryNotes, publicUrls.join(','))
         } catch (err: any) {
             toast.error('Erro no upload: ' + err.message)
+        } finally {
             setDelivering(false)
         }
     }
 
     const handleDeliverMatrix = async (deliveryNotes: string, fileUrls: string) => {
-        try {
-            const response = await fetch('/api/jobs/deliver', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    jobId,
-                    deliveryUrls: fileUrls,
-                    deliveryNotes
-                })
+        const response = await fetch('/api/jobs/deliver', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                jobId,
+                deliveryUrls: fileUrls,
+                deliveryNotes
             })
+        })
 
-            const data = await response.json()
-            if (!response.ok) throw new Error(data.error || 'Erro na entrega')
+        const data = await response.json()
+        if (!response.ok) throw new Error(data.error || 'Erro na entrega')
 
-            setShowSuccessModal(true)
-        } catch (err: any) {
-            toast.error('Erro ao entregar: ' + err.message)
-            setDelivering(false)
-        }
+        setShowSuccessModal(true)
     }
 
     const handleSubmitReview = async (mRating: number, sRating: number, comment: string) => {
