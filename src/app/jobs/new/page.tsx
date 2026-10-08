@@ -175,6 +175,7 @@ function NewJobContent() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         setLoading(true)
+        setUploadStatus('Verificando dados...')
         setError(null)
 
         try {
@@ -228,44 +229,77 @@ function NewJobContent() {
                 return
             }
 
-            // Função segura de upload com otimização client-side e timeout
+            // Função segura de upload com otimização client-side, fallback e timeout
             const uploadSingleFile = async (file: File, label: string): Promise<string> => {
                 const controller = new AbortController()
-                const timeoutId = setTimeout(() => controller.abort(), 35000)
+                const timeoutId = setTimeout(() => controller.abort(), 40000)
 
                 try {
-                    // Otimiza imagens (especialmente .BMP pesadas e fotos de celular)
-                    const readyFile = await optimizeImageFile(file)
-                    const uploadFormData = new FormData()
-                    uploadFormData.append('file', readyFile)
-                    uploadFormData.append('userId', userData.id)
+                    setUploadStatus(`Processando ${label}...`)
 
-                    const uploadRes = await fetch('/api/jobs/upload', {
-                        method: 'POST',
-                        body: uploadFormData,
-                        signal: controller.signal
-                    })
+                    // Otimiza imagens com timeout interno de 4s (nunca trava)
+                    let readyFile: any = file
+                    try {
+                        readyFile = await optimizeImageFile(file)
+                    } catch (optErr) {
+                        console.warn('Erro ao otimizar imagem, mantendo original:', optErr)
+                        readyFile = file
+                    }
 
-                    if (!uploadRes.ok) {
-                        let errMsg = `Erro ao enviar ${label}`
-                        try {
-                            const errJson = await uploadRes.json()
-                            errMsg = errJson.error || errMsg
-                        } catch (_) {
-                            errMsg = `Erro no envio de ${label} (código ${uploadRes.status})`
+                    setUploadStatus(`Enviando ${label}...`)
+
+                    const fileName = (readyFile as any).name || (file as any).name || `arte_${Date.now()}.jpg`
+                    const cleanName = fileName.replace(/[^a-zA-Z0-9.\-_]/g, '_')
+                    const uniqueId = `${Date.now()}_${Math.random().toString(36).substring(2, 7)}`
+                    const storagePath = `jobs/${userData.id}/${uniqueId}_${cleanName}`
+
+                    // Tentativa 1: Via API Route do Next.js
+                    try {
+                        const uploadFormData = new FormData()
+                        uploadFormData.append('file', readyFile, fileName)
+                        uploadFormData.append('userId', userData.id)
+
+                        const uploadRes = await fetch('/api/jobs/upload', {
+                            method: 'POST',
+                            body: uploadFormData,
+                            signal: controller.signal
+                        })
+
+                        if (uploadRes.ok) {
+                            const uploadJson = await uploadRes.json()
+                            if (uploadJson.publicUrl) {
+                                return uploadJson.publicUrl
+                            }
                         }
-                        throw new Error(errMsg)
+                    } catch (apiErr) {
+                        console.warn('Upload via API route falhou, acionando fallback direto:', apiErr)
                     }
 
-                    const uploadJson = await uploadRes.json()
-                    if (uploadJson.error || !uploadJson.publicUrl) {
-                        throw new Error(uploadJson.error || `URL não retornada para ${label}`)
+                    // Tentativa 2: Fallback direto no Supabase Storage (caso Vercel bloqueie payload pesado no mobile)
+                    setUploadStatus(`Salvando ${label}...`)
+                    const { error: directUploadError } = await supabase.storage
+                        .from('portfolio')
+                        .upload(storagePath, readyFile, {
+                            contentType: readyFile.type || 'image/jpeg',
+                            upsert: true
+                        })
+
+                    if (directUploadError) {
+                        throw new Error(`Falha no envio de ${label}: ${directUploadError.message}`)
                     }
 
-                    return uploadJson.publicUrl
+                    const { data: publicData } = supabase.storage
+                        .from('portfolio')
+                        .getPublicUrl(storagePath)
+
+                    if (!publicData?.publicUrl) {
+                        throw new Error(`Não foi possível gerar URL pública para ${label}`)
+                    }
+
+                    return publicData.publicUrl
                 } catch (err: any) {
                     if (err.name === 'AbortError') {
-                        throw new Error(`Tempo limite excedido ao enviar ${label}. Tente com uma imagem menor ou verifique sua conexão.`)
+                        throw new Error(`Tempo limite excedido ao enviar ${label}. Verifique sua conexão ou envie uma imagem menor.`)
                     }
                     throw err
                 } finally {
@@ -273,23 +307,26 @@ function NewJobContent() {
                 }
             }
 
-            setUploadStatus('Otimizando e enviando imagens...')
+            // 2. Upload sequencial das imagens das matrizes (estabilidade garantida no celular)
+            const matrixUrls: (string | null)[] = []
+            for (let i = 0; i < matrixItems.length; i++) {
+                const item = matrixItems[i]
+                if (item.file) {
+                    const label = matrixItems.length > 1 ? `Matriz ${i + 1} de ${matrixItems.length}` : 'foto da matriz'
+                    const url = await uploadSingleFile(item.file, label)
+                    matrixUrls.push(url)
+                } else {
+                    matrixUrls.push(null)
+                }
+            }
 
-            // 2. Upload paralelo de todas as imagens das matrizes
-            const matrixUploadPromises = matrixItems.map((item, idx) => {
-                if (!item.file) return Promise.resolve(null)
-                return uploadSingleFile(item.file, `Matriz ${idx + 1}`)
-            })
-
-            // 3. Upload paralelo de fotos complementares
-            const extraUploadPromises = images.map((file, idx) => {
-                return uploadSingleFile(file, `Foto adicional ${idx + 1}`)
-            })
-
-            const [matrixUrls, extraUrls] = await Promise.all([
-                Promise.all(matrixUploadPromises),
-                Promise.all(extraUploadPromises)
-            ])
+            // 3. Upload sequencial de fotos complementares
+            const extraUrls: string[] = []
+            for (let i = 0; i < images.length; i++) {
+                const label = `foto adicional ${i + 1} de ${images.length}`
+                const url = await uploadSingleFile(images[i], label)
+                extraUrls.push(url)
+            }
 
             const imageUrls: string[] = [
                 ...matrixUrls.filter((url): url is string => Boolean(url)),

@@ -14,8 +14,9 @@ export async function POST(request: Request) {
         const supabase = createServiceClient()
 
         // Upload com service client para contornar restrições de RLS no storage
-        const fileExt = file.name.split('.').pop() || 'png'
-        const cleanName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_')
+        const originalName = file.name || 'imagem.jpg'
+        const fileExt = originalName.split('.').pop() || 'jpg'
+        const cleanName = originalName.replace(/[^a-zA-Z0-9.\-_]/g, '_')
         const uniqueId = `${Date.now()}_${Math.random().toString(36).substring(2, 7)}`
         const safeUserId = userId || 'general'
         const filePath = `jobs/${safeUserId}/${uniqueId}_${cleanName}`
