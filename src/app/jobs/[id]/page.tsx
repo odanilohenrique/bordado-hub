@@ -502,7 +502,8 @@ function JobDetailClient({ jobId }: { jobId: string }) {
             let creatorId = currentUser?.id
 
             if (!creatorId) {
-                const { data: { user } } = await supabase.auth.getUser()
+                const { data: { session } } = await supabase.auth.getSession()
+                const user = session?.user
                 if (!user) {
                     toast.error('Você precisa estar logado para enviar uma proposta.')
                     router.push('/login')

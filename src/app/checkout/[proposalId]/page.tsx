@@ -79,7 +79,8 @@ function CheckoutClient({ proposalId }: { proposalId: string }) {
 
             setJob(jobData)
 
-            const { data: { user } } = await supabase.auth.getUser()
+            const { data: { session } } = await supabase.auth.getSession()
+            const user = session?.user
             if (user) {
                 const { data: profile } = await supabase
                     .from('users')
@@ -123,7 +124,8 @@ function CheckoutClient({ proposalId }: { proposalId: string }) {
         const baseAmount = Number(proposal.amount)
         const { taxaCliente, taxaCriador, totalPago, valorLiquido } = calculateTotals(baseAmount)
 
-        const { data: { user } } = await supabase.auth.getUser()
+        const { data: { session } } = await supabase.auth.getSession()
+        const user = session?.user
         const { data: profile } = await supabase
             .from('users')
             .select('id')
@@ -184,12 +186,13 @@ function CheckoutClient({ proposalId }: { proposalId: string }) {
             })
 
             // Save CPF
-            const { data: { user } } = await supabase.auth.getUser()
-            if (user) {
+            const { data: { session: cpfSession } } = await supabase.auth.getSession()
+            const cpfUser = cpfSession?.user
+            if (cpfUser) {
                 const { data: profile } = await supabase
                     .from('users')
                     .select('id')
-                    .eq('supabase_user_id', user.id)
+                    .eq('supabase_user_id', cpfUser.id)
                     .single()
                 if (profile) {
                     await supabase.from('users').update({ cpf_cnpj: cpfCnpj }).eq('id', profile.id)

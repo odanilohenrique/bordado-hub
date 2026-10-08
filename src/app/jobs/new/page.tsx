@@ -71,15 +71,25 @@ function NewJobContent() {
                 const authUserId = session.user.id
                 let profileId = authUserId
 
-                // Busca o ID em public.users
-                const { data: userProfile } = await supabase
-                    .from('users')
-                    .select('id')
-                    .or(`supabase_user_id.eq.${authUserId},id.eq.${authUserId}`)
-                    .maybeSingle()
+                // Busca o ID em public.users com timeout de 5s
+                try {
+                    const profilePromise = supabase
+                        .from('users')
+                        .select('id')
+                        .eq('supabase_user_id', authUserId)
+                        .maybeSingle()
 
-                if (userProfile?.id) {
-                    profileId = userProfile.id
+                    const timeoutPromise = new Promise((_, reject) =>
+                        setTimeout(() => reject(new Error('timeout')), 5000)
+                    )
+
+                    const { data: userProfile } = await Promise.race([profilePromise, timeoutPromise]) as any
+                    if (userProfile?.id) {
+                        profileId = userProfile.id
+                    }
+                } catch {
+                    // Profile lookup failed or timed out — proceed with authUserId
+                    console.warn('Profile lookup skipped, using auth ID')
                 }
 
                 if (isMounted) {
