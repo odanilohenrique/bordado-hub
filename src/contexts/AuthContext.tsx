@@ -113,10 +113,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     useEffect(() => {
         let isMounted = true
 
-        // Guaranteed timeout: auth loading will NEVER be stuck longer than 3.5 seconds
+        // Guaranteed timeout: auth loading will NEVER be stuck longer than 1.5s
         const timeoutTimer = setTimeout(() => {
             if (isMounted) setLoading(false)
-        }, 3500)
+        }, 1500)
 
         const initAuth = async () => {
             try {
@@ -130,6 +130,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     setUser(currentUser)
                     if (currentUser) {
                         setCached('current_user_auth', currentUser, 300000)
+                        const cachedProf = getCached<UserProfile>('current_user_profile')
+                        if (cachedProf && cachedProf.id) {
+                            setProfile(cachedProf)
+                            setLoading(false) // 0ms ready!
+                        }
                         await fetchUserProfile(currentUser.id, currentUser)
                     } else {
                         clearCache('current_user_auth')

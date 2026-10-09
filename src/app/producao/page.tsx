@@ -27,37 +27,37 @@ export default function CreatorDashboard() {
     const [loading, setLoading] = useState(() => !cachedData)
 
     useEffect(() => {
-        // Fallback safety: never let producao spin longer than 4s if auth is taking time
-        const authSafetyTimer = setTimeout(() => {
-            if (authLoading && !profileId) {
-                setLoading(false)
-            }
-        }, 4000)
+        let isMounted = true
+        // Guaranteed safety timer: never spin longer than 2s under any circumstance
+        const safetyTimer = setTimeout(() => {
+            if (isMounted) setLoading(false)
+        }, 2000)
 
-        if (authLoading) return () => clearTimeout(authSafetyTimer)
+        const targetId = profileId || getCached<string>('current_user_profile_id')
+        if (!targetId && !authLoading) {
+            setLoading(false)
+            return () => clearTimeout(safetyTimer)
+        }
+        if (!targetId) return () => clearTimeout(safetyTimer)
 
         async function fetchData() {
-            if (!profileId) {
-                setLoading(false)
-                return
-            }
             try {
                 const fetchPromise = Promise.all([
                     supabase
                         .from('jobs')
                         .select('*, users!jobs_cliente_id_fkey(name, avatar_url)')
-                        .eq('target_programmer_id', profileId)
+                        .eq('target_programmer_id', targetId)
                         .eq('status', 'aberto')
                         .order('created_at', { ascending: false }),
                     supabase
                         .from('proposals')
                         .select('status, jobs(*, users!jobs_cliente_id_fkey(name, avatar_url))')
-                        .eq('criador_id', profileId)
+                        .eq('criador_id', targetId)
                         .order('created_at', { ascending: false })
                 ])
 
                 const timeoutPromise = new Promise<any>((resolve) =>
-                    setTimeout(() => resolve([{ data: null }, { data: null }]), 6000)
+                    setTimeout(() => resolve([{ data: null }, { data: null }]), 2500)
                 )
 
                 const [{ data: directData }, { data: myProposalsData }] = await Promise.race([
@@ -65,9 +65,9 @@ export default function CreatorDashboard() {
                     timeoutPromise
                 ])
 
-                if (directData) setDirectRequests(directData)
+                if (directData && isMounted) setDirectRequests(directData)
 
-                if (myProposalsData) {
+                if (myProposalsData && isMounted) {
                     const mapped = myProposalsData.map((p: any) => {
                         const jobData = Array.isArray(p.jobs) ? p.jobs[0] : p.jobs
                         return { ...jobData, my_proposal_status: p.status }
@@ -94,24 +94,16 @@ export default function CreatorDashboard() {
             } catch (err) {
                 console.error('Erro ao buscar producao:', err)
             } finally {
-                setLoading(false)
+                if (isMounted) setLoading(false)
             }
         }
         fetchData()
 
-        return () => clearTimeout(authSafetyTimer)
+        return () => {
+            isMounted = false
+            clearTimeout(safetyTimer)
+        }
     }, [profileId, authLoading])
-
-    if (loading) {
-        return (
-            <div className="flex items-center justify-center py-20">
-                <div className="text-center">
-                    <div className="w-16 h-16 border-4 border-green-500/30 border-t-green-500 rounded-full animate-spin mx-auto mb-4" />
-                    <p className="text-gray-400">Carregando sua produção...</p>
-                </div>
-            </div>
-        )
-    }
 
     const totalActive = inRevision.length + inProduction.length + delivered.length + completed.length + pendingProposals.length + directRequests.length
 
@@ -130,41 +122,44 @@ export default function CreatorDashboard() {
                         </div>
                     </div>
 
-                    {totalActive > 0 && (
-                        <div className="flex flex-wrap items-center gap-2">
-                            {inRevision.length > 0 && (
-                                <span className="flex items-center gap-1.5 text-xs font-bold bg-yellow-500/10 text-yellow-400 px-3 py-1.5 rounded-full border border-yellow-500/30 animate-pulse">
-                                    <Wrench className="w-3.5 h-3.5" /> {inRevision.length} em revisão
-                                </span>
-                            )}
-                            {inProduction.length > 0 && (
-                                <span className="flex items-center gap-1.5 text-xs font-bold bg-blue-500/10 text-blue-400 px-3 py-1.5 rounded-full border border-blue-500/30">
-                                    <Clock className="w-3.5 h-3.5" /> {inProduction.length} em produção
-                                </span>
-                            )}
-                            {delivered.length > 0 && (
-                                <span className="flex items-center gap-1.5 text-xs font-bold bg-emerald-500/10 text-emerald-400 px-3 py-1.5 rounded-full border border-emerald-500/30">
-                                    <Package className="w-3.5 h-3.5" /> {delivered.length} entregue{delivered.length > 1 ? 's' : ''}
-                                </span>
-                            )}
-                            {completed.length > 0 && (
-                                <span className="flex items-center gap-1.5 text-xs font-bold bg-gray-800 text-gray-300 px-3 py-1.5 rounded-full border border-white/10">
-                                    <CheckCircle className="w-3.5 h-3.5 text-green-400" /> {completed.length} finalizada{completed.length > 1 ? 's' : ''}
-                                </span>
-                            )}
-                            <Link
-                                href="/financeiro"
-                                className="inline-flex items-center gap-2 bg-[#FFAE00]/10 hover:bg-[#FFAE00]/20 text-[#FFAE00] border border-[#FFAE00]/30 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all shadow-sm ml-auto"
-                            >
-                                <Wallet className="w-3.5 h-3.5" />
-                                Painel Financeiro
-                            </Link>
-                        </div>
-                    )}
+                    <div className="flex flex-wrap items-center gap-2">
+                        {inRevision.length > 0 && (
+                            <span className="flex items-center gap-1.5 text-xs font-bold bg-yellow-500/10 text-yellow-400 px-3 py-1.5 rounded-full border border-yellow-500/30 animate-pulse">
+                                <Wrench className="w-3.5 h-3.5" /> {inRevision.length} em revisão
+                            </span>
+                        )}
+                        {inProduction.length > 0 && (
+                            <span className="flex items-center gap-1.5 text-xs font-bold bg-blue-500/10 text-blue-400 px-3 py-1.5 rounded-full border border-blue-500/30">
+                                <Clock className="w-3.5 h-3.5" /> {inProduction.length} em produção
+                            </span>
+                        )}
+                        {delivered.length > 0 && (
+                            <span className="flex items-center gap-1.5 text-xs font-bold bg-emerald-500/10 text-emerald-400 px-3 py-1.5 rounded-full border border-emerald-500/30">
+                                <Package className="w-3.5 h-3.5" /> {delivered.length} entregue{delivered.length > 1 ? 's' : ''}
+                            </span>
+                        )}
+                        {completed.length > 0 && (
+                            <span className="flex items-center gap-1.5 text-xs font-bold bg-gray-800 text-gray-300 px-3 py-1.5 rounded-full border border-white/10">
+                                <CheckCircle className="w-3.5 h-3.5 text-green-400" /> {completed.length} finalizada{completed.length > 1 ? 's' : ''}
+                            </span>
+                        )}
+                        <Link
+                            href="/financeiro"
+                            className="inline-flex items-center gap-2 bg-[#FFAE00]/10 hover:bg-[#FFAE00]/20 text-[#FFAE00] border border-[#FFAE00]/30 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all shadow-sm ml-auto"
+                        >
+                            <Wallet className="w-3.5 h-3.5" />
+                            Painel Financeiro
+                        </Link>
+                    </div>
                 </div>
             </div>
 
-            {totalActive === 0 && (
+            {loading && totalActive === 0 ? (
+                <div className="space-y-4">
+                    <div className="h-28 bg-[#1A1D23] border border-white/5 rounded-xl animate-pulse" />
+                    <div className="h-28 bg-[#1A1D23] border border-white/5 rounded-xl animate-pulse" />
+                </div>
+            ) : totalActive === 0 && (
                 <div className="bg-[#1A1D23] border border-green-500/10 rounded-xl p-12 text-center">
                     <div className="bg-green-500/10 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
                         <Briefcase className="w-10 h-10 text-green-400" />

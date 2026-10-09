@@ -62,20 +62,27 @@ export default function FinancialDashboard() {
     const [savingPix, setSavingPix] = useState(false)
 
     useEffect(() => {
-        async function fetchFinancialData() {
-            if (authLoading) return
-            if (!profileId || !authUser?.id) {
-                setLoading(false)
-                return
-            }
+        let isMounted = true
+        // Guaranteed safety timer: never spin longer than 2s under any circumstance
+        const safetyTimer = setTimeout(() => {
+            if (isMounted) setLoading(false)
+        }, 2000)
 
+        const targetId = profileId || getCached<string>('current_user_profile_id')
+        if (!targetId && !authLoading) {
+            setLoading(false)
+            return () => clearTimeout(safetyTimer)
+        }
+        if (!targetId) return () => clearTimeout(safetyTimer)
+
+        async function fetchFinancialData() {
             try {
-                // Run all 3 queries in PARALLEL
-                const [{ data: userProfile }, { data: myProposals }, { data: myTransactions }] = await Promise.all([
+                // Run all 3 queries in PARALLEL with 2.5s timeout safety net
+                const fetchPromise = Promise.all([
                     supabase
                         .from('users')
                         .select('id, name, pix_key, pix_key_type')
-                        .eq('supabase_user_id', authUser.id)
+                        .eq('id', targetId)
                         .maybeSingle(),
                     supabase
                         .from('proposals')
@@ -98,17 +105,26 @@ export default function FinancialDashboard() {
                                 )
                             )
                         `)
-                        .eq('criador_id', profileId)
+                        .eq('criador_id', targetId)
                         .eq('status', 'aceita')
                         .order('created_at', { ascending: false }),
                     supabase
                         .from('transactions')
                         .select('*')
-                        .eq('criador_id', profileId)
+                        .eq('criador_id', targetId)
                         .order('created_at', { ascending: false })
                 ])
 
-                if (userProfile) {
+                const timeoutPromise = new Promise<any>((resolve) =>
+                    setTimeout(() => resolve([{ data: null }, { data: null }, { data: null }]), 2500)
+                )
+
+                const [{ data: userProfile }, { data: myProposals }, { data: myTransactions }] = await Promise.race([
+                    fetchPromise,
+                    timeoutPromise
+                ])
+
+                if (userProfile && isMounted) {
                     setProfile(userProfile)
                     setPixKey(userProfile.pix_key || '')
                     setPixKeyType(userProfile.pix_key_type || 'cpf')
@@ -116,7 +132,7 @@ export default function FinancialDashboard() {
 
                 const txMap = new Map<string, any>()
                 if (myTransactions) {
-                    myTransactions.forEach(tx => {
+                    (myTransactions as any[]).forEach((tx: any) => {
                         if (tx.job_id) txMap.set(tx.job_id, tx)
                     })
                 }
@@ -125,7 +141,7 @@ export default function FinancialDashboard() {
                 const consolidated: FinancialRecord[] = []
 
                 if (myProposals) {
-                    for (const prop of myProposals) {
+                    for (const prop of (myProposals as any[])) {
                         const job = Array.isArray(prop.jobs) ? prop.jobs[0] : prop.jobs
                         if (!job) continue
 
@@ -165,16 +181,23 @@ export default function FinancialDashboard() {
                     }
                 }
 
-                setRecords(consolidated)
-                setCached('financeiro_records', consolidated, 120000)
+                if (isMounted) {
+                    setRecords(consolidated)
+                    setCached('financeiro_records', consolidated, 120000)
+                }
             } catch (err) {
                 console.error('Erro ao carregar dados financeiros:', err)
             } finally {
-                setLoading(false)
+                if (isMounted) setLoading(false)
             }
         }
 
         fetchFinancialData()
+
+        return () => {
+            isMounted = false
+            clearTimeout(safetyTimer)
+        }
     }, [profileId, authLoading, authUser?.id])
 
     // Salvar Chave PIX
@@ -243,16 +266,7 @@ export default function FinancialDashboard() {
         })
     }, [records, statusFilter, searchTerm])
 
-    if (loading) {
-        return (
-            <div className="flex items-center justify-center py-24">
-                <div className="text-center">
-                    <div className="w-14 h-14 border-4 border-[#FFAE00]/20 border-t-[#FFAE00] rounded-full animate-spin mx-auto mb-4" />
-                    <p className="text-sm font-medium text-gray-400">Carregando painel financeiro...</p>
-                </div>
-            </div>
-        )
-    }
+
 
     return (
         <div className="space-y-8 pb-12">
@@ -498,7 +512,13 @@ export default function FinancialDashboard() {
                 </div>
 
                 {/* Tabela de Transações */}
-                {filteredRecords.length > 0 ? (
+                {loading && records.length === 0 ? (
+                    <div className="p-8 space-y-3">
+                        <div className="h-10 bg-white/5 rounded-lg animate-pulse" />
+                        <div className="h-10 bg-white/5 rounded-lg animate-pulse" />
+                        <div className="h-10 bg-white/5 rounded-lg animate-pulse" />
+                    </div>
+                ) : filteredRecords.length > 0 ? (
                     <div className="overflow-x-auto">
                         <table className="w-full text-left border-collapse">
                             <thead>

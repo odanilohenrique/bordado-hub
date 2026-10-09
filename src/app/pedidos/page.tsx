@@ -31,34 +31,34 @@ export default function PedidosPage() {
     const [filter, setFilter] = useState<string>('all')
 
     useEffect(() => {
-        // Fallback safety: never let pedidos spin longer than 4s if auth is taking time
+        let isMounted = true
+        // Fallback safety: never let pedidos spin longer than 2s under any circumstance
         const authSafetyTimer = setTimeout(() => {
-            if (authLoading && !profileId) {
-                setLoading(false)
-            }
-        }, 4000)
+            if (isMounted) setLoading(false)
+        }, 2000)
 
-        if (authLoading) return () => clearTimeout(authSafetyTimer)
+        const targetId = profileId || getCached<string>('current_user_profile_id')
+        if (!targetId && !authLoading) {
+            setLoading(false)
+            return () => clearTimeout(authSafetyTimer)
+        }
+        if (!targetId) return () => clearTimeout(authSafetyTimer)
 
         async function fetchJobs() {
-            if (!profileId) {
-                setLoading(false)
-                return
-            }
             try {
                 const queryPromise = supabase
                     .from('jobs')
                     .select('*, proposals(status), target_programmer:target_programmer_id(name, avatar_url)')
-                    .eq('cliente_id', profileId)
+                    .eq('cliente_id', targetId)
                     .order('created_at', { ascending: false })
 
                 const timeoutPromise = new Promise<{ data: any; error: any }>((resolve) =>
-                    setTimeout(() => resolve({ data: null, error: new Error('Pedidos query timeout') }), 6000)
+                    setTimeout(() => resolve({ data: null, error: new Error('Pedidos query timeout') }), 2500)
                 )
 
                 const { data: jobsData } = await Promise.race([queryPromise, timeoutPromise])
 
-                if (jobsData) {
+                if (jobsData && isMounted) {
                     const enriched = jobsData.map((job: any) => {
                         const enrichedJob = { ...job }
                         if (enrichedJob.status === 'aberto') {
@@ -78,12 +78,15 @@ export default function PedidosPage() {
             } catch (err) {
                 console.error('Erro ao buscar pedidos:', err)
             } finally {
-                setLoading(false)
+                if (isMounted) setLoading(false)
             }
         }
         fetchJobs()
 
-        return () => clearTimeout(authSafetyTimer)
+        return () => {
+            isMounted = false
+            clearTimeout(authSafetyTimer)
+        }
     }, [profileId, authLoading])
 
     return (
