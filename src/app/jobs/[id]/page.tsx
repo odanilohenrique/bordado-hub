@@ -2129,7 +2129,7 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                                 <p className="text-[10px] text-gray-400 flex items-center gap-1 font-medium bg-[#1A1D23] px-2 py-1 rounded-md border border-white/5"><Clock className="w-3 h-3 text-[#FFAE00]"/> {proposal.deadline_text}</p>
                                             </div>
                                         </div>
-                                        <p className="text-xs text-gray-400 line-clamp-2 mt-4 mb-4 h-8 bg-black/20 p-2 rounded border border-white/5 italic">"{proposal.message}"</p>
+                                        <p className="text-xs text-gray-400 line-clamp-2 mt-4 mb-4 h-8 bg-black/20 p-2 rounded border border-white/5 italic">&ldquo;{proposal.message}&rdquo;</p>
                                         
                                         <div className="flex flex-col gap-2">
                                             <div className="flex gap-2 relative">
