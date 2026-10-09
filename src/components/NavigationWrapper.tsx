@@ -38,7 +38,7 @@ export default function NavigationWrapper({ children }: { children: React.ReactN
             <div className="md:hidden fixed top-0 left-0 right-0 h-14 bg-[#14171E]/95 backdrop-blur-md border-b border-white/5 z-30 flex items-center justify-between px-4">
                 <Link href={profile?.role === 'criador' ? '/jobs' : '/pedidos'} className="flex items-center py-1">
                     <Image
-                        src="/brand/logo-dark.png"
+                        src="/brand/logo-dark-grossa.png"
                         alt="BordadoHub"
                         width={92}
                         height={36}

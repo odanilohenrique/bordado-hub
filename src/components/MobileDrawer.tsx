@@ -51,7 +51,7 @@ export default function MobileDrawer({ isOpen, onClose, profile, userId }: Mobil
                 <div className="p-4 border-b border-white/5 flex items-center justify-between">
                     <Link href={profile?.role === 'criador' ? '/jobs' : '/pedidos'} onClick={onClose} className="flex items-center py-1">
                         <Image
-                            src="/brand/logo-dark.png"
+                            src="/brand/logo-dark-grossa.png"
                             alt="BordadoHub"
                             width={100}
                             height={40}

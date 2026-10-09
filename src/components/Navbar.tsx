@@ -35,7 +35,7 @@ export default function Navbar() {
                     <div className="flex items-center gap-8">
                         <Link href="/" className="flex items-center group py-1">
                             <Image
-                                src="/brand/logo-dark.png"
+                                src="/brand/logo-dark-grossa.png"
                                 alt="BordadoHub"
                                 width={92}
                                 height={40}

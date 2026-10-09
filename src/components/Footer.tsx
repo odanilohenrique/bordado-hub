@@ -10,7 +10,7 @@ export default function Footer() {
                     <div className="col-span-1 md:col-span-1">
                         <Link href="/" className="inline-block group mb-1">
                             <Image
-                                src="/brand/logo-dark.png"
+                                src="/brand/logo-dark-grossa.png"
                                 alt="BordadoHub"
                                 width={130}
                                 height={56}

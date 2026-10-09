@@ -137,7 +137,7 @@ export default function Sidebar({ initialUser, initialProfile }: { initialUser?:
             <div className="pt-6 pb-4 px-4 flex justify-center items-center">
                 <Link href={profile?.role === 'criador' ? '/jobs' : '/pedidos'} className="flex items-center justify-center group" title="Ir para o início">
                     <Image
-                        src="/brand/logo-dark.png"
+                        src="/brand/logo-dark-grossa.png"
                         alt="BordadoHub"
                         width={140}
                         height={61}
