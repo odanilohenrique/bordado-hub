@@ -1904,28 +1904,83 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                         </div>
 
                         {showProposalForm && (
-                            <div className="mb-6 bg-[#0F1115] p-4 rounded-xl border border-white/5">
-                                <form onSubmit={handleSubmitProposal} className="flex gap-3 items-end">
-                                    <div className="flex-[1.5]">
-                                        <input type="number" step="0.01" required value={amount} onChange={e => setAmount(e.target.value)} className="w-full bg-[#1A1D23] border border-transparent focus:border-[#FFAE00]/30 rounded-lg px-3 py-2 text-sm text-white" placeholder="Valor (R$)" />
+                            <div className="mb-6 bg-[#0F1115] p-4 sm:p-5 rounded-2xl border border-[#FFAE00]/20 shadow-lg">
+                                <div className="text-xs font-black text-[#FFAE00] uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                                    <Zap className="w-3.5 h-3.5" /> Enviar Proposta de Orçamento
+                                </div>
+                                <form onSubmit={handleSubmitProposal} className="space-y-3 md:space-y-0 md:flex md:gap-3 md:items-end">
+                                    <div className="grid grid-cols-2 gap-3 md:contents">
+                                        {/* Campo Valor */}
+                                        <div className="w-full md:w-36 lg:w-44 shrink-0">
+                                            <label className="block text-[11px] font-bold text-gray-300 mb-1">
+                                                Valor (R$)
+                                            </label>
+                                            <div className="relative">
+                                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs font-black">R$</span>
+                                                <input 
+                                                    type="number" 
+                                                    step="0.01" 
+                                                    min="1"
+                                                    inputMode="decimal"
+                                                    required 
+                                                    value={amount} 
+                                                    onChange={e => setAmount(e.target.value)} 
+                                                    className="w-full bg-[#1A1D23] border border-white/10 focus:border-[#FFAE00] rounded-xl pl-8 pr-2.5 py-2.5 text-base md:text-sm font-bold text-white placeholder-gray-500 focus:outline-none transition-colors" 
+                                                    placeholder="0,00" 
+                                                />
+                                            </div>
+                                        </div>
+
+                                        {/* Campo Prazo */}
+                                        <div className="w-full md:w-36 lg:w-44 shrink-0">
+                                            <label className="block text-[11px] font-bold text-gray-300 mb-1">
+                                                Prazo
+                                            </label>
+                                            <input 
+                                                type="text" 
+                                                required 
+                                                value={deadline} 
+                                                onChange={e => setDeadline(e.target.value)} 
+                                                className="w-full bg-[#1A1D23] border border-white/10 focus:border-[#FFAE00] rounded-xl px-3 py-2.5 text-base md:text-sm text-white placeholder-gray-500 focus:outline-none transition-colors font-medium" 
+                                                placeholder="ex: 2 dias, 24h" 
+                                            />
+                                        </div>
                                     </div>
-                                    <div className="flex-[1.5]">
-                                        <input type="text" required value={deadline} onChange={e => setDeadline(e.target.value)} className="w-full bg-[#1A1D23] border border-transparent focus:border-[#FFAE00]/30 rounded-lg px-3 py-2 text-sm text-white" placeholder="Prazo (ex: 2 dias)" />
+
+                                    {/* Campo Mensagem */}
+                                    <div className="flex-1 min-w-0">
+                                        <label className="block text-[11px] font-bold text-gray-300 mb-1">
+                                            Mensagem / Diferencial
+                                        </label>
+                                        <input 
+                                            type="text" 
+                                            required 
+                                            value={message} 
+                                            onChange={e => setMessage(e.target.value)} 
+                                            className="w-full bg-[#1A1D23] border border-white/10 focus:border-[#FFAE00] rounded-xl px-3.5 py-2.5 text-base md:text-sm text-white placeholder-gray-500 focus:outline-none transition-colors font-medium" 
+                                            placeholder="Descreva seu prazo, qualidade ou software..." 
+                                        />
                                     </div>
-                                    <div className="flex-[5]">
-                                        <input type="text" required value={message} onChange={e => setMessage(e.target.value)} className="w-full bg-[#1A1D23] border border-transparent focus:border-[#FFAE00]/30 rounded-lg px-3 py-2 text-sm text-white" placeholder="Mensagem / Diferencial..." />
-                                    </div>
-                                    <div className="flex-[2]">
-                                        <button type="submit" disabled={submitting} className="w-full bg-[#FFAE00] text-black font-bold px-6 py-2 rounded-lg text-sm hover:scale-105 transition-transform disabled:opacity-50">
-                                            Enviar
+
+                                    {/* Botão Enviar */}
+                                    <div className="w-full md:w-auto shrink-0 pt-1 md:pt-0">
+                                        <button 
+                                            type="submit" 
+                                            disabled={submitting} 
+                                            className="w-full md:w-auto bg-gradient-to-r from-[#FFAE00] to-yellow-400 hover:from-yellow-400 hover:to-[#FFAE00] text-black font-extrabold px-6 py-2.5 rounded-xl text-sm transition-all shadow-md shadow-[#FFAE00]/10 hover:scale-[1.02] active:scale-95 disabled:opacity-50 whitespace-nowrap flex items-center justify-center gap-2"
+                                        >
+                                            <Send className="w-4 h-4" />
+                                            Enviar Proposta
                                         </button>
                                     </div>
                                 </form>
                                 {amount && Number(amount) > 0 && (
-                                    <div className="mt-2.5 pt-2 border-t border-white/5 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-gray-400">
-                                        <span>Proposta: <strong className="text-white">R$ {Number(amount).toFixed(2)}</strong></span>
-                                        <span>Taxa da plataforma (5%): <strong className="text-[#FFAE00]">R$ {(Number(amount) * 0.05).toFixed(2)}</strong></span>
-                                        <span>Você recebe líquido: <strong className="text-green-400">R$ {(Number(amount) * 0.95).toFixed(2)}</strong></span>
+                                    <div className="mt-3 pt-3 border-t border-white/5 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-gray-400">
+                                        <span>Sua Proposta: <strong className="text-white font-bold">R$ {Number(amount).toFixed(2)}</strong></span>
+                                        <span>Taxa (5%): <strong className="text-[#FFAE00] font-bold">R$ {(Number(amount) * 0.05).toFixed(2)}</strong></span>
+                                        <span className="bg-green-500/10 text-green-400 border border-green-500/20 px-2.5 py-0.5 rounded-md font-bold">
+                                            Você recebe líquido: R$ {(Number(amount) * 0.95).toFixed(2)}
+                                        </span>
                                     </div>
                                 )}
                             </div>
@@ -2201,14 +2256,20 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                                 <div className="mt-2 p-3 bg-[#1A1D23] border border-white/5 rounded-lg flex flex-col gap-2 shadow-inner">
                                                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1"><Zap className="w-3 h-3 text-[#FFAE00]"/> Fazer Contraproposta</p>
                                                     <div className="flex gap-2">
-                                                        <input 
-                                                            type="number" 
-                                                            placeholder="Novo Valor (R$)" 
-                                                            className="flex-1 bg-[#0F1115] border border-white/10 text-xs p-2 rounded text-white focus:border-[#FFAE00] outline-none" 
-                                                            value={counterAmount}
-                                                            onChange={(e) => setCounterAmount(e.target.value)}
-                                                        />
-                                                        <button onClick={submitCounterProposal} disabled={!counterAmount} className="bg-[#FFAE00] text-black text-xs font-bold px-3 py-1.5 rounded hover:brightness-110 disabled:opacity-50 transition-all">Enviar</button>
+                                                        <div className="relative flex-1">
+                                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs font-black">R$</span>
+                                                            <input 
+                                                                type="number" 
+                                                                step="0.01"
+                                                                min="1"
+                                                                inputMode="decimal"
+                                                                placeholder="0,00" 
+                                                                className="w-full bg-[#0F1115] border border-white/10 text-sm font-bold pl-8 pr-2.5 py-2 rounded-lg text-white focus:border-[#FFAE00] outline-none" 
+                                                                value={counterAmount}
+                                                                onChange={(e) => setCounterAmount(e.target.value)}
+                                                            />
+                                                        </div>
+                                                        <button onClick={submitCounterProposal} disabled={!counterAmount} className="bg-[#FFAE00] text-black text-xs font-extrabold px-4 py-2 rounded-lg hover:brightness-110 disabled:opacity-50 transition-all whitespace-nowrap">Enviar</button>
                                                     </div>
                                                 </div>
                                             )}
