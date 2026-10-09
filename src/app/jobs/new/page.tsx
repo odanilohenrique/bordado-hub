@@ -8,6 +8,7 @@ import Link from 'next/link'
 import { toast } from 'sonner'
 import { createNotification } from '@/lib/notifications'
 import { optimizeImageFile } from '@/lib/helpers'
+import { clearCache } from '@/lib/clientCache'
 
 const PRESET_FORMATS = ['.PES', '.JEF', '.DST', '.XXX', '.VP3', '.HUS', '.EXP']
 
@@ -557,6 +558,12 @@ function NewJobContent() {
                 if (!apiRes.ok || !result.success) {
                     throw new Error(result.error || 'Erro ao publicar pedido no servidor')
                 }
+
+                clearCache('jobs_all')
+                clearCache('jobs_aberto')
+                clearCache('jobs_em_progresso')
+                clearCache('pedidos_jobs')
+                clearCache('producao_data')
 
                 toast.success('Pedido publicado com sucesso!')
                 window.location.href = `/jobs/${result.jobId}`

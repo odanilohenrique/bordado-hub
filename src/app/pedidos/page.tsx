@@ -31,18 +31,32 @@ export default function PedidosPage() {
     const [filter, setFilter] = useState<string>('all')
 
     useEffect(() => {
-        if (authLoading) return
+        // Fallback safety: never let pedidos spin longer than 4s if auth is taking time
+        const authSafetyTimer = setTimeout(() => {
+            if (authLoading && !profileId) {
+                setLoading(false)
+            }
+        }, 4000)
+
+        if (authLoading) return () => clearTimeout(authSafetyTimer)
+
         async function fetchJobs() {
             if (!profileId) {
                 setLoading(false)
                 return
             }
             try {
-                const { data: jobsData } = await supabase
+                const queryPromise = supabase
                     .from('jobs')
                     .select('*, proposals(status), target_programmer:target_programmer_id(name, avatar_url)')
                     .eq('cliente_id', profileId)
                     .order('created_at', { ascending: false })
+
+                const timeoutPromise = new Promise<{ data: any; error: any }>((resolve) =>
+                    setTimeout(() => resolve({ data: null, error: new Error('Pedidos query timeout') }), 6000)
+                )
+
+                const { data: jobsData } = await Promise.race([queryPromise, timeoutPromise])
 
                 if (jobsData) {
                     const enriched = jobsData.map((job: any) => {
@@ -60,8 +74,6 @@ export default function PedidosPage() {
                     })
                     setJobs(enriched)
                     setCached('pedidos_jobs', enriched, 120000)
-                } else {
-                    setJobs([])
                 }
             } catch (err) {
                 console.error('Erro ao buscar pedidos:', err)
@@ -70,6 +82,8 @@ export default function PedidosPage() {
             }
         }
         fetchJobs()
+
+        return () => clearTimeout(authSafetyTimer)
     }, [profileId, authLoading])
 
     return (

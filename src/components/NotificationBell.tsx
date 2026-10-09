@@ -6,6 +6,7 @@ import { Bell, Wrench, MessageSquare, CheckCircle, ExternalLink, Check, Zap } fr
 import Link from 'next/link'
 
 import { getCached, setCached } from '@/lib/clientCache'
+import { useAuth } from '@/contexts/AuthContext'
 
 interface NotificationItem {
     id: string
@@ -22,7 +23,10 @@ interface NotificationBellProps {
     profileId?: string
 }
 
-export default function NotificationBell({ profileId }: NotificationBellProps = {}) {
+export default function NotificationBell({ profileId: propProfileId }: NotificationBellProps = {}) {
+    const { profileId: authProfileId } = useAuth()
+    const activeProfileId = propProfileId || authProfileId || null
+
     const [unreadCount, setUnreadCount] = useState<number>(() => {
         const cached = getCached<number>('unread_notification_count')
         return cached !== null ? cached : 0
@@ -30,14 +34,14 @@ export default function NotificationBell({ profileId }: NotificationBellProps = 
     const [notifications, setNotifications] = useState<NotificationItem[]>([])
     const [isOpen, setIsOpen] = useState(false)
     const [loading, setLoading] = useState(false)
-    const [userId, setUserId] = useState<string | null>(profileId || null)
+    const [userId, setUserId] = useState<string | null>(activeProfileId)
     const dropdownRef = useRef<HTMLDivElement>(null)
 
     useEffect(() => {
-        if (profileId) {
-            setUserId(profileId)
+        if (activeProfileId) {
+            setUserId(activeProfileId)
         }
-    }, [profileId])
+    }, [activeProfileId])
 
     useEffect(() => {
         const handleUnreadCount = (e: any) => {
@@ -81,25 +85,12 @@ export default function NotificationBell({ profileId }: NotificationBellProps = 
         window.addEventListener('bordadohub_notification_read', handleNotificationRead)
 
         const resolveUser = async () => {
-            let activeId = profileId
-            if (!activeId) {
-                const { data: { session } } = await supabase.auth.getSession()
-                if (!session?.user) return
-                const { data: profile } = await supabase
-                    .from('users')
-                    .select('id')
-                    .eq('supabase_user_id', session.user.id)
-                    .maybeSingle()
-                if (profile) {
-                    activeId = profile.id
-                }
-            }
-            if (activeId) {
-                setUserId(activeId)
+            if (activeProfileId) {
+                setUserId(activeProfileId)
                 const { count } = await supabase
                     .from('notifications')
                     .select('*', { count: 'exact', head: true })
-                    .eq('user_id', activeId)
+                    .eq('user_id', activeProfileId)
                     .eq('is_read', false)
                 if (count !== null) {
                     setUnreadCount(count)
@@ -116,7 +107,7 @@ export default function NotificationBell({ profileId }: NotificationBellProps = 
             window.removeEventListener('bordadohub_notification_update', handleNotificationUpdate)
             window.removeEventListener('bordadohub_notification_read', handleNotificationRead)
         }
-    }, [profileId])
+    }, [activeProfileId])
 
     // Close on click outside
     useEffect(() => {

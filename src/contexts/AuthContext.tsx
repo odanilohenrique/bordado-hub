@@ -35,12 +35,18 @@ const AuthContext = createContext<AuthContextType>({
 })
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-    const [user, setUser] = useState<User | null>(null)
-    const [profile, setProfile] = useState<UserProfile | null>(null)
-    const [loading, setLoading] = useState<boolean>(true)
+    const [user, setUser] = useState<User | null>(() => getCached<User>('current_user_auth'))
+    const [profile, setProfile] = useState<UserProfile | null>(() => getCached<UserProfile>('current_user_profile'))
+    const [loading, setLoading] = useState<boolean>(() => !getCached<User>('current_user_auth'))
 
     const fetchUserProfile = useCallback(async (supabaseUserId: string, authUserParam?: User | null): Promise<UserProfile | null> => {
         try {
+            // Check cache first for 0ms retrieval
+            const cachedProfile = getCached<UserProfile>('current_user_profile')
+            if (cachedProfile && cachedProfile.id) {
+                setProfile(cachedProfile)
+            }
+
             const { data, error } = await supabase
                 .from('users')
                 .select('*')
@@ -49,7 +55,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
             if (error) {
                 console.error('Error fetching user profile:', error)
-                return null
+                return cachedProfile || null
             }
 
             if (data) {
@@ -59,11 +65,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 return data
             }
 
-            // Auto-heal missing profile row if user is authenticated in Supabase Auth
+            // Auto-heal missing profile row if user is authenticated in Supabase Auth (safe getSession, no lock contention)
             let authUser = authUserParam
             if (!authUser) {
-                const { data: authData } = await supabase.auth.getUser()
-                authUser = authData?.user ?? null
+                const { data: { session: curSession } } = await supabase.auth.getSession()
+                authUser = curSession?.user ?? null
             }
 
             if (authUser?.email) {
@@ -107,6 +113,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     useEffect(() => {
         let isMounted = true
 
+        // Guaranteed timeout: auth loading will NEVER be stuck longer than 3.5 seconds
+        const timeoutTimer = setTimeout(() => {
+            if (isMounted) setLoading(false)
+        }, 3500)
+
         const initAuth = async () => {
             try {
                 const { data: { session }, error } = await supabase.auth.getSession()
@@ -130,6 +141,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             } catch (err) {
                 console.error('Exception during initAuth:', err)
             } finally {
+                clearTimeout(timeoutTimer)
                 if (isMounted) {
                     setLoading(false)
                 }

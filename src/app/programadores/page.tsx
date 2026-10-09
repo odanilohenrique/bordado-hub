@@ -46,7 +46,13 @@ export default function ProgrammersDirectory() {
     const [hiredIds, setHiredIds] = useState<string[]>([])
 
     useEffect(() => {
-        if (authLoading) return
+        const authSafetyTimer = setTimeout(() => {
+            if (authLoading && !profileId) {
+                setLoading(false)
+            }
+        }, 4000)
+
+        if (authLoading) return () => clearTimeout(authSafetyTimer)
 
         async function fetchData() {
             try {
@@ -61,32 +67,40 @@ export default function ProgrammersDirectory() {
                 const hiredPromise = async () => {
                     if (!profileId) return { myId: null, ids: [] as string[] }
 
-                    const { data: myHires } = await supabase
-                        .from('jobs')
-                        .select('target_programmer_id, proposals(criador_id, status)')
-                        .eq('cliente_id', profileId)
+                    try {
+                        const { data: myHires } = await supabase
+                            .from('jobs')
+                            .select('target_programmer_id, proposals(criador_id, status)')
+                            .eq('cliente_id', profileId)
 
-                    const ids: string[] = []
-                    if (myHires) {
-                        myHires.forEach(job => {
-                            if (job.target_programmer_id) ids.push(job.target_programmer_id)
-                            if (job.proposals) {
-                                // @ts-ignore
-                                job.proposals.forEach(p => {
-                                    if (p.status === 'aceita' || p.status === 'finalizado') {
-                                        ids.push(p.criador_id)
-                                    }
-                                })
-                            }
-                        })
+                        const ids: string[] = []
+                        if (myHires) {
+                            myHires.forEach(job => {
+                                if (job.target_programmer_id) ids.push(job.target_programmer_id)
+                                if (job.proposals) {
+                                    // @ts-ignore
+                                    job.proposals.forEach(p => {
+                                        if (p.status === 'aceita' || p.status === 'finalizado') {
+                                            ids.push(p.criador_id)
+                                        }
+                                    })
+                                }
+                            })
+                        }
+                        return { myId: profileId, ids: [...new Set(ids)] }
+                    } catch {
+                        return { myId: profileId, ids: [] as string[] }
                     }
-                    return { myId: profileId, ids: [...new Set(ids)] }
                 }
 
-                // Run creators query and user history IN PARALLEL!
-                const [{ data: creators }, { myId, ids }] = await Promise.all([
-                    creatorsPromise,
-                    hiredPromise(),
+                const timeoutPromise = new Promise<any>((resolve) =>
+                    setTimeout(() => resolve([{ data: null }, { myId: null, ids: [] }]), 6000)
+                )
+
+                // Run creators query and user history IN PARALLEL with timeout protection!
+                const [{ data: creators }, { ids }] = await Promise.race([
+                    Promise.all([creatorsPromise, hiredPromise()]),
+                    timeoutPromise
                 ])
 
                 if (creators) {
@@ -102,6 +116,8 @@ export default function ProgrammersDirectory() {
         }
 
         fetchData()
+
+        return () => clearTimeout(authSafetyTimer)
     }, [profileId, authLoading])
 
     const filteredProgrammers = programmers.filter(p => 

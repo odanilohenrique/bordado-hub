@@ -4,24 +4,16 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
-import { User } from '@supabase/supabase-js'
+import { useAuth } from '@/contexts/AuthContext'
 import { Menu, X, LogOut, LayoutDashboard, Users, HelpCircle, LogIn, UserPlus, PlusCircle, ShoppingBag } from 'lucide-react'
 import { useRouter, usePathname } from 'next/navigation'
 import NotificationBell from '@/components/NotificationBell'
 
 export default function Navbar() {
-    const [user, setUser] = useState<User | null>(null)
+    const { user } = useAuth()
     const [isOpen, setIsOpen] = useState(false)
     const router = useRouter()
     const pathname = usePathname()
-
-    useEffect(() => {
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-            setUser(session?.user ?? null)
-        })
-
-        return () => subscription.unsubscribe()
-    }, [])
 
     // Close mobile menu on page change
     useEffect(() => {

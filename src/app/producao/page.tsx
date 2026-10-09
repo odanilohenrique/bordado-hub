@@ -27,14 +27,22 @@ export default function CreatorDashboard() {
     const [loading, setLoading] = useState(() => !cachedData)
 
     useEffect(() => {
-        if (authLoading) return
+        // Fallback safety: never let producao spin longer than 4s if auth is taking time
+        const authSafetyTimer = setTimeout(() => {
+            if (authLoading && !profileId) {
+                setLoading(false)
+            }
+        }, 4000)
+
+        if (authLoading) return () => clearTimeout(authSafetyTimer)
+
         async function fetchData() {
             if (!profileId) {
                 setLoading(false)
                 return
             }
             try {
-                const [{ data: directData }, { data: myProposalsData }] = await Promise.all([
+                const fetchPromise = Promise.all([
                     supabase
                         .from('jobs')
                         .select('*, users!jobs_cliente_id_fkey(name, avatar_url)')
@@ -48,19 +56,28 @@ export default function CreatorDashboard() {
                         .order('created_at', { ascending: false })
                 ])
 
-                setDirectRequests(directData || [])
+                const timeoutPromise = new Promise<any>((resolve) =>
+                    setTimeout(() => resolve([{ data: null }, { data: null }]), 6000)
+                )
+
+                const [{ data: directData }, { data: myProposalsData }] = await Promise.race([
+                    fetchPromise,
+                    timeoutPromise
+                ])
+
+                if (directData) setDirectRequests(directData)
 
                 if (myProposalsData) {
-                    const mapped = myProposalsData.map(p => {
+                    const mapped = myProposalsData.map((p: any) => {
                         const jobData = Array.isArray(p.jobs) ? p.jobs[0] : p.jobs
                         return { ...jobData, my_proposal_status: p.status }
                     }).filter(Boolean)
 
-                    const rev = mapped.filter(j => j.my_proposal_status === 'aceita' && j.status === 'em_revisao')
-                    const prod = mapped.filter(j => j.my_proposal_status === 'aceita' && (j.status === 'em_progresso' || !j.status))
-                    const deliv = mapped.filter(j => j.my_proposal_status === 'aceita' && j.status === 'entregue')
-                    const comp = mapped.filter(j => j.my_proposal_status === 'aceita' && j.status === 'finalizado')
-                    const pend = mapped.filter(j => j.my_proposal_status === 'pendente' || j.my_proposal_status === 'contraproposta')
+                    const rev = mapped.filter((j: any) => j.my_proposal_status === 'aceita' && j.status === 'em_revisao')
+                    const prod = mapped.filter((j: any) => j.my_proposal_status === 'aceita' && (j.status === 'em_progresso' || !j.status))
+                    const deliv = mapped.filter((j: any) => j.my_proposal_status === 'aceita' && j.status === 'entregue')
+                    const comp = mapped.filter((j: any) => j.my_proposal_status === 'aceita' && j.status === 'finalizado')
+                    const pend = mapped.filter((j: any) => j.my_proposal_status === 'pendente' || j.my_proposal_status === 'contraproposta')
 
                     setInRevision(rev)
                     setInProduction(prod)
@@ -81,6 +98,8 @@ export default function CreatorDashboard() {
             }
         }
         fetchData()
+
+        return () => clearTimeout(authSafetyTimer)
     }, [profileId, authLoading])
 
     if (loading) {

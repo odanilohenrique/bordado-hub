@@ -6,6 +6,7 @@ import { Bell, X, ExternalLink, Zap, CheckCircle2 } from 'lucide-react'
 import Link from 'next/link'
 
 import { getCached, setCached } from '@/lib/clientCache'
+import { useAuth } from '@/contexts/AuthContext'
 
 interface Notification {
     id: string
@@ -19,26 +20,17 @@ interface Notification {
 }
 
 export default function GlobalNotificationAlert() {
+    const { profileId } = useAuth()
     const [notifications, setNotifications] = useState<Notification[]>([])
     const [currentAlert, setCurrentAlert] = useState<Notification | null>(null)
-    const [userId, setUserId] = useState<string | null>(null)
+    const [userId, setUserId] = useState<string | null>(profileId || null)
 
     useEffect(() => {
         let channel: any = null
 
         const setup = async () => {
-            const { data: { session } } = await supabase.auth.getSession()
-            const user = session?.user
-            if (!user) return
-
-            const { data: profile } = await supabase
-                .from('users')
-                .select('id')
-                .eq('supabase_user_id', user.id)
-                .maybeSingle()
-
-            if (!profile) return
-            const myProfileId = profile.id
+            const myProfileId = profileId
+            if (!myProfileId) return
             setUserId(myProfileId)
 
             // Fetch existing unread notifications
@@ -144,7 +136,7 @@ export default function GlobalNotificationAlert() {
         return () => {
             if (channel) supabase.removeChannel(channel)
         }
-    }, [])
+    }, [profileId])
 
     const markAsRead = async (id: string) => {
         try {

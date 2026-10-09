@@ -223,29 +223,36 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                 }
             }
 
-            // Fetch job and proposals IN PARALLEL
+            // Fetch job and proposals IN PARALLEL with timeout protection
+            const timeoutPromise = new Promise<any>((resolve) =>
+                setTimeout(() => resolve([{ data: null, error: new Error('Job fetch timeout') }, { data: null, error: null }]), 6000)
+            )
+
             const [
                 { data: jobData, error: jobError },
                 { data: proposalsData, error: proposalsError }
-            ] = await Promise.all([
-                supabase
-                    .from('jobs')
-                    .select('*, users!jobs_cliente_id_fkey(name, avatar_url)')
-                    .eq('id', jobId)
-                    .maybeSingle(),
-                supabase
-                    .from('proposals')
-                    .select(`
-                        *,
-                        users:criador_id (
-                            id,
-                            name,
-                            avatar_url,
-                            rating
-                        )
-                    `)
-                    .eq('job_id', jobId)
-                    .order('created_at', { ascending: false })
+            ] = await Promise.race([
+                Promise.all([
+                    supabase
+                        .from('jobs')
+                        .select('*, users!jobs_cliente_id_fkey(name, avatar_url)')
+                        .eq('id', jobId)
+                        .maybeSingle(),
+                    supabase
+                        .from('proposals')
+                        .select(`
+                            *,
+                            users:criador_id (
+                                id,
+                                name,
+                                avatar_url,
+                                rating
+                            )
+                        `)
+                        .eq('job_id', jobId)
+                        .order('created_at', { ascending: false })
+                ]),
+                timeoutPromise
             ])
 
             if (jobError) {
@@ -256,7 +263,7 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                 toast.error('Erro ao carregar propostas: ' + proposalsError.message)
             }
 
-            setJob(jobData)
+            if (jobData) setJob(jobData)
             setCurrentUser(profile)
             setProposals(proposalsData || [])
 
@@ -280,7 +287,7 @@ function JobDetailClient({ jobId }: { jobId: string }) {
             }
 
             if (proposalsData && proposalsData.length > 0) {
-                const proposalIds = proposalsData.map(p => p.id)
+                const proposalIds = proposalsData.map((p: any) => p.id)
                 // Fetch unread messages count SCOPED to this job's proposals
                 const { data: messages } = await supabase
                     .from('proposal_messages')

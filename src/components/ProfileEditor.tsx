@@ -66,7 +66,8 @@ export default function ProfileEditor({ profile, onCancel, onSave }: ProfileEdit
 
     useEffect(() => {
         async function fetchGoogleAvatar() {
-            const { data: { user } } = await supabase.auth.getUser()
+            const { data: { session } } = await supabase.auth.getSession()
+            const user = session?.user
             const avatar = user?.user_metadata?.avatar_url || user?.user_metadata?.picture || null
             setGoogleAvatarUrl(avatar)
             if (avatar && !formData.avatar_url) {
