@@ -141,7 +141,7 @@ export default function MobileBottomNav({ profile, userId }: MobileBottomNavProp
     return (
         <nav 
             aria-label="Navegação móvel"
-            className="fixed bottom-0 left-0 right-0 z-40 md:hidden bg-[#13161C]/95 backdrop-blur-xl border-t border-white/10 px-2 py-1.5 pb-[max(0.5rem,env(safe-area-inset-bottom,0px))] shadow-2xl transition-all"
+            className="fixed bottom-0 left-0 right-0 z-40 md:hidden bg-[#12151C]/95 backdrop-blur-xl border-t border-white/[0.07] px-2 py-1.5 pb-[max(0.5rem,env(safe-area-inset-bottom,0px))] shadow-2xl transition-all"
         >
             <div className="flex items-center justify-around max-w-lg mx-auto">
                 {items.map((item) => {
@@ -156,7 +156,7 @@ export default function MobileBottomNav({ profile, userId }: MobileBottomNavProp
                                 href={item.href}
                                 className="flex flex-col items-center justify-center -mt-5 group"
                             >
-                                <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-[#FFAE00] to-yellow-300 text-black flex items-center justify-center shadow-lg shadow-[#FFAE00]/30 group-active:scale-95 transition-transform border-2 border-[#13161C]">
+                                <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-[#F5A623] to-amber-300 text-black flex items-center justify-center shadow-lg shadow-[#F5A623]/25 group-active:scale-95 transition-transform border-2 border-[#12151C]">
                                     <item.icon className="w-6 h-6 stroke-[2.5]" />
                                 </div>
                                 <span className="text-[10px] font-bold text-gray-300 mt-1 tracking-tight">
@@ -171,7 +171,7 @@ export default function MobileBottomNav({ profile, userId }: MobileBottomNavProp
                             key={item.name}
                             href={item.href}
                             className={`flex flex-col items-center justify-center min-w-[56px] py-1 px-2 rounded-xl transition-all relative ${
-                                isActive ? 'text-[#FFAE00]' : 'text-gray-400 hover:text-gray-200'
+                                isActive ? 'text-[#F5A623]' : 'text-gray-400 hover:text-gray-200'
                             }`}
                         >
                             <div className="relative">
@@ -183,12 +183,12 @@ export default function MobileBottomNav({ profile, userId }: MobileBottomNavProp
                                 )}
                             </div>
                             <span className={`text-[10px] font-medium mt-1 tracking-tight transition-colors ${
-                                isActive ? 'font-bold text-[#FFAE00]' : 'text-gray-400'
+                                isActive ? 'font-bold text-[#F5A623]' : 'text-gray-400'
                             }`}>
                                 {item.name}
                             </span>
                             {isActive && (
-                                <span className="w-1 h-1 rounded-full bg-[#FFAE00] mt-0.5" />
+                                <span className="w-1 h-1 rounded-full bg-[#F5A623] mt-0.5" />
                             )}
                         </Link>
                     )

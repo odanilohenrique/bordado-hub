@@ -90,7 +90,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className={`${inter.className} min-h-screen bg-[#0F1115]`}>
+      <body className={`${inter.className} min-h-screen bg-[#0B0D11] text-[#F8FAFC] antialiased selection:bg-[#F5A623]/20 selection:text-[#F5A623]`}>
         <ClientProviders>
           <NavigationWrapper>
             {children}
@@ -98,9 +98,10 @@ export default function RootLayout({
               theme="dark" 
               toastOptions={{
                 style: {
-                  background: '#1A1D23',
-                  border: '1px solid rgba(255, 174, 0, 0.2)',
-                  color: '#fff',
+                  background: '#181C26',
+                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  color: '#F8FAFC',
+                  boxShadow: '0 12px 30px -10px rgba(0, 0, 0, 0.6)',
                 },
               }}
             />

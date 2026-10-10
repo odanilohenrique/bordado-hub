@@ -64,8 +64,8 @@ export async function POST(request: Request) {
 
         // 4. Send chat message
         const chatContent = cancelledBy === 'programmer'
-            ? `⚠️ O programador cancelou a espera por falta de confirmação do pagamento. O pedido foi liberado e voltou a aceitar propostas.${reason ? ` Motivo: ${reason}` : ''}`
-            : `ℹ️ O cliente cancelou o processo de contratação desta proposta. O pedido voltou a ficar disponível para negociação.`
+            ? `O programador cancelou a espera por falta de confirmação do pagamento. O pedido foi liberado e voltou a aceitar propostas.${reason ? ` Motivo: ${reason}` : ''}`
+            : `O cliente cancelou o processo de contratação desta proposta. O pedido voltou a ficar disponível para negociação.`
 
         await supabase.from('proposal_messages').insert({
             proposal_id: proposalId,
@@ -76,8 +76,8 @@ export async function POST(request: Request) {
         // 5. Send notification to the other party
         const targetUserId = cancelledBy === 'programmer' ? job.cliente_id : proposal.criador_id
         const notifTitle = cancelledBy === 'programmer'
-            ? '⚠️ Reserva Cancelada por Falta de Pagamento'
-            : 'ℹ️ Contratação Cancelada pelo Comprador'
+            ? 'Reserva Cancelada por Falta de Pagamento'
+            : 'Contratação Cancelada pelo Comprador'
         const notifMessage = cancelledBy === 'programmer'
             ? `O programador liberou o pedido "${job.title}" pois o pagamento não foi confirmado a tempo.`
             : `O cliente cancelou o checkout do pedido "${job.title}". A proposta retornou ao status pendente.`

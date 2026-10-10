@@ -58,6 +58,28 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Falha ao salvar avaliação: ' + reviewError.message }, { status: 500 })
         }
 
+        // Calculate and update user's overall average rating and reviews count
+        try {
+            const { data: allUserReviews } = await supabase
+                .from('reviews')
+                .select('rating')
+                .eq('reviewee_id', revieweeId)
+
+            if (allUserReviews && allUserReviews.length > 0) {
+                const sum = allUserReviews.reduce((acc, r) => acc + (Number(r.rating) || 5), 0)
+                const avgRating = Number((sum / allUserReviews.length).toFixed(1))
+                await supabase
+                    .from('users')
+                    .update({
+                        rating: avgRating,
+                        reviews_count: allUserReviews.length
+                    })
+                    .eq('id', revieweeId)
+            }
+        } catch (e) {
+            console.warn('Could not update user average rating:', e)
+        }
+
         // 2. Update Job Status to finalizado
         const { error: jobUpdateError } = await supabase
             .from('jobs')

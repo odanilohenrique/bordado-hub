@@ -45,11 +45,11 @@ interface FinancialRecord {
 
 export default function FinancialDashboard() {
     const { user: authUser, profile: authProfile, profileId, loading: authLoading } = useAuth()
-    const [loading, setLoading] = useState(() => !getCached<FinancialRecord[]>('financeiro_records'))
+    const [loading, setLoading] = useState(true)
     const [profile, setProfile] = useState<{ id: string; name: string; pix_key?: string; pix_key_type?: string } | null>(
         authProfile ? { id: authProfile.id, name: authProfile.name || '' } : null
     )
-    const [records, setRecords] = useState<FinancialRecord[]>(() => getCached<FinancialRecord[]>('financeiro_records') || [])
+    const [records, setRecords] = useState<FinancialRecord[]>([])
     
     // Filtros
     const [statusFilter, setStatusFilter] = useState<'todos' | 'liberado' | 'custodia'>('todos')
@@ -63,6 +63,13 @@ export default function FinancialDashboard() {
 
     useEffect(() => {
         let isMounted = true
+
+        // Fast client-side cache mount (0ms latency without breaking SSR hydration)
+        const cached = getCached<FinancialRecord[]>('financeiro_records')
+        if (cached && cached.length > 0) {
+            setRecords(cached)
+            setLoading(false)
+        }
         // Guaranteed safety timer: never spin longer than 2s under any circumstance
         const safetyTimer = setTimeout(() => {
             if (isMounted) setLoading(false)
@@ -293,51 +300,51 @@ export default function FinancialDashboard() {
             {/* Grid dos Cards de Indicadores (KPIs) */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {/* 1. Total Faturado */}
-                <div className="bg-[#1A1D23] border border-white/5 hover:border-green-500/30 rounded-xl p-5 shadow-lg transition-all">
+                <div className="bg-[#12151C] border border-white/[0.07] hover:border-emerald-500/30 rounded-2xl p-5 shadow-lg transition-all group">
                     <div className="flex items-center justify-between mb-3">
                         <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">
                             Total Faturado
                         </span>
-                        <div className="w-9 h-9 rounded-lg bg-green-500/10 border border-green-500/20 flex items-center justify-center text-green-400">
-                            <TrendingUp className="w-5 h-5" />
+                        <div className="w-9 h-9 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+                            <TrendingUp className="w-4 h-4" />
                         </div>
                     </div>
                     <div className="text-2xl sm:text-3xl font-black text-white tracking-tight">
                         R$ {metrics.totalEarned.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </div>
                     <p className="text-[11px] text-gray-400 mt-2 flex items-center gap-1">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-green-400" />
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
                         {metrics.totalOrders} {metrics.totalOrders === 1 ? 'pedido finalizado' : 'pedidos finalizados'}
                     </p>
                 </div>
 
                 {/* 2. Saldo em Garantia (Custódia) */}
-                <div className="bg-[#1A1D23] border border-white/5 hover:border-[#FFAE00]/30 rounded-xl p-5 shadow-lg transition-all">
+                <div className="bg-[#12151C] border border-white/[0.07] hover:border-[#F5A623]/30 rounded-2xl p-5 shadow-lg transition-all group">
                     <div className="flex items-center justify-between mb-3">
                         <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">
                             Saldo em Custódia
                         </span>
-                        <div className="w-9 h-9 rounded-lg bg-[#FFAE00]/10 border border-[#FFAE00]/20 flex items-center justify-center text-[#FFAE00]">
-                            <Clock className="w-5 h-5" />
+                        <div className="w-9 h-9 rounded-xl bg-[#F5A623]/10 border border-[#F5A623]/20 flex items-center justify-center text-[#F5A623]">
+                            <Clock className="w-4 h-4" />
                         </div>
                     </div>
                     <div className="text-2xl sm:text-3xl font-black text-white tracking-tight">
                         R$ {metrics.totalInEscrow.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </div>
                     <p className="text-[11px] text-gray-400 mt-2 flex items-center gap-1">
-                        <ShieldCheck className="w-3.5 h-3.5 text-[#FFAE00]" />
+                        <ShieldCheck className="w-3.5 h-3.5 text-[#F5A623]" />
                         {metrics.inProductionOrders} {metrics.inProductionOrders === 1 ? 'pedido em produção' : 'pedidos em produção'}
                     </p>
                 </div>
 
                 {/* 3. Ticket Médio por Matriz */}
-                <div className="bg-[#1A1D23] border border-white/5 hover:border-cyan-500/30 rounded-xl p-5 shadow-lg transition-all">
+                <div className="bg-[#12151C] border border-white/[0.07] hover:border-cyan-500/30 rounded-2xl p-5 shadow-lg transition-all group">
                     <div className="flex items-center justify-between mb-3">
                         <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">
                             Ticket Médio
                         </span>
-                        <div className="w-9 h-9 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400">
-                            <BarChart3 className="w-5 h-5" />
+                        <div className="w-9 h-9 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400">
+                            <BarChart3 className="w-4 h-4" />
                         </div>
                     </div>
                     <div className="text-2xl sm:text-3xl font-black text-white tracking-tight">
@@ -349,13 +356,13 @@ export default function FinancialDashboard() {
                 </div>
 
                 {/* 4. Matrizes Entregues */}
-                <div className="bg-[#1A1D23] border border-white/5 hover:border-indigo-500/30 rounded-xl p-5 shadow-lg transition-all">
+                <div className="bg-[#12151C] border border-white/[0.07] hover:border-indigo-500/30 rounded-2xl p-5 shadow-lg transition-all group">
                     <div className="flex items-center justify-between mb-3">
                         <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">
                             Matrizes Entregues
                         </span>
-                        <div className="w-9 h-9 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
-                            <Package className="w-5 h-5" />
+                        <div className="w-9 h-9 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
+                            <Package className="w-4 h-4" />
                         </div>
                     </div>
                     <div className="text-2xl sm:text-3xl font-black text-white tracking-tight">

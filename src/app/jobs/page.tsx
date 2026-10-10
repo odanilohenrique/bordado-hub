@@ -27,9 +27,8 @@ function JobCardSkeleton() {
 export default function JobsPage() {
     const { profileId } = useAuth()
     const [filter, setFilter] = useState<string>('all')
-    // Instant mount from client cache if available (0ms delay!)
-    const [jobs, setJobs] = useState<any[]>(() => getCached<any[]>('jobs_all') || [])
-    const [loading, setLoading] = useState<boolean>(() => !getCached<any[]>('jobs_all'))
+    const [jobs, setJobs] = useState<any[]>([])
+    const [loading, setLoading] = useState<boolean>(true)
     const [currentUserId, setCurrentUserId] = useState<string | null>(profileId || null)
     const [lostBids, setLostBids] = useState<Set<string>>(new Set())
 
@@ -136,20 +135,20 @@ export default function JobsPage() {
     }, [filter, profileId])
 
     return (
-        <div className="min-h-screen bg-[#0F1115] py-8 px-4 sm:px-6 lg:px-8">
+        <div className="min-h-screen bg-[#0B0D11] py-8 px-4 sm:px-6 lg:px-8">
             <div className="max-w-7xl mx-auto">
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
                     <div>
-                        <h1 className="text-3xl font-extrabold text-[#F3F4F6]">Pedidos de Clientes</h1>
-                        <p className="text-gray-400 mt-1">Mural público onde os clientes solicitam novas matrizes de bordado para você orçar e produzir</p>
+                        <h1 className="text-3xl font-extrabold text-[#F8FAFC] tracking-tight">Pedidos de Clientes</h1>
+                        <p className="text-gray-400 mt-1 text-sm">Mural de solicitações de novas matrizes de bordado para você orçar e produzir com pagamento garantido</p>
                     </div>
 
                     <div className="flex flex-wrap items-center gap-3">
-                        <div className="flex p-1 bg-[#1A1D23] rounded-xl border border-[#FFAE00]/20">
+                        <div className="flex p-1 bg-[#12151C] rounded-2xl border border-white/[0.07]">
                             <button
                                 onClick={() => setFilter('all')}
-                                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${filter === 'all'
-                                    ? 'bg-[#FFAE00] text-[#0F1115] shadow-lg shadow-[#FFAE00]/20 font-bold'
+                                className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-medium transition-all ${filter === 'all'
+                                    ? 'bg-gradient-to-r from-[#FFB703] to-[#FB8500] text-black font-extrabold shadow-md shadow-[#F5A623]/20'
                                     : 'text-gray-400 hover:text-white'
                                     }`}
                             >
@@ -157,8 +156,8 @@ export default function JobsPage() {
                             </button>
                             <button
                                 onClick={() => setFilter('aberto')}
-                                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${filter === 'aberto'
-                                    ? 'bg-[#FFAE00] text-[#0F1115] shadow-lg shadow-[#FFAE00]/20 font-bold'
+                                className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-medium transition-all ${filter === 'aberto'
+                                    ? 'bg-gradient-to-r from-[#FFB703] to-[#FB8500] text-black font-extrabold shadow-md shadow-[#F5A623]/20'
                                     : 'text-gray-400 hover:text-white'
                                     }`}
                             >
@@ -166,18 +165,18 @@ export default function JobsPage() {
                             </button>
                             <button
                                 onClick={() => setFilter('em_progresso')}
-                                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all inline-flex items-center gap-1.5 ${filter === 'em_progresso'
-                                    ? 'bg-[#FFAE00] text-[#0F1115] shadow-lg shadow-[#FFAE00]/20 font-bold'
+                                className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-medium transition-all inline-flex items-center gap-1.5 ${filter === 'em_progresso'
+                                    ? 'bg-gradient-to-r from-[#FFB703] to-[#FB8500] text-black font-extrabold shadow-md shadow-[#F5A623]/20'
                                     : 'text-gray-400 hover:text-white'
                                     }`}
                             >
-                                <Handshake className="w-4 h-4" /> Match Feito
+                                <Handshake className="w-4 h-4" /> Negócio Fechado
                             </button>
                         </div>
 
                         <Link
                             href="/jobs/new"
-                            className="inline-flex items-center gap-2 bg-gradient-to-r from-[#FFAE00] to-[#FF9100] hover:from-[#FFB92E] hover:to-[#FFAE00] text-[#0F1115] px-5 py-2.5 rounded-xl font-extrabold text-sm transition-all shadow-lg shadow-[#FFAE00]/20 hover:scale-105 active:scale-95 whitespace-nowrap"
+                            className="inline-flex items-center gap-2 bg-gradient-to-r from-[#FFB703] to-[#FB8500] hover:brightness-110 text-black px-5 py-2.5 rounded-2xl font-extrabold text-sm transition-all shadow-md shadow-[#F5A623]/20 hover:scale-[1.02] active:scale-95 whitespace-nowrap"
                         >
                             <Plus className="w-4 h-4 stroke-[3]" />
                             Criar Pedido
@@ -192,9 +191,10 @@ export default function JobsPage() {
                         <JobCardSkeleton />
                     </div>
                 ) : jobs.length === 0 ? (
-                    <div className="text-center py-20 bg-[#1A1D23] rounded-xl border border-[#FFAE00]/10">
-                        <Search className="w-10 h-10 text-gray-600 mx-auto mb-4" />
-                        <p className="text-gray-400 text-lg">Nenhum projeto encontrado com este filtro.</p>
+                    <div className="text-center py-20 bg-[#12151C] rounded-2xl border border-white/[0.07] px-4">
+                        <Search className="w-10 h-10 text-gray-500 mx-auto mb-4 opacity-50" />
+                        <p className="text-gray-300 font-bold text-base">Nenhum pedido encontrado com este filtro.</p>
+                        <p className="text-gray-500 text-xs mt-1 max-w-sm mx-auto">Assim que os clientes publicarem novas solicitações de matrizes, elas aparecerão aqui instantaneamente.</p>
                     </div>
                 ) : (
                     <div className="grid grid-cols-1 gap-6">

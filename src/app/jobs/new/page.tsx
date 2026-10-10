@@ -509,7 +509,7 @@ function NewJobContent() {
                     return parts.join(' | ')
                 }).join('\n')
 
-                finalDescription = `${finalDescription}\n\n📋 MATRIZES / APLICAÇÕES DO PEDIDO:\n${breakdown}`
+                finalDescription = `${finalDescription}\n\nMATRIZES / APLICAÇÕES DO PEDIDO:\n${breakdown}`
             } else if (structuredMatrices[0]?.notes) {
                 finalDescription = `${finalDescription}\n\nObservação da matriz: ${structuredMatrices[0].notes}`
             }
@@ -585,25 +585,25 @@ function NewJobContent() {
     }
 
     return (
-        <div className="min-h-screen bg-[#0F1115] py-8 px-4 sm:px-6 lg:px-8">
+        <div className="min-h-screen bg-[#0B0D11] py-8 px-4 sm:px-6 lg:px-8">
             <div className="max-w-3xl mx-auto">
                 {/* Header */}
                 <div className="text-center mb-8">
-                    <h1 className="text-3xl font-extrabold text-[#F3F4F6]">
+                    <h1 className="text-3xl font-extrabold text-[#F8FAFC] tracking-tight">
                         Solicitar Matriz de Bordado
                     </h1>
-                    <p className="mt-2 text-gray-400">
-                        Preencha os detalhes do seu pedido e receba orçamentos de programadores profissionais
+                    <p className="mt-2 text-gray-400 text-sm">
+                        Preencha os detalhes da sua encomenda e receba orçamentos de programadores profissionais
                     </p>
                     {directProgrammerName && (
-                        <div className="mt-4 inline-flex items-center gap-2 bg-[#FFAE00]/10 border border-[#FFAE00]/30 rounded-full px-4 py-1.5 text-sm text-[#FFAE00]">
+                        <div className="mt-4 inline-flex items-center gap-2 bg-[#F5A623]/10 border border-[#F5A623]/30 rounded-full px-4 py-1.5 text-sm text-[#F5A623]">
                             <Sparkles className="w-4 h-4" />
                             <span>Enviando pedido direto para: <strong>{directProgrammerName}</strong></span>
                         </div>
                     )}
                 </div>
 
-                <form onSubmit={handleSubmit} className="bg-[#1A1D23] border border-[#FFAE00]/20 rounded-xl p-5 sm:p-7 space-y-5 shadow-xl">
+                <form onSubmit={handleSubmit} className="bg-[#12151C] border border-white/[0.07] rounded-2xl p-5 sm:p-7 space-y-5 shadow-xl">
                     {/* Título do Pedido */}
                     <div className="space-y-1.5">
                         <label className="flex items-center gap-2 text-xs font-semibold text-gray-300">

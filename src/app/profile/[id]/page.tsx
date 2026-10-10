@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabaseClient'
-import { User, Star, MapPin, Calendar, Award, Package, Code, Edit2, Eye, FileJson, Layers, Upload, Camera } from 'lucide-react'
+import { User, Star, MapPin, Calendar, Award, Package, Code, Edit2, Eye, FileJson, Layers, Upload, Camera, Sparkles, ArrowRight, CheckCircle2 } from 'lucide-react'
 import Image from 'next/image'
 import ProfileEditor from '@/components/ProfileEditor'
 
@@ -15,6 +15,10 @@ interface UserProfile {
     role: string
     avatar_url?: string
     bio?: string
+    is_client?: boolean
+    is_programmer?: boolean
+    client_business_type?: string
+    client_machine_brand?: string
     skills?: string[]
     formats?: string[]
     experience_level?: string
@@ -37,6 +41,7 @@ export default function ProfilePage() {
     const [isCreating, setIsCreating] = useState(false)
     const [newRole, setNewRole] = useState('cliente')
     const [isEditing, setIsEditing] = useState(false)
+    const [activateProgrammer, setActivateProgrammer] = useState(false)
 
     // Toggle for owner to preview their profile
     const [previewRole, setPreviewRole] = useState<string | null>(null)
@@ -45,26 +50,44 @@ export default function ProfilePage() {
     const [avatarUploading, setAvatarUploading] = useState(false)
 
     useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const urlParams = new URLSearchParams(window.location.search)
+            if (urlParams.get('edit') === 'true') {
+                setIsEditing(true)
+            }
+            if (urlParams.get('activate') === 'programmer') {
+                setActivateProgrammer(true)
+            }
+        }
+    }, [])
+
+    useEffect(() => {
         loadData()
     }, [id])
 
     async function loadData() {
         setLoading(true)
-        // Get current auth user
-        const { data: { session } } = await supabase.auth.getSession()
-        const user = session?.user ?? null
-        setCurrentUser(user)
+        try {
+            // Get current auth user
+            const { data: { session } } = await supabase.auth.getSession()
+            const user = session?.user ?? null
+            setCurrentUser(user)
 
-        if (!id) return
+            if (!id) { setLoading(false); return }
 
-        // Load profile from public table
-        const { data, error } = await supabase
-            .from('users')
-            .select('*')
-            .or(`id.eq.${id},supabase_user_id.eq.${id}`)
-            .single()
+            // Load profile from public table
+            const { data, error } = await supabase
+                .from('users')
+                .select('*')
+                .or(`id.eq.${id},supabase_user_id.eq.${id}`)
+                .single()
 
-        if (!error && data) {
+            if (error || !data) {
+                console.error('Error loading profile:', error)
+                setLoading(false)
+                return
+            }
+
             // If user is owner and has no avatar, but has Google picture, auto-sync it!
             const googleAvatar = user?.user_metadata?.avatar_url || user?.user_metadata?.picture
             const isUserOwner = user?.id === data.supabase_user_id || user?.id === id || user?.id === data.id
@@ -77,42 +100,74 @@ export default function ProfilePage() {
             }
 
             // Load reviews received by this user
-            const { data: reviewsData } = await supabase
-                .from('reviews')
-                .select('*, jobs(title)')
-                .or(`reviewee_id.eq.${data.id}${data.supabase_user_id ? `,reviewee_id.eq.${data.supabase_user_id}` : ''}`)
-                .order('created_at', { ascending: false })
+            try {
+                const { data: reviewsData } = await supabase
+                    .from('reviews')
+                    .select('*, jobs(title)')
+                    .or(`reviewee_id.eq.${data.id}${data.supabase_user_id ? `,reviewee_id.eq.${data.supabase_user_id}` : ''}`)
+                    .order('created_at', { ascending: false })
 
-            if (reviewsData && reviewsData.length > 0) {
-                const reviewerIds = Array.from(new Set(reviewsData.map(r => r.reviewer_id).filter(Boolean)))
-                const { data: reviewers } = await supabase
-                    .from('users')
-                    .select('id, supabase_user_id, name, avatar_url')
-                    .or(`id.in.(${reviewerIds.join(',')}),supabase_user_id.in.(${reviewerIds.join(',')})`)
+                if (reviewsData && reviewsData.length > 0) {
+                    const reviewerIds = Array.from(new Set(reviewsData.map(r => r.reviewer_id).filter(Boolean)))
+                    
+                    let reviewerMap = new Map()
+                    if (reviewerIds.length > 0) {
+                        const { data: reviewers } = await supabase
+                            .from('users')
+                            .select('id, supabase_user_id, name, avatar_url')
+                            .or(`id.in.(${reviewerIds.join(',')}),supabase_user_id.in.(${reviewerIds.join(',')})`)
 
-                const reviewerMap = new Map()
-                reviewers?.forEach(u => {
-                    reviewerMap.set(u.id, u)
-                    if (u.supabase_user_id) reviewerMap.set(u.supabase_user_id, u)
-                })
+                        reviewers?.forEach(u => {
+                            reviewerMap.set(u.id, u)
+                            if (u.supabase_user_id) reviewerMap.set(u.supabase_user_id, u)
+                        })
+                    }
 
-                const enrichedReviews = reviewsData.map(r => ({
-                    ...r,
-                    reviewer: reviewerMap.get(r.reviewer_id) || { name: 'Cliente' }
-                }))
+                    const enrichedReviews = reviewsData.map(r => ({
+                        ...r,
+                        reviewer: reviewerMap.get(r.reviewer_id) || { name: 'Cliente' }
+                    }))
 
-                setReviews(enrichedReviews)
+                    setReviews(enrichedReviews)
 
-                // Calculate dynamic average rating
-                const sum = reviewsData.reduce((acc, r) => acc + (r.rating || 5), 0)
-                data.rating = Number((sum / reviewsData.length).toFixed(1))
-                data.reviews_count = reviewsData.length
-            } else {
+                    // Calculate dynamic average rating
+                    const sum = reviewsData.reduce((acc, r) => acc + (r.rating || 5), 0)
+                    const calculatedRating = Number((sum / reviewsData.length).toFixed(1))
+                    const calculatedCount = reviewsData.length
+
+                    // Auto-sync back to users table if different so directories and cards stay 100% accurate
+                    if (data.rating !== calculatedRating || data.reviews_count !== calculatedCount) {
+                        supabase
+                            .from('users')
+                            .update({ rating: calculatedRating, reviews_count: calculatedCount })
+                            .eq('id', data.id)
+                            .then()
+                    }
+
+                    data.rating = calculatedRating
+                    data.reviews_count = calculatedCount
+                } else {
+                    if (data.rating !== 0 || data.reviews_count !== 0) {
+                        supabase
+                            .from('users')
+                            .update({ rating: 0, reviews_count: 0 })
+                            .eq('id', data.id)
+                            .then()
+                    }
+                    data.rating = 0
+                    data.reviews_count = 0
+                    setReviews([])
+                }
+            } catch (reviewErr) {
+                console.warn('Could not load reviews:', reviewErr)
+                data.reviews_count = 0
                 setReviews([])
             }
 
             setProfile(data)
             setPreviewRole(data.role) // Initialize view with actual role
+        } catch (err) {
+            console.error('Error in loadData:', err)
         }
         setLoading(false)
     }
@@ -202,39 +257,58 @@ export default function ProfilePage() {
 
     // Quick portfolio upload from profile page (without entering Edit mode)
     const handleQuickPortfolioUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-        if (!event.target.files || event.target.files.length === 0 || !profile) return
+        const fileInput = event.target
+        if (!fileInput.files || fileInput.files.length === 0 || !profile) return
 
-        const currentPortfolio = profile.portfolio_urls || []
-        if (currentPortfolio.length >= 12) {
-            alert('Máximo de 12 imagens no portfólio')
+        const currentPortfolio = (profile.portfolio_urls || []).filter(
+            (u): u is string => Boolean(u && typeof u === 'string' && u.trim().length > 0)
+        )
+        const remainingCapacity = 12 - currentPortfolio.length
+        if (remainingCapacity <= 0) {
+            alert('Limite máximo de 12 imagens no portfólio já foi atingido.')
             return
         }
 
-        const file = event.target.files[0]
-        const fileExt = file.name.split('.').pop()
-        const fileName = `${profile.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${fileExt}`
+        const filesArray = Array.from(fileInput.files)
+        const filesToUpload = filesArray.slice(0, Math.min(10, remainingCapacity))
+
+        if (filesArray.length > remainingCapacity) {
+            alert(`Você selecionou ${filesArray.length} imagens. Apenas as ${filesToUpload.length} que cabem no limite serão enviadas.`)
+        }
 
         setAvatarUploading(true) // Reuse state for loading indicator
         try {
-            // Upload to Supabase Storage
-            const { error: uploadError } = await supabase.storage
-                .from('portfolio')
-                .upload(fileName, file)
+            const uploadData = new FormData()
+            filesToUpload.forEach(file => uploadData.append('files', file))
+            uploadData.append('userId', profile.id)
+            uploadData.append('isPortfolio', 'true')
 
-            if (uploadError) throw uploadError
+            const res = await fetch('/api/upload-avatar', {
+                method: 'POST',
+                body: uploadData
+            })
 
-            // Get Public URL
-            const { data } = supabase.storage.from('portfolio').getPublicUrl(fileName)
+            const json = await res.json()
+            if (!res.ok) throw new Error(json.error || 'Erro no upload')
+
+            const newUrls: string[] = (json.urls || [json.publicUrl || json.avatarUrl])
+                .filter((url: any) => Boolean(url && typeof url === 'string' && url.trim().length > 0))
+
+            if (newUrls.length === 0) {
+                throw new Error('Nenhuma imagem válida foi retornada do servidor.')
+            }
+
+            const updatedPortfolio = [...currentPortfolio, ...newUrls]
 
             // Update DB with new portfolio array
             const { error: updateError } = await supabase
                 .from('users')
-                .update({ portfolio_urls: [...currentPortfolio, data.publicUrl] })
+                .update({ portfolio_urls: updatedPortfolio })
                 .eq('id', profile.id)
 
             if (updateError) throw updateError
 
-            // Reload data to show new image
+            // Reload data to show new images
             await loadData()
 
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -242,6 +316,7 @@ export default function ProfilePage() {
             alert('Erro ao fazer upload: ' + error.message)
         } finally {
             setAvatarUploading(false)
+            if (fileInput) fileInput.value = ''
         }
     }
 
@@ -308,13 +383,18 @@ export default function ProfilePage() {
     // 3. EDIT MODE
     if (isEditing) {
         return (
-            <div className="min-h-screen bg-[#0F1115] p-4 md:p-8">
+            <div className="min-h-screen bg-[#0B0D11] p-4 md:p-8">
                 <div className="max-w-3xl mx-auto">
                     <ProfileEditor
                         profile={profile}
-                        onCancel={() => setIsEditing(false)}
+                        defaultProgrammer={activateProgrammer}
+                        onCancel={() => {
+                            setIsEditing(false)
+                            setActivateProgrammer(false)
+                        }}
                         onSave={() => {
                             setIsEditing(false)
+                            setActivateProgrammer(false)
                             loadData()
                         }}
                     />
@@ -346,10 +426,13 @@ export default function ProfilePage() {
                         </button>
 
                         <button
-                            onClick={() => setIsEditing(true)}
-                            className="bg-[#FFAE00] text-black px-3 py-2 rounded-full text-xs font-bold shadow-lg hover:bg-[#D97706] transition-all flex items-center gap-2 transform hover:scale-105"
+                            onClick={() => {
+                                setActivateProgrammer(false)
+                                setIsEditing(true)
+                            }}
+                            className="bg-gradient-to-r from-[#FFB703] to-[#FB8500] hover:brightness-110 active:scale-95 text-black px-4 py-2 rounded-xl text-xs font-black shadow-lg shadow-[#FFB703]/20 transition-all flex items-center gap-2"
                         >
-                            <Edit2 className="w-3 h-3" /> Editar Perfil
+                            <Edit2 className="w-3.5 h-3.5" /> Configurar / Editar Perfil
                         </button>
                     </div>
                 )}
@@ -360,15 +443,19 @@ export default function ProfilePage() {
 
                     {/* Sidebar / Info Card */}
                     <div className="w-full md:w-80 flex-shrink-0">
-                        <div className="bg-[#1A1D23] rounded-xl border border-[#FFAE00]/20 p-6 shadow-2xl relative overflow-hidden">
-                            {/* Role Badge */}
-                            <div className="absolute top-0 right-0 p-3">
-                                <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase tracking-widest border ${isProgrammerView
-                                    ? 'bg-blue-900/30 text-blue-400 border-blue-500/30'
-                                    : 'bg-green-900/30 text-green-400 border-green-500/30'
-                                    }`}>
-                                    {isProgrammerView ? 'Programador' : 'Cliente'}
-                                </span>
+                        <div className="bg-[#12151C] rounded-2xl border border-white/[0.07] p-6 shadow-2xl relative overflow-hidden">
+                            {/* Role & Business Type Badges */}
+                            <div className="absolute top-0 right-0 p-3 flex flex-col items-end gap-1.5">
+                                {(profile.is_programmer || (profile.skills && profile.skills.length > 0) || profile.role === 'criador') && (
+                                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-[#F5A623]/10 text-[#F5A623] border border-[#F5A623]/30">
+                                        Programador
+                                    </span>
+                                )}
+                                {(profile.is_client || profile.client_business_type) && (
+                                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold tracking-wide bg-white/5 text-gray-300 border border-white/10">
+                                        {profile.client_business_type || 'Cliente'}
+                                    </span>
+                                )}
                             </div>
 
                             {/* Avatar & Alterar foto de perfil */}
@@ -419,9 +506,16 @@ export default function ProfilePage() {
                                 {/* Common Stats */}
                                 <div className="flex items-center justify-between text-sm">
                                     <span className="text-gray-400 flex items-center gap-2">
-                                        <Star className="w-4 h-4 text-[#FFAE00]" /> Avaliação
+                                        {profile.reviews_count && profile.reviews_count > 0 ? (
+                                            <Star className="w-4 h-4 text-[#F5A623] fill-[#F5A623]" />
+                                        ) : null}
+                                        Avaliação
                                     </span>
-                                    <span className="text-white font-bold">{profile.rating?.toFixed(1) || '5.0'}</span>
+                                    <span className="text-white font-bold">
+                                        {profile.reviews_count && profile.reviews_count > 0
+                                            ? `${profile.rating?.toFixed(1)} (${profile.reviews_count})`
+                                            : 'Sem avaliações ainda'}
+                                    </span>
                                 </div>
                                 <div className="flex items-center justify-between text-sm">
                                     <span className="text-gray-400 flex items-center gap-2">
@@ -441,12 +535,22 @@ export default function ProfilePage() {
                                         <span className="text-white font-bold">{profile.matrices_count || 0}</span>
                                     </div>
                                 ) : (
-                                    <div className="flex items-center justify-between text-sm">
-                                        <span className="text-gray-400 flex items-center gap-2">
-                                            <Layers className="w-4 h-4 text-[#FFAE00]" /> Nível
-                                        </span>
-                                        <span className="text-white font-bold text-xs">{profile.experience_level || 'Iniciante'}</span>
-                                    </div>
+                                    <>
+                                        <div className="flex items-center justify-between text-sm">
+                                            <span className="text-gray-400 flex items-center gap-2">
+                                                <Layers className="w-4 h-4 text-[#FFAE00]" /> Perfil
+                                            </span>
+                                            <span className="text-white font-bold text-xs">{profile.client_business_type || profile.experience_level || 'Iniciante'}</span>
+                                        </div>
+                                        {profile.client_machine_brand && (
+                                            <div className="flex items-center justify-between text-sm">
+                                                <span className="text-gray-400 flex items-center gap-2">
+                                                    <Layers className="w-4 h-4 text-[#FFAE00]" /> Máquina
+                                                </span>
+                                                <span className="text-white font-bold text-xs">{profile.client_machine_brand}</span>
+                                            </div>
+                                        )}
+                                    </>
                                 )}
                             </div>
 
@@ -465,24 +569,39 @@ export default function ProfilePage() {
                                 </div>
                             )}
 
-                            {isOwner && profile.role === 'cliente' && (
-                                <div className="mt-8">
+                            {isOwner && (
+                                <div className="mt-6 pt-5 border-t border-white/[0.08] space-y-3">
+                                    {(!profile.is_programmer || !profile.skills || profile.skills.length === 0) ? (
+                                        <div>
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setActivateProgrammer(true)
+                                                    setIsEditing(true)
+                                                }}
+                                                className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-[#FFB703] to-[#FB8500] hover:brightness-110 active:scale-95 text-black font-black text-xs shadow-lg shadow-[#FFB703]/20 flex items-center justify-center gap-2 transition-all cursor-pointer"
+                                            >
+                                                <Code className="w-4 h-4" />
+                                                Ativar Perfil de Programador
+                                            </button>
+                                            <p className="text-[11px] text-gray-400 text-center mt-2 leading-tight">
+                                                Necessário para enviar orçamentos
+                                            </p>
+                                        </div>
+                                    ) : (
+                                        <Link
+                                            href="/jobs"
+                                            className="block w-full text-center bg-[#1A1D23] border border-[#FFAE00] text-[#FFAE00] hover:bg-[#FFAE00] hover:text-[#0F1115] font-bold py-2.5 rounded-xl transition-colors text-xs"
+                                        >
+                                            Mural de Pedidos
+                                        </Link>
+                                    )}
+
                                     <Link
                                         href="/pedidos"
-                                        className="block w-full text-center bg-[#FFAE00] hover:bg-[#D97706] text-[#0F1115] font-bold py-2 rounded-lg transition-colors shadow-[0_0_15px_rgba(255,174,0,0.3)]"
+                                        className="block w-full text-center bg-[#12151C] border border-white/10 hover:border-white/30 text-gray-300 hover:text-white font-medium py-2 rounded-xl transition-all text-xs"
                                     >
-                                        Meus Pedidos
-                                    </Link>
-                                </div>
-                            )}
-
-                            {isOwner && profile.role === 'criador' && (
-                                <div className="mt-8">
-                                    <Link
-                                        href="/jobs"
-                                        className="block w-full text-center bg-[#1A1D23] border border-[#FFAE00] text-[#FFAE00] hover:bg-[#FFAE00] hover:text-[#0F1115] font-bold py-2 rounded-lg transition-colors"
-                                    >
-                                        Mural de Pedidos
+                                        Meus Pedidos de Bordado
                                     </Link>
                                 </div>
                             )}
@@ -513,6 +632,39 @@ export default function ProfilePage() {
                     {/* Main Content */}
                     <div className="flex-1 w-full space-y-6">
 
+                        {/* Onboarding Callout for Profile Owner needing to configure Programmer Profile */}
+                        {isOwner && (!profile.is_programmer || !profile.skills || profile.skills.length === 0) && (
+                            <div className="bg-gradient-to-r from-[#181C26] via-[#151922] to-[#181C26] rounded-2xl border-2 border-[#FFB703]/30 p-6 shadow-2xl relative overflow-hidden">
+                                <div className="absolute top-0 right-0 -mr-8 -mt-8 w-32 h-32 bg-[#FFB703]/10 rounded-full blur-2xl pointer-events-none" />
+                                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative z-10">
+                                    <div className="space-y-2 max-w-xl">
+                                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#FFB703]/10 border border-[#FFB703]/30 text-[#FFB703] text-xs font-bold uppercase tracking-wider">
+                                            <Sparkles className="w-3.5 h-3.5" />
+                                            Envio de Propostas no Mural
+                                        </div>
+                                        <h3 className="text-lg sm:text-xl font-black text-white">
+                                            Deseja enviar propostas e trabalhar como programador?
+                                        </h3>
+                                        <p className="text-xs sm:text-sm text-gray-400 leading-relaxed">
+                                            Para enviar orçamentos nos pedidos dos clientes e receber pagamentos com segurança via chave PIX, complete seu perfil ativando a opção de <strong className="text-gray-200">Programador</strong> e selecionando os softwares de matrizes que você domina (Wilcom, Embird, Tajima, etc.).
+                                        </p>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setActivateProgrammer(true)
+                                            setIsEditing(true)
+                                        }}
+                                        className="shrink-0 inline-flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-xl bg-gradient-to-r from-[#FFB703] to-[#FB8500] hover:brightness-110 active:scale-95 text-black font-black text-sm shadow-xl shadow-[#FFB703]/25 transition-all cursor-pointer"
+                                    >
+                                        <Code className="w-4 h-4" />
+                                        Ativar e Completar Perfil
+                                        <ArrowRight className="w-4 h-4" />
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
                         {/* Bio / About */}
                         <div className="bg-[#1A1D23] rounded-xl border border-[#FFAE00]/20 p-6 shadow-xl">
                             <h2 className="text-xl font-bold text-[#F3F4F6] mb-4 flex items-center gap-2">
@@ -535,9 +687,10 @@ export default function ProfilePage() {
                                     {isOwner && (
                                         <label className="text-xs text-gray-400 hover:text-[#FFAE00] cursor-pointer transition-colors flex items-center gap-1 bg-[#0F1115] px-3 py-1.5 rounded-lg border border-gray-700 hover:border-[#FFAE00]">
                                             <Upload className="w-3 h-3" />
-                                            Adicionar
+                                            Adicionar Fotos
                                             <input
                                                 type="file"
+                                                multiple
                                                 className="hidden"
                                                 accept="image/*"
                                                 onChange={handleQuickPortfolioUpload}
@@ -547,19 +700,21 @@ export default function ProfilePage() {
                                     )}
                                 </div>
 
-                                {profile.portfolio_urls && profile.portfolio_urls.length > 0 ? (
+                                {profile.portfolio_urls && profile.portfolio_urls.filter(u => Boolean(u && typeof u === 'string' && u.trim().length > 0)).length > 0 ? (
                                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                                        {profile.portfolio_urls.map((url, idx) => (
-                                            <div key={idx} className="aspect-square bg-black rounded-lg overflow-hidden border border-gray-800 hover:border-[#FFAE00] transition-colors cursor-pointer group relative">
-                                                <Image
-                                                    src={url}
-                                                    alt={`Portfolio ${idx}`}
-                                                    fill
-                                                    className="object-contain group-hover:scale-105 transition-transform duration-300"
-                                                    unoptimized
-                                                />
-                                            </div>
-                                        ))}
+                                        {profile.portfolio_urls
+                                            .filter((url): url is string => Boolean(url && typeof url === 'string' && url.trim().length > 0))
+                                            .map((url, idx) => (
+                                                <div key={idx} className="aspect-square bg-black rounded-lg overflow-hidden border border-gray-800 hover:border-[#FFAE00] transition-colors cursor-pointer group relative">
+                                                    <Image
+                                                        src={url}
+                                                        alt={`Portfolio ${idx + 1}`}
+                                                        fill
+                                                        className="object-contain group-hover:scale-105 transition-transform duration-300"
+                                                        unoptimized
+                                                    />
+                                                </div>
+                                            ))}
                                     </div>
                                 ) : (
                                     <div className="text-center py-12 border-2 border-dashed border-gray-800 rounded-xl bg-[#0F1115]/50">
@@ -631,13 +786,15 @@ export default function ProfilePage() {
                                             {/* Matrix & Service breakdown */}
                                             <div className="flex flex-wrap gap-2 mb-3">
                                                 {rev.rating_matrix && (
-                                                    <span className="text-[10px] font-medium text-gray-300 bg-white/[0.03] border border-white/5 px-2.5 py-1 rounded-md flex items-center gap-1">
-                                                        Matriz: <strong className="text-[#FFAE00]">{rev.rating_matrix}.0</strong> ⭐
+                                                    <span className="text-[10px] font-medium text-gray-300 bg-white/[0.03] border border-white/5 px-2.5 py-1 rounded-md flex items-center gap-1.5">
+                                                        Matriz: <strong className="text-[#F5A623]">{rev.rating_matrix}.0</strong>
+                                                        <Star className="w-3 h-3 text-[#F5A623] fill-[#F5A623]" />
                                                     </span>
                                                 )}
                                                 {rev.rating_service && (
-                                                    <span className="text-[10px] font-medium text-gray-300 bg-white/[0.03] border border-white/5 px-2.5 py-1 rounded-md flex items-center gap-1">
-                                                        Atendimento / Prazo: <strong className="text-[#FFAE00]">{rev.rating_service}.0</strong> ⭐
+                                                    <span className="text-[10px] font-medium text-gray-300 bg-white/[0.03] border border-white/5 px-2.5 py-1 rounded-md flex items-center gap-1.5">
+                                                        Atendimento / Prazo: <strong className="text-[#F5A623]">{rev.rating_service}.0</strong>
+                                                        <Star className="w-3 h-3 text-[#F5A623] fill-[#F5A623]" />
                                                     </span>
                                                 )}
                                             </div>

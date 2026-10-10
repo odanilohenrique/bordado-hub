@@ -1,8 +1,15 @@
 @import "tailwindcss";
 
 :root {
-  --background: #0F1115;
-  --foreground: #F3F4F6;
+  --background: #0B0D11;
+  --foreground: #F8FAFC;
+  --surface-1: #12151C;
+  --surface-2: #181C26;
+  --surface-border: rgba(255, 255, 255, 0.07);
+  --gold-primary: #F5A623;
+  --gold-hover: #E08A00;
+  --gold-subtle: rgba(245, 166, 35, 0.12);
+  --emerald-escrow: #10B981;
 }
 
 @theme inline {
@@ -15,5 +22,81 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #0B0D11;
+}
+::-webkit-scrollbar-thumb {
+  background: #1E232F;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #2D3546;
+}
+
+/* Glassmorphism Surface utility classes */
+.glass-panel {
+  background-color: #12151C;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  backdrop-filter: blur(12px);
+}
+
+.glass-panel-elevated {
+  background-color: #181C26;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+}
+
+/* Gold Glow & Text Gradient */
+.text-gold-gradient {
+  background: linear-gradient(135deg, #FFD166 0%, #F5A623 50%, #E08A00 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.gold-glow {
+  box-shadow: 0 0 25px -5px rgba(245, 166, 35, 0.25);
+}
+
+.gold-glow-subtle {
+  box-shadow: 0 0 15px -3px rgba(245, 166, 35, 0.12);
+}
+
+/* Micro-interaction: Subtle Scale & Shimmer */
+.interactive-card {
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.interactive-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255, 255, 255, 0.14);
+  box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.4);
+}
+
+/* Pure CSS lightweight celebration keyframes */
+@keyframes successPop {
+  0% { transform: scale(0.8); opacity: 0; }
+  60% { transform: scale(1.05); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+  50% { box-shadow: 0 0 20px 4px rgba(16, 185, 129, 0.25); }
+}
+
+.animate-success-pop {
+  animation: successPop 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-pulse-glow {
+  animation: pulseGlow 2s infinite ease-in-out;
 }

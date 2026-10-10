@@ -12,8 +12,16 @@ import NotificationBell from '@/components/NotificationBell'
 export default function Navbar() {
     const { user } = useAuth()
     const [isOpen, setIsOpen] = useState(false)
+    const [mounted, setMounted] = useState(false)
     const router = useRouter()
     const pathname = usePathname()
+
+    useEffect(() => {
+        setMounted(true)
+    }, [])
+
+    // Only use user for conditional rendering after mount to prevent hydration mismatch
+    const mountedUser = mounted ? user : null
 
     // Close mobile menu on page change
     useEffect(() => {
@@ -28,7 +36,7 @@ export default function Navbar() {
     }
 
     return (
-        <nav className="sticky top-0 z-50 bg-[#0F1115]/95 backdrop-blur-md border-b border-white/5 shadow-lg">
+        <nav className="sticky top-0 z-50 bg-[#0B0D11]/90 backdrop-blur-xl border-b border-white/[0.07] shadow-lg">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex justify-between h-16 items-center">
                     {/* Brand Logo */}
@@ -81,7 +89,7 @@ export default function Navbar() {
 
                     {/* Desktop Right Auth Actions */}
                     <div className="hidden md:flex items-center gap-3">
-                        {user ? (
+                        {mountedUser ? (
                             <div className="flex items-center gap-3">
                                 <NotificationBell />
                                 <Link 
@@ -91,7 +99,7 @@ export default function Navbar() {
                                     Meus Pedidos
                                 </Link>
                                 <Link 
-                                    href={`/profile/${user.id}`} 
+                                    href={`/profile/${mountedUser.id}`} 
                                     className="text-sm font-medium text-gray-300 hover:text-white px-3 py-2 rounded-lg hover:bg-white/5 transition-colors"
                                 >
                                     Meu Perfil
@@ -136,7 +144,7 @@ export default function Navbar() {
 
                     {/* Mobile Hamburger Button */}
                     <div className="flex items-center gap-2 md:hidden">
-                        {user && <NotificationBell />}
+                        {mountedUser && <NotificationBell />}
                         <button
                             onClick={() => setIsOpen(!isOpen)}
                             className="p-2 rounded-xl text-gray-300 hover:text-white hover:bg-white/5 active:scale-95 transition-all"
@@ -176,7 +184,7 @@ export default function Navbar() {
                     </div>
 
                     <div className="pt-4 border-t border-white/5 space-y-2">
-                        {user ? (
+                        {mountedUser ? (
                             <>
                                 <Link 
                                     href="/pedidos" 
@@ -186,7 +194,7 @@ export default function Navbar() {
                                     Meus Pedidos
                                 </Link>
                                 <Link 
-                                    href={`/profile/${user.id}`} 
+                                    href={`/profile/${mountedUser.id}`} 
                                     className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium text-gray-200 hover:bg-white/5"
                                 >
                                     Meu Perfil

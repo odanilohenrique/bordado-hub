@@ -292,35 +292,35 @@ function CheckoutClient({ proposalId }: { proposalId: string }) {
     }
 
     return (
-        <div className="min-h-screen bg-[#0F1115] py-12 px-4 sm:px-6 lg:px-8">
+        <div className="min-h-screen bg-[#0B0D11] py-12 px-4 sm:px-6 lg:px-8 text-slate-100">
             <div className="max-w-xl mx-auto">
                 <button
                     onClick={() => router.back()}
-                    className="inline-flex items-center gap-2 text-gray-400 hover:text-[#FFAE00] text-sm mb-6 transition-colors"
+                    className="inline-flex items-center gap-2 text-gray-400 hover:text-[#F5A623] text-sm mb-6 transition-colors"
                 >
                     <ArrowLeft className="w-4 h-4" /> Voltar
                 </button>
 
-                <div className="bg-[#1A1D23] rounded-2xl border border-[#FFAE00]/20 shadow-2xl p-6 sm:p-8">
+                <div className="bg-[#12151C] rounded-2xl border border-white/[0.07] shadow-2xl p-6 sm:p-8">
                     {/* Header */}
-                    <div className="flex items-center justify-between border-b border-gray-800 pb-6 mb-6">
+                    <div className="flex items-center justify-between border-b border-white/[0.07] pb-6 mb-6">
                         <div>
-                            <span className="text-xs uppercase tracking-widest text-[#FFAE00] font-bold">Checkout Seguro</span>
-                            <h1 className="text-2xl font-black text-[#F3F4F6] mt-1">Pagamento</h1>
+                            <span className="text-xs uppercase tracking-widest text-[#F5A623] font-bold">Checkout Seguro</span>
+                            <h1 className="text-2xl font-black text-white mt-1">Pagamento</h1>
                         </div>
-                        <div className="bg-[#FFAE00]/10 p-3 rounded-xl border border-[#FFAE00]/20">
-                            <Lock className="w-7 h-7 text-[#FFAE00]" />
+                        <div className="bg-[#181C26] p-3 rounded-xl border border-white/[0.07]">
+                            <Lock className="w-6 h-6 text-[#F5A623]" />
                         </div>
                     </div>
 
                     {/* Order Summary */}
-                    <div className="bg-[#0F1115] rounded-xl p-4 border border-gray-800 mb-6 space-y-3">
+                    <div className="bg-[#181C26] rounded-xl p-4 border border-white/[0.07] mb-6 space-y-3">
                         <div>
                             <h3 className="font-bold text-white text-base">{job?.title}</h3>
                             <p className="text-xs text-gray-400">Programador: {proposal.criador?.name || 'Criador'}</p>
                             <p className="text-xs text-gray-400">Prazo: {proposal.deadline_text}</p>
                         </div>
-                        <div className="border-t border-gray-800 pt-3 space-y-2 text-sm">
+                        <div className="border-t border-white/[0.07] pt-3 space-y-2 text-sm">
                             <div className="flex justify-between text-gray-400">
                                 <span>Valor da Matriz:</span>
                                 <span className="font-semibold text-white">R$ {baseAmount.toFixed(2)}</span>
@@ -329,18 +329,18 @@ function CheckoutClient({ proposalId }: { proposalId: string }) {
                                 <span>Taxa de Intermediação (5%):</span>
                                 <span>R$ {clientFee.toFixed(2)}</span>
                             </div>
-                            <div className="flex justify-between text-base font-extrabold text-white border-t border-gray-800 pt-2">
+                            <div className="flex justify-between text-base font-extrabold text-white border-t border-white/[0.07] pt-2">
                                 <span>Total:</span>
-                                <span className="text-[#FFAE00]">R$ {totalAmount.toFixed(2)}</span>
+                                <span className="text-[#F5A623]">R$ {totalAmount.toFixed(2)}</span>
                             </div>
                         </div>
                     </div>
 
                     {/* Safe Escrow Notice */}
-                    <div className="bg-[#FFAE00]/10 border border-[#FFAE00]/20 rounded-xl p-4 mb-6 flex items-start gap-3">
-                        <ShieldCheck className="w-6 h-6 text-[#FFAE00] flex-shrink-0 mt-0.5" />
-                        <p className="text-xs text-gray-300 leading-relaxed">
-                            <strong className="text-white">Garantia do BordadoHub:</strong> O valor pago fica sob custódia e só é repassado ao programador após a entrega e sua aprovação.
+                    <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4 mb-6 flex items-start gap-3">
+                        <ShieldCheck className="w-6 h-6 text-emerald-400 flex-shrink-0 mt-0.5" />
+                        <p className="text-xs text-emerald-300 leading-relaxed">
+                            <strong className="text-white">Garantia BordadoHUB:</strong> O valor pago fica sob custódia e só é repassado ao programador após a entrega e sua aprovação.
                         </p>
                     </div>
 
@@ -351,8 +351,8 @@ function CheckoutClient({ proposalId }: { proposalId: string }) {
                                 onClick={() => setPaymentMethod('pix')}
                                 className={`flex-1 py-3 px-4 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 ${
                                     paymentMethod === 'pix'
-                                        ? 'bg-[#FFAE00] text-[#0F1115] shadow-lg shadow-[#FFAE00]/20'
-                                        : 'bg-[#0F1115] text-gray-400 border border-gray-700 hover:border-gray-500'
+                                        ? 'bg-gradient-to-r from-[#FFB703] to-[#FB8500] text-black shadow-lg shadow-[#FFB703]/20 font-extrabold'
+                                        : 'bg-[#181C26] text-gray-400 border border-white/[0.07] hover:border-white/20'
                                 }`}
                             >
                                 <QrCode className="w-4 h-4" />
@@ -362,8 +362,8 @@ function CheckoutClient({ proposalId }: { proposalId: string }) {
                                 onClick={() => setPaymentMethod('cartao')}
                                 className={`flex-1 py-3 px-4 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 ${
                                     paymentMethod === 'cartao'
-                                        ? 'bg-[#FFAE00] text-[#0F1115] shadow-lg shadow-[#FFAE00]/20'
-                                        : 'bg-[#0F1115] text-gray-400 border border-gray-700 hover:border-gray-500'
+                                        ? 'bg-gradient-to-r from-[#FFB703] to-[#FB8500] text-black shadow-lg shadow-[#FFB703]/20 font-extrabold'
+                                        : 'bg-[#181C26] text-gray-400 border border-white/[0.07] hover:border-white/20'
                                 }`}
                             >
                                 <CreditCard className="w-4 h-4" />
@@ -434,14 +434,14 @@ function CheckoutClient({ proposalId }: { proposalId: string }) {
                                     placeholder="000.000.000-00"
                                     value={cpfCnpj}
                                     onChange={(e) => setCpfCnpj(e.target.value)}
-                                    className="w-full bg-[#0F1115] border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-[#FFAE00] transition-all text-sm font-mono"
+                                    className="w-full bg-[#181C26] border border-white/[0.07] rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-[#F5A623] transition-all text-sm font-mono"
                                 />
                             </div>
 
                             <button
                                 type="submit"
                                 disabled={processing}
-                                className="w-full flex items-center justify-center gap-2 bg-[#FFAE00] hover:bg-[#D97706] text-[#0F1115] font-bold py-4 px-6 rounded-xl transition-all shadow-lg shadow-[#FFAE00]/20 disabled:opacity-50 text-base"
+                                className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-[#FFB703] to-[#FB8500] hover:brightness-110 text-black font-extrabold py-4 px-6 rounded-xl transition-all shadow-lg shadow-[#FFB703]/20 disabled:opacity-50 text-base active:scale-95"
                             >
                                 {processing ? (
                                     <><Loader2 className="w-5 h-5 animate-spin" /> Gerando PIX...</>
@@ -597,7 +597,7 @@ function CheckoutClient({ proposalId }: { proposalId: string }) {
                             <button
                                 type="submit"
                                 disabled={processing}
-                                className="w-full flex items-center justify-center gap-2 bg-[#FFAE00] hover:bg-[#D97706] text-[#0F1115] font-bold py-4 px-6 rounded-xl transition-all shadow-lg shadow-[#FFAE00]/20 disabled:opacity-50 text-base"
+                                className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-[#FFB703] to-[#FB8500] hover:brightness-110 text-black font-extrabold py-4 px-6 rounded-xl transition-all shadow-lg shadow-[#FFB703]/20 disabled:opacity-50 text-base active:scale-95"
                             >
                                 {processing ? (
                                     <><Loader2 className="w-5 h-5 animate-spin" /> Processando...</>

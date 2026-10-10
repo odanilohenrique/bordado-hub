@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Navbar from './Navbar'
 import Sidebar from './Sidebar'
 import MobileBottomNav from './MobileBottomNav'
@@ -14,12 +14,19 @@ import { useAuth } from '@/contexts/AuthContext'
 export default function NavigationWrapper({ children }: { children: React.ReactNode }) {
     const { user, profile } = useAuth()
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+    const [mounted, setMounted] = useState(false)
 
-    // While loading, or if not authenticated, render the public layout.
-    // This prevents SEO blockers and hydration flickers.
-    if (!user) {
+    // Delay rendering the authenticated layout until after hydration completes.
+    // This ensures the server-rendered HTML and the first client render match exactly.
+    useEffect(() => {
+        setMounted(true)
+    }, [])
+
+    // Before mount or if not authenticated, render the public layout.
+    // This prevents hydration mismatches and SEO blockers.
+    if (!mounted || !user) {
         return (
-            <div className="min-h-screen bg-[#0F1115] flex flex-col">
+            <div className="min-h-screen bg-[#0B0D11] flex flex-col">
                 <Navbar />
                 <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
                     {children}
@@ -30,12 +37,12 @@ export default function NavigationWrapper({ children }: { children: React.ReactN
 
     // Authenticated Layout
     return (
-        <div className="min-h-screen bg-[#0F1115] flex flex-col md:flex-row">
+        <div className="min-h-screen bg-[#0B0D11] flex flex-col md:flex-row">
             {/* Desktop Sidebar */}
             <Sidebar initialUser={user} initialProfile={profile} />
 
             {/* Mobile Top Header (Fixed on mobile screens) */}
-            <div className="md:hidden fixed top-0 left-0 right-0 h-14 bg-[#14171E]/95 backdrop-blur-md border-b border-white/5 z-30 flex items-center justify-between px-4">
+            <div className="md:hidden fixed top-0 left-0 right-0 h-14 bg-[#0B0D11]/90 backdrop-blur-xl border-b border-white/[0.07] z-30 flex items-center justify-between px-4">
                 <Link href={profile?.role === 'criador' ? '/jobs' : '/pedidos'} className="flex items-center py-1">
                     <Image
                         src="/brand/logo-dark-grossa.png"

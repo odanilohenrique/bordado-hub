@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabaseClient'
 import { useRouter, useParams, useSearchParams } from 'next/navigation'
 import { formatDate } from '@/lib/helpers'
 import Link from 'next/link'
-import { ArrowLeft, Clock, Calendar, MessageSquare, AlertCircle, CheckCircle, Package, Zap, User, X, Star, PenTool, Download, Upload, Send, Sparkles, DollarSign, Wrench, Camera, RotateCcw, Ruler, Maximize2, Handshake, Check } from 'lucide-react'
+import { ArrowLeft, Clock, Calendar, MessageSquare, AlertCircle, CheckCircle, Package, Zap, User, X, Star, PenTool, Download, Upload, Send, Sparkles, DollarSign, Wrench, Camera, RotateCcw, Ruler, Maximize2, Handshake, Check, Code } from 'lucide-react'
 import NegotiationChat from '@/components/NegotiationChat'
 import { toast } from 'sonner'
 import JSZip from 'jszip'
@@ -120,6 +120,7 @@ interface Proposal {
         name: string
         avatar_url: string
         rating: number
+        reviews_count?: number
     }
 }
 
@@ -187,123 +188,47 @@ function JobDetailClient({ jobId }: { jobId: string }) {
     const [submittingRevision, setSubmittingRevision] = useState(false)
 
     const router = useRouter()
+    const isFetchingRef = useRef(false)
 
     const loadData = useCallback(async () => {
+        if (isFetchingRef.current) return
+        isFetchingRef.current = true
         try {
-            const { data: { session } } = await supabase.auth.getSession()
-            const user = session?.user
-            if (!user) {
-                router.push('/login')
-                return
-            }
+            // 1. Fetch current user session in parallel without blocking
+            const authPromise = (async () => {
+                const { data: { session } } = await supabase.auth.getSession()
+                const user = session?.user
+                if (!user) return null
+                let { data: profile } = await supabase
+                    .from('users')
+                    .select('*')
+                    .eq('supabase_user_id', user.id)
+                    .maybeSingle()
+                return profile
+            })().catch(err => {
+                console.warn('Auth session check error:', err)
+                return null
+            })
 
-            let { data: profile } = await supabase
-                .from('users')
-                .select('*')
-                .eq('supabase_user_id', user.id)
-                .maybeSingle()
+            // 2. Fetch full job details from fast server API route
+            const apiPromise = fetch(`/api/jobs/${jobId}`, {
+                cache: 'no-store',
+                signal: AbortSignal.timeout(6000)
+            }).then(r => r.json()).catch(err => {
+                console.warn('API error fetching job detail:', err)
+                return null
+            })
 
-            if (!profile && user.email) {
-                try {
-                    const res = await fetch('/api/create-profile', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            userId: user.id,
-                            email: user.email,
-                            name: user.user_metadata?.full_name || user.user_metadata?.name || user.email.split('@')[0],
-                            avatar_url: user.user_metadata?.avatar_url || user.user_metadata?.picture || null,
-                            role: 'criador'
-                        })
-                    })
-                    const resData = await res.json()
-                    profile = resData?.data || null
-                } catch (healErr) {
-                    console.error('Error auto-healing profile in loadData:', healErr)
-                }
-            }
+            const [profile, apiData] = await Promise.all([authPromise, apiPromise])
 
-            // Fetch job and proposals IN PARALLEL with timeout protection
-            const timeoutPromise = new Promise<any>((resolve) =>
-                setTimeout(() => resolve([{ data: null, error: new Error('Job fetch timeout') }, { data: null, error: null }]), 6000)
-            )
+            if (profile) setCurrentUser(profile)
 
-            const [
-                { data: jobData, error: jobError },
-                { data: proposalsData, error: proposalsError }
-            ] = await Promise.race([
-                Promise.all([
-                    supabase
-                        .from('jobs')
-                        .select('*, users!jobs_cliente_id_fkey(name, avatar_url)')
-                        .eq('id', jobId)
-                        .maybeSingle(),
-                    supabase
-                        .from('proposals')
-                        .select(`
-                            *,
-                            users:criador_id (
-                                id,
-                                name,
-                                avatar_url,
-                                rating
-                            )
-                        `)
-                        .eq('job_id', jobId)
-                        .order('created_at', { ascending: false })
-                ]),
-                timeoutPromise
-            ])
-
-            if (jobError) {
-                console.error('Error fetching job:', jobError)
-            }
-            if (proposalsError) {
-                console.error('Error loading proposals:', proposalsError)
-                toast.error('Erro ao carregar propostas: ' + proposalsError.message)
-            }
-
-            if (jobData) setJob(jobData)
-            setCurrentUser(profile)
-            setProposals(proposalsData || [])
-
-            if (jobData?.status === 'finalizado') {
-                const [{ data: rev }, { data: txData }] = await Promise.all([
-                    supabase
-                        .from('reviews')
-                        .select('*')
-                        .eq('job_id', jobId)
-                        .maybeSingle(),
-                    supabase
-                        .from('transactions')
-                        .select('metodo, status')
-                        .eq('job_id', jobId)
-                        .order('created_at', { ascending: false })
-                        .limit(1)
-                        .maybeSingle()
-                ])
-                if (rev) setJobReview(rev)
-                if (txData) setJobTransaction(txData)
-            }
-
-            if (proposalsData && proposalsData.length > 0) {
-                const proposalIds = proposalsData.map((p: any) => p.id)
-                // Fetch unread messages count SCOPED to this job's proposals
-                const { data: messages } = await supabase
-                    .from('proposal_messages')
-                    .select('proposal_id, sender_id, read')
-                    .in('proposal_id', proposalIds)
-                    .eq('read', false)
-                
-                if (messages) {
-                    const counts: Record<string, number> = {}
-                    messages.forEach(msg => {
-                        if (msg.sender_id !== profile?.id) {
-                            counts[msg.proposal_id] = (counts[msg.proposal_id] || 0) + 1
-                        }
-                    })
-                    setUnreadCounts(counts)
-                }
+            if (apiData && apiData.job) {
+                setJob(apiData.job)
+                setProposals(apiData.proposals || [])
+                if (apiData.review) setJobReview(apiData.review)
+                if (apiData.transaction) setJobTransaction(apiData.transaction)
+                if (apiData.unreadCounts) setUnreadCounts(apiData.unreadCounts)
             }
 
             // Auto-mark notifications for this job as read
@@ -322,9 +247,10 @@ function JobDetailClient({ jobId }: { jobId: string }) {
         } catch (err) {
             console.error('Error in loadData:', err)
         } finally {
+            isFetchingRef.current = false
             setLoading(false)
         }
-    }, [jobId, router])
+    }, [jobId])
 
     // Ref to track currentUser id for realtime callbacks without causing re-renders
     const currentUserIdRef = useRef<string | null>(null)
@@ -361,7 +287,8 @@ function JobDetailClient({ jobId }: { jobId: string }) {
             }, (payload) => {
                 const newRow = payload.new as any
                 const oldRow = payload.old as any
-                if (!newRow?.job_id || newRow?.job_id === jobId || oldRow?.job_id === jobId) {
+                const targetJobId = newRow?.job_id || oldRow?.job_id
+                if (targetJobId === jobId || (!targetJobId && payload.eventType === 'DELETE')) {
                     loadData()
                 }
             })
@@ -504,6 +431,19 @@ function JobDetailClient({ jobId }: { jobId: string }) {
     const handleSubmitProposal = async (e: React.FormEvent) => {
         e.preventDefault()
         setSubmitting(true)
+
+        // Safety gate: verify programmer profile readiness
+        const isReady = Boolean(
+            currentUser?.is_programmer ||
+            (currentUser?.skills && currentUser?.skills.length > 0) ||
+            currentUser?.role === 'criador'
+        )
+
+        if (!isReady) {
+            toast.error('Ative seu perfil de programador com seus softwares dominados antes de enviar propostas.')
+            setSubmitting(false)
+            return
+        }
 
         try {
             let creatorId = currentUser?.id
@@ -975,6 +915,11 @@ function JobDetailClient({ jobId }: { jobId: string }) {
     const hasAnyAcceptedProposal = proposals.some((p: any) => p.status === 'aceita')
     const isJobLocked = job.status !== 'aberto' || hasAnyAcceptedProposal
     const showProposalForm = !isOwner && !isJobLocked && !hasAlreadySentProposal
+    const isProgrammerReady = Boolean(
+        currentUser?.is_programmer ||
+        (currentUser?.skills && currentUser?.skills.length > 0) ||
+        currentUser?.role === 'criador'
+    )
 
     const urgencyLabels: Record<string, string> = {
         'urgente': 'Urgente (24h)',
@@ -982,22 +927,80 @@ function JobDetailClient({ jobId }: { jobId: string }) {
         'sem_pressa': 'Sem Pressa'
     }
 
+    const statusSteps = [
+        { key: 'aberto', label: 'Publicado', desc: 'Recebendo Propostas', icon: Package },
+        { key: 'em_progresso', label: 'Em Produção', desc: 'Digitalização da Matriz', icon: PenTool },
+        { key: 'entregue', label: 'Entregue', desc: 'Teste de Máquina (24h)', icon: Clock },
+        { key: 'finalizado', label: 'Concluído', desc: 'Pagamento Liberado', icon: CheckCircle }
+    ]
+
+    const currentStepIndex = job.status === 'aberto' ? 0
+        : (job.status === 'em_progresso' || job.status === 'em_revisao') ? 1
+        : job.status === 'entregue' ? 2
+        : job.status === 'finalizado' ? 3
+        : 0
+
     return (
-        <div className="min-h-screen bg-[#0F1115] py-4 px-4 sm:px-6 lg:px-8 text-gray-100">
+        <div className="min-h-screen bg-[#0B0D11] py-4 px-4 sm:px-6 lg:px-8 text-slate-100">
             <div className="max-w-6xl mx-auto flex flex-col gap-4">
                 <Link
                     href="/pedidos"
-                    className="inline-flex items-center gap-2 text-gray-400 hover:text-[#FFAE00] transition-colors text-xs font-bold uppercase tracking-wider"
+                    className="inline-flex items-center gap-2 text-gray-400 hover:text-[#F5A623] transition-colors text-xs font-bold uppercase tracking-wider w-fit"
                 >
-                    <ArrowLeft className="w-3 h-3" />
-                    Voltar
+                    <ArrowLeft className="w-3.5 h-3.5" />
+                    Voltar aos Pedidos
                 </Link>
 
+                {/* Status Progress Tracker Bar */}
+                <div className="bg-[#12151C] border border-white/[0.07] rounded-2xl p-4 sm:p-5 shadow-sm">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 relative">
+                        {statusSteps.map((step, idx) => {
+                            const StepIcon = step.icon
+                            const isCompleted = currentStepIndex > idx
+                            const isCurrent = currentStepIndex === idx
+                            return (
+                                <div
+                                    key={step.key}
+                                    className={`flex items-center gap-3 p-2.5 rounded-xl transition-all ${
+                                        isCurrent
+                                            ? 'bg-[#181C26] border border-[#F5A623]/40 shadow-sm shadow-[#F5A623]/5'
+                                            : isCompleted
+                                            ? 'bg-emerald-500/5 border border-emerald-500/20'
+                                            : 'bg-transparent opacity-40 border border-transparent'
+                                    }`}
+                                >
+                                    <div
+                                        className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-transform ${
+                                            isCurrent
+                                                ? 'bg-gradient-to-r from-[#FFB703] to-[#FB8500] text-black font-black scale-105 shadow-md shadow-[#FFB703]/20'
+                                                : isCompleted
+                                                ? 'bg-emerald-500/20 text-emerald-400'
+                                                : 'bg-white/5 text-gray-500'
+                                        }`}
+                                    >
+                                        {isCompleted ? <Check className="w-4 h-4" /> : <StepIcon className="w-4 h-4" />}
+                                    </div>
+                                    <div className="min-w-0 flex-1">
+                                        <p
+                                            className={`text-xs font-bold truncate leading-tight ${
+                                                isCurrent ? 'text-white' : isCompleted ? 'text-emerald-300' : 'text-gray-400'
+                                            }`}
+                                        >
+                                            {step.label}
+                                        </p>
+                                        <p className="text-[10px] text-gray-500 truncate mt-0.5">{step.desc}</p>
+                                    </div>
+                                </div>
+                            )
+                        })}
+                    </div>
+                </div>
+
                 {/* 1. TOP SECTION: Job Detail (Unified Card for Single Matrix and Kits) */}
-                <div className="bg-[#1A1D23] border border-white/5 rounded-xl overflow-hidden shadow-lg">
+                <div className="bg-[#12151C] border border-white/[0.07] rounded-2xl overflow-hidden shadow-xl">
                     <div className="flex flex-col md:flex-row">
                         {/* Foto à esquerda */}
-                        <div className="w-full md:w-80 lg:w-96 min-h-[300px] bg-black/40 border-r border-white/5 relative flex flex-col justify-between group shrink-0">
+                        <div className="w-full md:w-80 lg:w-96 min-h-[300px] bg-[#0B0D11] border-r border-white/[0.07] relative flex flex-col justify-between group shrink-0">
                             <div className="relative flex-1 min-h-[240px] flex items-center justify-center overflow-hidden p-4">
                                 {activeImageUrl ? (
                                     activeImageUrl.toLowerCase().includes('.pdf') ? (
@@ -1414,13 +1417,13 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                         </div>
                     </div>
                 ) : job.status === 'entregue' ? (
-                    <div className="bg-[#1A1D23] border border-green-500/30 rounded-xl overflow-hidden shadow-[0_0_50px_rgba(34,197,94,0.1)] mb-8">
+                    <div className="bg-[#12151C] border border-emerald-500/30 rounded-2xl overflow-hidden shadow-[0_0_50px_rgba(16,185,129,0.1)] mb-8">
                         <div className="flex flex-col lg:flex-row">
                             {/* Left Side: Owner gets test/download/revision; Programmer gets confirmation + file list */}
-                            <div className="flex-1 p-8 lg:p-10 border-b lg:border-b-0 lg:border-r border-white/5">
+                            <div className="flex-1 p-8 lg:p-10 border-b lg:border-b-0 lg:border-r border-white/[0.07]">
                                 {isOwner ? (
                                     <>
-                                        <div className="inline-flex items-center gap-2 bg-green-500/20 text-green-400 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider mb-6">
+                                        <div className="inline-flex items-center gap-2 bg-emerald-500/20 text-emerald-400 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider mb-6">
                                             <CheckCircle className="w-3 h-3" /> {job.revision_notes ? 'Matriz Revisada Pronta para Teste' : 'Matriz Pronta para Teste'}
                                         </div>
                                         <h2 className="text-3xl font-black text-white mb-4">
@@ -1428,15 +1431,15 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                         </h2>
                                         <p className="text-gray-400 text-sm mb-6 leading-relaxed">
                                             {job.revision_notes ? (
-                                                <>O programador <strong className="text-white">{acceptedProposal?.users?.name}</strong> enviou a <strong>versão revisada da matriz com as alterações solicitadas</strong>. Baixe os arquivos abaixo e faça um novo teste na sua máquina. Você tem até <strong className="text-[#FFAE00]">24 horas</strong> para aprovar ou solicitar novos ajustes antes da liberação automática.</>
+                                                <>O programador <strong className="text-white">{acceptedProposal?.users?.name}</strong> enviou a <strong>versão revisada da matriz com as alterações solicitadas</strong>. Baixe os arquivos abaixo e faça um novo teste na sua máquina. Você tem até <strong className="text-[#F5A623]">24 horas</strong> para aprovar ou solicitar novos ajustes antes da liberação automática.</>
                                             ) : (
-                                                <>O programador <strong className="text-white">{acceptedProposal?.users?.name}</strong> finalizou o trabalho. Baixe os arquivos abaixo e faça um teste na sua máquina. Você tem até <strong className="text-[#FFAE00]">24 horas</strong> para testar o bordado ou solicitar ajustes antes da liberação automática.</>
+                                                <>O programador <strong className="text-white">{acceptedProposal?.users?.name}</strong> finalizou o trabalho. Baixe os arquivos abaixo e faça um teste na sua máquina. Você tem até <strong className="text-[#F5A623]">24 horas</strong> para testar o bordado ou solicitar ajustes antes da liberação automática.</>
                                             )}
                                         </p>
                                     </>
                                 ) : (
                                     <>
-                                        <div className="inline-flex items-center gap-2 bg-green-500/20 text-green-400 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider mb-6">
+                                        <div className="inline-flex items-center gap-2 bg-emerald-500/20 text-emerald-400 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider mb-6">
                                             <Package className="w-3 h-3" /> {job.revision_notes ? 'Correção da Matriz Enviada com Sucesso' : 'Matriz Entregue com Sucesso'}
                                         </div>
                                         <h2 className="text-3xl font-black text-white mb-4">
@@ -1444,9 +1447,9 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                         </h2>
                                         <p className="text-gray-400 text-sm mb-6 leading-relaxed">
                                             {job.revision_notes ? (
-                                                <>Você enviou a <strong>versão revisada da matriz</strong> atendendo aos ajustes solicitados pelo comprador. O cliente foi notificado para testar o novo arquivo na máquina. Caso ele não avalie ou solicite novas revisões dentro do prazo de <strong className="text-[#FFAE00]">24 horas</strong>, o pagamento será liberado automaticamente para você.</>
+                                                <>Você enviou a <strong>versão revisada da matriz</strong> atendendo aos ajustes solicitados pelo comprador. O cliente foi notificado para testar o novo arquivo na máquina. Caso ele não avalie ou solicite novas revisões dentro do prazo de <strong className="text-[#F5A623]">24 horas</strong>, o pagamento será liberado automaticamente para você.</>
                                             ) : (
-                                                <>Você já enviou os arquivos da matriz. O cliente foi notificado para testar o bordado na máquina. Caso ele não avalie ou solicite revisões dentro do prazo de <strong className="text-[#FFAE00]">24 horas</strong>, o pagamento será liberado automaticamente para você.</>
+                                                <>Você já enviou os arquivos da matriz. O cliente foi notificado para testar o bordado na máquina. Caso ele não avalie ou solicite revisões dentro do prazo de <strong className="text-[#F5A623]">24 horas</strong>, o pagamento será liberado automaticamente para você.</>
                                             )}
                                         </p>
                                     </>
@@ -1460,13 +1463,56 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                 )}
 
                                 {job.delivery_notes && (
-                                    <div className="bg-[#0F1115] p-4 rounded-xl border border-white/5 mb-6 text-sm text-gray-400">
+                                    <div className="bg-[#0B0D11] p-4 rounded-xl border border-white/[0.07] mb-6 text-sm text-gray-400">
                                         <p className="font-bold uppercase tracking-wider text-[10px] text-gray-500 mb-1">
                                             {job.revision_notes ? 'Notas da Correção do Produtor:' : 'Notas da Entrega:'}
                                         </p>
                                         <p className="italic">&quot;{job.delivery_notes}&quot;</p>
                                     </div>
                                 )}
+
+                                {/* Ficha Técnica da Matriz Entregue */}
+                                <div className="bg-[#181C26] border border-white/[0.07] rounded-xl p-4 mb-6 shadow-inner">
+                                    <div className="flex items-center justify-between mb-3 border-b border-white/[0.07] pb-2">
+                                        <span className="text-xs font-bold text-[#F5A623] uppercase tracking-wider flex items-center gap-1.5">
+                                            <Sparkles className="w-3.5 h-3.5" />
+                                            Especificações Técnicas da Entrega
+                                        </span>
+                                        <span className="text-[10px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 rounded-full font-bold">
+                                            Apto para Bastidor
+                                        </span>
+                                    </div>
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 text-xs">
+                                        <div className="bg-[#0B0D11] border border-white/[0.07] p-2.5 rounded-lg">
+                                            <span className="text-[10px] text-gray-500 block uppercase font-bold">Bastidor / Tamanho</span>
+                                            <span className="font-bold text-white flex items-center gap-1 mt-0.5">
+                                                <Ruler className="w-3 h-3 text-[#F5A623]" />
+                                                {currentMatrix?.size || job.dimensions || 'Conforme arte'}
+                                            </span>
+                                        </div>
+                                        <div className="bg-[#0B0D11] border border-white/[0.07] p-2.5 rounded-lg">
+                                            <span className="text-[10px] text-gray-500 block uppercase font-bold">Tecido Recomendado</span>
+                                            <span className="font-bold text-white flex items-center gap-1 mt-0.5">
+                                                <Package className="w-3 h-3 text-[#F5A623]" />
+                                                {currentMatrix?.fabric || job.fabric_type || 'A combinar'}
+                                            </span>
+                                        </div>
+                                        <div className="bg-[#0B0D11] border border-white/[0.07] p-2.5 rounded-lg col-span-2 sm:col-span-1">
+                                            <span className="text-[10px] text-gray-500 block uppercase font-bold">Formatos Inclusos</span>
+                                            <div className="flex flex-wrap gap-1 mt-0.5">
+                                                {job.formats && job.formats.length > 0 ? (
+                                                    job.formats.map((fmt, i) => (
+                                                        <span key={i} className="text-[10px] font-bold text-[#F5A623] bg-[#F5A623]/10 px-1.5 py-0.5 rounded">
+                                                            {fmt}
+                                                        </span>
+                                                    ))
+                                                ) : (
+                                                    <span className="text-white font-bold">Compatíveis</span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
 
                                 {job.delivery_url && (() => {
                                     const urls = job.delivery_url.split(',')
@@ -1668,7 +1714,10 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                         <div className="inline-flex items-center gap-2 bg-green-500/20 text-green-400 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider mb-6">
                                             <CheckCircle className="w-3 h-3" /> Pedido Concluído & Pago
                                         </div>
-                                        <h2 className="text-3xl font-black text-white mb-2">Matriz Aprovada e Concluída! 🏆</h2>
+                                        <h2 className="text-3xl font-black text-white mb-2 flex items-center gap-2">
+                                            Matriz Aprovada e Concluída!
+                                            <Sparkles className="w-6 h-6 text-[#F5A623]" />
+                                        </h2>
                                         <p className="text-gray-400 text-sm mb-6 leading-relaxed">
                                             Parabéns! Sua matriz foi 100% aprovada e está pronta para bordar. Os arquivos ficam salvos permanentemente na sua conta e você pode baixá-los a qualquer momento.
                                         </p>
@@ -1676,31 +1725,31 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                 ) : (
                                     <>
                                         {jobReview && jobReview.rating_matrix === 5 && jobReview.rating_service === 5 ? (
-                                            <div className="inline-flex items-center gap-2 bg-[#FFAE00]/20 text-[#FFAE00] border border-[#FFAE00]/40 px-3.5 py-1 rounded-full text-[11px] font-black uppercase tracking-wider mb-6 shadow-[0_0_15px_rgba(255,174,0,0.2)]">
-                                                <Sparkles className="w-3.5 h-3.5 text-[#FFAE00]" /> Avaliação Máxima • 5 Estrelas
+                                            <div className="inline-flex items-center gap-2 bg-[#F5A623]/20 text-[#F5A623] border border-[#F5A623]/40 px-3.5 py-1 rounded-full text-[11px] font-black uppercase tracking-wider mb-6 shadow-[0_0_15px_rgba(245,166,35,0.2)]">
+                                                <Sparkles className="w-3.5 h-3.5 text-[#F5A623]" /> Avaliação Máxima • 5 Estrelas
                                             </div>
                                         ) : jobReview && (jobReview.rating_matrix + jobReview.rating_service) >= 8 ? (
-                                            <div className="inline-flex items-center gap-2 bg-green-500/20 text-green-400 border border-green-500/40 px-3.5 py-1 rounded-full text-[11px] font-black uppercase tracking-wider mb-6">
-                                                <Star className="w-3.5 h-3.5 fill-green-400 text-green-400" /> Ótimo Trabalho • Avaliação Positiva
+                                            <div className="inline-flex items-center gap-2 bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 px-3.5 py-1 rounded-full text-[11px] font-black uppercase tracking-wider mb-6">
+                                                <Star className="w-3.5 h-3.5 fill-emerald-400 text-emerald-400" /> Ótimo Trabalho • Avaliação Positiva
                                             </div>
                                         ) : (
-                                            <div className="inline-flex items-center gap-2 bg-green-500/20 text-green-400 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider mb-6">
+                                            <div className="inline-flex items-center gap-2 bg-emerald-500/20 text-emerald-400 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider mb-6">
                                                 <CheckCircle className="w-3 h-3" /> Pedido Concluído & Aprovado
                                             </div>
                                         )}
 
                                         <h2 className="text-3xl font-black text-white mb-2">
                                             {jobReview && jobReview.rating_matrix === 5 && jobReview.rating_service === 5
-                                                ? 'Excelente Trabalho! Parabéns! 🚀🌟'
+                                                ? 'Excelente Trabalho! Parabéns!'
                                                 : jobReview && (jobReview.rating_matrix + jobReview.rating_service) >= 8
-                                                ? 'Parabéns pela Entrega Concluída! 🎯'
-                                                : 'Missão Cumprida! Pedido Finalizado 🎯'}
+                                                ? 'Parabéns pela Entrega Concluída!'
+                                                : 'Missão Cumprida! Pedido Finalizado'}
                                         </h2>
 
                                         <p className="text-gray-300 text-sm mb-6 leading-relaxed">
                                             {jobReview && jobReview.rating_matrix === 5 && jobReview.rating_service === 5 ? (
                                                 <>
-                                                    O comprador avaliou sua entrega com <strong className="text-[#FFAE00]">nota máxima (5 estrelas)</strong>! Sua precisão nos pontos, pontualidade e capricho fazem toda a diferença no BordadoHUB. Continue mantendo esse padrão de excelência — <strong className="text-white">profissionais 5 estrelas ganham maior destaque e preferência em novos pedidos!</strong>
+                                                    O comprador avaliou sua entrega com <strong className="text-[#F5A623]">nota máxima (5 estrelas)</strong>! Sua precisão nos pontos, pontualidade e capricho fazem toda a diferença no BordadoHUB. Continue mantendo esse padrão de excelência — <strong className="text-white">profissionais 5 estrelas ganham maior destaque e preferência em novos pedidos!</strong>
                                                 </>
                                             ) : jobReview && (jobReview.rating_matrix + jobReview.rating_service) >= 8 ? (
                                                 <>
@@ -1714,10 +1763,10 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                         </p>
 
                                         {/* Card Financeiro / Repasse do Produtor */}
-                                        <div className="mb-6 p-4 bg-green-500/10 border border-green-500/30 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-[0_0_20px_rgba(34,197,94,0.08)]">
+                                        <div className="mb-6 p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-[0_0_20px_rgba(16,185,129,0.08)]">
                                             <div className="flex items-center gap-3">
-                                                <div className="w-10 h-10 rounded-full bg-green-500/20 text-green-400 flex items-center justify-center font-bold text-lg shrink-0">
-                                                    💰
+                                                <div className="w-10 h-10 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-lg shrink-0">
+                                                    <DollarSign className="w-5 h-5 text-emerald-400" />
                                                 </div>
                                                 <div>
                                                     <p className="text-xs font-bold text-green-400 uppercase tracking-wider">Pagamento Liberado para Repasse</p>
@@ -1840,8 +1889,9 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                         {isOwner ? 'Avaliação do Projeto' : 'Avaliação Recebida do Cliente'}
                                     </h3>
                                     {!isOwner && jobReview && jobReview.rating_matrix === 5 && jobReview.rating_service === 5 && (
-                                        <span className="inline-block mt-2 text-[11px] font-bold bg-amber-500/20 text-[#FFAE00] border border-amber-500/30 px-2.5 py-0.5 rounded-full">
-                                            🏆 Desempenho 10/10 • Cliente Satisfeito
+                                        <span className="inline-flex items-center gap-1.5 mt-2 text-[11px] font-bold bg-[#F5A623]/20 text-[#F5A623] border border-[#F5A623]/30 px-3 py-1 rounded-full">
+                                            <Sparkles className="w-3.5 h-3.5 text-[#F5A623]" />
+                                            Desempenho 10/10 • Cliente Satisfeito
                                         </span>
                                     )}
                                 </div>
@@ -1904,86 +1954,108 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                         </div>
 
                         {showProposalForm && (
-                            <div className="mb-6 bg-[#0F1115] p-4 sm:p-5 rounded-2xl border border-[#FFAE00]/20 shadow-lg">
-                                <div className="text-xs font-black text-[#FFAE00] uppercase tracking-wider mb-3 flex items-center gap-1.5">
-                                    <Zap className="w-3.5 h-3.5" /> Enviar Proposta de Orçamento
-                                </div>
-                                <form onSubmit={handleSubmitProposal} className="space-y-3 md:space-y-0 md:flex md:gap-3 md:items-end">
-                                    <div className="grid grid-cols-2 gap-3 md:contents">
-                                        {/* Campo Valor */}
-                                        <div className="w-full md:w-36 lg:w-44 shrink-0">
-                                            <label className="block text-[11px] font-bold text-gray-300 mb-1">
-                                                Valor (R$)
-                                            </label>
-                                            <div className="relative">
-                                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs font-black">R$</span>
+                            isProgrammerReady ? (
+                                <div className="mb-6 bg-[#0F1115] p-4 sm:p-5 rounded-2xl border border-[#FFAE00]/20 shadow-lg">
+                                    <div className="text-xs font-black text-[#FFAE00] uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                                        <Zap className="w-3.5 h-3.5" /> Enviar Proposta de Orçamento
+                                    </div>
+                                    <form onSubmit={handleSubmitProposal} className="space-y-3 md:space-y-0 md:flex md:gap-3 md:items-end">
+                                        <div className="grid grid-cols-2 gap-3 md:contents">
+                                            {/* Campo Valor */}
+                                            <div className="w-full md:w-36 lg:w-44 shrink-0">
+                                                <label className="block text-[11px] font-bold text-gray-300 mb-1">
+                                                    Valor (R$)
+                                                </label>
+                                                <div className="relative">
+                                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs font-black">R$</span>
+                                                    <input 
+                                                        type="number" 
+                                                        step="0.01" 
+                                                        min="1"
+                                                        inputMode="decimal"
+                                                        required 
+                                                        value={amount} 
+                                                        onChange={e => setAmount(e.target.value)} 
+                                                        className="w-full bg-[#1A1D23] border border-white/10 focus:border-[#FFAE00] rounded-xl pl-8 pr-2.5 py-2.5 text-base md:text-sm font-bold text-white placeholder-gray-500 focus:outline-none transition-colors" 
+                                                        placeholder="0,00" 
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            {/* Campo Prazo */}
+                                            <div className="w-full md:w-36 lg:w-44 shrink-0">
+                                                <label className="block text-[11px] font-bold text-gray-300 mb-1">
+                                                    Prazo
+                                                </label>
                                                 <input 
-                                                    type="number" 
-                                                    step="0.01" 
-                                                    min="1"
-                                                    inputMode="decimal"
+                                                    type="text" 
                                                     required 
-                                                    value={amount} 
-                                                    onChange={e => setAmount(e.target.value)} 
-                                                    className="w-full bg-[#1A1D23] border border-white/10 focus:border-[#FFAE00] rounded-xl pl-8 pr-2.5 py-2.5 text-base md:text-sm font-bold text-white placeholder-gray-500 focus:outline-none transition-colors" 
-                                                    placeholder="0,00" 
+                                                    value={deadline} 
+                                                    onChange={e => setDeadline(e.target.value)} 
+                                                    className="w-full bg-[#1A1D23] border border-white/10 focus:border-[#FFAE00] rounded-xl px-3 py-2.5 text-base md:text-sm text-white placeholder-gray-500 focus:outline-none transition-colors font-medium" 
+                                                    placeholder="ex: 2 dias, 24h" 
                                                 />
                                             </div>
                                         </div>
 
-                                        {/* Campo Prazo */}
-                                        <div className="w-full md:w-36 lg:w-44 shrink-0">
+                                        {/* Campo Mensagem */}
+                                        <div className="flex-1 min-w-0">
                                             <label className="block text-[11px] font-bold text-gray-300 mb-1">
-                                                Prazo
+                                                Mensagem / Diferencial
                                             </label>
                                             <input 
                                                 type="text" 
                                                 required 
-                                                value={deadline} 
-                                                onChange={e => setDeadline(e.target.value)} 
-                                                className="w-full bg-[#1A1D23] border border-white/10 focus:border-[#FFAE00] rounded-xl px-3 py-2.5 text-base md:text-sm text-white placeholder-gray-500 focus:outline-none transition-colors font-medium" 
-                                                placeholder="ex: 2 dias, 24h" 
+                                                value={message} 
+                                                onChange={e => setMessage(e.target.value)} 
+                                                className="w-full bg-[#1A1D23] border border-white/10 focus:border-[#FFAE00] rounded-xl px-3.5 py-2.5 text-base md:text-sm text-white placeholder-gray-500 focus:outline-none transition-colors font-medium" 
+                                                placeholder="Descreva seu prazo, qualidade ou software..." 
                                             />
                                         </div>
-                                    </div>
 
-                                    {/* Campo Mensagem */}
-                                    <div className="flex-1 min-w-0">
-                                        <label className="block text-[11px] font-bold text-gray-300 mb-1">
-                                            Mensagem / Diferencial
-                                        </label>
-                                        <input 
-                                            type="text" 
-                                            required 
-                                            value={message} 
-                                            onChange={e => setMessage(e.target.value)} 
-                                            className="w-full bg-[#1A1D23] border border-white/10 focus:border-[#FFAE00] rounded-xl px-3.5 py-2.5 text-base md:text-sm text-white placeholder-gray-500 focus:outline-none transition-colors font-medium" 
-                                            placeholder="Descreva seu prazo, qualidade ou software..." 
-                                        />
+                                        {/* Botão Enviar */}
+                                        <div className="w-full md:w-auto shrink-0 pt-1 md:pt-0">
+                                            <button 
+                                                type="submit" 
+                                                disabled={submitting} 
+                                                className="w-full md:w-auto bg-gradient-to-r from-[#FFAE00] to-yellow-400 hover:from-yellow-400 hover:to-[#FFAE00] text-black font-extrabold px-6 py-2.5 rounded-xl text-sm transition-all shadow-md shadow-[#FFAE00]/10 hover:scale-[1.02] active:scale-95 disabled:opacity-50 whitespace-nowrap flex items-center justify-center gap-2"
+                                            >
+                                                <Send className="w-4 h-4" />
+                                                Enviar Proposta
+                                            </button>
+                                        </div>
+                                    </form>
+                                    {amount && Number(amount) > 0 && (
+                                        <div className="mt-3 pt-3 border-t border-white/5 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-gray-400">
+                                            <span>Sua Proposta: <strong className="text-white font-bold">R$ {Number(amount).toFixed(2)}</strong></span>
+                                            <span>Taxa (5%): <strong className="text-[#FFAE00] font-bold">R$ {(Number(amount) * 0.05).toFixed(2)}</strong></span>
+                                            <span className="bg-green-500/10 text-green-400 border border-green-500/20 px-2.5 py-0.5 rounded-md font-bold">
+                                                Você recebe líquido: R$ {(Number(amount) * 0.95).toFixed(2)}
+                                            </span>
+                                        </div>
+                                    )}
+                                </div>
+                            ) : (
+                                <div className="mb-6 bg-[#12151C] p-5 rounded-2xl border border-white/[0.07] flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xl">
+                                    <div className="flex items-center gap-3.5">
+                                        <div className="p-3 rounded-xl bg-[#F5A623]/10 border border-[#F5A623]/20 text-[#F5A623] shrink-0">
+                                            <Code className="w-5 h-5" />
+                                        </div>
+                                        <div>
+                                            <h3 className="text-sm font-bold text-white">Quer enviar uma proposta para este pedido?</h3>
+                                            <p className="text-xs text-gray-400 mt-0.5 leading-relaxed">
+                                                Para garantir segurança e qualidade técnica, ative seu perfil de programador configurando seus softwares e dados de PIX.
+                                            </p>
+                                        </div>
                                     </div>
-
-                                    {/* Botão Enviar */}
-                                    <div className="w-full md:w-auto shrink-0 pt-1 md:pt-0">
-                                        <button 
-                                            type="submit" 
-                                            disabled={submitting} 
-                                            className="w-full md:w-auto bg-gradient-to-r from-[#FFAE00] to-yellow-400 hover:from-yellow-400 hover:to-[#FFAE00] text-black font-extrabold px-6 py-2.5 rounded-xl text-sm transition-all shadow-md shadow-[#FFAE00]/10 hover:scale-[1.02] active:scale-95 disabled:opacity-50 whitespace-nowrap flex items-center justify-center gap-2"
-                                        >
-                                            <Send className="w-4 h-4" />
-                                            Enviar Proposta
-                                        </button>
-                                    </div>
-                                </form>
-                                {amount && Number(amount) > 0 && (
-                                    <div className="mt-3 pt-3 border-t border-white/5 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-gray-400">
-                                        <span>Sua Proposta: <strong className="text-white font-bold">R$ {Number(amount).toFixed(2)}</strong></span>
-                                        <span>Taxa (5%): <strong className="text-[#FFAE00] font-bold">R$ {(Number(amount) * 0.05).toFixed(2)}</strong></span>
-                                        <span className="bg-green-500/10 text-green-400 border border-green-500/20 px-2.5 py-0.5 rounded-md font-bold">
-                                            Você recebe líquido: R$ {(Number(amount) * 0.95).toFixed(2)}
-                                        </span>
-                                    </div>
-                                )}
-                            </div>
+                                    <Link
+                                        href={`/profile/${currentUser?.id || ''}?edit=true&activate=programmer`}
+                                        className="shrink-0 bg-gradient-to-r from-[#FFB703] to-[#FB8500] hover:brightness-110 active:scale-95 text-black font-black text-xs px-4 py-2.5 rounded-xl transition-all shadow-md shadow-[#FFB703]/10 text-center w-full sm:w-auto"
+                                    >
+                                        Ativar Perfil de Programador
+                                    </Link>
+                                </div>
+                            )
                         )}
 
                         {/* Buyer Alert: Pending Payment */}
@@ -2156,10 +2228,10 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                 <div className="w-full text-center py-6 text-gray-500 text-sm">Nenhuma proposta enviada.</div>
                             ) : (
                                 proposals.map((proposal: any) => (
-                                    <div key={proposal.id} id={`proposal-card-${proposal.id}`} className={`min-w-[280px] max-w-[320px] shrink-0 bg-[#0F1115] rounded-xl border p-4 snap-start transition-all ${negotiatingProposalId === proposal.id ? 'border-[#FFAE00] shadow-[0_0_15px_rgba(255,174,0,0.1)]' : 'border-white/5 hover:border-white/10'}`}>
-                                        <div className="flex flex-col mb-3 bg-[#1A1D23] p-3 rounded-xl border border-white/5 relative shadow-inner">
+                                    <div key={proposal.id} id={`proposal-card-${proposal.id}`} className={`min-w-[280px] max-w-[320px] shrink-0 bg-[#12151C] rounded-2xl border p-4 snap-start transition-all ${negotiatingProposalId === proposal.id ? 'border-[#F5A623] shadow-[0_0_15px_rgba(245,166,35,0.15)]' : 'border-white/[0.07] hover:border-white/20'}`}>
+                                        <div className="flex flex-col mb-3 bg-[#181C26] p-3 rounded-xl border border-white/[0.07] relative shadow-sm">
                                             <div className="flex items-center gap-3 mb-3">
-                                                <div className="w-10 h-10 rounded-full bg-gray-800 border border-gray-700 overflow-hidden relative shadow-sm">
+                                                <div className="w-10 h-10 rounded-full bg-black/40 border border-white/10 overflow-hidden relative shadow-sm shrink-0">
                                                     {proposal.users?.avatar_url ? (
                                                         <img src={proposal.users.avatar_url} className="w-full h-full object-cover" alt=""/>
                                                     ) : <User className="w-5 h-5 m-auto text-gray-500 mt-2.5"/>}
@@ -2168,30 +2240,33 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                                     <div className="text-sm font-bold text-white leading-tight truncate">
                                                         {proposal.users?.name || 'Profissional'} 
                                                     </div>
-                                                    <div className="flex items-center gap-1 mt-0.5">
-                                                        {[...Array(5)].map((_, i) => (
-                                                            <Star 
-                                                                key={i} 
-                                                                className={`w-2.5 h-2.5 ${i < (proposal.users?.rating || 0) ? 'fill-[#FFAE00] text-[#FFAE00]' : 'text-gray-700'}`} 
-                                                            />
-                                                        ))}
-                                                    </div>
-                                                    <p className="text-[10px] text-gray-500 uppercase tracking-wider font-bold mt-0.5">#{proposal.id.split('-')[0]}</p>
+                                                    {proposal.users?.reviews_count && proposal.users.reviews_count > 0 && proposal.users?.rating ? (
+                                                        <div className="flex items-center gap-1 mt-0.5">
+                                                            <Star className="w-3 h-3 text-[#F5A623] fill-[#F5A623]" />
+                                                            <span className="text-white text-xs font-bold">{Number(proposal.users.rating).toFixed(1)}</span>
+                                                            <span className="text-[10px] text-gray-500">({proposal.users.reviews_count})</span>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="flex items-center gap-1 mt-0.5">
+                                                            <span className="text-[10px] text-gray-500 font-medium">Novo profissional</span>
+                                                        </div>
+                                                    )}
+                                                    <p className="text-[10px] text-gray-500 uppercase tracking-wider font-mono mt-0.5">#{proposal.id.split('-')[0]}</p>
                                                 </div>
                                             </div>
-                                            <div className="flex justify-between items-center bg-[#0F1115] p-2.5 rounded-lg border border-black/50 shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)]">
-                                                <p className="text-lg font-black text-[#FFAE00] leading-none tracking-tight">R$ {proposal.amount.toFixed(2)}</p>
-                                                <p className="text-[10px] text-gray-400 flex items-center gap-1 font-medium bg-[#1A1D23] px-2 py-1 rounded-md border border-white/5"><Clock className="w-3 h-3 text-[#FFAE00]"/> {proposal.deadline_text}</p>
+                                            <div className="flex justify-between items-center bg-[#0B0D11] p-2.5 rounded-lg border border-white/[0.07]">
+                                                <p className="text-lg font-black text-[#F5A623] leading-none tracking-tight">R$ {proposal.amount.toFixed(2)}</p>
+                                                <p className="text-[10px] text-gray-400 flex items-center gap-1 font-medium bg-[#181C26] px-2 py-1 rounded-md border border-white/[0.07]"><Clock className="w-3 h-3 text-[#F5A623]"/> {proposal.deadline_text}</p>
                                             </div>
                                         </div>
-                                        <p className="text-xs text-gray-400 line-clamp-2 mt-4 mb-4 h-8 bg-black/20 p-2 rounded border border-white/5 italic">&ldquo;{proposal.message}&rdquo;</p>
+                                        <p className="text-xs text-gray-400 line-clamp-2 mt-4 mb-4 h-8 bg-black/20 p-2 rounded border border-white/[0.07] italic">&ldquo;{proposal.message}&rdquo;</p>
                                         
                                         <div className="flex flex-col gap-2">
                                             <div className="flex gap-2 relative">
                                                 {isOwner && proposal.status === 'pendente' && (
                                                     <>
-                                                        <button onClick={() => setConfirmAcceptModal(proposal.id)} className="flex-1 bg-[#FFAE00] hover:bg-yellow-400 text-black text-xs font-black py-2.5 rounded-lg transition-all shadow-md shadow-[#FFAE00]/10 flex items-center justify-center gap-1.5 active:scale-95"><Zap className="w-3.5 h-3.5 fill-black"/> Pagar Agora</button>
-                                                        <button onClick={() => handleNegotiate(proposal.id)} className={`flex-1 border text-xs font-bold py-2.5 rounded-lg transition-colors flex items-center justify-center gap-1 relative ${negotiatingProposalId === proposal.id ? 'bg-white/10 text-white border-white/20' : 'border-white/10 text-gray-400 hover:text-white'}`}>
+                                                        <button onClick={() => setConfirmAcceptModal(proposal.id)} className="flex-1 bg-gradient-to-r from-[#FFB703] to-[#FB8500] hover:brightness-110 text-black text-xs font-black py-2.5 rounded-xl transition-all shadow-md shadow-[#FFB703]/10 flex items-center justify-center gap-1.5 active:scale-95"><Zap className="w-3.5 h-3.5 fill-black"/> Pagar Agora</button>
+                                                        <button onClick={() => handleNegotiate(proposal.id)} className={`flex-1 border text-xs font-bold py-2.5 rounded-xl transition-colors flex items-center justify-center gap-1 relative ${negotiatingProposalId === proposal.id ? 'bg-white/10 text-white border-white/20' : 'border-white/[0.07] text-gray-400 hover:text-white'}`}>
                                                             <MessageSquare className="w-3 h-3"/> {negotiatingProposalId === proposal.id ? 'Ocultar' : 'Chat'}
                                                             {unreadCounts[proposal.id] > 0 && <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white shadow-lg animate-bounce">{unreadCounts[proposal.id]}</span>}
                                                         </button>

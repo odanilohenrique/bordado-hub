@@ -132,7 +132,7 @@ export default function Sidebar({ initialUser, initialProfile }: { initialUser?:
     ]
 
     return (
-        <div className="flex flex-col w-64 h-screen fixed left-0 top-0 bg-[#1A1D23] border-r border-[#FFAE00]/10 shrink-0 shadow-2xl z-50 overflow-y-auto hidden md:flex">
+        <div className="flex flex-col w-64 h-screen fixed left-0 top-0 bg-[#12151C] border-r border-white/[0.07] shrink-0 shadow-2xl z-50 overflow-y-auto hidden md:flex">
             {/* Logo */}
             <div className="pt-6 pb-4 px-4 flex justify-center items-center">
                 <Link href={profile?.role === 'criador' ? '/jobs' : '/pedidos'} className="flex items-center justify-center group" title="Ir para o início">
@@ -148,12 +148,12 @@ export default function Sidebar({ initialUser, initialProfile }: { initialUser?:
             </div>
 
             {/* User Profile Summary */}
-            <div className="px-6 mb-8 group cursor-pointer" onClick={() => router.push(user ? `/profile/${user.id}` : '/login')}>
-                <div className="flex items-center gap-3 bg-[#0F1115] p-3 rounded-xl border border-white/5 group-hover:border-[#FFAE00]/30 transition-all">
+            <div className="px-5 mb-6 group cursor-pointer" onClick={() => router.push(user ? `/profile/${user.id}` : '/login')}>
+                <div className="flex items-center gap-3 bg-[#181C26] p-3 rounded-xl border border-white/[0.07] group-hover:border-[#F5A623]/30 transition-all">
                     {profile?.avatar_url ? (
-                        <img src={profile.avatar_url} alt={profile.name} className="w-10 h-10 rounded-full object-cover border border-[#FFAE00]/20" />
+                        <img src={profile.avatar_url} alt={profile.name} className="w-10 h-10 rounded-full object-cover border border-[#F5A623]/20" />
                     ) : (
-                        <div className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center border border-gray-700">
+                        <div className="w-10 h-10 rounded-full bg-[#202533] flex items-center justify-center border border-white/[0.08]">
                             <UserCircle className="w-6 h-6 text-gray-400" />
                         </div>
                     )}
@@ -161,8 +161,8 @@ export default function Sidebar({ initialUser, initialProfile }: { initialUser?:
                         <p className="text-sm font-bold text-white truncate">
                             {profile?.name || user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Minha Conta'}
                         </p>
-                        <p className="text-xs text-gray-500 uppercase tracking-widest mt-0.5">
-                            {profile?.role === 'criador' ? 'Programador' : 'Perfil'}
+                        <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mt-0.5">
+                            {profile?.role === 'criador' ? 'Programador' : 'Cliente'}
                         </p>
                     </div>
                 </div>
@@ -203,15 +203,15 @@ export default function Sidebar({ initialUser, initialProfile }: { initialUser?:
                                 <Link
                                     key={item.name}
                                     href={item.href}
-                                    className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                                        isActive 
-                                            ? 'bg-white/10 text-white shadow-sm' 
-                                            : 'text-gray-400 hover:text-white hover:bg-white/5'
-                                    }`}
-                                >
-                                    <item.icon className={`w-5 h-5 ${isActive ? 'text-[#FFAE00]' : 'text-gray-500'}`} />
-                                    {item.name}
-                                </Link>
+                                    className={`flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-all ${
+                                         isActive 
+                                             ? 'bg-[#F5A623]/10 text-[#F5A623] border border-[#F5A623]/25 shadow-sm' 
+                                             : 'text-gray-400 hover:text-white hover:bg-white/[0.04]'
+                                     }`}
+                                 >
+                                     <item.icon className={`w-5 h-5 ${isActive ? 'text-[#F5A623]' : 'text-gray-500'}`} />
+                                     {item.name}
+                                 </Link>
                             )
                         })}
                     </div>
@@ -219,7 +219,7 @@ export default function Sidebar({ initialUser, initialProfile }: { initialUser?:
 
                 {/* Comprador */}
                 <div>
-                    <h3 className="px-2 text-xs font-semibold text-indigo-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                    <h3 className="px-2 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-2">
                         Sou Comprador
                     </h3>
                     <div className="space-y-1">
@@ -229,16 +229,16 @@ export default function Sidebar({ initialUser, initialProfile }: { initialUser?:
                                 <Link
                                     key={item.name}
                                     href={item.href}
-                                    className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                                    className={`flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-all ${
                                         isActive 
-                                            ? 'bg-indigo-500/10 text-indigo-300 border border-indigo-500/20' 
-                                            : 'text-gray-400 hover:text-indigo-300 hover:bg-indigo-500/5'
+                                            ? 'bg-white/10 text-white border border-white/15 shadow-sm' 
+                                            : 'text-gray-400 hover:text-white hover:bg-white/[0.04]'
                                     }`}
                                 >
-                                    <item.icon className={`w-5 h-5 ${isActive ? 'text-indigo-400' : 'text-gray-500'}`} />
+                                    <item.icon className={`w-5 h-5 ${isActive ? 'text-[#F5A623]' : 'text-gray-500'}`} />
                                     {item.name}
                                     {item.href === '/pedidos' && unreadNotifCount > 0 && (
-                                        <span className="ml-auto bg-indigo-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 animate-pulse">
+                                        <span className="ml-auto bg-[#F5A623] text-black text-[10px] font-black rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 animate-pulse">
                                             {unreadNotifCount}
                                         </span>
                                     )}
@@ -250,7 +250,7 @@ export default function Sidebar({ initialUser, initialProfile }: { initialUser?:
 
                 {/* Programador */}
                 <div>
-                    <h3 className="px-2 text-xs font-semibold text-[#FFAE00] uppercase tracking-wider mb-3 flex items-center gap-2">
+                    <h3 className="px-2 text-xs font-semibold text-[#F5A623] uppercase tracking-wider mb-3 flex items-center gap-2">
                         Sou Programador
                     </h3>
                     <div className="space-y-1">
@@ -260,13 +260,13 @@ export default function Sidebar({ initialUser, initialProfile }: { initialUser?:
                                 <Link
                                     key={item.name}
                                     href={item.href}
-                                    className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                                    className={`flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-all ${
                                         isActive 
-                                            ? 'bg-[#FFAE00]/10 text-[#FFAE00] border border-[#FFAE00]/20' 
-                                            : 'text-gray-400 hover:text-[#FFAE00] hover:bg-[#FFAE00]/5'
+                                            ? 'bg-[#F5A623]/10 text-[#F5A623] border border-[#F5A623]/25 shadow-sm' 
+                                            : 'text-gray-400 hover:text-[#F5A623] hover:bg-[#F5A623]/5'
                                     }`}
                                 >
-                                    <item.icon className={`w-5 h-5 shrink-0 ${isActive ? 'text-[#FFAE00]' : 'text-gray-500'}`} />
+                                    <item.icon className={`w-5 h-5 shrink-0 ${isActive ? 'text-[#F5A623]' : 'text-gray-500'}`} />
                                     <span className="truncate">{item.name}</span>
                                     {item.href === '/producao' && revisionsCount > 0 && (
                                         <span className="ml-auto shrink-0 whitespace-nowrap bg-amber-500 text-black font-black text-[10px] px-2 py-0.5 rounded-full shadow-sm tracking-tight">
@@ -281,7 +281,7 @@ export default function Sidebar({ initialUser, initialProfile }: { initialUser?:
             </div>
 
             {/* Bottom Actions */}
-            <div className="p-4 mt-auto border-t border-gray-800">
+            <div className="p-4 mt-auto border-t border-white/[0.07]">
                 <button
                     onClick={handleLogout}
                     className="flex w-full items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-400 hover:text-red-400 hover:bg-red-500/10 transition-colors"

@@ -156,17 +156,17 @@ export default function CreatorDashboard() {
 
             {loading && totalActive === 0 ? (
                 <div className="space-y-4">
-                    <div className="h-28 bg-[#1A1D23] border border-white/5 rounded-xl animate-pulse" />
-                    <div className="h-28 bg-[#1A1D23] border border-white/5 rounded-xl animate-pulse" />
+                    <div className="h-28 bg-[#12151C] border border-white/[0.07] rounded-2xl animate-pulse" />
+                    <div className="h-28 bg-[#12151C] border border-white/[0.07] rounded-2xl animate-pulse" />
                 </div>
             ) : totalActive === 0 && (
-                <div className="bg-[#1A1D23] border border-green-500/10 rounded-xl p-12 text-center">
-                    <div className="bg-green-500/10 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
-                        <Briefcase className="w-10 h-10 text-green-400" />
+                <div className="bg-[#12151C] border border-white/[0.07] rounded-2xl p-12 text-center">
+                    <div className="bg-emerald-500/10 w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-6 border border-emerald-500/20">
+                        <Briefcase className="w-10 h-10 text-emerald-400" />
                     </div>
-                    <h3 className="text-xl font-bold text-[#F3F4F6] mb-2">Nenhum trabalho ainda</h3>
-                    <p className="text-gray-400 mb-2 max-w-md mx-auto">
-                        Você não tem matrizes em produção nem propostas enviadas. Explore os <strong className="text-[#FFAE00]">Pedidos de Clientes</strong> para encontrar novas oportunidades!
+                    <h3 className="text-xl font-bold text-white mb-2">Nenhum trabalho em andamento</h3>
+                    <p className="text-gray-400 text-sm mb-2 max-w-md mx-auto">
+                        Você não tem matrizes em produção no momento. Explore as oportunidades no feed de pedidos para enviar propostas!
                     </p>
                 </div>
             )}

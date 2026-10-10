@@ -24,13 +24,19 @@ function ProductCardSkeleton() {
 }
 
 export default function MarketplacePage() {
-    // Instant mount from cache if available (0ms delay!)
-    const [products, setProducts] = useState<any[]>(() => getCached<any[]>('marketplace_products') || [])
-    const [loading, setLoading] = useState(() => !getCached<any[]>('marketplace_products'))
+    const [products, setProducts] = useState<any[]>([])
+    const [loading, setLoading] = useState(true)
     const [searchTerm, setSearchTerm] = useState('')
     const [activeFilter, setActiveFilter] = useState<string>('all')
 
     useEffect(() => {
+        // Fast client-side cache mount (0ms latency without breaking SSR hydration)
+        const cached = getCached<any[]>('marketplace_products')
+        if (cached && cached.length > 0) {
+            setProducts(cached)
+            setLoading(false)
+        }
+
         async function fetchProducts() {
             try {
                 const { data, error } = await supabase

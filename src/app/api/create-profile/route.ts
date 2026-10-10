@@ -22,6 +22,7 @@ export async function POST(request: Request) {
         }
 
         const validRole = role === 'criador' ? 'criador' : 'cliente'
+        const isProgrammer = role === 'criador' || body.is_programmer === true
 
         const { data, error } = await supabase
             .from('users')
@@ -31,6 +32,8 @@ export async function POST(request: Request) {
                     name: name || email.split('@')[0],
                     email,
                     role: validRole,
+                    is_client: true,
+                    is_programmer: isProgrammer,
                     ...(avatar_url ? { avatar_url } : {})
                 },
             ], { onConflict: 'supabase_user_id' })

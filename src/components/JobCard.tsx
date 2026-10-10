@@ -37,27 +37,27 @@ export default function JobCard({ job, hasNegotiation, viewerRole, proposalCount
     const isRevision = Boolean(job.revision_notes)
 
     const statusConfig: Record<string, { bg: string; text: string; label: string }> = {
-        aberto: { bg: 'bg-[#FFAE00]/10', text: 'text-[#FFAE00]', label: 'Aberto' },
-        em_progresso: { bg: 'bg-blue-500/10', text: 'text-blue-400', label: 'Em Produção' },
-        em_revisao: { bg: 'bg-yellow-500/20 border border-yellow-500/40 animate-pulse', text: 'text-yellow-400 font-bold', label: 'Revisão Solicitada' },
+        aberto: { bg: 'bg-[#F5A623]/10 border border-[#F5A623]/25', text: 'text-[#F5A623]', label: 'Aberto' },
+        em_progresso: { bg: 'bg-blue-500/10 border border-blue-500/25', text: 'text-blue-400', label: 'Em Produção' },
+        em_revisao: { bg: 'bg-amber-500/15 border border-amber-500/35 animate-pulse', text: 'text-amber-400 font-bold', label: 'Revisão Solicitada' },
         entregue: { 
-            bg: isRevision ? 'bg-emerald-500/15 border border-emerald-500/30' : 'bg-green-500/10', 
-            text: isRevision ? 'text-emerald-400 font-bold' : 'text-green-400', 
+            bg: isRevision ? 'bg-emerald-500/15 border border-emerald-500/30' : 'bg-emerald-500/10 border border-emerald-500/25', 
+            text: isRevision ? 'text-emerald-400 font-bold' : 'text-emerald-400', 
             label: isRevision ? 'Matriz Revisada Entregue' : 'Matriz Entregue' 
         },
-        finalizado: { bg: 'bg-gray-500/10', text: 'text-gray-400', label: 'Concluído & Pago' },
-        cancelado: { bg: 'bg-red-500/10', text: 'text-red-400', label: 'Cancelado' },
-        negociacao: { bg: 'bg-purple-500/10', text: 'text-purple-400', label: 'Em Negociação' },
-        // Nossos novos status para os programadores e clientes (referentes à Proposals)
-        pendente: { bg: 'bg-yellow-500/10', text: 'text-yellow-400', label: 'Proposta Enviada' },
-        contraproposta: { bg: 'bg-red-500/10', text: 'text-red-400', label: 'Requer Ação: Contraproposta!' },
-        aceita: { bg: 'bg-green-500/10', text: 'text-green-400', label: 'Aceito - Em Produção' },
-        recusada: { bg: 'bg-gray-500/10', text: 'text-gray-500', label: 'Proposta Recusada' },
+        finalizado: { bg: 'bg-white/5 border border-white/10', text: 'text-gray-300', label: 'Concluído & Pago' },
+        cancelado: { bg: 'bg-red-500/10 border border-red-500/20', text: 'text-red-400', label: 'Cancelado' },
+        negociacao: { bg: 'bg-purple-500/10 border border-purple-500/25', text: 'text-purple-300', label: 'Em Negociação' },
+        // Nossos status de propostas
+        pendente: { bg: 'bg-amber-500/10 border border-amber-500/20', text: 'text-amber-400', label: 'Proposta Enviada' },
+        contraproposta: { bg: 'bg-red-500/10 border border-red-500/30', text: 'text-red-400', label: 'Requer Ação: Contraproposta' },
+        aceita: { bg: 'bg-emerald-500/10 border border-emerald-500/25', text: 'text-emerald-400', label: 'Aceito - Em Produção' },
+        recusada: { bg: 'bg-white/5 border border-white/10', text: 'text-gray-500', label: 'Proposta Recusada' },
         
         // Status do Cliente
-        aguardando_propostas: { bg: 'bg-gray-500/10', text: 'text-gray-400', label: 'Aguardando Programadores' },
-        com_propostas: { bg: 'bg-[#FFAE00] shadow-[0_0_20px_rgba(255,174,0,0.8)] border border-white animate-pulse', text: 'text-black font-black', label: 'VEJA AS PROPOSTAS!' },
-        acao_necessaria: { bg: 'bg-red-500/10', text: 'text-red-400', label: 'Sua Vez: Responda no Chat!' }
+        aguardando_propostas: { bg: 'bg-white/5 border border-white/10', text: 'text-gray-400', label: 'Aguardando Propostas' },
+        com_propostas: { bg: 'bg-gradient-to-r from-[#FFB703] to-[#FB8500] border border-white/20 shadow-lg shadow-[#F5A623]/25 animate-pulse', text: 'text-black font-black', label: 'VEJA AS PROPOSTAS' },
+        acao_necessaria: { bg: 'bg-red-500/10 border border-red-500/30', text: 'text-red-400', label: 'Sua Vez: Responda no Chat' }
     }
 
     // Se a proposta foi aceita, o status real a exibir é o ciclo do trabalho (em_progresso, em_revisao, entregue, finalizado)
@@ -156,10 +156,10 @@ export default function JobCard({ job, hasNegotiation, viewerRole, proposalCount
             href={`/jobs/${job.id}`}
             className="block group"
         >
-            <div className={`bg-[#1A1D23] border ${viewerRole === 'client' ? 'border-indigo-500/20 hover:border-indigo-500/50 hover:shadow-[0_0_25px_rgba(99,102,241,0.12)]' : 'border-[#2A2D35] hover:border-[#FFAE00]/40 hover:shadow-[0_0_25px_rgba(255,174,0,0.08)]'} rounded-xl overflow-hidden transition-all duration-300 md:flex ${hasNegotiation ? 'ring-2 ring-red-500 ring-offset-2 ring-offset-[#0F1115]' : ''}`}>
+            <div className={`bg-[#12151C] border border-white/[0.07] hover:border-[#F5A623]/35 rounded-2xl overflow-hidden transition-all duration-300 md:flex interactive-card shadow-lg ${hasNegotiation ? 'ring-2 ring-red-500 ring-offset-2 ring-offset-[#0B0D11]' : ''}`}>
 
                 {/* Image Section (Left) */}
-                <div className="w-full md:w-64 h-48 md:h-auto bg-[#0F1115] relative flex-shrink-0 border-b md:border-b-0 md:border-r border-white/5">
+                <div className="w-full md:w-64 h-48 md:h-auto bg-[#0B0D11] relative flex-shrink-0 border-b md:border-b-0 md:border-r border-white/[0.07]">
                     {mainImage ? (
                         <Image
                             src={mainImage}
@@ -169,14 +169,14 @@ export default function JobCard({ job, hasNegotiation, viewerRole, proposalCount
                             className="object-contain p-3 group-hover:scale-105 transition-transform duration-500"
                         />
                     ) : (
-                        <div className="w-full h-full flex flex-col items-center justify-center text-gray-700/60 min-h-[180px]">
-                            <ImageIcon className="w-10 h-10 mb-2" />
-                            <span className="text-[10px] uppercase tracking-[0.15em]">Sem Imagem</span>
+                        <div className="w-full h-full flex flex-col items-center justify-center text-gray-600 min-h-[180px]">
+                            <ImageIcon className="w-10 h-10 mb-2 opacity-40" />
+                            <span className="text-[10px] uppercase tracking-[0.15em] opacity-40 font-semibold">Sem Imagem</span>
                         </div>
                     )}
                     {/* Status Overlay (Mobile Only) */}
                     <div className="absolute top-3 right-3 md:hidden">
-                        <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide backdrop-blur-sm ${config.bg} ${config.text}`}>
+                        <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide backdrop-blur-md ${config.bg} ${config.text}`}>
                             {config.label}
                         </span>
                     </div>
@@ -188,7 +188,7 @@ export default function JobCard({ job, hasNegotiation, viewerRole, proposalCount
                     {/* Top Row: Title & Status */}
                     <div className="flex justify-between items-start gap-4 mb-3">
                         <div className="flex-1 min-w-0">
-                            <h3 className="text-lg font-bold text-white group-hover:text-[#FFAE00] transition-colors leading-snug">
+                            <h3 className="text-lg font-bold text-white group-hover:text-[#F5A623] transition-colors leading-snug">
                                 {job.title}
                             </h3>
                             {/* Direct Request Badge */}
@@ -343,85 +343,85 @@ export default function JobCard({ job, hasNegotiation, viewerRole, proposalCount
                         {/* Smart Button Logic */}
                         {job.isOwner || viewerRole === 'client' ? (
                             job.status === 'entregue' ? (
-                                <button className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg font-bold text-xs transition-all shadow-lg shadow-green-500/20 active:scale-95 ml-auto animate-pulse">
+                                <button className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-black px-4 py-2 rounded-xl font-extrabold text-xs transition-all shadow-lg shadow-emerald-500/20 active:scale-95 ml-auto animate-pulse">
                                     {isRevision ? 'Avaliar Matriz Revisada' : 'Baixar & Avaliar'}
                                     <CheckCircle className="w-3.5 h-3.5" />
                                 </button>
                             ) : job.status === 'em_progresso' ? (
-                                <button className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-bold text-xs transition-all shadow-lg shadow-blue-500/20 active:scale-95 ml-auto">
+                                <button className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-xl font-bold text-xs transition-all shadow-lg shadow-blue-500/20 active:scale-95 ml-auto">
                                     Acompanhar Produção
                                     <Clock className="w-3.5 h-3.5" />
                                 </button>
                             ) : job.status === 'finalizado' ? (
-                                <button className="flex items-center gap-2 bg-gray-800 hover:bg-gray-700 text-gray-200 border border-white/10 px-4 py-2 rounded-lg font-bold text-xs transition-all active:scale-95 ml-auto">
+                                <button className="flex items-center gap-2 bg-[#181C26] hover:bg-white/10 text-gray-200 border border-white/10 px-4 py-2 rounded-xl font-bold text-xs transition-all active:scale-95 ml-auto">
                                     Ver Matriz (Concluído)
                                     <ArrowRight className="w-3.5 h-3.5" />
                                 </button>
                             ) : proposalCount && proposalCount > 0 ? (
-                                <button className="flex items-center gap-2 bg-[#FFAE00] hover:bg-[#FFB92E] text-[#0F1115] px-4 py-2 rounded-lg font-bold text-xs transition-all shadow-lg shadow-[#FFAE00]/20 active:scale-95 ml-auto">
+                                <button className="flex items-center gap-2 bg-gradient-to-r from-[#FFB703] to-[#FB8500] hover:brightness-110 text-black px-4 py-2 rounded-xl font-black text-xs transition-all shadow-md shadow-[#F5A623]/20 active:scale-95 ml-auto">
                                     Ver Propostas ({proposalCount})
                                     <Sparkles className="w-3.5 h-3.5" />
                                 </button>
                             ) : (
-                                <button className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg font-bold text-xs transition-all shadow-lg shadow-indigo-500/20 active:scale-95 ml-auto">
+                                <button className="flex items-center gap-2 bg-[#181C26] hover:bg-white/10 text-white border border-white/10 px-4 py-2 rounded-xl font-bold text-xs transition-all active:scale-95 ml-auto">
                                     Meu Pedido
                                     <ArrowRight className="w-3.5 h-3.5" />
                                 </button>
                             )
                         ) : job.my_proposal_status === 'pendente' ? (
-                            <button className="flex items-center gap-2 bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 px-4 py-2 rounded-lg font-bold text-xs ml-auto transition-colors">
+                            <button className="flex items-center gap-2 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 px-4 py-2 rounded-xl font-bold text-xs ml-auto transition-colors">
                                 Proposta Enviada
                                 <Clock className="w-3.5 h-3.5" />
                             </button>
                         ) : job.my_proposal_status === 'contraproposta' ? (
-                            <button className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg font-bold text-xs transition-all shadow-lg shadow-red-500/20 active:scale-95 ml-auto animate-pulse">
+                            <button className="flex items-center gap-2 bg-red-500 hover:bg-red-400 text-white px-4 py-2 rounded-xl font-black text-xs transition-all shadow-lg shadow-red-500/20 active:scale-95 ml-auto animate-pulse">
                                 Contraproposta Recebida
                                 <Send className="w-3.5 h-3.5" />
                             </button>
                         ) : job.my_proposal_status === 'aceita' ? (
                             job.status === 'em_revisao' ? (
-                                <button className="flex items-center gap-2 bg-yellow-500 hover:bg-yellow-400 text-black px-4 py-2 rounded-lg font-black text-xs transition-all shadow-lg shadow-yellow-500/20 active:scale-95 ml-auto animate-pulse">
+                                <button className="flex items-center gap-2 bg-amber-500 hover:bg-amber-400 text-black px-4 py-2 rounded-xl font-black text-xs transition-all shadow-lg shadow-amber-500/20 active:scale-95 ml-auto animate-pulse">
                                     Enviar Correção
                                     <Wrench className="w-3.5 h-3.5" />
                                 </button>
                             ) : job.status === 'entregue' ? (
-                                <button className="flex items-center gap-2 bg-green-500/10 hover:bg-green-500/20 text-green-400 border border-green-500/30 px-4 py-2 rounded-lg font-bold text-xs ml-auto transition-colors">
+                                <button className="flex items-center gap-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-4 py-2 rounded-xl font-bold text-xs ml-auto transition-colors">
                                     {isRevision ? 'Matriz Revisada Enviada' : 'Aguardando Aprovação'}
                                     <Clock className="w-3.5 h-3.5" />
                                 </button>
                             ) : job.status === 'em_progresso' ? (
-                                <button className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg font-bold text-xs transition-all shadow-lg shadow-green-500/10 active:scale-95 ml-auto">
+                                <button className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-black px-4 py-2 rounded-xl font-extrabold text-xs transition-all shadow-lg shadow-emerald-500/10 active:scale-95 ml-auto">
                                     Entregar Matriz
                                     <CheckCircle className="w-3.5 h-3.5" />
                                 </button>
                             ) : (
-                                <button className="flex items-center gap-2 bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 px-4 py-2 rounded-lg font-bold text-xs ml-auto transition-colors">
+                                <button className="flex items-center gap-2 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 px-4 py-2 rounded-xl font-bold text-xs ml-auto transition-colors">
                                     Aguardando Pagamento
                                     <Clock className="w-3.5 h-3.5" />
                                 </button>
                             )
                         ) : (viewerRole === 'programmer' && job.status === 'em_progresso') ? (
-                            <button className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg font-bold text-xs transition-all shadow-lg shadow-green-500/10 active:scale-95 ml-auto">
+                            <button className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-black px-4 py-2 rounded-xl font-extrabold text-xs transition-all shadow-lg shadow-emerald-500/10 active:scale-95 ml-auto">
                                 Entregar Matriz
                                 <CheckCircle className="w-3.5 h-3.5" />
                             </button>
                         ) : job.status === 'em_revisao' && viewerRole === 'programmer' ? (
-                            <button className="flex items-center gap-2 bg-yellow-500 hover:bg-yellow-400 text-black px-4 py-2 rounded-lg font-black text-xs transition-all shadow-lg shadow-yellow-500/20 active:scale-95 ml-auto animate-pulse">
+                            <button className="flex items-center gap-2 bg-amber-500 hover:bg-amber-400 text-black px-4 py-2 rounded-xl font-black text-xs transition-all shadow-lg shadow-amber-500/20 active:scale-95 ml-auto animate-pulse">
                                 Entregar Revisão
                                 <Wrench className="w-3.5 h-3.5" />
                             </button>
                         ) : job.status === 'entregue' && viewerRole === 'programmer' ? (
-                            <button className="flex items-center gap-2 bg-green-500/10 hover:bg-green-500/20 text-green-400 border border-green-500/30 px-4 py-2 rounded-lg font-bold text-xs ml-auto transition-colors">
+                            <button className="flex items-center gap-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-4 py-2 rounded-xl font-bold text-xs ml-auto transition-colors">
                                 {isRevision ? 'Matriz Revisada Enviada' : 'Aguardando Aprovação'}
                                 <Clock className="w-3.5 h-3.5" />
                             </button>
                         ) : job.status === 'aberto' ? (
-                            <button className="flex items-center gap-2 bg-[#FFAE00] hover:bg-[#FFB92E] text-[#0F1115] px-4 py-2 rounded-lg font-bold text-xs transition-all shadow-lg shadow-[#FFAE00]/10 active:scale-95 ml-auto">
+                            <button className="flex items-center gap-2 bg-gradient-to-r from-[#FFB703] to-[#FB8500] hover:brightness-110 text-black px-4 py-2 rounded-xl font-extrabold text-xs transition-all shadow-md shadow-[#F5A623]/20 active:scale-95 ml-auto">
                                 Enviar Proposta
                                 <Send className="w-3.5 h-3.5" />
                             </button>
                         ) : (
-                            <button className="flex items-center gap-2 bg-[#FFAE00] hover:bg-[#FFB92E] text-[#0F1115] px-4 py-2 rounded-lg font-bold text-xs transition-all shadow-lg shadow-[#FFAE00]/10 active:scale-95 ml-auto">
+                            <button className="flex items-center gap-2 bg-[#181C26] hover:bg-white/10 text-white border border-white/10 px-4 py-2 rounded-xl font-bold text-xs transition-all active:scale-95 ml-auto">
                                 Ver Detalhes
                                 <ArrowRight className="w-3.5 h-3.5" />
                             </button>

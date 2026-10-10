@@ -82,7 +82,7 @@ export async function POST(request: Request) {
             // Notify creator
             await supabase.from('notifications').insert({
                 user_id: transaction.criador_id,
-                title: '🎉 Pagamento Confirmado!',
+                title: 'Pagamento Confirmado!',
                 message: `O pagamento via Cartão de Crédito do pedido "${jobTitle}" foi confirmado. Você pode iniciar o trabalho!`,
                 link_url: `/producao`,
             })

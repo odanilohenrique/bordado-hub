@@ -13,7 +13,6 @@ export default function Register() {
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
     const [confirmPassword, setConfirmPassword] = useState('')
-    const [role, setRole] = useState<'cliente' | 'criador' | null>(null)
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const router = useRouter()
@@ -35,12 +34,6 @@ export default function Register() {
             return
         }
 
-        if (!role) {
-            setError('Selecione o que deseja fazer: Comprar ou Trabalhar.')
-            setLoading(false)
-            return
-        }
-
         try {
             // 1. Create Auth User
             const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -51,7 +44,7 @@ export default function Register() {
             if (authError) throw authError
             if (!authData.user) throw new Error('Erro ao criar usuário')
 
-            // 2. Create Profile in public.users via API (Bypass RLS)
+            // 2. Create Profile in public.users via API (Universal account)
             const response = await fetch('/api/create-profile', {
                 method: 'POST',
                 headers: {
@@ -61,7 +54,9 @@ export default function Register() {
                     userId: authData.user.id,
                     name,
                     email,
-                    role
+                    role: 'cliente',
+                    is_client: true,
+                    is_programmer: false
                 }),
             })
 
@@ -71,7 +66,7 @@ export default function Register() {
                 throw new Error(result.error || 'Erro ao criar perfil')
             }
 
-            router.push(role === 'cliente' ? '/pedidos' : '/dashboard')
+            router.push('/jobs')
             router.refresh()
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (err: any) {
@@ -82,81 +77,48 @@ export default function Register() {
     }
 
     return (
-        <div className="min-h-screen bg-[#0F1115] flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8">
+        <div className="min-h-screen bg-[#0B0D11] flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8">
             <div className="sm:mx-auto sm:w-full sm:max-w-md">
                 {/* Header */}
                 <div className="text-center mb-8">
                     <div className="flex justify-center mb-5">
                         <Link href="/" className="inline-block group">
                             <Image
-                                src="/brand/logo-dark.png"
+                                src="/brand/logo-dark-grossa.png"
                                 alt="BordadoHub"
                                 width={180}
                                 height={78}
-                                className="h-16 w-auto object-contain transition-transform group-hover:scale-105 drop-shadow-[0_0_25px_rgba(255,174,0,0.25)]"
+                                className="h-14 w-auto object-contain transition-transform group-hover:scale-105"
                                 priority
                             />
                         </Link>
                     </div>
                     <p className="text-gray-400 text-sm">
-                        Cadastre-se para comprar ou vender matrizes de bordado
+                        Crie sua conta para comprar e vender matrizes de bordado
                     </p>
                 </div>
 
                 {/* Form Card */}
-                <div className="bg-[#1A1D23] py-8 px-6 shadow-2xl rounded-xl border border-[#FFAE00]/20 sm:px-10">
-                    <form className="space-y-6" onSubmit={handleRegister}>
+                <div className="bg-[#12151C] py-8 px-6 shadow-2xl rounded-2xl border border-white/[0.07] sm:px-10">
+                    <form className="space-y-5" onSubmit={handleRegister}>
                         {/* Google Login */}
                         <div>
                             <GoogleSignInButton mode="signup" text="Cadastrar com Google" />
                         </div>
 
-                        <div className="relative">
+                        <div className="relative my-2">
                             <div className="absolute inset-0 flex items-center">
-                                <div className="w-full border-t border-gray-800"></div>
+                                <div className="w-full border-t border-white/[0.07]"></div>
                             </div>
-                            <div className="relative flex justify-center text-sm">
-                                <span className="px-2 bg-[#1A1D23] text-gray-400">Ou crie com email</span>
-                            </div>
-                        </div>
-
-                        {/* Role Selector */}
-                        <div className="space-y-2">
-                            <label className="block text-sm font-medium text-gray-300">Eu quero:</label>
-                            <div className="grid grid-cols-2 gap-3">
-                                <button
-                                    type="button"
-                                    onClick={() => setRole('cliente')}
-                                    className={`p-4 rounded-xl border-2 text-center transition-all ${
-                                        role === 'cliente'
-                                            ? 'bg-[#FFAE00]/10 border-[#FFAE00] text-white shadow-lg shadow-[#FFAE00]/10'
-                                            : 'bg-[#0F1115] border-gray-700 text-gray-400 hover:border-gray-500'
-                                    }`}
-                                >
-                                    <ShoppingBag className={`w-6 h-6 mx-auto mb-2 ${role === 'cliente' ? 'text-[#FFAE00]' : 'text-gray-500'}`} />
-                                    <span className="text-sm font-bold block">Comprar Matrizes</span>
-                                    <span className="text-[10px] text-gray-500 mt-1 block">Encomendar bordados</span>
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => setRole('criador')}
-                                    className={`p-4 rounded-xl border-2 text-center transition-all ${
-                                        role === 'criador'
-                                            ? 'bg-[#FFAE00]/10 border-[#FFAE00] text-white shadow-lg shadow-[#FFAE00]/10'
-                                            : 'bg-[#0F1115] border-gray-700 text-gray-400 hover:border-gray-500'
-                                    }`}
-                                >
-                                    <Code className={`w-6 h-6 mx-auto mb-2 ${role === 'criador' ? 'text-[#FFAE00]' : 'text-gray-500'}`} />
-                                    <span className="text-sm font-bold block">Trabalhar</span>
-                                    <span className="text-[10px] text-gray-500 mt-1 block">Criar e vender matrizes</span>
-                                </button>
+                            <div className="relative flex justify-center text-xs">
+                                <span className="px-3 bg-[#12151C] text-gray-400 uppercase tracking-wider font-semibold">Ou crie com email</span>
                             </div>
                         </div>
 
                         {/* Name */}
-                        <div className="space-y-2">
-                            <label htmlFor="name" className="flex items-center gap-2 text-sm font-medium text-gray-300">
-                                <User className="w-4 h-4 text-[#FFAE00]" />
+                        <div className="space-y-1.5">
+                            <label htmlFor="name" className="flex items-center gap-2 text-xs font-semibold text-gray-300 uppercase tracking-wider">
+                                <User className="w-3.5 h-3.5 text-[#F5A623]" />
                                 Nome Completo
                             </label>
                             <input
@@ -167,14 +129,14 @@ export default function Register() {
                                 value={name}
                                 onChange={(e) => setName(e.target.value)}
                                 placeholder="Seu nome"
-                                className="w-full bg-[#0F1115] border border-[#FFAE00]/20 rounded-lg px-4 py-3 text-[#F3F4F6] placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#FFAE00] focus:border-transparent transition-all"
+                                className="w-full bg-[#0B0D11] border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-[#F5A623] transition-all text-sm"
                             />
                         </div>
 
                         {/* Email */}
-                        <div className="space-y-2">
-                            <label htmlFor="email" className="flex items-center gap-2 text-sm font-medium text-gray-300">
-                                <Mail className="w-4 h-4 text-[#FFAE00]" />
+                        <div className="space-y-1.5">
+                            <label htmlFor="email" className="flex items-center gap-2 text-xs font-semibold text-gray-300 uppercase tracking-wider">
+                                <Mail className="w-3.5 h-3.5 text-[#F5A623]" />
                                 Email
                             </label>
                             <input
@@ -186,14 +148,14 @@ export default function Register() {
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 placeholder="seu@email.com"
-                                className="w-full bg-[#0F1115] border border-[#FFAE00]/20 rounded-lg px-4 py-3 text-[#F3F4F6] placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#FFAE00] focus:border-transparent transition-all"
+                                className="w-full bg-[#0B0D11] border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-[#F5A623] transition-all text-sm"
                             />
                         </div>
 
                         {/* Password */}
-                        <div className="space-y-2">
-                            <label htmlFor="password" className="flex items-center gap-2 text-sm font-medium text-gray-300">
-                                <Lock className="w-4 h-4 text-[#FFAE00]" />
+                        <div className="space-y-1.5">
+                            <label htmlFor="password" className="flex items-center gap-2 text-xs font-semibold text-gray-300 uppercase tracking-wider">
+                                <Lock className="w-3.5 h-3.5 text-[#F5A623]" />
                                 Senha
                             </label>
                             <input
@@ -206,14 +168,14 @@ export default function Register() {
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                                 placeholder="Mínimo 6 caracteres"
-                                className="w-full bg-[#0F1115] border border-[#FFAE00]/20 rounded-lg px-4 py-3 text-[#F3F4F6] placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#FFAE00] focus:border-transparent transition-all"
+                                className="w-full bg-[#0B0D11] border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-[#F5A623] transition-all text-sm"
                             />
                         </div>
 
                         {/* Confirm Password */}
-                        <div className="space-y-2">
-                            <label htmlFor="confirmPassword" className="flex items-center gap-2 text-sm font-medium text-gray-300">
-                                <Lock className="w-4 h-4 text-[#FFAE00]" />
+                        <div className="space-y-1.5">
+                            <label htmlFor="confirmPassword" className="flex items-center gap-2 text-xs font-semibold text-gray-300 uppercase tracking-wider">
+                                <Lock className="w-3.5 h-3.5 text-[#F5A623]" />
                                 Confirmar Senha
                             </label>
                             <input
@@ -226,15 +188,15 @@ export default function Register() {
                                 value={confirmPassword}
                                 onChange={(e) => setConfirmPassword(e.target.value)}
                                 placeholder="Repita sua senha"
-                                className="w-full bg-[#0F1115] border border-[#FFAE00]/20 rounded-lg px-4 py-3 text-[#F3F4F6] placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#FFAE00] focus:border-transparent transition-all"
+                                className="w-full bg-[#0B0D11] border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-[#F5A623] transition-all text-sm"
                             />
                         </div>
 
                         {/* Error Message */}
                         {error && (
-                            <div className="bg-red-500/10 border border-red-500/50 text-red-400 px-4 py-3 rounded-lg flex items-start gap-3">
-                                <Zap className="w-5 h-5 flex-shrink-0 mt-0.5" />
-                                <p className="text-sm">{error}</p>
+                            <div className="bg-red-500/10 border border-red-500/30 text-red-400 px-4 py-3 rounded-xl flex items-start gap-3">
+                                <Zap className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                                <p className="text-xs">{error}</p>
                             </div>
                         )}
 
@@ -243,17 +205,17 @@ export default function Register() {
                             <button
                                 type="submit"
                                 disabled={loading}
-                                className="w-full flex items-center justify-center gap-2 py-4 px-4 bg-[#FFAE00] text-[#0F1115] rounded-lg hover:bg-[#D97706] transition-all font-bold shadow-lg shadow-[#FFAE00]/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="w-full flex items-center justify-center gap-2 py-3.5 px-4 bg-gradient-to-r from-[#FFB703] to-[#FB8500] hover:brightness-110 active:scale-[0.99] text-black rounded-xl transition-all font-black text-sm shadow-lg shadow-[#FFB703]/10 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 {loading ? (
                                     <>
-                                        <div className="w-5 h-5 border-2 border-[#0F1115]/30 border-t-[#0F1115] rounded-full animate-spin" />
+                                        <div className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" />
                                         Criando conta...
                                     </>
                                 ) : (
                                     <>
-                                        <Zap className="w-5 h-5" />
-                                        Criar Conta
+                                        <UserPlus className="w-4 h-4" />
+                                        Criar Conta Gratuita
                                     </>
                                 )}
                             </button>
@@ -264,20 +226,20 @@ export default function Register() {
                     <div className="mt-8">
                         <div className="relative">
                             <div className="absolute inset-0 flex items-center">
-                                <div className="w-full border-t border-[#FFAE00]/10" />
+                                <div className="w-full border-t border-white/[0.07]" />
                             </div>
-                            <div className="relative flex justify-center text-sm">
-                                <span className="px-4 bg-[#1A1D23] text-gray-400">
+                            <div className="relative flex justify-center text-xs">
+                                <span className="px-3 bg-[#12151C] text-gray-400">
                                     Já tem uma conta?
                                 </span>
                             </div>
                         </div>
 
                         {/* Login Link */}
-                        <div className="mt-6">
+                        <div className="mt-5">
                             <Link
                                 href="/login"
-                                className="w-full flex items-center justify-center gap-2 py-3 px-4 border border-[#FFAE00]/20 rounded-lg text-[#F3F4F6] hover:bg-[#FFAE00]/10 hover:border-[#FFAE00]/50 transition-all font-medium"
+                                className="w-full flex items-center justify-center gap-2 py-3 px-4 border border-white/10 hover:border-white/20 rounded-xl text-gray-300 hover:text-white hover:bg-white/[0.03] transition-all text-sm font-semibold"
                             >
                                 Fazer Login
                             </Link>
