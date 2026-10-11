@@ -199,7 +199,7 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                 const { data: { session } } = await supabase.auth.getSession()
                 const user = session?.user
                 if (!user) return null
-                let { data: profile } = await supabase
+                const { data: profile } = await supabase
                     .from('users')
                     .select('*')
                     .eq('supabase_user_id', user.id)

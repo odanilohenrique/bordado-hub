@@ -1,30 +1,38 @@
 import Link from 'next/link'
-import { PenTool, Edit3, FileCode2, Image as ImageIcon, ArrowRight } from 'lucide-react'
+import { PenTool, Layers, ShoppingBag, FileCode2, ArrowRight } from 'lucide-react'
 
 const categories = [
     {
-        name: 'Criação de Matriz',
-        description: 'Desenho completo do zero a partir de uma foto, vetor ou ideia.',
+        name: 'Criação de Matrizes',
+        description: 'Desenho e programação do zero a partir de fotos, imagens, vetores ou criação de logotipos exclusivos.',
         icon: PenTool,
-        tag: 'Mais Pedido',
+        tag: 'Sob Encomenda',
+        link: '/jobs/new',
+        cta: 'Pedir Matriz',
     },
     {
-        name: 'Edição e Ajustes',
-        description: 'Alterar tamanho, densidade de pontos ou corrigir falhas de costura.',
-        icon: Edit3,
-        tag: 'Rápido',
+        name: 'Produção de Matrizes',
+        description: 'Para programadores profissionais: atenda pedidos sob demanda, pegue encomendas no mural e fature diariamente.',
+        icon: Layers,
+        tag: 'Para Produtores',
+        link: '/jobs',
+        cta: 'Ver Demandas',
     },
     {
-        name: 'Conversão de Formato',
-        description: 'Converta arquivos entre .DST, .PES, .JEF, .EXP, .XXX para sua máquina.',
+        name: 'Marketplace de Matrizes',
+        description: 'Compre ou venda pacotes e matrizes prontas com download imediato para usar ou faturar agora mesmo.',
+        icon: ShoppingBag,
+        tag: 'Pronta Entrega',
+        link: '/jobs',
+        cta: 'Ver Matrizes',
+    },
+    {
+        name: 'Conversão de Formatos',
+        description: 'Converta arquivos entre .DST, .PES, .JEF, .EXP e .XXX calibrados com perfeição para sua máquina.',
         icon: FileCode2,
         tag: 'Técnico',
-    },
-    {
-        name: 'Logotipos Bordados',
-        description: 'Transforme a marca da sua empresa ou uniforme em bordado impecável.',
-        icon: ImageIcon,
-        tag: 'Empresarial',
+        link: '/jobs/new',
+        cta: 'Converter Arquivo',
     },
 ]
 
@@ -35,13 +43,13 @@ export default function Categories() {
                 {/* Header */}
                 <div className="text-center max-w-2xl mx-auto mb-8 sm:mb-10">
                     <span className="text-[10px] font-black uppercase tracking-widest text-[#FFAE00] bg-[#FFAE00]/10 px-2.5 py-0.5 rounded-full border border-[#FFAE00]/20">
-                        Serviços Disponíveis
+                        Ecossistema Completo
                     </span>
                     <h2 className="text-2xl sm:text-3xl font-extrabold text-white mt-3 tracking-tight">
-                        O que você precisa bordar hoje?
+                        O que você quer criar, produzir ou negociar hoje?
                     </h2>
                     <p className="mt-1.5 text-xs sm:text-sm text-gray-400">
-                        Encontre programadores talentosos para qualquer tipo de matriz computadorizada.
+                        O ponto de encontro ideal entre quem precisa de bordados perfeitos e quem produz ou comercializa matrizes.
                     </p>
                 </div>
 
@@ -50,7 +58,7 @@ export default function Categories() {
                     {categories.map((category) => (
                         <Link
                             key={category.name}
-                            href="/jobs/new"
+                            href={category.link}
                             className="group bg-[#16191F] hover:bg-[#1C2028] p-5 rounded-xl border border-white/5 hover:border-[#FFAE00]/40 transition-all duration-300 shadow-md flex flex-col justify-between"
                         >
                             <div>
@@ -71,7 +79,7 @@ export default function Categories() {
                             </div>
 
                             <div className="pt-4 mt-4 border-t border-white/5 flex items-center text-xs font-bold text-[#FFAE00] gap-1 group-hover:translate-x-1 transition-transform">
-                                <span>Pedir Agora</span>
+                                <span>{category.cta}</span>
                                 <ArrowRight className="w-3.5 h-3.5" />
                             </div>
                         </Link>

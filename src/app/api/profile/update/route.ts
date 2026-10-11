@@ -50,11 +50,14 @@ export async function POST(request: Request) {
         }
 
         // 2. Perform server-side update with service role client
-        let { data, error } = await supabase
+        const updateRes = await supabase
             .from('users')
             .update(updatePayload)
             .or(`id.eq.${userId},supabase_user_id.eq.${userId}`)
             .select()
+
+        let data = updateRes.data
+        const error = updateRes.error
 
         // 3. Fallback: if newer columns don't exist yet in the database, update base fields
         if (error) {

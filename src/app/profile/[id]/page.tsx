@@ -110,7 +110,7 @@ export default function ProfilePage() {
                 if (reviewsData && reviewsData.length > 0) {
                     const reviewerIds = Array.from(new Set(reviewsData.map(r => r.reviewer_id).filter(Boolean)))
                     
-                    let reviewerMap = new Map()
+                    const reviewerMap = new Map()
                     if (reviewerIds.length > 0) {
                         const { data: reviewers } = await supabase
                             .from('users')
