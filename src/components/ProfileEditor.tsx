@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { Save, X, Trash2, ImageIcon, Camera, CreditCard, ShoppingBag, Code, CheckCircle2, Loader2 } from 'lucide-react'
 import Image from 'next/image'
+import { optimizeImageFile } from '@/lib/helpers'
 
 // Comprehensive list of embroidery software
 const SOFTWARE_OPTIONS = [
@@ -116,8 +117,9 @@ export default function ProfileEditor({ profile, onCancel, onSave, defaultProgra
             setAvatarPreview(localPreview)
             setUploading(true)
 
+            const optimized = await optimizeImageFile(file, 800, 0.85)
             const uploadData = new FormData()
-            uploadData.append('file', file)
+            uploadData.append('file', optimized)
             uploadData.append('userId', profile.id)
 
             const res = await fetch('/api/upload-avatar', {
@@ -125,9 +127,19 @@ export default function ProfileEditor({ profile, onCancel, onSave, defaultProgra
                 body: uploadData
             })
 
-            const json = await res.json()
-            if (!res.ok) throw new Error(json.error || 'Erro no upload')
+            if (!res.ok) {
+                const text = await res.text()
+                let errMsg = 'Erro no upload da foto'
+                try {
+                    const errJson = JSON.parse(text)
+                    errMsg = errJson.error || errMsg
+                } catch {
+                    errMsg = `Erro (${res.status}): ${text.slice(0, 100)}`
+                }
+                throw new Error(errMsg)
+            }
 
+            const json = await res.json()
             const uploadedUrl = json.publicUrl || json.avatarUrl
             if (uploadedUrl) {
                 handleChange('avatar_url', uploadedUrl)
@@ -177,21 +189,40 @@ export default function ProfileEditor({ profile, onCancel, onSave, defaultProgra
 
             setPortfolioUploading(true)
 
-            const uploadData = new FormData()
-            filesToUpload.forEach(file => uploadData.append('files', file))
-            uploadData.append('userId', profile.id)
-            uploadData.append('isPortfolio', 'true')
+            // Upload de cada arquivo individualmente em paralelo e com compressão (evita 413 Payload Too Large na Vercel)
+            const uploadPromises = filesToUpload.map(async (rawFile) => {
+                const optimized = await optimizeImageFile(rawFile, 1600, 0.82)
+                const uploadData = new FormData()
+                uploadData.append('file', optimized)
+                uploadData.append('userId', profile.id)
+                uploadData.append('isPortfolio', 'true')
 
-            const res = await fetch('/api/upload-avatar', {
-                method: 'POST',
-                body: uploadData
+                const res = await fetch('/api/upload-avatar', {
+                    method: 'POST',
+                    body: uploadData
+                })
+
+                if (!res.ok) {
+                    const text = await res.text()
+                    let errMsg = 'Erro no envio de imagem'
+                    try {
+                        const errJson = JSON.parse(text)
+                        errMsg = errJson.error || errMsg
+                    } catch {
+                        errMsg = `Erro (${res.status}): ${text.slice(0, 100)}`
+                    }
+                    throw new Error(errMsg)
+                }
+
+                const json = await res.json()
+                const url = json.publicUrl || json.avatarUrl || (json.urls && json.urls[0])
+                return url as string
             })
 
-            const json = await res.json()
-            if (!res.ok) throw new Error(json.error || 'Erro no upload')
-
-            const newUrls: string[] = (json.urls || [json.publicUrl || json.avatarUrl])
-                .filter((url: any) => Boolean(url && typeof url === 'string' && url.trim().length > 0))
+            const uploadedResults = await Promise.all(uploadPromises)
+            const newUrls: string[] = uploadedResults.filter(
+                (url): url is string => Boolean(url && typeof url === 'string' && url.trim().length > 0)
+            )
 
             if (newUrls.length === 0) {
                 throw new Error('Nenhuma imagem válida foi retornada do servidor.')
