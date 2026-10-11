@@ -82,7 +82,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                             email: authUser.email,
                             name: authUser.user_metadata?.full_name || authUser.user_metadata?.name || authUser.email.split('@')[0],
                             avatar_url: authUser.user_metadata?.avatar_url || authUser.user_metadata?.picture || null,
-                            role: 'criador'
+                            role: 'cliente',
+                            is_programmer: false
                         })
                     })
                     const resJson = await res.json()

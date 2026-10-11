@@ -1,14 +1,14 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, Suspense } from 'react'
 import { supabase } from '@/lib/supabaseClient'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
-import { User, Mail, Lock, Zap, UserPlus, ShoppingBag, Code } from 'lucide-react'
+import { User, Mail, Lock, Zap, UserPlus } from 'lucide-react'
 import GoogleSignInButton from '@/components/GoogleSignInButton'
 
-export default function Register() {
+function RegisterForm() {
     const [name, setName] = useState('')
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
@@ -16,6 +16,8 @@ export default function Register() {
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const router = useRouter()
+    const searchParams = useSearchParams()
+    const redirectUrl = searchParams.get('redirect')
 
     const handleRegister = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -66,7 +68,11 @@ export default function Register() {
                 throw new Error(result.error || 'Erro ao criar perfil')
             }
 
-            router.push('/jobs')
+            if (redirectUrl && redirectUrl.startsWith('/')) {
+                router.push(redirectUrl)
+            } else {
+                router.push('/jobs')
+            }
             router.refresh()
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (err: any) {
@@ -238,7 +244,7 @@ export default function Register() {
                         {/* Login Link */}
                         <div className="mt-5">
                             <Link
-                                href="/login"
+                                href={redirectUrl ? `/login?redirect=${encodeURIComponent(redirectUrl)}` : '/login'}
                                 className="w-full flex items-center justify-center gap-2 py-3 px-4 border border-white/10 hover:border-white/20 rounded-xl text-gray-300 hover:text-white hover:bg-white/[0.03] transition-all text-sm font-semibold"
                             >
                                 Fazer Login
@@ -262,5 +268,17 @@ export default function Register() {
                 </div>
             </div>
         </div>
+    )
+}
+
+export default function Register() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen bg-[#0B0D11] flex items-center justify-center">
+                <div className="w-10 h-10 border-4 border-[#FFAE00]/20 border-t-[#FFAE00] rounded-full animate-spin" />
+            </div>
+        }>
+            <RegisterForm />
+        </Suspense>
     )
 }

@@ -1,37 +1,62 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, Suspense } from 'react'
 import { supabase } from '@/lib/supabaseClient'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { Mail, Lock, LogIn, AlertCircle } from 'lucide-react'
 import GoogleSignInButton from '@/components/GoogleSignInButton'
 
-export default function Login() {
+function LoginForm() {
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const router = useRouter()
+    const searchParams = useSearchParams()
+    const redirectUrl = searchParams.get('redirect')
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault()
         setLoading(true)
         setError(null)
 
-        const { error } = await supabase.auth.signInWithPassword({
+        const { data: authData, error } = await supabase.auth.signInWithPassword({
             email,
             password,
         })
 
         if (error) {
             console.error('Login error:', error)
-            setError(error.message) // Show actual error
+            setError(error.message)
             setLoading(false)
         } else {
             console.log('Login successful')
-            router.push('/pedidos')
+
+            if (redirectUrl && redirectUrl.startsWith('/')) {
+                router.push(redirectUrl)
+                router.refresh()
+                return
+            }
+
+            // Fallback baseado no papel do usuário
+            const userId = authData.user?.id
+            if (userId) {
+                const { data: profile } = await supabase
+                    .from('users')
+                    .select('role, is_programmer')
+                    .eq('supabase_user_id', userId)
+                    .maybeSingle()
+
+                if (profile?.is_programmer || profile?.role === 'criador') {
+                    router.push('/jobs')
+                } else {
+                    router.push('/pedidos')
+                }
+            } else {
+                router.push('/jobs')
+            }
             router.refresh()
         }
     }
@@ -108,77 +133,72 @@ export default function Login() {
                                 required
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
-                                placeholder="Sua senha"
+                                placeholder="••••••••"
                                 className="w-full bg-[#0F1115] border border-[#FFAE00]/20 rounded-lg px-4 py-3 text-[#F3F4F6] placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#FFAE00] focus:border-transparent transition-all"
                             />
                         </div>
 
                         {/* Error Message */}
                         {error && (
-                            <div className="bg-red-500/10 border border-red-500/50 text-red-400 px-4 py-3 rounded-lg flex items-start gap-3">
-                                <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
-                                <p className="text-sm">{error}</p>
+                            <div className="bg-red-500/10 border border-red-500/50 rounded-lg p-3 flex items-center gap-2 text-red-400 text-sm">
+                                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                                <span>{error}</span>
                             </div>
                         )}
 
                         {/* Submit Button */}
-                        <div className="pt-2">
-                            <button
-                                type="submit"
-                                disabled={loading}
-                                className="w-full flex items-center justify-center gap-2 py-4 px-4 bg-[#FFAE00] text-[#0F1115] rounded-lg hover:bg-[#D97706] transition-all font-bold shadow-lg shadow-[#FFAE00]/20 disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                                {loading ? (
-                                    <>
-                                        <div className="w-5 h-5 border-2 border-[#0F1115]/30 border-t-[#0F1115] rounded-full animate-spin" />
-                                        Entrando...
-                                    </>
-                                ) : (
-                                    <>
-                                        <LogIn className="w-5 h-5" />
-                                        Entrar
-                                    </>
-                                )}
-                            </button>
-                        </div>
+                        <button
+                            type="submit"
+                            disabled={loading}
+                            className="w-full bg-gradient-to-r from-[#FFAE00] to-[#FF8C00] text-[#0F1115] py-3 px-4 rounded-lg font-bold hover:from-[#FF8C00] hover:to-[#FFAE00] focus:outline-none focus:ring-2 focus:ring-[#FFAE00] focus:ring-offset-2 focus:ring-offset-[#0F1115] transition-all transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none shadow-lg shadow-[#FFAE00]/20 flex items-center justify-center gap-2"
+                        >
+                            {loading ? (
+                                <div className="w-5 h-5 border-2 border-[#0F1115] border-t-transparent rounded-full animate-spin" />
+                            ) : (
+                                <>
+                                    <LogIn className="w-4 h-4" />
+                                    <span>Entrar</span>
+                                </>
+                            )}
+                        </button>
                     </form>
 
-                    {/* Divider and Register Link */}
-                    <div className="mt-8">
-                        <div className="relative">
-                            <div className="absolute inset-0 flex items-center">
-                                <div className="w-full border-t border-[#FFAE00]/10" />
-                            </div>
-                            <div className="relative flex justify-center text-sm">
-                                <span className="px-4 bg-[#1A1D23] text-gray-400">
-                                    Não tem uma conta?
-                                </span>
-                            </div>
-                        </div>
-
-                        <div className="mt-6">
+                    {/* Footer Links */}
+                    <div className="mt-6 text-center space-y-2">
+                        <p className="text-sm text-gray-400">
+                            Não tem uma conta?{' '}
                             <Link
-                                href="/register"
-                                className="w-full flex items-center justify-center gap-2 py-3 px-4 border border-[#FFAE00]/20 rounded-lg text-[#F3F4F6] hover:bg-[#FFAE00]/10 hover:border-[#FFAE00]/50 transition-all font-medium"
+                                href={redirectUrl ? `/register?redirect=${encodeURIComponent(redirectUrl)}` : '/register'}
+                                className="text-[#FFAE00] hover:text-[#FF8C00] font-semibold transition-colors"
                             >
-                                Criar Conta Grátis
+                                Criar conta grátis
                             </Link>
-                        </div>
+                        </p>
                     </div>
                 </div>
 
-                {/* Footer Info */}
-                <div className="mt-6 text-center text-xs text-gray-500">
-                    Protegido por BordadoHUB •{' '}
-                    <Link href="/termos" className="text-gray-400 hover:text-[#FFAE00] underline">
-                        Termos
-                    </Link>{' '}
-                    e{' '}
-                    <Link href="/privacidade" className="text-gray-400 hover:text-[#FFAE00] underline">
-                        Privacidade
+                {/* Back to Home */}
+                <div className="mt-8 text-center">
+                    <Link
+                        href="/"
+                        className="text-sm text-gray-500 hover:text-gray-400 transition-colors"
+                    >
+                        ← Voltar para o início
                     </Link>
                 </div>
             </div>
         </div>
+    )
+}
+
+export default function Login() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen bg-[#0F1115] flex items-center justify-center">
+                <div className="w-10 h-10 border-4 border-[#FFAE00]/20 border-t-[#FFAE00] rounded-full animate-spin" />
+            </div>
+        }>
+            <LoginForm />
+        </Suspense>
     )
 }

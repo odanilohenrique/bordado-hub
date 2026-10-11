@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { toast } from 'sonner'
 
 interface GoogleSignInButtonProps {
@@ -12,6 +12,8 @@ interface GoogleSignInButtonProps {
 
 export default function GoogleSignInButton({ mode = 'signin', text = 'Entrar com Google' }: GoogleSignInButtonProps) {
     const router = useRouter()
+    const searchParams = useSearchParams()
+    const redirectParam = searchParams?.get('redirect')
     const [loading, setLoading] = useState(false)
     const [gisLoaded, setGisLoaded] = useState(false)
     const buttonRef = useRef<HTMLDivElement>(null)
@@ -42,7 +44,7 @@ export default function GoogleSignInButton({ mode = 'signin', text = 'Entrar com
 
             const { data: profile } = await supabase
                 .from('users')
-                .select('role, avatar_url')
+                .select('role, avatar_url, is_programmer')
                 .eq('supabase_user_id', userId)
                 .maybeSingle()
 
@@ -54,9 +56,13 @@ export default function GoogleSignInButton({ mode = 'signin', text = 'Entrar com
                         .eq('supabase_user_id', userId)
                 }
 
-                if (profile.role === 'cliente') router.push('/pedidos')
-                else if (profile.role === 'criador') router.push('/producao')
-                else router.push('/pedidos')
+                if (redirectParam && redirectParam.startsWith('/')) {
+                    router.push(redirectParam)
+                } else if (profile.role === 'criador' || profile.is_programmer) {
+                    router.push('/jobs')
+                } else {
+                    router.push('/pedidos')
+                }
             } else {
                 try {
                     await fetch('/api/create-profile', {
@@ -66,19 +72,29 @@ export default function GoogleSignInButton({ mode = 'signin', text = 'Entrar com
                             userId,
                             name: user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0],
                             email: user.email,
-                            role: 'criador',
+                            role: 'cliente',
+                            is_programmer: false,
                             avatar_url: googleAvatar
                         })
                     })
                 } catch (e) {
                     console.error('Auto create profile error:', e)
                 }
-                router.push('/pedidos')
+
+                if (redirectParam && redirectParam.startsWith('/')) {
+                    router.push(redirectParam)
+                } else {
+                    router.push('/pedidos')
+                }
             }
             router.refresh()
         } catch (err) {
             console.error('Profile redirect error:', err)
-            router.push('/pedidos')
+            if (redirectParam && redirectParam.startsWith('/')) {
+                router.push(redirectParam)
+            } else {
+                router.push('/pedidos')
+            }
             router.refresh()
         }
     }

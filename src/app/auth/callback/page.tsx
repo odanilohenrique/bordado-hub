@@ -44,9 +44,13 @@ function AuthCallbackContent() {
                             .eq('supabase_user_id', userId)
                     }
 
-                    if (profile.role === 'cliente') router.push('/pedidos')
-                    else if (profile.role === 'criador') router.push('/jobs')
-                    else router.push(next === '/pedidos' ? '/producao' : next)
+                    if (next && next !== '/pedidos' && next.startsWith('/')) {
+                        router.push(next)
+                    } else if (profile.role === 'criador') {
+                        router.push('/jobs')
+                    } else {
+                        router.push('/pedidos')
+                    }
                 } else {
                     try {
                         await fetch('/api/create-profile', {
@@ -56,14 +60,15 @@ function AuthCallbackContent() {
                                 userId,
                                 name: user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email?.split('@')[0],
                                 email: user?.email,
-                                role: 'criador',
+                                role: 'cliente',
+                                is_programmer: false,
                                 avatar_url: googleAvatar
                             })
                         })
                     } catch (e) {
                         console.error('Auto create profile error:', e)
                     }
-                    router.push(next || '/pedidos')
+                    router.push(next && next.startsWith('/') ? next : '/pedidos')
                 }
                 router.refresh()
             } catch (err) {

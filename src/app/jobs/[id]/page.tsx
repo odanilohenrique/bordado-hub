@@ -434,13 +434,13 @@ function JobDetailClient({ jobId }: { jobId: string }) {
 
         // Safety gate: verify programmer profile readiness
         const isReady = Boolean(
-            currentUser?.is_programmer ||
-            (currentUser?.skills && currentUser?.skills.length > 0) ||
-            currentUser?.role === 'criador'
+            (currentUser?.is_programmer || currentUser?.role === 'criador') &&
+            currentUser?.skills &&
+            currentUser?.skills.length > 0
         )
 
         if (!isReady) {
-            toast.error('Ative seu perfil de programador com seus softwares dominados antes de enviar propostas.')
+            toast.error('Ative seu perfil de programador e informe os softwares que você domina antes de enviar propostas.')
             setSubmitting(false)
             return
         }
@@ -474,7 +474,8 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                             email: user.email,
                             name: user.user_metadata?.full_name || user.user_metadata?.name || user.email.split('@')[0],
                             avatar_url: user.user_metadata?.avatar_url || user.user_metadata?.picture || null,
-                            role: 'criador'
+                            role: 'cliente',
+                            is_programmer: false
                         })
                     })
                     const resData = await res.json()
@@ -916,9 +917,9 @@ function JobDetailClient({ jobId }: { jobId: string }) {
     const isJobLocked = job.status !== 'aberto' || hasAnyAcceptedProposal
     const showProposalForm = !isOwner && !isJobLocked && !hasAlreadySentProposal
     const isProgrammerReady = Boolean(
-        currentUser?.is_programmer ||
-        (currentUser?.skills && currentUser?.skills.length > 0) ||
-        currentUser?.role === 'criador'
+        (currentUser?.is_programmer || currentUser?.role === 'criador') &&
+        currentUser?.skills &&
+        currentUser?.skills.length > 0
     )
 
     const urgencyLabels: Record<string, string> = {
@@ -2052,7 +2053,7 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                         href={`/profile/${currentUser?.id || ''}?edit=true&activate=programmer`}
                                         className="shrink-0 bg-gradient-to-r from-[#FFB703] to-[#FB8500] hover:brightness-110 active:scale-95 text-black font-black text-xs px-4 py-2.5 rounded-xl transition-all shadow-md shadow-[#FFB703]/10 text-center w-full sm:w-auto"
                                     >
-                                        Ativar Perfil de Programador
+                                        Completar Perfil para Enviar Proposta
                                     </Link>
                                 </div>
                             )

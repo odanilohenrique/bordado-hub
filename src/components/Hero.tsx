@@ -49,7 +49,7 @@ export default function Hero() {
                             </Link>
 
                             <Link
-                                href="/register"
+                                href="/jobs"
                                 className="flex items-center justify-center gap-2 bg-[#1A1D23] hover:bg-[#20242C] text-white font-bold text-sm px-6 py-3 rounded-xl border border-white/10 hover:border-[#FFAE00]/30 transition-all text-center"
                             >
                                 <span>Produzir Matrizes</span>
