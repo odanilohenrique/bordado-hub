@@ -295,10 +295,16 @@ function CheckoutClient({ proposalId }: { proposalId: string }) {
         <div className="min-h-screen bg-[#0B0D11] py-12 px-4 sm:px-6 lg:px-8 text-slate-100">
             <div className="max-w-xl mx-auto">
                 <button
-                    onClick={() => router.back()}
-                    className="inline-flex items-center gap-2 text-gray-400 hover:text-[#F5A623] text-sm mb-6 transition-colors"
+                    onClick={() => {
+                        if (job?.id) {
+                            router.push(`/jobs/${job.id}`)
+                        } else {
+                            router.back()
+                        }
+                    }}
+                    className="inline-flex items-center gap-2 text-gray-400 hover:text-[#F5A623] text-sm mb-6 transition-colors font-medium"
                 >
-                    <ArrowLeft className="w-4 h-4" /> Voltar
+                    <ArrowLeft className="w-4 h-4" /> Voltar ao Pedido
                 </button>
 
                 <div className="bg-[#12151C] rounded-2xl border border-white/[0.07] shadow-2xl p-6 sm:p-8">

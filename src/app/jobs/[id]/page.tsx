@@ -10,6 +10,7 @@ import NegotiationChat from '@/components/NegotiationChat'
 import { toast } from 'sonner'
 import JSZip from 'jszip'
 import { saveAs } from 'file-saver'
+import { clearCache } from '@/lib/clientCache'
 
 interface ParsedMatrix {
     name: string
@@ -164,10 +165,16 @@ function JobDetailClient({ jobId }: { jobId: string }) {
     const chatParam = searchParams.get('chat')
     const payParam = searchParams.get('pay')
     const [negotiatingProposalId, setNegotiatingProposalId] = useState<string | null>(null)
+    const [activeCounterProposalId, setActiveCounterProposalId] = useState<string | null>(null)
+    const [expandedProposalMessages, setExpandedProposalMessages] = useState<Record<string, boolean>>({})
+    const [showEditProposalModal, setShowEditProposalModal] = useState(false)
+    const [editProposalAmount, setEditProposalAmount] = useState('')
+    const [savingEditProposal, setSavingEditProposal] = useState(false)
     const [counterAmount, setCounterAmount] = useState('')
     const [counterMessage, setCounterMessage] = useState('')
     const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({})
     const [confirmAcceptModal, setConfirmAcceptModal] = useState<string | null>(null)
+    const hasHandledPayParamRef = useRef(false)
 
     // Delivery & Review form state
     const [deliveryNotes, setDeliveryNotes] = useState('')
@@ -175,8 +182,11 @@ function JobDetailClient({ jobId }: { jobId: string }) {
     const [selectedFiles, setSelectedFiles] = useState<File[]>([])
     const [showSuccessModal, setShowSuccessModal] = useState(false)
 
-    const [ratingMatrix, setRatingMatrix] = useState(5)
-    const [ratingService, setRatingService] = useState(5)
+    // Avaliação: inicia em 0 para não preencher 5 estrelas sem querer
+    const [ratingMatrix, setRatingMatrix] = useState<number>(0)
+    const [ratingService, setRatingService] = useState<number>(0)
+    const [ratingHoverMatrix, setRatingHoverMatrix] = useState<number>(0)
+    const [ratingHoverService, setRatingHoverService] = useState<number>(0)
     const [reviewComment, setReviewComment] = useState('')
     const [jobReview, setJobReview] = useState<any>(null)
     const [jobTransaction, setJobTransaction] = useState<any>(null)
@@ -381,10 +391,16 @@ function JobDetailClient({ jobId }: { jobId: string }) {
 
     // Auto-open payment modal when arriving via notification with ?pay=...
     useEffect(() => {
-        if (!payParam || proposals.length === 0) return
+        if (!payParam || proposals.length === 0 || hasHandledPayParamRef.current) return
         const found = proposals.find((p: any) => p.id === payParam)
         if (found) {
+            hasHandledPayParamRef.current = true
             setConfirmAcceptModal(found.id)
+            try {
+                const url = new URL(window.location.href)
+                url.searchParams.delete('pay')
+                window.history.replaceState({}, '', url.pathname + (url.search ? url.search : ''))
+            } catch (_) {}
             setTimeout(() => {
                 const propCard = document.getElementById(`proposal-card-${found.id}`)
                 if (propCard) {
@@ -393,6 +409,24 @@ function JobDetailClient({ jobId }: { jobId: string }) {
             }, 300)
         }
     }, [payParam, proposals])
+
+    const handleCloseConfirmAccept = () => {
+        setConfirmAcceptModal(null)
+        try {
+            const url = new URL(window.location.href)
+            url.searchParams.delete('pay')
+            window.history.replaceState({}, '', url.pathname + (url.search ? url.search : ''))
+        } catch (_) {}
+    }
+
+    const handleCloseChat = () => {
+        setNegotiatingProposalId(null)
+        try {
+            const url = new URL(window.location.href)
+            url.searchParams.delete('chat')
+            window.history.replaceState({}, '', url.pathname + (url.search ? url.search : ''))
+        } catch (_) {}
+    }
 
     const handleOpenChatForAdjustment = async () => {
         if (!acceptedProposal) return
@@ -594,6 +628,11 @@ function JobDetailClient({ jobId }: { jobId: string }) {
     const handleSubmitReview = async (mRating: number, sRating: number, comment: string) => {
         if (!acceptedProposal) return
 
+        if (!mRating || mRating < 1 || !sRating || sRating < 1) {
+            toast.error('Por favor, selecione as estrelas de qualidade e atendimento antes de enviar.')
+            return
+        }
+
         try {
             const response = await fetch('/api/jobs/approve', {
                 method: 'POST',
@@ -611,10 +650,12 @@ function JobDetailClient({ jobId }: { jobId: string }) {
             const data = await response.json()
             if (!response.ok) throw new Error(data.error || 'Erro na avaliação')
 
+            clearCache('pedidos_jobs')
+            clearCache('producao_data')
             toast.success('Avaliação enviada! Projeto finalizado e pagamento liberado.')
             setTimeout(() => {
                 window.location.reload()
-            }, 2000)
+            }, 1500)
         } catch (err: any) {
             toast.error('Erro ao avaliar: ' + err.message)
         }
@@ -643,6 +684,8 @@ function JobDetailClient({ jobId }: { jobId: string }) {
             const data = await res.json()
             if (!res.ok) throw new Error(data.error || 'Erro ao solicitar revisão')
 
+            clearCache('pedidos_jobs')
+            clearCache('producao_data')
             toast.success('Solicitação de ajuste enviada ao programador!')
             setShowRevisionModal(false)
             setJob((prev: any) => ({
@@ -659,11 +702,18 @@ function JobDetailClient({ jobId }: { jobId: string }) {
     }
 
 
-    const submitCounterProposal = async () => {
-        if (!negotiatingProposalId) return
+    const submitCounterProposal = async (targetProposalId?: string, overrideAmount?: number) => {
+        const propId = targetProposalId || activeCounterProposalId || negotiatingProposalId
+        if (!propId) return
+
+        const val = overrideAmount !== undefined ? overrideAmount : parseFloat(counterAmount)
+        if (!val || isNaN(val) || val <= 0) {
+            toast.error('Informe um valor válido para a contraproposta.')
+            return
+        }
 
         try {
-            const numericCounter = parseFloat(counterAmount)
+            const numericCounter = val
             const { error } = await supabase
                 .from('proposals')
                 .update({
@@ -671,36 +721,90 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                     counter_amount: numericCounter,
                     counter_message: counterMessage || 'Contraproposta do cliente'
                 })
-                .eq('id', negotiatingProposalId)
+                .eq('id', propId)
 
             if (error) throw error
 
             // Send notification message in chat
             await supabase.from('proposal_messages').insert({
-                proposal_id: negotiatingProposalId,
+                proposal_id: propId,
                 sender_id: currentUser?.id,
                 content: `Fiz uma contraproposta oficial de R$ ${numericCounter.toFixed(2)}. Veja os detalhes e aceite para fecharmos!`
             })
 
             // Create notification for the programmer with direct link to chat
-            const targetProp = proposals.find(p => p.id === negotiatingProposalId)
+            const targetProp = proposals.find(p => p.id === propId)
             if (targetProp?.criador_id) {
                 await supabase.from('notifications').insert({
                     user_id: targetProp.criador_id,
                     type: 'contraproposta',
                     title: 'Contraproposta Recebida',
                     message: `O cliente fez uma contraproposta de R$ ${numericCounter.toFixed(2)} no pedido "${job?.title || 'Bordado'}".`,
-                    link_url: `/jobs/${jobId}?chat=${negotiatingProposalId}`
+                    link_url: `/jobs/${jobId}?chat=${propId}`
                 })
             }
 
-            toast.success('Contraproposta enviada!')
+            toast.success(`Contraproposta de R$ ${numericCounter.toFixed(2)} enviada!`)
             setCounterAmount('')
             setCounterMessage('')
+            setActiveCounterProposalId(null)
+            clearCache('pedidos_jobs')
+            clearCache('producao_data')
             await loadData()
             router.refresh()
         } catch (err: any) {
             toast.error('Erro: ' + err.message)
+        }
+    }
+
+    const handleProgrammerAdjustProposal = async () => {
+        if (!myExistingProposal) return
+        const val = parseFloat(editProposalAmount)
+        if (!val || isNaN(val) || val <= 0) {
+            toast.error('Informe um valor válido para sua proposta.')
+            return
+        }
+        setSavingEditProposal(true)
+        try {
+            const { error } = await supabase
+                .from('proposals')
+                .update({
+                    amount: val,
+                    status: 'pendente',
+                    counter_amount: null,
+                    counter_message: null
+                })
+                .eq('id', myExistingProposal.id)
+
+            if (error) throw error
+
+            await supabase.from('proposal_messages').insert({
+                proposal_id: myExistingProposal.id,
+                sender_id: currentUser?.id,
+                content: `[VALOR ATUALIZADO] Atualizei o valor da minha proposta para R$ ${val.toFixed(2)}.`
+            })
+
+            if (job?.cliente_id) {
+                await supabase.from('notifications').insert({
+                    user_id: job.cliente_id,
+                    type: 'proposta_atualizada',
+                    title: 'Proposta Atualizada',
+                    message: `O programador atualizou o valor da proposta para R$ ${val.toFixed(2)} no pedido "${job.title}".`,
+                    link_url: `/jobs/${job.id}?chat=${myExistingProposal.id}`
+                })
+            }
+
+            toast.success(`Proposta atualizada para R$ ${val.toFixed(2)}!`)
+            setShowEditProposalModal(false)
+            setEditProposalAmount('')
+            clearCache('pedidos_jobs')
+            clearCache('producao_data')
+            await loadData()
+            router.refresh()
+        } catch (err: any) {
+            toast.error('Erro ao atualizar proposta: ' + err.message)
+        } finally {
+            setSavingEditProposal(false)
         }
     }
 
@@ -739,6 +843,8 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                     })
                 }
 
+                clearCache('pedidos_jobs')
+                clearCache('producao_data')
                 toast.success(`Oferta aceita! O valor foi atualizado para R$ ${Number(targetAmount).toFixed(2)}. Aguarde o pagamento do cliente.`)
             } else {
                 const { error } = await supabase
@@ -758,6 +864,8 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                     content: `[CONTRAOFERTA RECUSADA] O valor original de R$ ${Number(proposal.amount).toFixed(2)} foi mantido.`
                 })
 
+                clearCache('pedidos_jobs')
+                clearCache('producao_data')
                 toast.success('Contraproposta recusada. Valor original mantido.')
             }
             await loadData()
@@ -768,13 +876,15 @@ function JobDetailClient({ jobId }: { jobId: string }) {
     }
 
     const handleAcceptProposal = async (proposalId: string) => {
-        setConfirmAcceptModal(null)
+        handleCloseConfirmAccept()
         try {
             await supabase
                 .from('proposals')
                 .update({ status: 'aceita' })
                 .eq('id', proposalId)
 
+            clearCache('pedidos_jobs')
+            clearCache('producao_data')
             router.push(`/checkout/${proposalId}`)
         } catch (err: any) {
             toast.error('Erro: ' + err.message)
@@ -1626,43 +1736,138 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                         </div>
                                     </div>
                                     
-                                    <div className="space-y-6">
-                                        <div className="space-y-3">
-                                            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Qualidade da Matriz</p>
-                                            <div className="flex gap-2">
-                                                {[1, 2, 3, 4, 5].map(star => (
-                                                    <button key={star} onClick={() => setRatingMatrix(star)} className="transition-transform active:scale-90">
-                                                        <Star className={`w-8 h-8 ${star <= ratingMatrix ? 'fill-[#FFAE00] text-[#FFAE00]' : 'text-gray-700'}`} />
-                                                    </button>
-                                                ))}
+                                    {/* Formulário de Avaliação com Seleção Explícita de Estrelas */}
+                                    <div className="space-y-5">
+                                        <div className="bg-[#12151C] border border-amber-500/20 rounded-2xl p-4 sm:p-5 space-y-4 shadow-xl">
+                                            {/* Critério 1: Qualidade da Matriz */}
+                                            <div className="space-y-1.5">
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-1.5">
+                                                        <Sparkles className="w-3.5 h-3.5 text-[#FFAE00]" /> 1. Qualidade da Matriz
+                                                    </span>
+                                                    <span className="text-xs font-bold transition-all">
+                                                        {(ratingHoverMatrix || ratingMatrix) === 5 ? (
+                                                            <span className="text-[#FFAE00]">5.0 - Excelente / Perfeita!</span>
+                                                        ) : (ratingHoverMatrix || ratingMatrix) === 4 ? (
+                                                            <span className="text-emerald-400">4.0 - Muito Boa</span>
+                                                        ) : (ratingHoverMatrix || ratingMatrix) === 3 ? (
+                                                            <span className="text-yellow-400">3.0 - Regular</span>
+                                                        ) : (ratingHoverMatrix || ratingMatrix) === 2 ? (
+                                                            <span className="text-orange-400">2.0 - Ruim</span>
+                                                        ) : (ratingHoverMatrix || ratingMatrix) === 1 ? (
+                                                            <span className="text-red-400">1.0 - Péssima</span>
+                                                        ) : (
+                                                            <span className="text-gray-500 italic text-[11px]">Toque nas estrelas</span>
+                                                        )}
+                                                    </span>
+                                                </div>
+                                                <div className="flex items-center gap-2 bg-[#0B0D11] p-2.5 rounded-xl border border-white/5">
+                                                    {[1, 2, 3, 4, 5].map(star => {
+                                                        const isFilled = star <= (ratingHoverMatrix || ratingMatrix)
+                                                        return (
+                                                            <button 
+                                                                key={star} 
+                                                                type="button"
+                                                                onMouseEnter={() => setRatingHoverMatrix(star)}
+                                                                onMouseLeave={() => setRatingHoverMatrix(0)}
+                                                                onClick={() => setRatingMatrix(star)} 
+                                                                className="p-1 transition-transform hover:scale-125 active:scale-95 focus:outline-none"
+                                                                title={`${star} estrela${star > 1 ? 's' : ''}`}
+                                                            >
+                                                                <Star className={`w-7 h-7 sm:w-8 sm:h-8 transition-colors ${isFilled ? 'fill-[#FFAE00] text-[#FFAE00] drop-shadow-[0_0_8px_rgba(255,174,0,0.5)]' : 'text-gray-600 hover:text-gray-400'}`} />
+                                                            </button>
+                                                        )
+                                                    })}
+                                                    {ratingMatrix > 0 && (
+                                                        <span className="ml-auto text-xs font-black text-[#FFAE00] bg-[#FFAE00]/15 px-2.5 py-1 rounded-lg border border-[#FFAE00]/30 font-mono">
+                                                            {ratingMatrix}.0 ★
+                                                        </span>
+                                                    )}
+                                                </div>
                                             </div>
-                                        </div>
 
-                                        <div className="space-y-3">
-                                            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Atendimento / Prazo</p>
-                                            <div className="flex gap-2">
-                                                {[1, 2, 3, 4, 5].map(star => (
-                                                    <button key={star} onClick={() => setRatingService(star)} className="transition-transform active:scale-90">
-                                                        <Star className={`w-8 h-8 ${star <= ratingService ? 'fill-[#FFAE00] text-[#FFAE00]' : 'text-gray-700'}`} />
-                                                    </button>
-                                                ))}
+                                            {/* Critério 2: Atendimento / Prazo */}
+                                            <div className="space-y-1.5">
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-1.5">
+                                                        <Clock className="w-3.5 h-3.5 text-[#FFAE00]" /> 2. Atendimento & Prazo
+                                                    </span>
+                                                    <span className="text-xs font-bold transition-all">
+                                                        {(ratingHoverService || ratingService) === 5 ? (
+                                                            <span className="text-[#FFAE00]">5.0 - Excelente / Rápido!</span>
+                                                        ) : (ratingHoverService || ratingService) === 4 ? (
+                                                            <span className="text-emerald-400">4.0 - Muito Bom</span>
+                                                        ) : (ratingHoverService || ratingService) === 3 ? (
+                                                            <span className="text-yellow-400">3.0 - Regular</span>
+                                                        ) : (ratingHoverService || ratingService) === 2 ? (
+                                                            <span className="text-orange-400">2.0 - Ruim</span>
+                                                        ) : (ratingHoverService || ratingService) === 1 ? (
+                                                            <span className="text-red-400">1.0 - Péssimo</span>
+                                                        ) : (
+                                                            <span className="text-gray-500 italic text-[11px]">Toque nas estrelas</span>
+                                                        )}
+                                                    </span>
+                                                </div>
+                                                <div className="flex items-center gap-2 bg-[#0B0D11] p-2.5 rounded-xl border border-white/5">
+                                                    {[1, 2, 3, 4, 5].map(star => {
+                                                        const isFilled = star <= (ratingHoverService || ratingService)
+                                                        return (
+                                                            <button 
+                                                                key={star} 
+                                                                type="button"
+                                                                onMouseEnter={() => setRatingHoverService(star)}
+                                                                onMouseLeave={() => setRatingHoverService(0)}
+                                                                onClick={() => setRatingService(star)} 
+                                                                className="p-1 transition-transform hover:scale-125 active:scale-95 focus:outline-none"
+                                                                title={`${star} estrela${star > 1 ? 's' : ''}`}
+                                                            >
+                                                                <Star className={`w-7 h-7 sm:w-8 sm:h-8 transition-colors ${isFilled ? 'fill-[#FFAE00] text-[#FFAE00] drop-shadow-[0_0_8px_rgba(255,174,0,0.5)]' : 'text-gray-600 hover:text-gray-400'}`} />
+                                                            </button>
+                                                        )
+                                                    })}
+                                                    {ratingService > 0 && (
+                                                        <span className="ml-auto text-xs font-black text-[#FFAE00] bg-[#FFAE00]/15 px-2.5 py-1 rounded-lg border border-[#FFAE00]/30 font-mono">
+                                                            {ratingService}.0 ★
+                                                        </span>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
 
                                         <textarea 
                                             value={reviewComment}
                                             onChange={e => setReviewComment(e.target.value)}
-                                            placeholder="Deixe um elogio ou comentário sobre o trabalho..."
-                                            className="w-full bg-[#1A1D23] border border-white/10 rounded-xl p-4 text-sm text-gray-300 min-h-[120px] focus:border-green-500/50"
+                                            placeholder="Deixe um elogio ou comentário sobre o trabalho do programador (opcional)..."
+                                            className="w-full bg-[#1A1D23] border border-white/10 rounded-xl p-3.5 text-xs sm:text-sm text-gray-200 min-h-[90px] focus:border-[#FFAE00] outline-none transition-colors"
                                         />
 
-                                        <button 
-                                            onClick={() => handleSubmitReview(ratingMatrix, ratingService, reviewComment)}
-                                            className="w-full bg-white text-black font-black py-4 rounded-xl hover:bg-gray-200 transition-all uppercase tracking-widest text-sm flex items-center justify-center gap-2 shadow-lg"
-                                        >
-                                            <CheckCircle className="w-4 h-4 text-green-600" />
-                                            Enviar Avaliação & Liberar Pagamento
-                                        </button>
+                                        <div className="space-y-1.5">
+                                            <button 
+                                                type="button"
+                                                onClick={() => handleSubmitReview(ratingMatrix, ratingService, reviewComment)}
+                                                disabled={ratingMatrix === 0 || ratingService === 0}
+                                                className={`w-full py-4 rounded-xl font-black uppercase tracking-wider text-xs sm:text-sm flex items-center justify-center gap-2 shadow-xl transition-all ${
+                                                    ratingMatrix > 0 && ratingService > 0
+                                                        ? 'bg-gradient-to-r from-[#FFB703] to-[#FB8500] hover:brightness-110 text-black active:scale-95 shadow-[#FFB703]/25 cursor-pointer'
+                                                        : 'bg-white/10 text-gray-500 cursor-not-allowed border border-white/5'
+                                                }`}
+                                            >
+                                                {ratingMatrix > 0 && ratingService > 0 ? (
+                                                    <>
+                                                        <CheckCircle className="w-4 h-4 fill-black text-white" />
+                                                        Confirmar Avaliação ({((ratingMatrix + ratingService) / 2).toFixed(1)} ★) & Liberar Pagamento
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <Star className="w-4 h-4 text-gray-500" />
+                                                        Selecione as estrelas acima para avaliar
+                                                    </>
+                                                )}
+                                            </button>
+                                            <p className="text-[10px] text-gray-400 text-center leading-tight">
+                                                Ao confirmar, sua avaliação é salva no perfil do programador e o pagamento em custódia é repassado a ele.
+                                            </p>
+                                        </div>
                                     </div>
                                 </div>
                             )}
@@ -2203,13 +2408,25 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                             </p>
                                         </div>
                                     </div>
-                                    <button
-                                        onClick={() => handleNegotiate(myExistingProposal.id)}
-                                        className="inline-flex items-center gap-2 bg-[#FFAE00] hover:bg-yellow-400 text-black px-4 py-2 rounded-xl text-xs font-black transition-all hover:scale-105 active:scale-95 shrink-0 shadow-md"
-                                    >
-                                        <MessageSquare className="w-3.5 h-3.5" />
-                                        Abrir Chat da Sua Proposta
-                                    </button>
+                                    <div className="flex items-center gap-2 flex-wrap shrink-0">
+                                        <button
+                                            onClick={() => {
+                                                setEditProposalAmount(myExistingProposal.amount?.toString() || '')
+                                                setShowEditProposalModal(true)
+                                            }}
+                                            className="inline-flex items-center gap-1.5 bg-[#1F2430] hover:bg-[#282F3E] text-yellow-400 border border-yellow-500/30 px-3.5 py-2 rounded-xl text-xs font-bold transition-all active:scale-95 shadow-sm"
+                                        >
+                                            <DollarSign className="w-3.5 h-3.5" />
+                                            Ajustar Valor
+                                        </button>
+                                        <button
+                                            onClick={() => handleNegotiate(myExistingProposal.id)}
+                                            className="inline-flex items-center gap-2 bg-[#FFAE00] hover:bg-yellow-400 text-black px-4 py-2 rounded-xl text-xs font-black transition-all hover:scale-105 active:scale-95 shrink-0 shadow-md"
+                                        >
+                                            <MessageSquare className="w-3.5 h-3.5" />
+                                            Abrir Chat da Proposta
+                                        </button>
+                                    </div>
                                 </div>
                             )
                         )}
@@ -2229,7 +2446,7 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                 <div className="w-full text-center py-6 text-gray-500 text-sm">Nenhuma proposta enviada.</div>
                             ) : (
                                 proposals.map((proposal: any) => (
-                                    <div key={proposal.id} id={`proposal-card-${proposal.id}`} className={`min-w-[280px] max-w-[320px] shrink-0 bg-[#12151C] rounded-2xl border p-4 snap-start transition-all ${negotiatingProposalId === proposal.id ? 'border-[#F5A623] shadow-[0_0_15px_rgba(245,166,35,0.15)]' : 'border-white/[0.07] hover:border-white/20'}`}>
+                                    <div key={proposal.id} id={`proposal-card-${proposal.id}`} className={`min-w-[290px] max-w-[340px] shrink-0 bg-[#12151C] rounded-2xl border p-4 snap-start transition-all ${negotiatingProposalId === proposal.id ? 'border-[#F5A623] shadow-[0_0_15px_rgba(245,166,35,0.15)]' : 'border-white/[0.07] hover:border-white/20'}`}>
                                         <div className="flex flex-col mb-3 bg-[#181C26] p-3 rounded-xl border border-white/[0.07] relative shadow-sm">
                                             <div className="flex items-center gap-3 mb-3">
                                                 <div className="w-10 h-10 rounded-full bg-black/40 border border-white/10 overflow-hidden relative shadow-sm shrink-0">
@@ -2260,26 +2477,130 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                                 <p className="text-[10px] text-gray-400 flex items-center gap-1 font-medium bg-[#181C26] px-2 py-1 rounded-md border border-white/[0.07]"><Clock className="w-3 h-3 text-[#F5A623]"/> {proposal.deadline_text}</p>
                                             </div>
                                         </div>
-                                        <p className="text-xs text-gray-400 line-clamp-2 mt-4 mb-4 h-8 bg-black/20 p-2 rounded border border-white/[0.07] italic">&ldquo;{proposal.message}&rdquo;</p>
-                                        
-                                        <div className="flex flex-col gap-2">
-                                            <div className="flex gap-2 relative">
-                                                {isOwner && proposal.status === 'pendente' && (
-                                                    <>
-                                                        <button onClick={() => setConfirmAcceptModal(proposal.id)} className="flex-1 bg-gradient-to-r from-[#FFB703] to-[#FB8500] hover:brightness-110 text-black text-xs font-black py-2.5 rounded-xl transition-all shadow-md shadow-[#FFB703]/10 flex items-center justify-center gap-1.5 active:scale-95"><Zap className="w-3.5 h-3.5 fill-black"/> Pagar Agora</button>
-                                                        <button onClick={() => handleNegotiate(proposal.id)} className={`flex-1 border text-xs font-bold py-2.5 rounded-xl transition-colors flex items-center justify-center gap-1 relative ${negotiatingProposalId === proposal.id ? 'bg-white/10 text-white border-white/20' : 'border-white/[0.07] text-gray-400 hover:text-white'}`}>
-                                                            <MessageSquare className="w-3 h-3"/> {negotiatingProposalId === proposal.id ? 'Ocultar' : 'Chat'}
-                                                            {unreadCounts[proposal.id] > 0 && <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white shadow-lg animate-bounce">{unreadCounts[proposal.id]}</span>}
-                                                        </button>
-                                                    </>
+
+                                        {/* Mensagem da Proposta Legível e Expansível no Mobile */}
+                                        <div className="mt-2 mb-3 bg-[#0B0D11] p-3 rounded-xl border border-white/[0.08]">
+                                            <div className="flex items-center justify-between mb-1">
+                                                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1">
+                                                    <MessageSquare className="w-3 h-3 text-[#F5A623]" /> Mensagem do Programador
+                                                </span>
+                                            </div>
+                                            <div className="text-xs text-gray-300 leading-relaxed whitespace-pre-wrap break-words">
+                                                {proposal.message ? (
+                                                    expandedProposalMessages[proposal.id] || proposal.message.length <= 110 ? (
+                                                        <span>&ldquo;{proposal.message}&rdquo;</span>
+                                                    ) : (
+                                                        <>
+                                                            <span>&ldquo;{proposal.message.slice(0, 110)}...&rdquo;</span>
+                                                            <button 
+                                                                type="button"
+                                                                onClick={() => setExpandedProposalMessages(prev => ({ ...prev, [proposal.id]: true }))}
+                                                                className="text-[#F5A623] hover:underline font-bold ml-1.5 inline-block text-[11px]"
+                                                            >
+                                                                Ler tudo
+                                                            </button>
+                                                        </>
+                                                    )
+                                                ) : (
+                                                    <span className="text-gray-500 italic">Sem mensagem adicional.</span>
                                                 )}
-                                                {!isOwner && currentUser?.id === proposal.criador_id && (
-                                                    <button onClick={() => handleNegotiate(proposal.id)} className={`w-full border text-xs font-bold py-2 rounded-lg transition-colors flex items-center justify-center gap-1 relative ${negotiatingProposalId === proposal.id ? 'bg-[#FFAE00]/10 text-[#FFAE00] border-[#FFAE00]/30' : 'border-white/10 text-gray-400 hover:text-[#FFAE00]'}`}>
-                                                        <MessageSquare className="w-3 h-3"/> {negotiatingProposalId === proposal.id ? 'Fechar Chat' : 'Abrir Chat'}
-                                                        {unreadCounts[proposal.id] > 0 && <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white shadow-lg animate-bounce">{unreadCounts[proposal.id]}</span>}
+                                                {expandedProposalMessages[proposal.id] && proposal.message && proposal.message.length > 110 && (
+                                                    <button 
+                                                        type="button"
+                                                        onClick={() => setExpandedProposalMessages(prev => ({ ...prev, [proposal.id]: false }))}
+                                                        className="text-gray-400 hover:text-white font-bold text-[11px] block mt-1"
+                                                    >
+                                                        Recolher
                                                     </button>
                                                 )}
                                             </div>
+                                        </div>
+                                        
+                                        <div className="flex flex-col gap-2">
+                                            {isOwner && proposal.status === 'pendente' && (
+                                                <div className="flex flex-col gap-2">
+                                                    <div className="grid grid-cols-2 gap-2">
+                                                        <button 
+                                                            onClick={() => setConfirmAcceptModal(proposal.id)} 
+                                                            className="bg-gradient-to-r from-[#FFB703] to-[#FB8500] hover:brightness-110 text-black text-xs font-black py-2.5 rounded-xl transition-all shadow-md shadow-[#FFB703]/10 flex items-center justify-center gap-1.5 active:scale-95"
+                                                        >
+                                                            <Zap className="w-3.5 h-3.5 fill-black"/> Pagar Agora
+                                                        </button>
+                                                        <button 
+                                                            onClick={() => handleNegotiate(proposal.id)} 
+                                                            className={`border text-xs font-bold py-2.5 rounded-xl transition-colors flex items-center justify-center gap-1 relative ${negotiatingProposalId === proposal.id ? 'bg-white/10 text-white border-white/20' : 'border-white/[0.07] text-gray-400 hover:text-white'}`}
+                                                        >
+                                                            <MessageSquare className="w-3.5 h-3.5"/> {negotiatingProposalId === proposal.id ? 'Fechar Chat' : 'Abrir Chat'}
+                                                            {unreadCounts[proposal.id] > 0 && <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white shadow-lg animate-bounce">{unreadCounts[proposal.id]}</span>}
+                                                        </button>
+                                                    </div>
+                                                    <button 
+                                                        onClick={() => setActiveCounterProposalId(activeCounterProposalId === proposal.id ? null : proposal.id)}
+                                                        className={`w-full text-xs font-black py-2 rounded-xl border transition-all flex items-center justify-center gap-1.5 ${activeCounterProposalId === proposal.id ? 'bg-[#FFAE00]/20 text-[#FFAE00] border-[#FFAE00]/40' : 'bg-white/5 hover:bg-white/10 text-yellow-400 border-yellow-500/25 hover:border-yellow-500/40'}`}
+                                                    >
+                                                        <Handshake className="w-3.5 h-3.5"/> {activeCounterProposalId === proposal.id ? 'Fechar Contraproposta' : 'Fazer Contraproposta'}
+                                                    </button>
+                                                </div>
+                                            )}
+
+                                            {!isOwner && currentUser?.id === proposal.criador_id && (
+                                                <button onClick={() => handleNegotiate(proposal.id)} className={`w-full border text-xs font-bold py-2 rounded-lg transition-colors flex items-center justify-center gap-1 relative ${negotiatingProposalId === proposal.id ? 'bg-[#FFAE00]/10 text-[#FFAE00] border-[#FFAE00]/30' : 'border-white/10 text-gray-400 hover:text-[#FFAE00]'}`}>
+                                                    <MessageSquare className="w-3.5 h-3.5"/> {negotiatingProposalId === proposal.id ? 'Fechar Chat' : 'Abrir Chat'}
+                                                    {unreadCounts[proposal.id] > 0 && <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white shadow-lg animate-bounce">{unreadCounts[proposal.id]}</span>}
+                                                </button>
+                                            )}
+
+                                            {/* Painel de Contraproposta no Card */}
+                                            {isOwner && activeCounterProposalId === proposal.id && proposal.status === 'pendente' && (
+                                                <div className="p-3 bg-[#181C26] border border-[#FFAE00]/30 rounded-xl flex flex-col gap-2 shadow-lg animate-in slide-in-from-top duration-200">
+                                                    <div className="flex items-center justify-between">
+                                                        <p className="text-[11px] font-black text-white uppercase tracking-wider flex items-center gap-1">
+                                                            <Handshake className="w-3.5 h-3.5 text-[#FFAE00]"/> Sua Contraproposta
+                                                        </p>
+                                                        <span className="text-[10px] text-gray-400">Atual: R$ {proposal.amount.toFixed(2)}</span>
+                                                    </div>
+                                                    <div className="flex gap-2">
+                                                        <div className="relative flex-1">
+                                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs font-black">R$</span>
+                                                            <input 
+                                                                type="number" 
+                                                                step="0.01"
+                                                                min="1"
+                                                                inputMode="decimal"
+                                                                placeholder="0,00" 
+                                                                className="w-full bg-[#0B0D11] border border-white/10 text-sm font-bold pl-8 pr-2.5 py-2 rounded-lg text-white focus:border-[#FFAE00] outline-none" 
+                                                                value={counterAmount}
+                                                                onChange={(e) => setCounterAmount(e.target.value)}
+                                                            />
+                                                        </div>
+                                                        <button 
+                                                            onClick={() => submitCounterProposal(proposal.id)} 
+                                                            disabled={!counterAmount} 
+                                                            className="bg-[#FFAE00] hover:bg-yellow-400 text-black text-xs font-black px-4 py-2 rounded-lg disabled:opacity-50 transition-all whitespace-nowrap active:scale-95 shadow"
+                                                        >
+                                                            Enviar
+                                                        </button>
+                                                    </div>
+                                                    <div className="flex items-center gap-1.5 pt-0.5 flex-wrap">
+                                                        <span className="text-[10px] text-gray-400">Atalhos:</span>
+                                                        <button 
+                                                            type="button"
+                                                            onClick={() => setCounterAmount((proposal.amount * 0.9).toFixed(2))}
+                                                            className="text-[10px] bg-white/5 hover:bg-white/10 text-gray-300 px-2 py-0.5 rounded border border-white/10"
+                                                        >
+                                                            -10% (R$ {(proposal.amount * 0.9).toFixed(2)})
+                                                        </button>
+                                                        <button 
+                                                            type="button"
+                                                            onClick={() => setCounterAmount((proposal.amount * 0.85).toFixed(2))}
+                                                            className="text-[10px] bg-white/5 hover:bg-white/10 text-gray-300 px-2 py-0.5 rounded border border-white/10"
+                                                        >
+                                                            -15% (R$ {(proposal.amount * 0.85).toFixed(2)})
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            )}
+
                                             {proposal.status === 'aceita' && (
                                                 <div className="flex flex-col gap-2">
                                                     <div className="w-full text-center py-2 bg-green-500/10 text-green-500 text-xs font-bold rounded-lg border border-green-500/20 uppercase tracking-wider">Aceita</div>
@@ -2322,31 +2643,9 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                                         <p className="text-xs text-gray-300">Você ofereceu <strong>R$ {Number(proposal.counter_amount).toFixed(2)}</strong></p>
                                                     </div>
                                                     <button onClick={() => handleNegotiate(proposal.id)} className={`w-full border text-xs font-bold py-2 rounded-lg transition-colors flex items-center justify-center gap-1 relative ${negotiatingProposalId === proposal.id ? 'bg-white/10 text-white border-white/20' : 'border-white/10 text-gray-400 hover:text-white'}`}>
-                                                        <MessageSquare className="w-3 h-3"/> {negotiatingProposalId === proposal.id ? 'Ocultar Chat' : 'Abrir Chat'}
+                                                        <MessageSquare className="w-3 h-3"/> {negotiatingProposalId === proposal.id ? 'Fechar Chat' : 'Abrir Chat'}
                                                         {unreadCounts[proposal.id] > 0 && <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white shadow-lg animate-bounce">{unreadCounts[proposal.id]}</span>}
                                                     </button>
-                                                </div>
-                                            )}
-
-                                            {isOwner && negotiatingProposalId === proposal.id && proposal.status === 'pendente' && (
-                                                <div className="mt-2 p-3 bg-[#1A1D23] border border-white/5 rounded-lg flex flex-col gap-2 shadow-inner">
-                                                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1"><Zap className="w-3 h-3 text-[#FFAE00]"/> Fazer Contraproposta</p>
-                                                    <div className="flex gap-2">
-                                                        <div className="relative flex-1">
-                                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs font-black">R$</span>
-                                                            <input 
-                                                                type="number" 
-                                                                step="0.01"
-                                                                min="1"
-                                                                inputMode="decimal"
-                                                                placeholder="0,00" 
-                                                                className="w-full bg-[#0F1115] border border-white/10 text-sm font-bold pl-8 pr-2.5 py-2 rounded-lg text-white focus:border-[#FFAE00] outline-none" 
-                                                                value={counterAmount}
-                                                                onChange={(e) => setCounterAmount(e.target.value)}
-                                                            />
-                                                        </div>
-                                                        <button onClick={submitCounterProposal} disabled={!counterAmount} className="bg-[#FFAE00] text-black text-xs font-extrabold px-4 py-2 rounded-lg hover:brightness-110 disabled:opacity-50 transition-all whitespace-nowrap">Enviar</button>
-                                                    </div>
                                                 </div>
                                             )}
                                         </div>
@@ -2372,7 +2671,7 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                 jobId={jobId}
                                 initialAmount={proposals.find(p => p.id === negotiatingProposalId)?.amount || 0}
                                 onProposalUpdated={loadData}
-                                onClose={() => setNegotiatingProposalId(null)}
+                                onClose={handleCloseChat}
                                 otherUser={(() => {
                                     const p = proposals.find(p => p.id === negotiatingProposalId)
                                     if (isOwner) {
@@ -2390,6 +2689,60 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                     }
                                 })()}
                             />
+                        </div>
+                    </div>
+                )}
+
+                {/* MODAL PARA O PROGRAMADOR AJUSTAR O VALOR DA SUA PROPOSTA */}
+                {showEditProposalModal && myExistingProposal && (
+                    <div 
+                        className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[100] p-4 animate-in fade-in duration-200"
+                        onClick={() => setShowEditProposalModal(false)}
+                    >
+                        <div 
+                            className="bg-[#1A1D23] border border-[#FFAE00]/30 p-6 md:p-8 rounded-2xl w-full max-w-sm shadow-[0_0_50px_rgba(255,174,0,0.15)] animate-in zoom-in-95 duration-200 relative"
+                            onClick={e => e.stopPropagation()}
+                        >
+                            <button
+                                onClick={() => setShowEditProposalModal(false)}
+                                className="absolute top-4 right-4 text-gray-400 hover:text-white p-1 rounded-lg hover:bg-white/5 transition-colors"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                            <div className="w-12 h-12 bg-[#FFAE00]/20 rounded-xl flex items-center justify-center mb-4 border border-[#FFAE00]/30">
+                                <DollarSign className="w-6 h-6 text-[#FFAE00]" />
+                            </div>
+                            <h3 className="text-lg font-black text-white mb-1">Ajustar Valor da Proposta</h3>
+                            <p className="text-xs text-gray-300 mb-4 leading-relaxed">
+                                Valor atual: <strong className="text-yellow-400">R$ {myExistingProposal.amount?.toFixed(2)}</strong>. Digite o novo valor acordado para fechar este trabalho:
+                            </p>
+                            <div className="relative mb-5">
+                                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-black">R$</span>
+                                <input 
+                                    type="number"
+                                    step="0.01"
+                                    min="1"
+                                    placeholder="0,00"
+                                    value={editProposalAmount}
+                                    onChange={e => setEditProposalAmount(e.target.value)}
+                                    className="w-full bg-[#0F1115] border border-white/10 rounded-xl pl-10 pr-4 py-3 text-base text-white font-bold focus:border-[#FFAE00] outline-none"
+                                />
+                            </div>
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={handleProgrammerAdjustProposal}
+                                    disabled={savingEditProposal || !editProposalAmount}
+                                    className="flex-1 bg-[#FFAE00] hover:bg-yellow-400 text-black font-black text-xs py-3 rounded-xl transition-all shadow-md shadow-[#FFAE00]/20 disabled:opacity-50 active:scale-95"
+                                >
+                                    {savingEditProposal ? 'Salvando...' : 'Confirmar Novo Valor'}
+                                </button>
+                                <button
+                                    onClick={() => setShowEditProposalModal(false)}
+                                    className="border border-white/10 text-gray-400 hover:text-white text-xs px-4 py-3 rounded-xl hover:bg-white/5 transition-colors"
+                                >
+                                    Cancelar
+                                </button>
+                            </div>
                         </div>
                     </div>
                 )}
@@ -2418,8 +2771,20 @@ function JobDetailClient({ jobId }: { jobId: string }) {
 
                 {/* CONFIRM ACCEPT MODAL */}
                 {confirmAcceptModal && (
-                    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[100] p-4 animate-in fade-in duration-200">
-                        <div className="bg-[#1A1D23] border border-[#FFAE00]/30 p-6 md:p-8 rounded-2xl w-full max-w-md text-center shadow-[0_0_50px_rgba(255,174,0,0.15)] animate-in zoom-in-95 duration-200">
+                    <div 
+                        className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[100] p-4 animate-in fade-in duration-200"
+                        onClick={handleCloseConfirmAccept}
+                    >
+                        <div 
+                            className="bg-[#1A1D23] border border-[#FFAE00]/30 p-6 md:p-8 rounded-2xl w-full max-w-md text-center shadow-[0_0_50px_rgba(255,174,0,0.15)] animate-in zoom-in-95 duration-200 relative"
+                            onClick={e => e.stopPropagation()}
+                        >
+                            <button
+                                onClick={handleCloseConfirmAccept}
+                                className="absolute top-4 right-4 text-gray-400 hover:text-white p-1 rounded-lg hover:bg-white/5 transition-colors"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
                             <div className="w-16 h-16 bg-[#FFAE00]/20 rounded-full flex items-center justify-center mx-auto mb-6 shadow-[0_0_30px_rgba(255,174,0,0.3)]">
                                 <DollarSign className="w-8 h-8 text-[#FFAE00]" />
                             </div>
@@ -2429,7 +2794,7 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                             </p>
                             <div className="flex gap-3">
                                 <button 
-                                    onClick={() => setConfirmAcceptModal(null)}
+                                    onClick={handleCloseConfirmAccept}
                                     className="flex-1 bg-white/5 border border-white/10 text-white font-bold py-3.5 rounded-xl hover:bg-white/10 transition-colors"
                                 >
                                     Cancelar

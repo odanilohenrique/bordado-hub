@@ -2,10 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
-import { Bell, X, ExternalLink, Zap, CheckCircle2 } from 'lucide-react'
-import Link from 'next/link'
-
-import { getCached, setCached } from '@/lib/clientCache'
+import { Bell, X, ExternalLink, Zap } from 'lucide-react'
+import { setCached } from '@/lib/clientCache'
 import { useAuth } from '@/contexts/AuthContext'
 
 interface Notification {
@@ -210,15 +208,9 @@ export default function GlobalNotificationAlert() {
     const isCounterAccepted = currentAlert.type === 'contraproposta_aceita' || currentAlert.title?.toLowerCase().includes('contraproposta aceita')
 
     return (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-start justify-center p-4 sm:p-6 pointer-events-none">
-            {/* Dark semi-transparent overlay com z-index menor e clique para fechar */}
-            <div 
-                onClick={closeAlert}
-                className="fixed inset-0 z-40 bg-black/60 backdrop-blur-[2px] transition-opacity duration-300 pointer-events-auto cursor-pointer"
-            />
-
-            {/* Card com z-50 acima do overlay para garantir que o toque funcione no celular */}
-            <div className="relative z-50 w-full max-w-sm bg-[#1A1D23] border border-[#FFAE00] rounded-2xl shadow-[0_0_50px_rgba(255,174,0,0.3)] pointer-events-auto transform transition-all duration-500 scale-100 flex flex-col pt-6 pb-2 overflow-hidden animate-bounce-in">
+        <div className="fixed top-4 right-4 sm:top-6 sm:right-6 z-50 max-w-sm w-[calc(100vw-2rem)] pointer-events-none">
+            {/* Card com pointer-events-auto para permitir interação apenas no alerta, sem bloquear o restante do site */}
+            <div className="relative w-full bg-[#1A1D23] border border-[#FFAE00] rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.8),0_0_30px_rgba(255,174,0,0.25)] pointer-events-auto transform transition-all duration-500 scale-100 flex flex-col pt-6 pb-2 overflow-hidden animate-bounce-in">
                 
                 {/* Glow bar at top */}
                 <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#FFAE00] to-yellow-300 animate-pulse"></div>

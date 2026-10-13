@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabaseClient'
-import { Send, Paperclip, User, FileImage, RefreshCw, CheckCircle2, DollarSign, Package, Download, Handshake, X, Check, Clock, CheckCheck, Wrench, ArrowLeft } from 'lucide-react'
+import { Send, Paperclip, FileImage, RefreshCw, CheckCircle2, DollarSign, Package, Download, Handshake, X, Check, Clock, CheckCheck, Wrench, ArrowLeft } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 
@@ -60,6 +60,9 @@ export default function NegotiationChat({
     const [agreedValue, setAgreedValue] = useState(initialAmount?.toString() || '')
     const [proposalData, setProposalData] = useState<ProposalData | null>(null)
     const [processingCounter, setProcessingCounter] = useState(false)
+    const [showProducerAdjust, setShowProducerAdjust] = useState(false)
+    const [producerNewAmount, setProducerNewAmount] = useState('')
+    const [adjustingProposal, setAdjustingProposal] = useState(false)
     const [otherUserData, setOtherUserData] = useState<{
         name: string
         avatar_url?: string | null
@@ -426,6 +429,123 @@ export default function NegotiationChat({
         }
     }
 
+    const handleOwnerSendCounter = async () => {
+        const num = parseFloat(agreedValue)
+        if (!num || isNaN(num) || num <= 0) {
+            toast.error('Informe um valor válido para sua contraproposta.')
+            return
+        }
+        setProcessingCounter(true)
+        try {
+            const { error: propError } = await supabase
+                .from('proposals')
+                .update({
+                    status: 'contraproposta',
+                    counter_amount: num,
+                    counter_message: 'Contraproposta enviada pelo chat'
+                })
+                .eq('id', proposalId)
+
+            if (propError) throw propError
+
+            await supabase.from('proposal_messages').insert({
+                proposal_id: proposalId,
+                sender_id: currentUserId,
+                content: `Fiz uma contraproposta oficial de R$ ${num.toFixed(2)}. Veja os detalhes para aceitar e fecharmos!`
+            })
+
+            if (proposalData?.criador_id) {
+                const { data: jobInfo } = await supabase
+                    .from('jobs')
+                    .select('title')
+                    .eq('id', jobId)
+                    .single()
+
+                await supabase.from('notifications').insert({
+                    user_id: proposalData.criador_id,
+                    type: 'contraproposta',
+                    title: 'Contraproposta Recebida',
+                    message: `O cliente fez uma contraproposta de R$ ${num.toFixed(2)} no pedido "${jobInfo?.title || 'Bordado'}".`,
+                    link_url: `/jobs/${jobId}?chat=${proposalId}`
+                })
+            }
+
+            setProposalData(prev => prev ? ({
+                ...prev,
+                status: 'contraproposta',
+                counter_amount: num
+            }) : null)
+            setShowQuickDeal(false)
+            toast.success(`Contraproposta de R$ ${num.toFixed(2)} enviada com sucesso!`)
+            onProposalUpdated?.()
+        } catch (err: any) {
+            toast.error('Erro ao enviar contraproposta: ' + err.message)
+        } finally {
+            setProcessingCounter(false)
+        }
+    }
+
+    const handleProducerAdjust = async () => {
+        const num = parseFloat(producerNewAmount)
+        if (!num || isNaN(num) || num <= 0) {
+            toast.error('Informe um valor válido para atualizar a proposta.')
+            return
+        }
+        setAdjustingProposal(true)
+        try {
+            const { error: propError } = await supabase
+                .from('proposals')
+                .update({
+                    amount: num,
+                    status: 'pendente',
+                    counter_amount: null,
+                    counter_message: null
+                })
+                .eq('id', proposalId)
+
+            if (propError) throw propError
+
+            await supabase.from('proposal_messages').insert({
+                proposal_id: proposalId,
+                sender_id: currentUserId,
+                content: `[VALOR ATUALIZADO] Ajustei o valor da minha proposta para R$ ${num.toFixed(2)}. Veja os detalhes para fechar!`
+            })
+
+            const { data: jobInfo } = await supabase
+                .from('jobs')
+                .select('cliente_id, title')
+                .eq('id', jobId)
+                .single()
+
+            if (jobInfo?.cliente_id) {
+                await supabase.from('notifications').insert({
+                    user_id: jobInfo.cliente_id,
+                    type: 'proposta_atualizada',
+                    title: 'Valor da Proposta Ajustado',
+                    message: `O produtor atualizou a proposta para R$ ${num.toFixed(2)} no pedido "${jobInfo.title}".`,
+                    link_url: `/jobs/${jobId}?chat=${proposalId}`
+                })
+            }
+
+            setProposalData(prev => prev ? ({
+                ...prev,
+                amount: num,
+                status: 'pendente',
+                counter_amount: null,
+                counter_message: null
+            }) : null)
+            setAgreedValue(num.toString())
+            setShowProducerAdjust(false)
+            setProducerNewAmount('')
+            toast.success(`Valor da proposta ajustado para R$ ${num.toFixed(2)}!`)
+            onProposalUpdated?.()
+        } catch (err: any) {
+            toast.error('Erro ao ajustar valor: ' + err.message)
+        } finally {
+            setAdjustingProposal(false)
+        }
+    }
+
     const handleSendMessage = async (e?: React.FormEvent) => {
         e?.preventDefault()
         const text = newMessage.trim()
@@ -657,18 +777,35 @@ export default function NegotiationChat({
                         <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
                     </button>
 
+                    {/* Botão de Negociação para o Cliente */}
                     {isOwner && (
                         <button 
                             onClick={() => setShowQuickDeal(!showQuickDeal)}
-                            className={`flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-lg transition-all ${
+                            className={`flex items-center gap-1.5 text-xs font-black px-3 py-1.5 rounded-lg transition-all shadow ${
                                 showQuickDeal 
-                                ? 'bg-[#FFAE00] text-black shadow-lg shadow-[#FFAE00]/20' 
-                                : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow'
+                                ? 'bg-[#FFAE00] text-black shadow-lg shadow-[#FFAE00]/25' 
+                                : 'bg-gradient-to-r from-[#FFB703] to-[#FB8500] hover:brightness-110 text-black'
                             }`}
-                            title="Fechar negócio"
+                            title="Contraproposta / Fechar Negócio"
                         >
-                            <CheckCircle2 className="w-3.5 h-3.5" />
-                            <span className="hidden sm:inline">Fechar Negócio</span>
+                            <Handshake className="w-3.5 h-3.5 shrink-0" />
+                            <span className="whitespace-nowrap">Contraproposta</span>
+                        </button>
+                    )}
+
+                    {/* Botão de Ajustar Valor para o Produtor */}
+                    {!isOwner && proposalData?.criador_id === currentUserId && (
+                        <button 
+                            onClick={() => setShowProducerAdjust(!showProducerAdjust)}
+                            className={`flex items-center gap-1.5 text-xs font-black px-3 py-1.5 rounded-lg transition-all shadow ${
+                                showProducerAdjust 
+                                ? 'bg-[#FFAE00] text-black shadow-lg shadow-[#FFAE00]/25' 
+                                : 'bg-[#1F2430] hover:bg-[#282F3E] text-yellow-400 border border-yellow-500/30'
+                            }`}
+                            title="Ajustar valor da proposta"
+                        >
+                            <DollarSign className="w-3.5 h-3.5 shrink-0" />
+                            <span className="whitespace-nowrap">Ajustar Valor</span>
                         </button>
                     )}
 
@@ -777,32 +914,115 @@ export default function NegotiationChat({
                 </div>
             )}
 
-            {/* Quick Deal Panel (Owner Only) */}
+            {/* Quick Deal / Counter-Proposal Panel (Owner Only) */}
             {isOwner && showQuickDeal && (
-                <div className="bg-[#FFAE00]/10 border-b border-[#FFAE00]/20 p-3 animate-in slide-in-from-top duration-300 z-10 shrink-0">
+                <div className="bg-[#181C26] border-b border-[#FFAE00]/30 p-3 sm:p-4 animate-in slide-in-from-top duration-300 z-10 shrink-0 shadow-2xl">
                     <div className="flex flex-col gap-3 max-w-2xl mx-auto w-full">
                         <div className="flex items-center justify-between">
-                            <h4 className="text-[11px] font-black text-[#FFAE00] uppercase tracking-widest">Ajuste de Valor Final</h4>
-                            <span className="text-[10px] text-gray-400">Acordado no chat</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <div className="relative flex-1">
-                                <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-500" />
-                                <input 
-                                    type="number"
-                                    placeholder="Valor final acordado..."
-                                    value={agreedValue}
-                                    onChange={(e) => setAgreedValue(e.target.value)}
-                                    className="w-full bg-[#0F1115] border border-[#FFAE00]/30 rounded-lg pl-9 pr-3 py-2 text-sm text-white focus:outline-none focus:border-[#FFAE00] transition-colors"
-                                />
+                            <div className="flex items-center gap-1.5">
+                                <Handshake className="w-4 h-4 text-[#FFAE00]" />
+                                <h4 className="text-xs font-black text-white uppercase tracking-wider">Negociar com o Produtor</h4>
                             </div>
-                            <button 
-                                onClick={handleQuickDeal}
-                                disabled={sending || !agreedValue}
-                                className="bg-[#FFAE00] hover:bg-yellow-400 text-[#0F1115] font-black text-[11px] px-4 py-2 rounded-lg transition-all shadow-lg shadow-[#FFAE00]/10 disabled:opacity-50 flex items-center gap-2"
-                            >
-                                {sending ? 'PROCESSANDO...' : 'ACEITAR E PAGAR'}
-                            </button>
+                            <span className="text-[11px] text-gray-400">
+                                Valor Atual: <strong className="text-yellow-400">R$ {(proposalData?.amount || initialAmount).toFixed(2)}</strong>
+                            </span>
+                        </div>
+
+                        <div className="bg-[#0F1115] border border-white/10 rounded-xl p-3 space-y-2.5">
+                            <div>
+                                <label className="text-[11px] font-bold text-gray-300 block mb-1">
+                                    Digite sua oferta ou valor acordado (R$):
+                                </label>
+                                <div className="relative">
+                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs font-black">R$</span>
+                                    <input 
+                                        type="number" 
+                                        step="0.01"
+                                        placeholder="0,00" 
+                                        value={agreedValue}
+                                        onChange={(e) => setAgreedValue(e.target.value)}
+                                        className="w-full bg-[#181C26] border border-white/15 rounded-lg pl-9 pr-3 py-2 text-sm text-white font-bold focus:outline-none focus:border-[#FFAE00] transition-colors"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="flex flex-col sm:flex-row gap-2 pt-1">
+                                <button 
+                                    onClick={handleOwnerSendCounter}
+                                    disabled={processingCounter || !agreedValue}
+                                    className="flex-1 bg-[#FFAE00]/15 hover:bg-[#FFAE00]/25 text-[#FFAE00] border border-[#FFAE00]/40 font-black text-xs py-2.5 px-3 rounded-lg transition-all flex items-center justify-center gap-1.5 active:scale-95 disabled:opacity-50"
+                                >
+                                    <Handshake className="w-3.5 h-3.5" />
+                                    {processingCounter ? 'Enviando...' : 'Enviar Contraproposta Oficial'}
+                                </button>
+                                <button 
+                                    onClick={handleQuickDeal}
+                                    disabled={sending || !agreedValue}
+                                    className="flex-1 bg-gradient-to-r from-[#FFB703] to-[#FB8500] hover:brightness-110 text-black font-black text-xs py-2.5 px-3 rounded-lg transition-all flex items-center justify-center gap-1.5 active:scale-95 disabled:opacity-50 shadow-md shadow-[#FFAE00]/15"
+                                >
+                                    <CheckCircle2 className="w-3.5 h-3.5" />
+                                    {sending ? 'Processando...' : 'Fechar & Pagar Agora'}
+                                </button>
+                            </div>
+                            <p className="text-[10px] text-gray-400 text-center leading-tight">
+                                &bull; <strong>Contraproposta:</strong> O produtor decide se aceita no painel dele. &bull; <strong>Fechar & Pagar:</strong> Vai direto para o pagamento seguro.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Producer Adjust Proposal Panel */}
+            {!isOwner && showProducerAdjust && (
+                <div className="bg-[#181C26] border-b border-[#FFAE00]/30 p-3 sm:p-4 animate-in slide-in-from-top duration-300 z-10 shrink-0 shadow-2xl">
+                    <div className="flex flex-col gap-3 max-w-2xl mx-auto w-full">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-1.5">
+                                <DollarSign className="w-4 h-4 text-green-400" />
+                                <h4 className="text-xs font-black text-white uppercase tracking-wider">Ajustar Valor da sua Proposta</h4>
+                            </div>
+                            <span className="text-[11px] text-gray-400">
+                                Atual: <strong className="text-white">R$ {(proposalData?.amount || initialAmount).toFixed(2)}</strong>
+                            </span>
+                        </div>
+
+                        <div className="bg-[#0F1115] border border-white/10 rounded-xl p-3 space-y-2.5">
+                            <div>
+                                <label className="text-[11px] font-bold text-gray-300 block mb-1">
+                                    Novo valor acordado com o cliente (R$):
+                                </label>
+                                <div className="relative">
+                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs font-black">R$</span>
+                                    <input 
+                                        type="number" 
+                                        step="0.01"
+                                        placeholder="Ex: 35.00" 
+                                        value={producerNewAmount}
+                                        onChange={(e) => setProducerNewAmount(e.target.value)}
+                                        className="w-full bg-[#181C26] border border-white/15 rounded-lg pl-9 pr-3 py-2 text-sm text-white font-bold focus:outline-none focus:border-[#FFAE00] transition-colors"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="flex gap-2 pt-1">
+                                <button 
+                                    onClick={handleProducerAdjust}
+                                    disabled={adjustingProposal || !producerNewAmount}
+                                    className="flex-1 bg-[#FFAE00] hover:bg-yellow-400 text-black font-black text-xs py-2.5 px-3 rounded-lg transition-all flex items-center justify-center gap-1.5 active:scale-95 disabled:opacity-50 shadow-md shadow-[#FFAE00]/15"
+                                >
+                                    <Check className="w-3.5 h-3.5" />
+                                    {adjustingProposal ? 'Atualizando...' : 'Confirmar Novo Valor da Proposta'}
+                                </button>
+                                <button 
+                                    onClick={() => setShowProducerAdjust(false)}
+                                    className="border border-white/10 text-gray-400 hover:text-white text-xs px-3 py-2.5 rounded-lg hover:bg-white/5 transition-colors"
+                                >
+                                    Cancelar
+                                </button>
+                            </div>
+                            <p className="text-[10px] text-gray-400 text-center">
+                                O valor da sua proposta será atualizado imediatamente no pedido e no chat para o cliente poder pagar.
+                            </p>
                         </div>
                     </div>
                 </div>
