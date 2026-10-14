@@ -31,6 +31,7 @@ interface UserProfile {
 
 export default function ProfilePage() {
     const params = useParams()
+    const router = useRouter()
     const id = params?.id as string
     const [profile, setProfile] = useState<UserProfile | null>(null)
     const [reviews, setReviews] = useState<any[]>([])
@@ -75,12 +76,41 @@ export default function ProfilePage() {
 
             if (!id) { setLoading(false); return }
 
+            let targetId = id
+            if (id === 'me') {
+                if (!user) {
+                    const query = typeof window !== 'undefined' ? window.location.search : ''
+                    router.push(`/login?redirect=${encodeURIComponent(`/profile/me${query}`)}`)
+                    return
+                }
+                targetId = user.id
+            }
+
             // Load profile from public table
-            const { data, error } = await supabase
+            // eslint-disable-next-line prefer-const
+            let { data, error } = await supabase
                 .from('users')
                 .select('*')
-                .or(`id.eq.${id},supabase_user_id.eq.${id}`)
-                .single()
+                .or(`id.eq.${targetId},supabase_user_id.eq.${targetId}`)
+                .maybeSingle()
+
+            // If user is accessing 'me' and profile doesn't exist yet, auto-provision
+            if (!data && id === 'me' && user) {
+                const googleAvatar = user.user_metadata?.avatar_url || user.user_metadata?.picture
+                const { data: newProfile } = await supabase
+                    .from('users')
+                    .insert({
+                        supabase_user_id: user.id,
+                        name: user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || 'Usuário',
+                        email: user.email,
+                        role: 'cliente',
+                        is_programmer: false,
+                        avatar_url: googleAvatar || null
+                    })
+                    .select()
+                    .single()
+                if (newProfile) data = newProfile
+            }
 
             if (error || !data) {
                 console.error('Error loading profile:', error)
@@ -90,7 +120,7 @@ export default function ProfilePage() {
 
             // If user is owner and has no avatar, but has Google picture, auto-sync it!
             const googleAvatar = user?.user_metadata?.avatar_url || user?.user_metadata?.picture
-            const isUserOwner = user?.id === data.supabase_user_id || user?.id === id || user?.id === data.id
+            const isUserOwner = user?.id === data.supabase_user_id || user?.id === id || user?.id === data.id || id === 'me'
             if (isUserOwner && !data.avatar_url && googleAvatar) {
                 await supabase
                     .from('users')

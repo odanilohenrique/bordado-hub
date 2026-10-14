@@ -76,7 +76,7 @@ export default function CreatorDashboard() {
                     const rev = mapped.filter((j: any) => j.my_proposal_status === 'aceita' && j.status === 'em_revisao')
                     const prod = mapped.filter((j: any) => j.my_proposal_status === 'aceita' && (j.status === 'em_progresso' || !j.status))
                     const deliv = mapped.filter((j: any) => j.my_proposal_status === 'aceita' && j.status === 'entregue')
-                    const comp = mapped.filter((j: any) => j.my_proposal_status === 'aceita' && j.status === 'finalizado')
+                    const comp = mapped.filter((j: any) => j.my_proposal_status === 'aceita' && (j.status === 'finalizado' || j.status === 'concluido'))
                     const pend = mapped.filter((j: any) => j.my_proposal_status === 'pendente' || j.my_proposal_status === 'contraproposta')
 
                     setInRevision(rev)

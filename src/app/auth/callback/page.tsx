@@ -46,7 +46,7 @@ function AuthCallbackContent() {
 
                     if (next && next !== '/pedidos' && next.startsWith('/')) {
                         router.push(next)
-                    } else if (profile.role === 'criador') {
+                    } else if (profile.role === 'criador' || (profile as any).is_programmer) {
                         router.push('/jobs')
                     } else {
                         router.push('/pedidos')

@@ -2233,10 +2233,10 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                     </form>
                                     {amount && Number(amount) > 0 && (
                                         <div className="mt-3 pt-3 border-t border-white/5 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-gray-400">
-                                            <span>Sua Proposta: <strong className="text-white font-bold">R$ {Number(amount).toFixed(2)}</strong></span>
-                                            <span>Taxa (5%): <strong className="text-[#FFAE00] font-bold">R$ {(Number(amount) * 0.05).toFixed(2)}</strong></span>
+                                            <span>Cliente paga: <strong className="text-white font-bold">R$ {Number(amount).toFixed(2)}</strong> (Taxa Zero)</span>
+                                            <span>Taxa da Plataforma (10%): <strong className="text-[#FFAE00] font-bold">R$ {(Number(amount) * 0.10).toFixed(2)}</strong></span>
                                             <span className="bg-green-500/10 text-green-400 border border-green-500/20 px-2.5 py-0.5 rounded-md font-bold">
-                                                Você recebe líquido: R$ {(Number(amount) * 0.95).toFixed(2)}
+                                                Você recebe líquido: R$ {(Number(amount) * 0.90).toFixed(2)}
                                             </span>
                                         </div>
                                     )}
@@ -2255,7 +2255,10 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                         </div>
                                     </div>
                                     <Link
-                                        href={`/profile/${currentUser?.id || ''}?edit=true&activate=programmer`}
+                                        href={currentUser?.id 
+                                            ? `/profile/${currentUser.id}?edit=true&activate=programmer` 
+                                            : `/login?redirect=${encodeURIComponent('/profile/me?edit=true&activate=programmer')}`
+                                        }
                                         className="shrink-0 bg-gradient-to-r from-[#FFB703] to-[#FB8500] hover:brightness-110 active:scale-95 text-black font-black text-xs px-4 py-2.5 rounded-xl transition-all shadow-md shadow-[#FFB703]/10 text-center w-full sm:w-auto"
                                     >
                                         Completar Perfil para Enviar Proposta
@@ -2307,44 +2310,46 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                         {/* Programmer Alert: Waiting Payment or Already Sent */}
                         {!isOwner && hasAlreadySentProposal && myExistingProposal && (
                             myExistingProposal.status === 'aceita' ? (
-                                <div className="mb-6 bg-yellow-500/10 border border-yellow-500/30 p-5 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-lg">
-                                    <div className="flex items-start sm:items-center gap-3">
-                                        <div className="w-10 h-10 rounded-full bg-yellow-500/20 text-yellow-400 flex items-center justify-center shrink-0">
-                                            <Clock className="w-5 h-5 animate-pulse" />
-                                        </div>
-                                        <div>
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-[10px] font-black uppercase tracking-wider bg-yellow-500/20 text-yellow-400 px-2.5 py-0.5 rounded-full">
-                                                    Proposta Aceita • Aguardando Pagamento
-                                                </span>
+                                (job.status === 'aberto' || !job.status) ? (
+                                    <div className="mb-6 bg-yellow-500/10 border border-yellow-500/30 p-5 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-lg">
+                                        <div className="flex items-start sm:items-center gap-3">
+                                            <div className="w-10 h-10 rounded-full bg-yellow-500/20 text-yellow-400 flex items-center justify-center shrink-0">
+                                                <Clock className="w-5 h-5 animate-pulse" />
                                             </div>
-                                            <p className="text-sm font-bold text-white mt-1">
-                                                O comprador aceitou sua proposta no valor de <strong className="text-yellow-400">R$ {myExistingProposal.amount?.toFixed(2)}</strong>
-                                            </p>
-                                            <p className="text-xs text-gray-300 mt-1">
-                                                <strong>Atenção:</strong> Não inicie a criação da matriz ainda. Seu prazo ({myExistingProposal.deadline_text || 'combinado'}) só começará a contar após a confirmação do pagamento em custódia.
-                                            </p>
+                                            <div>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-[10px] font-black uppercase tracking-wider bg-yellow-500/20 text-yellow-400 px-2.5 py-0.5 rounded-full">
+                                                        Proposta Aceita • Aguardando Pagamento
+                                                    </span>
+                                                </div>
+                                                <p className="text-sm font-bold text-white mt-1">
+                                                    O comprador aceitou sua proposta no valor de <strong className="text-yellow-400">R$ {myExistingProposal.amount?.toFixed(2)}</strong>
+                                                </p>
+                                                <p className="text-xs text-gray-300 mt-1">
+                                                    <strong>Atenção:</strong> Não inicie a criação da matriz ainda. Seu prazo ({myExistingProposal.deadline_text || 'combinado'}) só começará a contar após a confirmação do pagamento em custódia.
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
+                                            <button
+                                                onClick={() => handleNegotiate(myExistingProposal.id)}
+                                                className="inline-flex items-center gap-2 bg-[#FFAE00] hover:bg-yellow-400 text-black px-4 py-2 rounded-xl text-xs font-black transition-all hover:scale-105 active:scale-95 shadow-md"
+                                            >
+                                                <MessageSquare className="w-3.5 h-3.5" />
+                                                Chat com Cliente
+                                            </button>
+                                            <button
+                                                onClick={() => handleCancelReservation(myExistingProposal.id, 'programmer')}
+                                                disabled={cancellingReserve}
+                                                className="inline-flex items-center gap-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 px-3 py-2 rounded-xl text-xs font-bold transition-colors"
+                                                title="Se o cliente demorar para pagar, você pode liberar o pedido para não ficar preso"
+                                            >
+                                                <X className="w-3.5 h-3.5" />
+                                                {cancellingReserve ? 'Liberando...' : 'Liberar Pedido'}
+                                            </button>
                                         </div>
                                     </div>
-                                    <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
-                                        <button
-                                            onClick={() => handleNegotiate(myExistingProposal.id)}
-                                            className="inline-flex items-center gap-2 bg-[#FFAE00] hover:bg-yellow-400 text-black px-4 py-2 rounded-xl text-xs font-black transition-all hover:scale-105 active:scale-95 shadow-md"
-                                        >
-                                            <MessageSquare className="w-3.5 h-3.5" />
-                                            Chat com Cliente
-                                        </button>
-                                        <button
-                                            onClick={() => handleCancelReservation(myExistingProposal.id, 'programmer')}
-                                            disabled={cancellingReserve}
-                                            className="inline-flex items-center gap-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 px-3 py-2 rounded-xl text-xs font-bold transition-colors"
-                                            title="Se o cliente demorar para pagar, você pode liberar o pedido para não ficar preso"
-                                        >
-                                            <X className="w-3.5 h-3.5" />
-                                            {cancellingReserve ? 'Liberando...' : 'Liberar Pedido'}
-                                        </button>
-                                    </div>
-                                </div>
+                                ) : null
                             ) : myExistingProposal.status === 'contraproposta' && myExistingProposal.counter_amount ? (
                                 <div className="mb-6 bg-[#FFAE00]/15 border-2 border-[#FFAE00] p-5 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-[0_0_30px_rgba(255,174,0,0.15)] animate-in slide-in-from-top-2 duration-300">
                                     <div className="flex items-start sm:items-center gap-3">

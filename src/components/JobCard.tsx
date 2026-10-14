@@ -46,6 +46,7 @@ export default function JobCard({ job, hasNegotiation, viewerRole, proposalCount
             label: isRevision ? 'Matriz Revisada Entregue' : 'Matriz Entregue' 
         },
         finalizado: { bg: 'bg-white/5 border border-white/10', text: 'text-gray-300', label: 'Concluído & Pago' },
+        concluido: { bg: 'bg-white/5 border border-white/10', text: 'text-gray-300', label: 'Concluído & Pago' },
         cancelado: { bg: 'bg-red-500/10 border border-red-500/20', text: 'text-red-400', label: 'Cancelado' },
         negociacao: { bg: 'bg-purple-500/10 border border-purple-500/25', text: 'text-purple-300', label: 'Em Negociação' },
         // Nossos status de propostas
@@ -60,7 +61,7 @@ export default function JobCard({ job, hasNegotiation, viewerRole, proposalCount
         acao_necessaria: { bg: 'bg-red-500/10 border border-red-500/30', text: 'text-red-400', label: 'Sua Vez: Responda no Chat' }
     }
 
-    // Se a proposta foi aceita, o status real a exibir é o ciclo do trabalho (em_progresso, em_revisao, entregue, finalizado)
+    // Se a proposta foi aceita, o status real a exibir é o ciclo do trabalho (em_progresso, em_revisao, entregue, finalizado, concluido)
     const activeStatusKey = (job.my_proposal_status === 'aceita') 
         ? (job.status || 'em_progresso')
         : (job.my_proposal_status || job.status || 'aberto')
@@ -75,7 +76,7 @@ export default function JobCard({ job, hasNegotiation, viewerRole, proposalCount
     // ===== SHOWCASE CARD for matched jobs (no details, just vitrine) =====
     if (feedBadge === 'matched') {
         const isWinningProducer = job.my_proposal_status === 'aceita'
-        const isPaid = job.status === 'em_progresso' || job.status === 'entregue' || job.status === 'finalizado'
+        const isPaid = job.status === 'em_progresso' || job.status === 'entregue' || job.status === 'em_revisao' || job.status === 'finalizado' || job.status === 'concluido'
 
         return (
             <div className="block group">
@@ -394,6 +395,11 @@ export default function JobCard({ job, hasNegotiation, viewerRole, proposalCount
                                     Entregar Matriz
                                     <CheckCircle className="w-3.5 h-3.5" />
                                 </button>
+                            ) : (job.status === 'finalizado' || job.status === 'concluido') ? (
+                                <button className="flex items-center gap-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-4 py-2 rounded-xl font-bold text-xs ml-auto transition-colors">
+                                    Concluído & Pago
+                                    <CheckCircle className="w-3.5 h-3.5" />
+                                </button>
                             ) : (
                                 <button className="flex items-center gap-2 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 px-4 py-2 rounded-xl font-bold text-xs ml-auto transition-colors">
                                     Aguardando Pagamento
@@ -403,6 +409,11 @@ export default function JobCard({ job, hasNegotiation, viewerRole, proposalCount
                         ) : (viewerRole === 'programmer' && job.status === 'em_progresso') ? (
                             <button className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-black px-4 py-2 rounded-xl font-extrabold text-xs transition-all shadow-lg shadow-emerald-500/10 active:scale-95 ml-auto">
                                 Entregar Matriz
+                                <CheckCircle className="w-3.5 h-3.5" />
+                            </button>
+                        ) : (viewerRole === 'programmer' && (job.status === 'finalizado' || job.status === 'concluido')) ? (
+                            <button className="flex items-center gap-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-4 py-2 rounded-xl font-bold text-xs ml-auto transition-colors">
+                                Concluído & Pago
                                 <CheckCircle className="w-3.5 h-3.5" />
                             </button>
                         ) : job.status === 'em_revisao' && viewerRole === 'programmer' ? (

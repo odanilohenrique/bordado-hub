@@ -1,9 +1,9 @@
-export const TAXA_CLIENTE_PERCENTUAL = 0.05; // 5% de taxa cobrada do comprador
-export const TAXA_CRIADOR_PERCENTUAL = 0.05; // 5% de taxa cobrada do produtor
+export const TAXA_CLIENTE_PERCENTUAL = 0.0; // 0% de taxa cobrada do comprador (taxa zero)
+export const TAXA_CRIADOR_PERCENTUAL = 0.10; // 10% de taxa descontada do produtor
 
 // Compatibilidade
-export const TAXA_CLIENTE = 0.05;
-export const TAXA_CRIADOR = 0.05;
+export const TAXA_CLIENTE = 0.0;
+export const TAXA_CRIADOR = 0.10;
 
 export function calculateTotals(jobAmount) {
     const amount = parseFloat(jobAmount);
@@ -17,16 +17,16 @@ export function calculateTotals(jobAmount) {
         };
     }
 
-    // 5% cobrados do comprador (adicionados ao valor da matriz)
-    const taxaCliente = Math.round(amount * TAXA_CLIENTE_PERCENTUAL * 100) / 100;
+    // 0% cobrados do comprador (comprador paga exatamente o valor da proposta)
+    const taxaCliente = 0;
 
-    // 5% cobrados do produtor (retidos pela plataforma)
+    // 10% cobrados do produtor (retidos pela plataforma)
     const taxaCriador = Math.round(amount * TAXA_CRIADOR_PERCENTUAL * 100) / 100;
 
-    // Comprador paga o valor da proposta + 5%
-    const totalPago = Math.round((amount + taxaCliente) * 100) / 100;
+    // Comprador paga o valor integral da proposta
+    const totalPago = Math.round(amount * 100) / 100;
 
-    // Produtor recebe o valor da proposta - 5% líquido
+    // Produtor recebe o valor da proposta - 10% líquido
     const valorLiquido = Math.round((amount - taxaCriador) * 100) / 100;
 
     return {
@@ -37,3 +37,4 @@ export function calculateTotals(jobAmount) {
         valorLiquido
     };
 }
+

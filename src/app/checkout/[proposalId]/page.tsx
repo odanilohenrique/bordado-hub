@@ -331,12 +331,12 @@ function CheckoutClient({ proposalId }: { proposalId: string }) {
                                 <span>Valor da Matriz:</span>
                                 <span className="font-semibold text-white">R$ {baseAmount.toFixed(2)}</span>
                             </div>
-                            <div className="flex justify-between text-gray-400 text-xs">
-                                <span>Taxa de Intermediação (5%):</span>
-                                <span>R$ {clientFee.toFixed(2)}</span>
+                            <div className="flex justify-between items-center text-xs">
+                                <span className="text-gray-400">Taxa da Plataforma:</span>
+                                <span className="text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">Grátis (Taxa Zero)</span>
                             </div>
                             <div className="flex justify-between text-base font-extrabold text-white border-t border-white/[0.07] pt-2">
-                                <span>Total:</span>
+                                <span>Total a Pagar:</span>
                                 <span className="text-[#F5A623]">R$ {totalAmount.toFixed(2)}</span>
                             </div>
                         </div>
