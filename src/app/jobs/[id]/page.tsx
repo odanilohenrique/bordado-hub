@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabaseClient'
 import { useRouter, useParams, useSearchParams } from 'next/navigation'
 import { formatDate } from '@/lib/helpers'
 import Link from 'next/link'
-import { ArrowLeft, Clock, Calendar, MessageSquare, AlertCircle, CheckCircle, Package, Zap, User, X, Star, PenTool, Download, Upload, Send, Sparkles, DollarSign, Wrench, Camera, RotateCcw, Ruler, Maximize2, Handshake, Check, Code } from 'lucide-react'
+import { ArrowLeft, Clock, Calendar, MessageSquare, AlertCircle, CheckCircle, Package, Zap, User, X, Star, PenTool, Download, Upload, Send, Sparkles, DollarSign, Wrench, Camera, RotateCcw, Ruler, Maximize2, Handshake, Check, Code, Loader2 } from 'lucide-react'
 import NegotiationChat from '@/components/NegotiationChat'
 import { toast } from 'sonner'
 import JSZip from 'jszip'
@@ -875,20 +875,21 @@ function JobDetailClient({ jobId }: { jobId: string }) {
         }
     }
 
-    const handleAcceptProposal = async (proposalId: string) => {
-        handleCloseConfirmAccept()
-        try {
-            await supabase
-                .from('proposals')
-                .update({ status: 'aceita' })
-                .eq('id', proposalId)
+    const [acceptingProposal, setAcceptingProposal] = useState(false)
 
+    const handleAcceptProposal = async (proposalId: string) => {
+        if (!proposalId) return
+        setAcceptingProposal(true)
+        try {
+            await Promise.race([
+                supabase.from('proposals').update({ status: 'aceita' }).eq('id', proposalId),
+                new Promise(resolve => setTimeout(resolve, 1500))
+            ])
             clearCache('pedidos_jobs')
             clearCache('producao_data')
-            router.push(`/checkout/${proposalId}`)
-        } catch (err: any) {
-            toast.error('Erro: ' + err.message)
-        }
+        } catch (_) {}
+
+        window.location.href = `/checkout/${proposalId}`
     }
 
     const [cancellingReserve, setCancellingReserve] = useState(false)
@@ -2610,7 +2611,7 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                                 <div className="flex flex-col gap-2">
                                                     <div className="w-full text-center py-2 bg-green-500/10 text-green-500 text-xs font-bold rounded-lg border border-green-500/20 uppercase tracking-wider">Aceita</div>
                                                     {isOwner && job.status === 'aberto' && (
-                                                        <button onClick={() => router.push(`/checkout/${proposal.id}`)} className="w-full bg-[#FFAE00] text-black text-xs font-bold py-2 rounded-lg transition-colors flex items-center justify-center gap-1 hover:brightness-110">
+                                                        <button onClick={() => { window.location.href = `/checkout/${proposal.id}` }} className="w-full bg-[#FFAE00] text-black text-xs font-bold py-2 rounded-lg transition-colors flex items-center justify-center gap-1 hover:brightness-110 cursor-pointer">
                                                             <DollarSign className="w-3 h-3"/> Continuar Pagamento
                                                         </button>
                                                     )}
@@ -2800,15 +2801,27 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                             <div className="flex gap-3">
                                 <button 
                                     onClick={handleCloseConfirmAccept}
-                                    className="flex-1 bg-white/5 border border-white/10 text-white font-bold py-3.5 rounded-xl hover:bg-white/10 transition-colors"
+                                    disabled={acceptingProposal}
+                                    className="flex-1 bg-white/5 border border-white/10 text-white font-bold py-3.5 rounded-xl hover:bg-white/10 transition-colors disabled:opacity-50"
                                 >
                                     Cancelar
                                 </button>
                                 <button 
                                     onClick={() => handleAcceptProposal(confirmAcceptModal)}
-                                    className="flex-1 bg-[#FFAE00] text-black font-black py-3.5 rounded-xl hover:brightness-110 transition-colors shadow-lg shadow-[#FFAE00]/20 flex items-center justify-center gap-2"
+                                    disabled={acceptingProposal}
+                                    className="flex-1 bg-[#FFAE00] text-black font-black py-3.5 rounded-xl hover:brightness-110 active:scale-95 transition-all shadow-lg shadow-[#FFAE00]/20 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                                 >
-                                    Pagar Agora <Zap className="w-4 h-4" />
+                                    {acceptingProposal ? (
+                                        <>
+                                            <Loader2 className="w-4 h-4 animate-spin text-black" />
+                                            <span>Indo para Pagamento...</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <span>Pagar Agora</span>
+                                            <Zap className="w-4 h-4 fill-black" />
+                                        </>
+                                    )}
                                 </button>
                             </div>
                         </div>

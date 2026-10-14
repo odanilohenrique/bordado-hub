@@ -420,7 +420,7 @@ export default function NegotiationChat({
                 content: `[NEGÓCIO FECHADO] Valor acordado: R$ ${finalAmount.toFixed(2)}`
             })
 
-            router.push(`/checkout/${proposalId}`)
+            window.location.href = `/checkout/${proposalId}`
         } catch (error: any) {
             console.error('Quick deal error:', error)
             toast.error('Erro ao fechar negócio: ' + error.message)
