@@ -2256,8 +2256,8 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                     </div>
                                     <Link
                                         href={currentUser?.id 
-                                            ? `/profile/${currentUser.id}?edit=true&activate=programmer` 
-                                            : `/login?redirect=${encodeURIComponent('/profile/me?edit=true&activate=programmer')}`
+                                            ? `/profile/${currentUser.id}?edit=true&activate=programmer&returnTo=${encodeURIComponent(`/jobs/${job.id}`)}` 
+                                            : `/login?redirect=${encodeURIComponent(`/profile/me?edit=true&activate=programmer&returnTo=${encodeURIComponent(`/jobs/${job.id}`)}`)}`
                                         }
                                         className="shrink-0 bg-gradient-to-r from-[#FFB703] to-[#FB8500] hover:brightness-110 active:scale-95 text-black font-black text-xs px-4 py-2.5 rounded-xl transition-all shadow-md shadow-[#FFB703]/10 text-center w-full sm:w-auto"
                                     >

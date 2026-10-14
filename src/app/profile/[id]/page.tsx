@@ -64,19 +64,34 @@ export default function ProfilePage() {
         }
     }, [])
 
+    // Failsafe: nunca deixa a tela travada no loading por mais de 3.5 segundos
     useEffect(() => {
-        loadData()
+        const timer = setTimeout(() => {
+            setLoading(false)
+        }, 3500)
+        return () => clearTimeout(timer)
+    }, [])
+
+    useEffect(() => {
+        loadData(true)
     }, [id])
 
-    async function loadData() {
-        setLoading(true)
+    async function loadData(showSpinner = true) {
+        if (showSpinner) setLoading(true)
         try {
-            // Get current auth user
-            const { data: { session } } = await supabase.auth.getSession()
+            // Get current auth user com proteção contra travamento
+            const sessionPromise = supabase.auth.getSession().catch(() => ({ data: { session: null } }))
+            const sessionTimeout = new Promise<{ data: { session: null } }>((resolve) => 
+                setTimeout(() => resolve({ data: { session: null } }), 3000)
+            )
+            const { data: { session } } = await Promise.race([sessionPromise, sessionTimeout])
             const user = session?.user ?? null
             setCurrentUser(user)
 
-            if (!id) { setLoading(false); return }
+            if (!id) { 
+                if (showSpinner) setLoading(false)
+                return 
+            }
 
             let targetId = id
             if (id === 'me') {
@@ -88,13 +103,19 @@ export default function ProfilePage() {
                 targetId = user.id
             }
 
-            // Load profile from public table
-            // eslint-disable-next-line prefer-const
-            let { data, error } = await supabase
+            // Load profile from public table com timeout
+            const queryPromise = supabase
                 .from('users')
                 .select('*')
                 .or(`id.eq.${targetId},supabase_user_id.eq.${targetId}`)
                 .maybeSingle()
+
+            const queryTimeout = new Promise<{ data: null; error: Error }>((resolve) => 
+                setTimeout(() => resolve({ data: null, error: new Error('Timeout') }), 5000)
+            )
+
+            // eslint-disable-next-line prefer-const
+            let { data, error } = await Promise.race([queryPromise, queryTimeout])
 
             // If user is accessing 'me' and profile doesn't exist yet, auto-provision
             if (!data && id === 'me' && user) {
@@ -200,8 +221,9 @@ export default function ProfilePage() {
             setPreviewRole(data.role) // Initialize view with actual role
         } catch (err) {
             console.error('Error in loadData:', err)
+        } finally {
+            if (showSpinner) setLoading(false)
         }
-        setLoading(false)
     }
 
     const handleCreateProfile = async () => {
@@ -476,11 +498,32 @@ export default function ProfilePage() {
                         onCancel={() => {
                             setIsEditing(false)
                             setActivateProgrammer(false)
+                            if (typeof window !== 'undefined') {
+                                router.replace(`/profile/${profile?.id || id}`)
+                            }
                         }}
-                        onSave={() => {
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        onSave={(updatedUser?: any) => {
                             setIsEditing(false)
                             setActivateProgrammer(false)
-                            loadData()
+                            if (updatedUser) {
+                                setProfile(prev => prev ? { ...prev, ...updatedUser } : updatedUser)
+                                if (updatedUser.role) setPreviewRole(updatedUser.role)
+                            }
+                            toast.success('Perfil atualizado com sucesso!')
+
+                            if (typeof window !== 'undefined') {
+                                const urlParams = new URLSearchParams(window.location.search)
+                                const returnTo = urlParams.get('returnTo')
+                                if (returnTo && returnTo.startsWith('/')) {
+                                    router.push(returnTo)
+                                    return
+                                }
+                                router.replace(`/profile/${updatedUser?.id || profile?.id || id}`)
+                            }
+
+                            // Re-sync silenciosamente no background sem acionar tela de carregamento cheia
+                            loadData(false)
                         }}
                     />
                 </div>

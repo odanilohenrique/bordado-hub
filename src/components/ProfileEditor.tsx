@@ -55,7 +55,8 @@ interface UserProfile {
 interface ProfileEditorProps {
     profile: UserProfile
     onCancel: () => void
-    onSave: () => void
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    onSave: (updatedUser?: any) => void
     defaultProgrammer?: boolean
 }
 
@@ -297,7 +298,13 @@ export default function ProfileEditor({ profile, onCancel, onSave, defaultProgra
                 throw new Error(json.error || 'Erro ao salvar perfil')
             }
 
-            onSave()
+            const updatedUserData = json.user || {
+                ...profile,
+                ...formData,
+                avatar_url: safeAvatarUrl,
+                portfolio_urls: safePortfolioUrls
+            }
+            onSave(updatedUserData)
         } catch (error: any) {
             console.error('Error saving profile:', error)
             alert('Erro ao salvar: ' + (error.message || 'Falha na comunicação com o servidor'))
