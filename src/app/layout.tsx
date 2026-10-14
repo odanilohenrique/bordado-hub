@@ -8,19 +8,27 @@ const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://bordadohub.com'),
-  title: "BordadoHub - Marketplace de Matrizes",
-  description: "Conectando clientes e criadores de matrizes de bordado",
+  title: "BordadoHub - Marketplace de Matrizes de Bordado",
+  description: "A maior plataforma de matrizes de bordado computadorizado do Brasil. Encomende matrizes sob medida com programadores profissionais ou compre matrizes prontas com download imediato.",
   icons: {
     icon: [
-      { url: '/brand/icon-dark.png', sizes: '1080x1080', type: 'image/png' },
+      { url: '/favicon.ico', sizes: 'any' },
+      { url: '/icon.png', sizes: '48x48', type: 'image/png' },
+      { url: '/icon.png', sizes: '192x192', type: 'image/png' },
+      { url: '/brand/icon-dark.png', sizes: '512x512', type: 'image/png' },
     ],
+    shortcut: '/favicon.ico',
     apple: [
-      { url: '/brand/icon-amber.png', sizes: '1080x1080', type: 'image/png' },
+      { url: '/apple-icon.png', sizes: '180x180', type: 'image/png' },
     ],
   },
   openGraph: {
     title: "BordadoHub - Marketplace de Matrizes de Bordado",
-    description: "Conectando clientes e criadores de matrizes de bordado",
+    description: "Conectando clientes e programadores de matrizes de bordado em todo o Brasil. Encomendas sob medida e matrizes prontas.",
+    url: 'https://bordadohub.com',
+    siteName: 'BordadoHub',
+    locale: 'pt_BR',
+    type: 'website',
     images: [
       {
         url: '/brand/icon-dark.png',
@@ -35,6 +43,37 @@ export const metadata: Metadata = {
   },
 };
 
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'Organization',
+      '@id': 'https://bordadohub.com/#organization',
+      'name': 'BordadoHub',
+      'alternateName': 'Bordado Hub',
+      'url': 'https://bordadohub.com',
+      'logo': {
+        '@type': 'ImageObject',
+        'url': 'https://bordadohub.com/brand/logo-dark.png',
+        'width': 500,
+        'height': 216,
+      },
+      'description': 'Plataforma e marketplace oficial de matrizes de bordado computadorizado do Brasil. Criação de matrizes sob encomenda e marketplace de matrizes prontas para download.',
+    },
+    {
+      '@type': 'WebSite',
+      '@id': 'https://bordadohub.com/#website',
+      'url': 'https://bordadohub.com',
+      'name': 'BordadoHub',
+      'description': 'Marketplace e encomendas de matrizes de bordado computadorizado.',
+      'publisher': {
+        '@id': 'https://bordadohub.com/#organization',
+      },
+      'inLanguage': 'pt-BR',
+    },
+  ],
+};
+
 import { Toaster } from 'sonner';
 
 export default function RootLayout({
@@ -45,6 +84,13 @@ export default function RootLayout({
   return (
     <html lang="pt-BR">
       <head>
+        <link rel="icon" href="/favicon.ico" sizes="any" />
+        <link rel="icon" href="/icon.png" type="image/png" sizes="192x192" />
+        <link rel="apple-touch-icon" href="/apple-icon.png" />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
         <script
           dangerouslySetInnerHTML={{
             __html: `

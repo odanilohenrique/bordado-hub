@@ -1,0 +1,21 @@
+# BordadoHub
+> Plataforma e Marketplace Oficial de Matrizes de Bordado Computadorizado do Brasil
+
+## Sobre o BordadoHub
+O BordadoHub (https://bordadohub.com) é a plataforma líder no Brasil dedicada ao universo do bordado computadorizado. Conectamos clientes, ateliês e confecções aos melhores programadores e designers de matrizes de bordado do país.
+
+## O Que a Plataforma Oferece
+- **Criação de Matrizes Sob Encomenda:** O cliente envia uma imagem ou logotipo, recebe propostas de programadores profissionais, fecha o negócio com pagamento protegido em custódia e recebe o arquivo pronto para bordar com suporte a teste em máquina e revisões gratuitas.
+- **Marketplace de Matrizes Prontas:** Compra e venda de matrizes avulsas e coleções completas com download imediato pós-pagamento via PIX.
+- **Formatos Compatíveis:** .PES (Brother/Babylock), .DST (Tajima/Barudan/Industrial), .JEF (Janome), .EXP (Bernina), .XXX (Singer), .HUS, entre outros.
+- **Garantia de Segurança:** Pagamento protegido em custódia que só é transferido ao programador após aprovação do bordado pelo cliente.
+
+## Links Oficiais
+- Site Oficial: https://bordadohub.com
+- Encomendar Matriz: https://bordadohub.com/jobs/new
+- Marketplace: https://bordadohub.com/marketplace
+- Mural de Pedidos: https://bordadohub.com/jobs
+- Programadores de Bordado: https://bordadohub.com/programadores
+- Como Funciona: https://bordadohub.com/how-it-works
+- Termos de Uso: https://bordadohub.com/termos
+- Política de Privacidade: https://bordadohub.com/privacidade
