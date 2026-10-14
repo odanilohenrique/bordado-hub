@@ -148,7 +148,7 @@ export default function Sidebar({ initialUser, initialProfile }: { initialUser?:
             </div>
 
             {/* User Profile Summary */}
-            <div className="px-5 mb-6 group cursor-pointer" onClick={() => router.push(user ? `/profile/${user.id}` : '/login')}>
+            <div className="px-5 mb-6 group cursor-pointer" onClick={() => router.push(profile ? `/profile/${profile.id}` : user ? `/profile/${user.id}` : '/login')}>
                 <div className="flex items-center gap-3 bg-[#181C26] p-3 rounded-xl border border-white/[0.07] group-hover:border-[#F5A623]/30 transition-all">
                     {profile?.avatar_url ? (
                         <img src={profile.avatar_url} alt={profile.name} className="w-10 h-10 rounded-full object-cover border border-[#F5A623]/20" />

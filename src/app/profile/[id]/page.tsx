@@ -64,14 +64,6 @@ export default function ProfilePage() {
         }
     }, [])
 
-    // Failsafe: nunca deixa a tela travada no loading por mais de 3.5 segundos
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            setLoading(false)
-        }, 3500)
-        return () => clearTimeout(timer)
-    }, [])
-
     useEffect(() => {
         loadData(true)
     }, [id])
@@ -79,18 +71,14 @@ export default function ProfilePage() {
     async function loadData(showSpinner = true) {
         if (showSpinner) setLoading(true)
         try {
-            // Get current auth user com proteção contra travamento
-            const sessionPromise = supabase.auth.getSession().catch(() => ({ data: { session: null } }))
-            const sessionTimeout = new Promise<{ data: { session: null } }>((resolve) => 
-                setTimeout(() => resolve({ data: { session: null } }), 3000)
-            )
-            const { data: { session } } = await Promise.race([sessionPromise, sessionTimeout])
+            // Get current auth user
+            const { data: { session } } = await supabase.auth.getSession().catch(() => ({ data: { session: null } }))
             const user = session?.user ?? null
             setCurrentUser(user)
 
-            if (!id) { 
+            if (!id) {
                 if (showSpinner) setLoading(false)
-                return 
+                return
             }
 
             let targetId = id
@@ -103,22 +91,37 @@ export default function ProfilePage() {
                 targetId = user.id
             }
 
-            // Load profile from public table com timeout
-            const queryPromise = supabase
-                .from('users')
-                .select('*')
-                .or(`id.eq.${targetId},supabase_user_id.eq.${targetId}`)
-                .maybeSingle()
+            let profileData: any = null
+            let reviewsData: any[] = []
 
-            const queryTimeout = new Promise<{ data: null; error: Error }>((resolve) => 
-                setTimeout(() => resolve({ data: null, error: new Error('Timeout') }), 5000)
-            )
+            // 1. Carrega via API interna (ultra-rápida, resiliente a id e supabase_user_id)
+            try {
+                const res = await fetch(`/api/profile/${targetId}`, { cache: 'no-store' })
+                if (res.ok) {
+                    const json = await res.json()
+                    if (json.success && json.profile) {
+                        profileData = json.profile
+                        reviewsData = json.reviews || []
+                    }
+                }
+            } catch (apiErr) {
+                console.warn('API profile fetch error, fallback to client:', apiErr)
+            }
 
-            // eslint-disable-next-line prefer-const
-            let { data, error } = await Promise.race([queryPromise, queryTimeout])
+            // 2. Fallback: Consulta direta via Supabase Client se a API falhar
+            if (!profileData) {
+                const { data } = await supabase
+                    .from('users')
+                    .select('*')
+                    .or(`id.eq.${targetId},supabase_user_id.eq.${targetId}`)
+                    .maybeSingle()
+                if (data) {
+                    profileData = data
+                }
+            }
 
-            // If user is accessing 'me' and profile doesn't exist yet, auto-provision
-            if (!data && id === 'me' && user) {
+            // 3. Se for 'me' e não tiver perfil no banco ainda, auto-provisiona
+            if (!profileData && id === 'me' && user) {
                 const googleAvatar = user.user_metadata?.avatar_url || user.user_metadata?.picture
                 const { data: newProfile } = await supabase
                     .from('users')
@@ -132,93 +135,18 @@ export default function ProfilePage() {
                     })
                     .select()
                     .single()
-                if (newProfile) data = newProfile
+                if (newProfile) profileData = newProfile
             }
 
-            if (error || !data) {
-                console.error('Error loading profile:', error)
-                setLoading(false)
+            if (!profileData) {
+                console.warn('Profile not found for ID:', targetId)
+                setProfile(null)
                 return
             }
 
-            // If user is owner and has no avatar, but has Google picture, auto-sync it!
-            const googleAvatar = user?.user_metadata?.avatar_url || user?.user_metadata?.picture
-            const isUserOwner = user?.id === data.supabase_user_id || user?.id === id || user?.id === data.id || id === 'me'
-            if (isUserOwner && !data.avatar_url && googleAvatar) {
-                await supabase
-                    .from('users')
-                    .update({ avatar_url: googleAvatar })
-                    .eq('id', data.id)
-                data.avatar_url = googleAvatar
-            }
-
-            // Load reviews received by this user
-            try {
-                const { data: reviewsData } = await supabase
-                    .from('reviews')
-                    .select('*, jobs(title)')
-                    .or(`reviewee_id.eq.${data.id}${data.supabase_user_id ? `,reviewee_id.eq.${data.supabase_user_id}` : ''}`)
-                    .order('created_at', { ascending: false })
-
-                if (reviewsData && reviewsData.length > 0) {
-                    const reviewerIds = Array.from(new Set(reviewsData.map(r => r.reviewer_id).filter(Boolean)))
-                    
-                    const reviewerMap = new Map()
-                    if (reviewerIds.length > 0) {
-                        const { data: reviewers } = await supabase
-                            .from('users')
-                            .select('id, supabase_user_id, name, avatar_url')
-                            .or(`id.in.(${reviewerIds.join(',')}),supabase_user_id.in.(${reviewerIds.join(',')})`)
-
-                        reviewers?.forEach(u => {
-                            reviewerMap.set(u.id, u)
-                            if (u.supabase_user_id) reviewerMap.set(u.supabase_user_id, u)
-                        })
-                    }
-
-                    const enrichedReviews = reviewsData.map(r => ({
-                        ...r,
-                        reviewer: reviewerMap.get(r.reviewer_id) || { name: 'Cliente' }
-                    }))
-
-                    setReviews(enrichedReviews)
-
-                    // Calculate dynamic average rating
-                    const sum = reviewsData.reduce((acc, r) => acc + (r.rating || 5), 0)
-                    const calculatedRating = Number((sum / reviewsData.length).toFixed(1))
-                    const calculatedCount = reviewsData.length
-
-                    // Auto-sync back to users table if different so directories and cards stay 100% accurate
-                    if (data.rating !== calculatedRating || data.reviews_count !== calculatedCount) {
-                        supabase
-                            .from('users')
-                            .update({ rating: calculatedRating, reviews_count: calculatedCount })
-                            .eq('id', data.id)
-                            .then()
-                    }
-
-                    data.rating = calculatedRating
-                    data.reviews_count = calculatedCount
-                } else {
-                    if (data.rating !== 0 || data.reviews_count !== 0) {
-                        supabase
-                            .from('users')
-                            .update({ rating: 0, reviews_count: 0 })
-                            .eq('id', data.id)
-                            .then()
-                    }
-                    data.rating = 0
-                    data.reviews_count = 0
-                    setReviews([])
-                }
-            } catch (reviewErr) {
-                console.warn('Could not load reviews:', reviewErr)
-                data.reviews_count = 0
-                setReviews([])
-            }
-
-            setProfile(data)
-            setPreviewRole(data.role) // Initialize view with actual role
+            setProfile(profileData)
+            setReviews(reviewsData)
+            setPreviewRole(profileData.role)
         } catch (err) {
             console.error('Error in loadData:', err)
         } finally {
