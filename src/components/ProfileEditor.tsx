@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabaseClient'
-import { Save, X, Trash2, ImageIcon, Camera, CreditCard, ShoppingBag, Code, CheckCircle2, Loader2 } from 'lucide-react'
+import { Save, X, Trash2, ImageIcon, Camera, CreditCard, ShoppingBag, Code, CheckCircle2, Loader2, FileText } from 'lucide-react'
 import Image from 'next/image'
 import { optimizeImageFile } from '@/lib/helpers'
 
@@ -180,11 +180,20 @@ export default function ProfileEditor({ profile, onCancel, onSave, defaultProgra
             }
 
             const filesArray = Array.from(fileInput.files)
-            // Limit to at most 10 files per selection and remaining slots
-            const filesToUpload = filesArray.slice(0, Math.min(10, remainingCapacity))
 
-            if (filesArray.length > remainingCapacity) {
-                alert(`Você selecionou ${filesArray.length} imagens. Apenas as ${filesToUpload.length} que cabem no seu limite serão enviadas.`)
+            const nonImages = filesArray.filter(f => f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf'))
+            if (nonImages.length > 0) {
+                alert('O portfólio aceita apenas fotos/imagens (JPG, PNG ou WebP). Arquivos PDF não são suportados como fotos de portfólio.')
+            }
+
+            const validImageFiles = filesArray.filter(f => f.type.startsWith('image/') && !f.name.toLowerCase().endsWith('.pdf'))
+            if (validImageFiles.length === 0) return
+
+            // Limit to at most 10 files per selection and remaining slots
+            const filesToUpload = validImageFiles.slice(0, Math.min(10, remainingCapacity))
+
+            if (validImageFiles.length > remainingCapacity) {
+                alert(`Você selecionou ${validImageFiles.length} fotos. Apenas as ${filesToUpload.length} que cabem no seu limite serão enviadas.`)
             }
 
             setPortfolioUploading(true)
@@ -636,25 +645,36 @@ export default function ProfileEditor({ profile, onCancel, onSave, defaultProgra
                             <div className="grid grid-cols-3 sm:grid-cols-4 gap-2.5">
                                 {formData.portfolio_urls
                                     .filter((url): url is string => Boolean(url && typeof url === 'string' && url.trim().length > 0))
-                                    .map((url, index) => (
-                                        <div key={`${url}-${index}`} className="relative aspect-square rounded-xl overflow-hidden group border border-white/10 bg-black">
-                                            <Image
-                                                src={url}
-                                                alt={`Portfolio ${index + 1}`}
-                                                fill
-                                                className="object-contain"
-                                                unoptimized
-                                            />
-                                            <button
-                                                type="button"
-                                                onClick={() => removePortfolioImage(url)}
-                                                className="absolute inset-0 bg-red-600/80 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer"
-                                                title="Remover imagem"
-                                            >
-                                                <Trash2 className="w-5 h-5 text-white" />
-                                            </button>
-                                        </div>
-                                    ))}
+                                     .map((url, index) => {
+                                        const isPdf = typeof url === 'string' && (url.toLowerCase().endsWith('.pdf') || url.toLowerCase().includes('.pdf?') || url.toLowerCase().includes('.pdf'))
+
+                                        return (
+                                            <div key={`${url}-${index}`} className="relative aspect-square rounded-xl overflow-hidden group border border-white/10 bg-black flex items-center justify-center">
+                                                {isPdf ? (
+                                                    <div className="flex flex-col items-center justify-center p-2 text-center">
+                                                        <FileText className="w-8 h-8 text-red-400 mb-1" />
+                                                        <span className="text-[10px] text-gray-300 font-semibold">Arquivo PDF</span>
+                                                    </div>
+                                                ) : (
+                                                    <Image
+                                                        src={url}
+                                                        alt={`Portfolio ${index + 1}`}
+                                                        fill
+                                                        className="object-contain"
+                                                        unoptimized
+                                                    />
+                                                )}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => removePortfolioImage(url)}
+                                                    className="absolute inset-0 bg-red-600/80 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer"
+                                                    title="Remover do portfólio"
+                                                >
+                                                    <Trash2 className="w-5 h-5 text-white" />
+                                                </button>
+                                            </div>
+                                        )
+                                    })}
 
                                 {formData.portfolio_urls.filter(u => Boolean(u && typeof u === 'string' && u.trim().length > 0)).length < 12 && (
                                     <label className="aspect-square rounded-xl border border-dashed border-white/20 hover:border-[#F5A623] cursor-pointer flex flex-col items-center justify-center gap-1.5 transition-colors bg-[#0B0D11] p-2 text-center">
@@ -675,7 +695,7 @@ export default function ProfileEditor({ profile, onCancel, onSave, defaultProgra
                                             type="file"
                                             multiple
                                             className="hidden"
-                                            accept="image/*"
+                                            accept="image/png, image/jpeg, image/jpg, image/webp"
                                             onChange={handlePortfolioUpload}
                                             disabled={portfolioUploading}
                                         />

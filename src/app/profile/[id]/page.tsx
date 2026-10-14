@@ -4,9 +4,11 @@ import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabaseClient'
-import { User, Star, MapPin, Calendar, Award, Package, Code, Edit2, Eye, FileJson, Layers, Upload, Camera, Sparkles, ArrowRight, CheckCircle2 } from 'lucide-react'
+import { User, Star, MapPin, Calendar, Award, Package, Code, Edit2, Eye, FileJson, Layers, Upload, Camera, Sparkles, ArrowRight, CheckCircle2, Trash2, Loader2, FileText } from 'lucide-react'
 import Image from 'next/image'
 import ProfileEditor from '@/components/ProfileEditor'
+import { toast } from 'sonner'
+import { optimizeImageFile } from '@/lib/helpers'
 
 interface UserProfile {
     id: string
@@ -285,7 +287,7 @@ export default function ProfilePage() {
         }
     }
 
-    // Quick portfolio upload from profile page (without entering Edit mode)
+    // Quick portfolio upload from profile page (with client-side compression and validation)
     const handleQuickPortfolioUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const fileInput = event.target
         if (!fileInput.files || fileInput.files.length === 0 || !profile) return
@@ -295,58 +297,111 @@ export default function ProfilePage() {
         )
         const remainingCapacity = 12 - currentPortfolio.length
         if (remainingCapacity <= 0) {
-            alert('Limite máximo de 12 imagens no portfólio já foi atingido.')
+            toast.error('Limite máximo de 12 fotos no portfólio já foi atingido.')
             return
         }
 
         const filesArray = Array.from(fileInput.files)
+
+        // Validação estrita: rejeita arquivos que não sejam imagens (ex: PDFs)
+        const nonImageFiles = filesArray.filter(f => !f.type.startsWith('image/'))
+        if (nonImageFiles.length > 0) {
+            toast.error('O portfólio aceita apenas fotos/imagens (JPG, PNG ou WebP). Arquivos PDF não são suportados como fotos.')
+            if (fileInput) fileInput.value = ''
+            return
+        }
+
         const filesToUpload = filesArray.slice(0, Math.min(10, remainingCapacity))
 
         if (filesArray.length > remainingCapacity) {
-            alert(`Você selecionou ${filesArray.length} imagens. Apenas as ${filesToUpload.length} que cabem no limite serão enviadas.`)
+            toast.info(`Você selecionou ${filesArray.length} fotos. Apenas as ${filesToUpload.length} que cabem no limite serão enviadas.`)
         }
 
-        setAvatarUploading(true) // Reuse state for loading indicator
+        setAvatarUploading(true) // Reuso do estado para indicador de carregamento
         try {
-            const uploadData = new FormData()
-            filesToUpload.forEach(file => uploadData.append('files', file))
-            uploadData.append('userId', profile.id)
-            uploadData.append('isPortfolio', 'true')
+            // Upload de cada arquivo individualmente com compressão para evitar payload 413 na Vercel
+            const uploadPromises = filesToUpload.map(async (rawFile) => {
+                const optimized = await optimizeImageFile(rawFile, 1600, 0.82)
+                const uploadData = new FormData()
+                uploadData.append('file', optimized)
+                uploadData.append('userId', profile.id)
+                uploadData.append('isPortfolio', 'true')
 
-            const res = await fetch('/api/upload-avatar', {
-                method: 'POST',
-                body: uploadData
+                const res = await fetch('/api/upload-avatar', {
+                    method: 'POST',
+                    body: uploadData
+                })
+
+                if (!res.ok) {
+                    const text = await res.text()
+                    let errMsg = 'Erro no envio de foto'
+                    try {
+                        const errJson = JSON.parse(text)
+                        errMsg = errJson.error || errMsg
+                    } catch {
+                        errMsg = `Erro (${res.status}): ${text.slice(0, 100)}`
+                    }
+                    throw new Error(errMsg)
+                }
+
+                const json = await res.json()
+                const url = json.publicUrl || json.avatarUrl || (json.urls && json.urls[0])
+                return url as string
             })
 
-            const json = await res.json()
-            if (!res.ok) throw new Error(json.error || 'Erro no upload')
-
-            const newUrls: string[] = (json.urls || [json.publicUrl || json.avatarUrl])
-                .filter((url: any) => Boolean(url && typeof url === 'string' && url.trim().length > 0))
+            const uploadedResults = await Promise.all(uploadPromises)
+            const newUrls = uploadedResults.filter(
+                (url): url is string => Boolean(url && typeof url === 'string' && url.trim().length > 0)
+            )
 
             if (newUrls.length === 0) {
-                throw new Error('Nenhuma imagem válida foi retornada do servidor.')
+                throw new Error('Nenhuma foto válida foi retornada do servidor.')
             }
 
             const updatedPortfolio = [...currentPortfolio, ...newUrls]
 
-            // Update DB with new portfolio array
+            // Atualiza no banco de dados de forma resiliente
             const { error: updateError } = await supabase
                 .from('users')
                 .update({ portfolio_urls: updatedPortfolio })
-                .eq('id', profile.id)
+                .or(`id.eq.${profile.id},supabase_user_id.eq.${profile.supabase_user_id || profile.id}`)
 
             if (updateError) throw updateError
 
-            // Reload data to show new images
+            toast.success(`${newUrls.length} foto(s) adicionada(s) com sucesso ao portfólio!`)
             await loadData()
-
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (error: any) {
-            alert('Erro ao fazer upload: ' + error.message)
+            console.error('Erro no upload rápido do portfólio:', error)
+            toast.error('Falha ao adicionar fotos: ' + (error.message || 'Tente novamente'))
         } finally {
             setAvatarUploading(false)
             if (fileInput) fileInput.value = ''
+        }
+    }
+
+    // Remoção rápida de item do portfólio com 1 clique (para apagar arquivos corrompidos ou indesejados)
+    const handleRemovePortfolioItem = async (urlToRemove: string) => {
+        if (!profile) return
+        const currentPortfolio = (profile.portfolio_urls || []).filter(
+            (u): u is string => Boolean(u && typeof u === 'string' && u.trim().length > 0)
+        )
+        const updatedPortfolio = currentPortfolio.filter(u => u !== urlToRemove)
+
+        try {
+            const { error: updateError } = await supabase
+                .from('users')
+                .update({ portfolio_urls: updatedPortfolio })
+                .or(`id.eq.${profile.id},supabase_user_id.eq.${profile.supabase_user_id || profile.id}`)
+
+            if (updateError) throw updateError
+
+            setProfile(prev => prev ? { ...prev, portfolio_urls: updatedPortfolio } : null)
+            toast.success('Item removido do portfólio com sucesso.')
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } catch (err: any) {
+            console.error('Erro ao remover item do portfólio:', err)
+            toast.error('Erro ao remover item: ' + (err.message || 'Tente novamente'))
         }
     }
 
@@ -715,14 +770,23 @@ export default function ProfilePage() {
                                         Portfólio
                                     </h2>
                                     {isOwner && (
-                                        <label className="text-xs text-gray-400 hover:text-[#FFAE00] cursor-pointer transition-colors flex items-center gap-1 bg-[#0F1115] px-3 py-1.5 rounded-lg border border-gray-700 hover:border-[#FFAE00]">
-                                            <Upload className="w-3 h-3" />
-                                            Adicionar Fotos
+                                        <label className={`text-xs cursor-pointer transition-colors flex items-center gap-1.5 bg-[#0F1115] px-3 py-1.5 rounded-lg border ${avatarUploading ? 'text-gray-500 border-gray-800 cursor-not-allowed opacity-70' : 'text-gray-300 hover:text-[#FFAE00] border-gray-700 hover:border-[#FFAE00]'}`}>
+                                            {avatarUploading ? (
+                                                <>
+                                                    <Loader2 className="w-3.5 h-3.5 animate-spin text-[#FFAE00]" />
+                                                    <span>Enviando fotos...</span>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Upload className="w-3.5 h-3.5" />
+                                                    <span>Adicionar Fotos</span>
+                                                </>
+                                            )}
                                             <input
                                                 type="file"
                                                 multiple
                                                 className="hidden"
-                                                accept="image/*"
+                                                accept="image/png, image/jpeg, image/jpg, image/webp"
                                                 onChange={handleQuickPortfolioUpload}
                                                 disabled={avatarUploading}
                                             />
@@ -734,17 +798,69 @@ export default function ProfilePage() {
                                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                                         {profile.portfolio_urls
                                             .filter((url): url is string => Boolean(url && typeof url === 'string' && url.trim().length > 0))
-                                            .map((url, idx) => (
-                                                <div key={idx} className="aspect-square bg-black rounded-lg overflow-hidden border border-gray-800 hover:border-[#FFAE00] transition-colors cursor-pointer group relative">
-                                                    <Image
-                                                        src={url}
-                                                        alt={`Portfolio ${idx + 1}`}
-                                                        fill
-                                                        className="object-contain group-hover:scale-105 transition-transform duration-300"
-                                                        unoptimized
-                                                    />
-                                                </div>
-                                            ))}
+                                            .map((url, idx) => {
+                                                const isPdf = typeof url === 'string' && (url.toLowerCase().endsWith('.pdf') || url.toLowerCase().includes('.pdf?') || url.toLowerCase().includes('.pdf'))
+
+                                                if (isPdf) {
+                                                    return (
+                                                        <div key={idx} className="aspect-square bg-[#0F1115] rounded-xl overflow-hidden border border-red-900/40 hover:border-red-500/60 transition-all p-3 flex flex-col items-center justify-center text-center group relative">
+                                                            <FileText className="w-10 h-10 text-red-400 mb-2 group-hover:scale-110 transition-transform" />
+                                                            <span className="text-xs font-bold text-gray-300 line-clamp-1 px-1">Arquivo PDF</span>
+                                                            <span className="text-[10px] text-gray-500 mb-2">Não pré-visualizável</span>
+                                                            <a
+                                                                href={url}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className="text-[11px] font-semibold text-[#FFAE00] hover:underline bg-[#FFAE00]/10 px-2.5 py-1 rounded-md"
+                                                            >
+                                                                Abrir arquivo
+                                                            </a>
+                                                            {isOwner && (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation()
+                                                                        if (confirm('Deseja remover este PDF do seu portfólio?')) {
+                                                                            handleRemovePortfolioItem(url)
+                                                                        }
+                                                                    }}
+                                                                    title="Remover do portfólio"
+                                                                    className="absolute top-2 right-2 p-1.5 rounded-full bg-red-600/80 hover:bg-red-600 text-white transition-all shadow-lg cursor-pointer"
+                                                                >
+                                                                    <Trash2 className="w-3.5 h-3.5" />
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    )
+                                                }
+
+                                                return (
+                                                    <div key={idx} className="aspect-square bg-black rounded-xl overflow-hidden border border-gray-800 hover:border-[#FFAE00] transition-colors group relative">
+                                                        <Image
+                                                            src={url}
+                                                            alt={`Portfolio ${idx + 1}`}
+                                                            fill
+                                                            className="object-contain group-hover:scale-105 transition-transform duration-300"
+                                                            unoptimized
+                                                        />
+                                                        {isOwner && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation()
+                                                                    if (confirm('Deseja remover esta imagem do seu portfólio?')) {
+                                                                        handleRemovePortfolioItem(url)
+                                                                    }
+                                                                }}
+                                                                title="Remover foto do portfólio"
+                                                                className="absolute top-2 right-2 p-1.5 rounded-full bg-black/80 hover:bg-red-600 text-white transition-all shadow-lg opacity-90 sm:opacity-0 sm:group-hover:opacity-100 cursor-pointer"
+                                                            >
+                                                                <Trash2 className="w-3.5 h-3.5" />
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                )
+                                            })}
                                     </div>
                                 ) : (
                                     <div className="text-center py-12 border-2 border-dashed border-gray-800 rounded-xl bg-[#0F1115]/50">
