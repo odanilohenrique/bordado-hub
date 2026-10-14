@@ -89,9 +89,6 @@ export default function MobileDrawer({ isOpen, onClose, profile, userId }: Mobil
                             <p className="text-sm font-bold text-white truncate group-hover:text-[#FFAE00] transition-colors">
                                 {profile?.name || 'Meu Perfil'}
                             </p>
-                            <span className="inline-block mt-0.5 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-white/5 text-gray-400">
-                                {profile?.role === 'criador' ? 'Programador' : 'Comprador'}
-                            </span>
                         </div>
                     </Link>
                 </div>

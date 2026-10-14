@@ -161,9 +161,6 @@ export default function Sidebar({ initialUser, initialProfile }: { initialUser?:
                         <p className="text-sm font-bold text-white truncate">
                             {profile?.name || user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Minha Conta'}
                         </p>
-                        <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mt-0.5">
-                            {profile?.role === 'criador' ? 'Programador' : 'Cliente'}
-                        </p>
                     </div>
                 </div>
             </div>
