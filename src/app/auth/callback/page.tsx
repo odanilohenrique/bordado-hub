@@ -10,29 +10,28 @@ function AuthCallbackContent() {
     const code = searchParams.get('code')
     const next = searchParams.get('next') ?? '/pedidos'
 
-    // Status for UI feedback
-    const [status, setStatus] = useState('Verificando credenciais...')
+    // Status para feedback na interface
+    const [status, setStatus] = useState('Verificando confirmação de e-mail...')
 
-    // Refs to prevent double-execution
+    // Refs para evitar execuções duplicadas
     const processedCode = useRef(false)
     const isRedirecting = useRef(false)
 
     useEffect(() => {
-        // Function to handle successful authentication
+        // Função para tratar autenticação e redirecionamento de sucesso
         const handleAuthSuccess = async (userId: string) => {
             if (isRedirecting.current) return
             isRedirecting.current = true
-            setStatus('Autenticado! Redirecionando...')
+            setStatus('E-mail verificado! Entrando no BordadoHUB...')
 
             try {
-                // Check Profile Role & Avatar
+                // Checa perfil e avatar
                 const { data: profile } = await supabase
                     .from('users')
                     .select('role, avatar_url')
                     .eq('supabase_user_id', userId)
                     .single()
 
-                // If logged in via Google, check for avatar
                 const { data: { user } } = await supabase.auth.getUser()
                 const googleAvatar = user?.user_metadata?.avatar_url || user?.user_metadata?.picture
 
@@ -77,45 +76,62 @@ function AuthCallbackContent() {
             }
         }
 
-        // 1. TIMEOUT FAILSAFE (5 seconds)
-        // If nothing happens, force check session or go to login
-        const timeoutId = setTimeout(async () => {
-            if (isRedirecting.current) return
-            console.warn('Auth callback timeout - forcing session check')
+        // 1. Detecção de Hash Fragment (fluxo implícito do Supabase, ex: #access_token=...&type=signup)
+        if (typeof window !== 'undefined' && window.location.hash.includes('access_token=')) {
+            try {
+                const hashParams = new URLSearchParams(window.location.hash.substring(1))
+                const accessToken = hashParams.get('access_token')
+                const refreshToken = hashParams.get('refresh_token')
 
-            const { data: { session } } = await supabase.auth.getSession()
-            if (session) {
-                handleAuthSuccess(session.user.id)
-            } else {
-                console.warn('No session found after timeout -> Login')
-                router.push('/login?error=timeout')
+                if (accessToken && refreshToken) {
+                    setStatus('Confirmando autenticação...')
+                    supabase.auth.setSession({
+                        access_token: accessToken,
+                        refresh_token: refreshToken
+                    }).then(({ data, error }) => {
+                        if (!error && data?.session?.user) {
+                            handleAuthSuccess(data.session.user.id)
+                        }
+                    })
+                }
+            } catch (hashErr) {
+                console.error('Erro ao processar hash de autenticação:', hashErr)
             }
-        }, 5000)
+        }
 
-        // 2. LISTENER (Catch implicit flow, persistence, or code exchange success)
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-            if (event === 'SIGNED_IN' && session) {
-                handleAuthSuccess(session.user.id)
-            }
-        })
-
-        // 3. MANUAL CODE EXCHANGE (PKCE)
-        // Only run if code exists and haven't processed yet
+        // 2. Troca manual de código PKCE (?code=...)
         if (code && !processedCode.current) {
-            // eslint-disable-next-line react-hooks/exhaustive-deps
             processedCode.current = true
-            setStatus('Trocando código de acesso...')
+            setStatus('Confirmando código de verificação...')
 
             supabase.auth.exchangeCodeForSession(code).then(({ data, error }) => {
                 if (error) {
-                    console.error('Exchange error:', error)
-                    // We don't redirect to login immediately; we let the timeout or listener handle it
-                    // because maybe the listener picks it up via hash
-                } else if (data.session) {
+                    console.error('Erro na troca do código:', error)
+                } else if (data.session?.user) {
                     handleAuthSuccess(data.session.user.id)
                 }
             })
         }
+
+        // 3. Listener do Supabase Auth para capturar SIGNED_IN
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+            if ((event === 'SIGNED_IN' || event === 'USER_UPDATED') && session?.user) {
+                handleAuthSuccess(session.user.id)
+            }
+        })
+
+        // 4. Timeout Failsafe: se já estiver logado, redireciona
+        const timeoutId = setTimeout(async () => {
+            if (isRedirecting.current) return
+
+            const { data: { session } } = await supabase.auth.getSession()
+            if (session?.user) {
+                handleAuthSuccess(session.user.id)
+            } else {
+                console.warn('Timeout na verificação de autenticação -> Redirecionando para login')
+                router.push('/login?message=email_confirmado')
+            }
+        }, 6000)
 
         return () => {
             clearTimeout(timeoutId)
@@ -124,11 +140,11 @@ function AuthCallbackContent() {
     }, [code, router, next])
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-[#0F1115] text-[#F3F4F6]">
-            <div className="text-center">
+        <div className="min-h-screen flex items-center justify-center bg-[#0F1115] text-[#F3F4F6] px-4">
+            <div className="text-center max-w-sm">
                 <div className="w-16 h-16 border-4 border-[#FFAE00]/30 border-t-[#FFAE00] rounded-full animate-spin mx-auto mb-4" />
-                <p className="text-gray-400 text-lg animate-pulse">{status}</p>
-                <p className="text-xs text-gray-600 mt-4">Aguarde um momento...</p>
+                <p className="text-white text-base font-semibold animate-pulse">{status}</p>
+                <p className="text-xs text-gray-500 mt-2">Você será redirecionado para a plataforma em instantes...</p>
             </div>
         </div>
     )
