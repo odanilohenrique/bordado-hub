@@ -13,11 +13,17 @@ export async function GET(
 
         const supabase = createServiceClient()
 
+        // Sanitize ID to prevent injection in .or() filters
+        const cleanId = id.replace(/[^a-zA-Z0-9\-_]/g, '')
+        if (!cleanId || cleanId !== id) {
+            return NextResponse.json({ error: 'ID inválido' }, { status: 400 })
+        }
+
         // 1. Fetch user by id or supabase_user_id
         const { data: user, error: userError } = await supabase
             .from('users')
             .select('*')
-            .or(`id.eq.${id},supabase_user_id.eq.${id}`)
+            .or(`id.eq.${cleanId},supabase_user_id.eq.${cleanId}`)
             .maybeSingle()
 
         if (userError) {
@@ -28,6 +34,9 @@ export async function GET(
         if (!user) {
             return NextResponse.json({ error: 'Perfil não encontrado' }, { status: 404 })
         }
+
+        // Strip sensitive fields before returning public profile
+        const { cpf_cnpj, pix_key, pix_key_type, supabase_user_id, ...safeUser } = user
 
         // 2. Fetch reviews
         let enrichedReviews: any[] = []
@@ -63,7 +72,7 @@ export async function GET(
 
         return NextResponse.json({
             success: true,
-            profile: user,
+            profile: safeUser,
             reviews: enrichedReviews
         })
     } catch (err: any) {

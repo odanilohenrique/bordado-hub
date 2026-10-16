@@ -11,13 +11,34 @@ export async function POST(request: Request) {
 
         const supabase = createServiceClient()
 
-        // 1. Insert message into proposal_messages
+        // 1. Fetch proposal and job details to verify authorization
+        const { data: proposal } = await supabase
+            .from('proposals')
+            .select('id, criador_id, job_id, jobs(id, title, cliente_id)')
+            .eq('id', proposalId)
+            .single()
+
+        if (!proposal) {
+            return NextResponse.json({ error: 'Proposta não encontrada.' }, { status: 404 })
+        }
+
+        const jobData = Array.isArray(proposal.jobs) ? proposal.jobs[0] : proposal.jobs
+        const isParticipant = senderId === proposal.criador_id || senderId === jobData?.cliente_id
+
+        if (!isParticipant) {
+            return NextResponse.json({ error: 'Acesso negado: apenas o cliente e o criador participam desta conversa.' }, { status: 403 })
+        }
+
+        // Limit message content size
+        const sanitizedContent = content.trim().slice(0, 4000)
+
+        // 2. Insert message into proposal_messages
         const { data: messageData, error: msgError } = await supabase
             .from('proposal_messages')
             .insert({
                 proposal_id: proposalId,
                 sender_id: senderId,
-                content: content.trim()
+                content: sanitizedContent
             })
             .select('*, users:sender_id(name)')
             .single()
@@ -26,13 +47,6 @@ export async function POST(request: Request) {
             console.error('Chat send insert error:', msgError)
             return NextResponse.json({ error: 'Erro ao enviar mensagem: ' + msgError.message }, { status: 500 })
         }
-
-        // 2. Fetch proposal and job details to find recipient
-        const { data: proposal } = await supabase
-            .from('proposals')
-            .select('id, criador_id, job_id, jobs(id, title, cliente_id)')
-            .eq('id', proposalId)
-            .single()
 
         if (proposal) {
             const jobData = Array.isArray(proposal.jobs) ? proposal.jobs[0] : proposal.jobs

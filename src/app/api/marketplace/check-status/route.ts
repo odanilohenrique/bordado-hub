@@ -36,16 +36,31 @@ export async function POST(request: Request) {
         if (order.asaas_payment_id) {
             const asaasStatus = await checkPaymentStatus(order.asaas_payment_id)
             if (['RECEIVED', 'CONFIRMED', 'RECEIVED_IN_CASH'].includes(asaasStatus.status)) {
-                isPaid = true
+                if (Number(asaasStatus.value) >= Number(order.amount) - 0.05) {
+                    isPaid = true
+                } else {
+                    console.warn(`Marketplace underpayment detected: ${asaasStatus.value} < ${order.amount}`)
+                }
             }
         }
 
         if (isPaid) {
-            // Update order to paid
-            await supabase
+            // Atomic update: only update if status is still 'pending' to prevent double payout
+            const { data: updatedOrder } = await supabase
                 .from('marketplace_orders')
                 .update({ status: 'paid', updated_at: new Date().toISOString() })
                 .eq('id', orderId)
+                .eq('status', 'pending')
+                .select()
+                .single()
+
+            if (!updatedOrder) {
+                // Already processed by concurrent request or webhook
+                return NextResponse.json({
+                    status: 'paid',
+                    downloadUrl: order.product?.file_url || null,
+                })
+            }
 
             // Increment sales count on product
             if (order.product_id) {

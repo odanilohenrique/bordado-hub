@@ -49,6 +49,65 @@ export async function POST(request: Request) {
                 return NextResponse.json({ received: true })
             }
 
+            // 2.1 Handle Marketplace Orders (externalReference format: mkt_orderId)
+            if (externalReference && externalReference.startsWith('mkt_')) {
+                const orderId = externalReference.replace('mkt_', '')
+                const { data: order } = await supabase
+                    .from('marketplace_orders')
+                    .select('*, product:product_id(*)')
+                    .eq('id', orderId)
+                    .single()
+
+                if (order && order.status === 'pending') {
+                    if (realPayment.value >= (Number(order.amount) - 0.05)) {
+                        const { data: updatedOrder } = await supabase
+                            .from('marketplace_orders')
+                            .update({ 
+                                status: 'paid', 
+                                asaas_payment_id: paymentId, 
+                                updated_at: new Date().toISOString() 
+                            })
+                            .eq('id', orderId)
+                            .eq('status', 'pending')
+                            .select()
+                            .single()
+
+                        if (updatedOrder) {
+                            if (order.product_id) {
+                                const currentSales = Number(order.product?.sales_count || 0)
+                                await supabase
+                                    .from('marketplace_products')
+                                    .update({ sales_count: currentSales + 1 })
+                                    .eq('id', order.product_id)
+                            }
+
+                            await supabase.from('transactions').insert({
+                                cliente_id: order.buyer_id,
+                                criador_id: order.seller_id,
+                                amount: order.amount,
+                                taxa_cliente: 0,
+                                valor_liquido: order.seller_net,
+                                status: 'liberado',
+                                metodo: 'asaas_pix',
+                                asaas_payment_id: paymentId,
+                            })
+
+                            await supabase.from('notifications').insert({
+                                user_id: order.seller_id,
+                                type: 'marketplace_sale',
+                                title: 'Venda Realizada no Marketplace!',
+                                message: `Sua matriz "${order.product?.title || 'Matriz'}" foi vendida! R$ ${Number(order.seller_net).toFixed(2)} já estão disponíveis para saque no seu painel financeiro.`,
+                                link_url: '/financeiro',
+                                is_read: false,
+                            })
+                        }
+                    } else {
+                        console.warn(`⛔ Asaas Webhook: Underpayment on marketplace order ${orderId}: ${realPayment.value} < ${order.amount}`)
+                    }
+                }
+                return NextResponse.json({ received: true })
+            }
+
             // Find transaction by externalReference (transaction.id) or asaas_payment_id
             let query = supabase.from('transactions').select('*, jobs(*)')
 

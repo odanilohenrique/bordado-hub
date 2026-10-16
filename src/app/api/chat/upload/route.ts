@@ -15,6 +15,23 @@ export async function POST(request: Request) {
 
         const supabase = createServiceClient()
 
+        // Verify sender is a participant of this proposal
+        const { data: proposal } = await supabase
+            .from('proposals')
+            .select('id, criador_id, job_id, jobs(cliente_id)')
+            .eq('id', proposalId)
+            .single()
+
+        if (!proposal) {
+            return NextResponse.json({ error: 'Proposta não encontrada.' }, { status: 404 })
+        }
+
+        const jobData = Array.isArray(proposal.jobs) ? proposal.jobs[0] : proposal.jobs
+        const isParticipant = senderId === proposal.criador_id || senderId === jobData?.cliente_id
+        if (!isParticipant) {
+            return NextResponse.json({ error: 'Acesso negado: apenas participantes podem enviar arquivos.' }, { status: 403 })
+        }
+
         // 1. Ensure 'proposal_attachments' bucket exists and is public
         const { data: buckets } = await supabase.storage.listBuckets()
         const exists = buckets?.some(b => b.id === 'proposal_attachments')
