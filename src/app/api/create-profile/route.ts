@@ -40,6 +40,30 @@ export async function POST(request: Request) {
             await consumeInviteCode(rawInviteCode, email)
         }
 
+        // Verifica se já existe um perfil com o mesmo e-mail para unificar as contas
+        const { data: existingUser } = await supabase
+            .from('users')
+            .select('id, supabase_user_id, avatar_url, name')
+            .eq('email', email)
+            .maybeSingle()
+
+        if (existingUser) {
+            const { data: updated, error: updateErr } = await supabase
+                .from('users')
+                .update({
+                    supabase_user_id: userId,
+                    ...(avatar_url && !existingUser.avatar_url ? { avatar_url } : {}),
+                    ...(name && existingUser.name === email.split('@')[0] ? { name } : {})
+                })
+                .eq('id', existingUser.id)
+                .select()
+                .single()
+
+            if (!updateErr && updated) {
+                return NextResponse.json({ data: updated }, { status: 200 })
+            }
+        }
+
         const { data, error } = await supabase
             .from('users')
             .upsert([
