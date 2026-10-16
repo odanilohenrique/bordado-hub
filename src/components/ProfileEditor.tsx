@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabaseClient'
-import { Save, X, Trash2, ImageIcon, Camera, CreditCard, ShoppingBag, Code, CheckCircle2, Loader2, FileText } from 'lucide-react'
+import { Save, X, Trash2, ImageIcon, Camera, CreditCard, ShoppingBag, Code, CheckCircle2, Loader2, FileText, Key, AlertCircle } from 'lucide-react'
 import Image from 'next/image'
 import { optimizeImageFile } from '@/lib/helpers'
 
@@ -78,6 +78,11 @@ export default function ProfileEditor({ profile, onCancel, onSave, defaultProgra
         pix_key_type: profile.pix_key_type || 'cpf'
     })
 
+    const isAlreadyProgrammer = Boolean(profile.is_programmer || profile.role === 'criador')
+    const [inviteCode, setInviteCode] = useState('')
+    const [inviteStatus, setInviteStatus] = useState<'idle' | 'validating' | 'valid' | 'invalid'>('idle')
+    const [inviteError, setInviteError] = useState<string | null>(null)
+
     const [avatarPreview, setAvatarPreview] = useState<string | null>(profile.avatar_url || null)
     const [saving, setSaving] = useState(false)
     const [uploading, setUploading] = useState(false)
@@ -97,13 +102,62 @@ export default function ProfileEditor({ profile, onCancel, onSave, defaultProgra
             }
         }
         fetchGoogleAvatar()
+
+        // Detecta código de convite na URL (?convite=XXXX ou ?invite=XXXX)
+        if (typeof window !== 'undefined' && !isAlreadyProgrammer) {
+            const params = new URLSearchParams(window.location.search)
+            const codeParam = (params.get('convite') || params.get('invite') || '').trim().toUpperCase()
+            if (codeParam) {
+                setInviteCode(codeParam)
+                setFormData(prev => ({ ...prev, is_programmer: true }))
+                validateInviteCode(codeParam)
+            }
+        }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
+
+    const validateInviteCode = async (codeToTest: string): Promise<boolean> => {
+        const clean = codeToTest.trim().toUpperCase()
+        if (!clean) {
+            setInviteStatus('invalid')
+            setInviteError('Por favor, informe seu código de convite.')
+            return false
+        }
+
+        setInviteStatus('validating')
+        setInviteError(null)
+
+        try {
+            const res = await fetch('/api/invites/validate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ code: clean })
+            })
+
+            const data = await res.json()
+            if (res.ok && data.valid) {
+                setInviteStatus('valid')
+                setInviteError(null)
+                return true
+            } else {
+                setInviteStatus('invalid')
+                setInviteError(data.message || 'Código de convite inválido ou expirado.')
+                return false
+            }
+        } catch {
+            setInviteStatus('invalid')
+            setInviteError('Falha ao validar código. Verifique sua conexão e tente novamente.')
+            return false
+        }
+    }
 
     const handleChange = (field: string, value: any) => {
         setFormData(prev => ({ ...prev, [field]: value }))
         if (field === 'is_client' || field === 'is_programmer') {
             setRoleError(null)
+        }
+        if (field === 'is_programmer' && !value) {
+            setInviteError(null)
         }
     }
 
@@ -266,6 +320,23 @@ export default function ProfileEditor({ profile, onCancel, onSave, defaultProgra
             return
         }
 
+        // Validate invite code if activating programmer mode for the first time
+        if (formData.is_programmer && !isAlreadyProgrammer) {
+            if (!inviteCode.trim()) {
+                setInviteStatus('invalid')
+                setInviteError('Por favor, informe seu código de convite para ativar o perfil de programador.')
+                setRoleError('Código de convite obrigatório para se cadastrar como programador.')
+                return
+            }
+
+            if (inviteStatus !== 'valid') {
+                const isValid = await validateInviteCode(inviteCode)
+                if (!isValid) {
+                    return
+                }
+            }
+        }
+
         if (uploading || portfolioUploading) {
             alert('Aguarde o envio das fotos terminar antes de salvar.')
             return
@@ -283,23 +354,33 @@ export default function ProfileEditor({ profile, onCancel, onSave, defaultProgra
 
             const { data: { session } } = await supabase.auth.getSession()
 
+            const updatePayload: Record<string, any> = {
+                userId: profile.id,
+                ...formData,
+                avatar_url: safeAvatarUrl,
+                portfolio_urls: safePortfolioUrls
+            }
+
+            if (formData.is_programmer && !isAlreadyProgrammer) {
+                updatePayload.invite_code = inviteCode.trim().toUpperCase()
+            }
+
             const res = await fetch('/api/profile/update', {
                 method: 'POST',
                 headers: { 
                     'Content-Type': 'application/json',
                     ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {})
                 },
-                body: JSON.stringify({
-                    userId: profile.id,
-                    ...formData,
-                    avatar_url: safeAvatarUrl,
-                    portfolio_urls: safePortfolioUrls
-                }),
+                body: JSON.stringify(updatePayload),
                 signal: AbortSignal.timeout(15000)
             })
 
             const json = await res.json()
             if (!res.ok) {
+                if (res.status === 403 && formData.is_programmer && !isAlreadyProgrammer) {
+                    setInviteStatus('invalid')
+                    setInviteError(json.error || 'Código de convite inválido ou expirado.')
+                }
                 throw new Error(json.error || 'Erro ao salvar perfil')
             }
 
@@ -449,6 +530,99 @@ export default function ProfileEditor({ profile, onCancel, onSave, defaultProgra
                                 </p>
                             </div>
                         </div>
+
+                        {/* Código de Convite (exclusivo para quem ativa modo programador pela primeira vez) */}
+                        {!isAlreadyProgrammer && formData.is_programmer && (
+                            <div className="sm:col-span-2 bg-[#0B0D11] border border-[#F5A623]/30 rounded-2xl p-4 sm:p-5 space-y-3.5 shadow-xl shadow-[#F5A623]/5 animate-in fade-in zoom-in-95 duration-200">
+                                <div className="flex items-start justify-between gap-3">
+                                    <div className="flex items-center gap-2.5">
+                                        <div className="p-2 rounded-xl bg-[#F5A623]/10 text-[#F5A623] shrink-0 border border-[#F5A623]/20">
+                                            <Key className="w-4 h-4" />
+                                        </div>
+                                        <div>
+                                            <h5 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                                                Código de Convite de Criador
+                                            </h5>
+                                            <p className="text-xs text-gray-400 mt-0.5">
+                                                O cadastro de programadores é exclusivo para convidados. Insira seu código para habilitar o perfil.
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <span className="shrink-0 text-[10px] uppercase font-black tracking-wider px-2.5 py-1 rounded-full bg-[#F5A623]/15 text-[#F5A623] border border-[#F5A623]/30">
+                                        Acesso Restrito
+                                    </span>
+                                </div>
+
+                                <div className="flex flex-col sm:flex-row gap-2.5 pt-1">
+                                    <div className="relative flex-1">
+                                        <input
+                                            type="text"
+                                            value={inviteCode}
+                                            onChange={(e) => {
+                                                const val = e.target.value.toUpperCase().replace(/\s+/g, '')
+                                                setInviteCode(val)
+                                                setInviteStatus('idle')
+                                                setInviteError(null)
+                                            }}
+                                            onBlur={() => {
+                                                if (inviteCode.trim() && inviteStatus === 'idle') {
+                                                    validateInviteCode(inviteCode)
+                                                }
+                                            }}
+                                            placeholder="Ex: K8X2M9P4"
+                                            maxLength={16}
+                                            className={`w-full bg-[#181C26] border rounded-xl px-4 py-3 text-sm font-mono tracking-widest text-white uppercase placeholder-gray-500 focus:outline-none transition-all ${
+                                                inviteStatus === 'valid'
+                                                    ? 'border-emerald-500 focus:border-emerald-500 shadow-sm shadow-emerald-500/20'
+                                                    : inviteStatus === 'invalid' || inviteError
+                                                    ? 'border-red-500 focus:border-red-500 shadow-sm shadow-red-500/20'
+                                                    : 'border-white/10 focus:border-[#F5A623]'
+                                            }`}
+                                        />
+                                        {inviteStatus === 'validating' && (
+                                            <div className="absolute right-3.5 top-1/2 -translate-y-1/2">
+                                                <Loader2 className="w-4 h-4 text-[#F5A623] animate-spin" />
+                                            </div>
+                                        )}
+                                        {inviteStatus === 'valid' && (
+                                            <div className="absolute right-3.5 top-1/2 -translate-y-1/2 text-emerald-400">
+                                                <CheckCircle2 className="w-4 h-4" />
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <button
+                                        type="button"
+                                        onClick={() => validateInviteCode(inviteCode)}
+                                        disabled={!inviteCode.trim() || inviteStatus === 'validating'}
+                                        className="px-5 py-3 rounded-xl text-xs font-black bg-gradient-to-r from-[#FFB703] to-[#FB8500] hover:brightness-110 active:scale-95 text-black disabled:opacity-40 disabled:cursor-not-allowed transition-all shrink-0 flex items-center justify-center gap-1.5 shadow-md shadow-[#FFB703]/10"
+                                    >
+                                        {inviteStatus === 'validating' ? (
+                                            <>
+                                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                                Validando...
+                                            </>
+                                        ) : (
+                                            'Validar Código'
+                                        )}
+                                    </button>
+                                </div>
+
+                                {inviteStatus === 'valid' && (
+                                    <p className="text-xs text-emerald-400 flex items-center gap-1.5 font-medium pt-0.5">
+                                        <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                                        Código verificado com sucesso! Você pode preencher seus dados de criador e salvar o perfil.
+                                    </p>
+                                )}
+
+                                {(inviteStatus === 'invalid' || inviteError) && (
+                                    <p className="text-xs text-red-400 flex items-center gap-1.5 font-medium pt-0.5">
+                                        <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                                        {inviteError || 'Código de convite inválido ou expirado.'}
+                                    </p>
+                                )}
+                            </div>
+                        )}
                     </div>
 
                     {roleError && (

@@ -12,6 +12,22 @@ export async function POST(request: Request) {
 
         const supabase = createServiceClient()
 
+        // 1. Fetch target user to check permissions and existing programmer status
+        const { data: targetUser, error: targetUserErr } = await supabase
+            .from('users')
+            .select('id, supabase_user_id, email, is_programmer, role')
+            .or(`id.eq.${userId},supabase_user_id.eq.${userId}`)
+            .maybeSingle()
+
+        if (targetUserErr) {
+            console.error('Error fetching target user:', targetUserErr)
+            return NextResponse.json({ error: 'Erro ao buscar perfil do usuário.' }, { status: 500 })
+        }
+
+        if (!targetUser) {
+            return NextResponse.json({ error: 'Usuário não encontrado.' }, { status: 404 })
+        }
+
         // Auth verification: ensure caller cannot update someone else's profile
         const authHeader = request.headers.get('authorization')
         if (authHeader && authHeader.startsWith('Bearer ')) {
@@ -22,14 +38,67 @@ export async function POST(request: Request) {
             }
 
             const authUser = authData.user
-            const { data: targetUser } = await supabase
-                .from('users')
-                .select('id, supabase_user_id')
-                .or(`id.eq.${userId},supabase_user_id.eq.${userId}`)
+            if (targetUser.supabase_user_id !== authUser.id && targetUser.id !== authUser.id) {
+                return NextResponse.json({ error: 'Acesso negado: você não pode alterar o perfil de outro usuário.' }, { status: 403 })
+            }
+        }
+
+        // Validate invite code if user is enabling programmer mode for the first time
+        const wasProgrammer = Boolean(targetUser.is_programmer || targetUser.role === 'criador')
+        const isActivatingProgrammer = Boolean(fields.is_programmer && !wasProgrammer)
+
+        if (isActivatingProgrammer) {
+            const rawInviteCode = fields.invite_code || body.invite_code
+            if (!rawInviteCode || typeof rawInviteCode !== 'string' || !rawInviteCode.trim()) {
+                return NextResponse.json({ error: 'Código de convite inválido ou expirado.' }, { status: 403 })
+            }
+
+            const normalizedCode = rawInviteCode.trim().toUpperCase()
+
+            const { data: invite, error: inviteErr } = await supabase
+                .from('invites')
+                .select('*')
+                .eq('code', normalizedCode)
                 .maybeSingle()
 
-            if (targetUser && targetUser.supabase_user_id !== authUser.id && targetUser.id !== authUser.id) {
-                return NextResponse.json({ error: 'Acesso negado: você não pode alterar o perfil de outro usuário.' }, { status: 403 })
+            if (inviteErr) {
+                console.error('Error querying invite in profile/update:', inviteErr)
+                if (inviteErr.code === 'PGRST205') {
+                    return NextResponse.json({ error: 'Tabela de convites não configurada no banco de dados.' }, { status: 500 })
+                }
+                return NextResponse.json({ error: 'Código de convite inválido ou expirado.' }, { status: 403 })
+            }
+
+            if (!invite) {
+                return NextResponse.json({ error: 'Código de convite inválido ou expirado.' }, { status: 403 })
+            }
+
+            const maxUses = invite.max_uses ?? 1
+            const currentUses = invite.current_uses ?? 0
+            const isActive = Boolean(invite.active)
+
+            if (!isActive || currentUses >= maxUses) {
+                return NextResponse.json({ error: 'Código de convite inválido ou expirado.' }, { status: 403 })
+            }
+
+            // Increment current_uses and record usage
+            const newUses = currentUses + 1
+            const isNowExhausted = newUses >= maxUses
+            const userEmail = targetUser.email || ''
+
+            const { error: updateInviteErr } = await supabase
+                .from('invites')
+                .update({
+                    current_uses: newUses,
+                    used_by: userEmail || invite.used_by,
+                    used_at: new Date().toISOString(),
+                    active: !isNowExhausted
+                })
+                .eq('id', invite.id)
+
+            if (updateInviteErr) {
+                console.error('Error updating invite in profile/update:', updateInviteErr)
+                return NextResponse.json({ error: 'Erro ao validar código de convite.' }, { status: 500 })
             }
         }
 
