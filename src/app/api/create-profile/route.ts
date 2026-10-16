@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
+import { checkInviteValidity, consumeInviteCode } from '@/lib/invitesStore'
 
 // Initialize Supabase with Service Role Key to bypass RLS
 const supabase = createClient(
@@ -31,52 +32,12 @@ export async function POST(request: Request) {
                 return NextResponse.json({ error: 'Código de convite inválido ou expirado.' }, { status: 403 })
             }
 
-            const normalizedCode = rawInviteCode.trim().toUpperCase()
-
-            const { data: invite, error: inviteErr } = await supabase
-                .from('invites')
-                .select('*')
-                .eq('code', normalizedCode)
-                .maybeSingle()
-
-            if (inviteErr) {
-                console.error('Error querying invite in create-profile:', inviteErr)
-                if (inviteErr.code === 'PGRST205') {
-                    return NextResponse.json({ error: 'Tabela de convites não configurada no banco de dados.' }, { status: 500 })
-                }
-                return NextResponse.json({ error: 'Código de convite inválido ou expirado.' }, { status: 403 })
+            const check = await checkInviteValidity(rawInviteCode)
+            if (!check.valid) {
+                return NextResponse.json({ error: check.message || 'Código de convite inválido ou expirado.' }, { status: 403 })
             }
 
-            if (!invite) {
-                return NextResponse.json({ error: 'Código de convite inválido ou expirado.' }, { status: 403 })
-            }
-
-            const maxUses = invite.max_uses ?? 1
-            const currentUses = invite.current_uses ?? 0
-            const isActive = Boolean(invite.active)
-
-            if (!isActive || currentUses >= maxUses) {
-                return NextResponse.json({ error: 'Código de convite inválido ou expirado.' }, { status: 403 })
-            }
-
-            // Increment current_uses and record usage details
-            const newUses = currentUses + 1
-            const isNowExhausted = newUses >= maxUses
-
-            const { error: updateInviteErr } = await supabase
-                .from('invites')
-                .update({
-                    current_uses: newUses,
-                    used_by: email,
-                    used_at: new Date().toISOString(),
-                    active: !isNowExhausted
-                })
-                .eq('id', invite.id)
-
-            if (updateInviteErr) {
-                console.error('Error updating invite in create-profile:', updateInviteErr)
-                return NextResponse.json({ error: 'Erro ao validar código de convite.' }, { status: 500 })
-            }
+            await consumeInviteCode(rawInviteCode, email)
         }
 
         const { data, error } = await supabase

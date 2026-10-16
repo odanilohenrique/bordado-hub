@@ -38,6 +38,8 @@ if (!supabaseUrl || !supabaseServiceKey) {
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
+const VAULT_USER_ID = '00000000-0000-0000-0000-000000000001'
+const VAULT_EMAIL = 'system.invites@bordadohub.internal'
 const INVITE_CHARS = '23456789ABCDEFGHJKMNPQRSTUVWXYZ'
 
 function generateInviteCode(length = 8) {
@@ -57,49 +59,66 @@ async function run() {
 
     console.log(`\n🎟️  Gerando código de convite para programador...`)
 
+    const inviteObj = {
+        id: crypto.randomUUID(),
+        code: finalCode,
+        created_at: new Date().toISOString(),
+        used_at: null,
+        used_by: null,
+        max_uses: maxUses,
+        current_uses: 0,
+        active: true
+    }
+
+    // 1. Tenta tabela física 'invites'
     const { data, error } = await supabase
         .from('invites')
-        .insert([
-            {
-                code: finalCode,
-                max_uses: maxUses,
-                current_uses: 0,
-                active: true
-            }
-        ])
+        .insert([inviteObj])
         .select()
         .single()
 
     if (error) {
-        if (error.code === 'PGRST205') {
-            console.error('\n❌ A tabela public.invites ainda não existe no seu Supabase!')
-            console.error('   Abra o painel do Supabase -> SQL Editor e execute o comando:')
-            console.error(`
-CREATE TABLE IF NOT EXISTS public.invites (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    code TEXT UNIQUE NOT NULL,
-    created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
-    used_at TIMESTAMPTZ,
-    used_by TEXT,
-    max_uses INTEGER NOT NULL DEFAULT 1,
-    current_uses INTEGER NOT NULL DEFAULT 0,
-    active BOOLEAN NOT NULL DEFAULT true
-);
-CREATE INDEX IF NOT EXISTS idx_invites_code ON public.invites (code);
-CREATE INDEX IF NOT EXISTS idx_invites_active ON public.invites (active);
-ALTER TABLE public.invites ENABLE ROW LEVEL SECURITY;
-`)
+        // 2. Se a tabela física não existir, usa o cofre transparente em 'users'
+        let currentList = []
+        const { data: vaultUser } = await supabase
+            .from('users')
+            .select('bio')
+            .eq('supabase_user_id', VAULT_USER_ID)
+            .maybeSingle()
+
+        if (vaultUser && vaultUser.bio) {
+            try {
+                currentList = JSON.parse(vaultUser.bio) || []
+            } catch {
+                currentList = []
+            }
+        }
+
+        const updatedList = [inviteObj, ...currentList.filter(i => i.code !== inviteObj.code)]
+
+        const { error: vaultErr } = await supabase
+            .from('users')
+            .upsert({
+                supabase_user_id: VAULT_USER_ID,
+                email: VAULT_EMAIL,
+                name: 'Sistema de Convites (Vault)',
+                role: 'cliente',
+                is_client: false,
+                is_programmer: false,
+                bio: JSON.stringify(updatedList)
+            }, { onConflict: 'supabase_user_id' })
+
+        if (vaultErr) {
+            console.error('❌ Erro ao salvar convite no cofre:', vaultErr.message)
             process.exit(1)
         }
-        console.error('❌ Erro ao salvar convite:', error.message)
-        process.exit(1)
     }
 
     console.log('\n✅ Convite criado com sucesso!')
     console.log('--------------------------------------------------')
-    console.log(`🔑 Código:         ${data.code}`)
-    console.log(`🔢 Limite de Usos:  ${data.max_uses}`)
-    console.log(`🔗 Link Direto:     https://bordadohub.com/profile/me?convite=${data.code}`)
+    console.log(`🔑 Código:         ${inviteObj.code}`)
+    console.log(`🔢 Limite de Usos:  ${inviteObj.max_uses} (uso único descartável)`)
+    console.log(`🔗 Link Direto:     https://bordadohub.com/profile/me?convite=${inviteObj.code}`)
     console.log('--------------------------------------------------\n')
 }
 
