@@ -281,9 +281,14 @@ export default function ProfileEditor({ profile, onCancel, onSave, defaultProgra
                 Boolean(url && typeof url === 'string' && url.trim().length > 0 && !url.startsWith('blob:'))
             )
 
+            const { data: { session } } = await supabase.auth.getSession()
+
             const res = await fetch('/api/profile/update', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {})
+                },
                 body: JSON.stringify({
                     userId: profile.id,
                     ...formData,

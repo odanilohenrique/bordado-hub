@@ -2,8 +2,13 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 const { createClient } = require('@supabase/supabase-js');
 
-const supabaseUrl = 'https://zodviesgpochuzwetbtt.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpvZHZpZXNncG9jaHV6d2V0YnR0Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NDEzNDA5MywiZXhwIjoyMDc5NzEwMDkzfQ.H5gEAqYIjQKWgOCqJbRxGrXKB7SmSSKjXjcNThs4e7E';
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+
+if (!supabaseUrl || !supabaseKey) {
+    console.error('❌ Defina NEXT_PUBLIC_SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY no ambiente.');
+    process.exit(1);
+}
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 

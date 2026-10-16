@@ -12,6 +12,27 @@ export async function POST(request: Request) {
 
         const supabase = createServiceClient()
 
+        // Auth verification: ensure caller cannot update someone else's profile
+        const authHeader = request.headers.get('authorization')
+        if (authHeader && authHeader.startsWith('Bearer ')) {
+            const token = authHeader.substring(7)
+            const { data: authData, error: authErr } = await supabase.auth.getUser(token)
+            if (authErr || !authData?.user) {
+                return NextResponse.json({ error: 'Sessão inválida ou expirada.' }, { status: 401 })
+            }
+
+            const authUser = authData.user
+            const { data: targetUser } = await supabase
+                .from('users')
+                .select('id, supabase_user_id')
+                .or(`id.eq.${userId},supabase_user_id.eq.${userId}`)
+                .maybeSingle()
+
+            if (targetUser && targetUser.supabase_user_id !== authUser.id && targetUser.id !== authUser.id) {
+                return NextResponse.json({ error: 'Acesso negado: você não pode alterar o perfil de outro usuário.' }, { status: 403 })
+            }
+        }
+
         // Sanitize avatar_url (never allow blob: URLs in DB)
         let avatarUrl = fields.avatar_url
         if (avatarUrl && typeof avatarUrl === 'string' && avatarUrl.startsWith('blob:')) {

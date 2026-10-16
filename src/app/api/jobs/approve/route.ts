@@ -97,16 +97,33 @@ export async function POST(request: Request) {
             .eq('job_id', jobId)
             .single()
 
+        if (!tx) {
+            console.warn('Approve: No transaction found for job', jobId)
+            return NextResponse.json({ success: true, payoutStatus: 'no_transaction' })
+        }
+
+        // SECURITY: The money MUST ONLY go to the legitimate creator recorded in the verified transaction
+        const targetCreatorId = tx.criador_id
+        if (!targetCreatorId) {
+            console.error('Approve: No creator ID linked to transaction', tx.id)
+            return NextResponse.json({ error: 'Nenhum criador associado à transação.' }, { status: 400 })
+        }
+
         const { data: programmer } = await supabase
             .from('users')
-            .select('pix_key, pix_key_type, name')
-            .eq('id', revieweeId)
+            .select('id, pix_key, pix_key_type, name')
+            .eq('id', targetCreatorId)
             .single()
 
-        // 4. Execute Asaas Payout (only if payment was confirmed)
+        // 4. Execute Asaas Payout (strictly only if payment was confirmed and in escrow)
         let payoutStatus = 'skipped'
-        if (tx && tx.status === 'pago' && programmer?.pix_key && programmer?.pix_key_type) {
+        if (tx.status === 'pago' && programmer?.pix_key && programmer?.pix_key_type) {
             try {
+                // Set to releasing to prevent concurrent double-spend
+                await supabase.from('transactions').update({
+                    status: 'processando_liberacao'
+                }).eq('id', tx.id).eq('status', 'pago')
+
                 const transfer = await transferPixToCreator({
                     amount: tx.valor_liquido,
                     pixKey: programmer.pix_key,
@@ -116,24 +133,29 @@ export async function POST(request: Request) {
 
                 await supabase.from('transactions').update({
                     status: 'liberado',
-                    asaas_transfer_id: transfer.transferId
+                    asaas_transfer_id: transfer.transferId,
+                    updated_at: new Date().toISOString()
                 }).eq('id', tx.id)
 
                 payoutStatus = 'success'
                 
                 // Notify programmer about payout
                 await supabase.from('notifications').insert({
-                    user_id: revieweeId,
+                    user_id: targetCreatorId,
                     type: 'pagamento_liberado',
                     title: 'Pagamento Liberado!',
-                    message: `O cliente aprovou seu trabalho e o pagamento de R$ ${tx.valor_liquido.toFixed(2)} foi enviado para sua chave PIX!`,
+                    message: `O cliente aprovou seu trabalho e o pagamento de R$ ${Number(tx.valor_liquido).toFixed(2)} foi enviado para sua chave PIX!`,
                     link_url: `/jobs/${jobId}`
                 })
             } catch (payoutError: any) {
                 console.error('Asaas Payout Error:', payoutError)
+                // Revert to 'pago' so it can be retried safely
+                await supabase.from('transactions').update({ status: 'pago' }).eq('id', tx.id)
                 payoutStatus = 'error: ' + payoutError.message
             }
-        } else if (tx && !programmer?.pix_key) {
+        } else if (tx.status === 'liberado') {
+            payoutStatus = 'already_released'
+        } else if (!programmer?.pix_key) {
             payoutStatus = 'no_pix_key'
         }
 

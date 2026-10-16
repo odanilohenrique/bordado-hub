@@ -43,12 +43,31 @@ export async function GET(request: Request) {
             // Update transaction to paid if not already
             const { data: tx } = await supabase
                 .from('transactions')
-                .select('job_id, status, criador_id, jobs(title)')
+                .select('id, job_id, status, criador_id, asaas_payment_id, amount, taxa_cliente, total_pago, jobs(title)')
                 .eq('id', transactionId)
                 .single()
 
-            if (tx && tx.status === 'pendente') {
-                await supabase.from('transactions').update({ status: 'pago' }).eq('id', transactionId)
+            // Security check: verify that this Asaas charge actually corresponds to this transaction
+            const isMatchingCharge = tx && (
+                tx.asaas_payment_id === asaasId ||
+                asaasStatus.externalReference === transactionId ||
+                !tx.asaas_payment_id
+            )
+
+            // Security check: verify the paid amount matches expected total
+            const expectedTotal = Number(tx?.total_pago || (Number(tx?.amount || 0) + Number(tx?.taxa_cliente || 0)))
+            const isAmountValid = Number(asaasStatus.value) >= (expectedTotal - 0.05)
+
+            if (tx && tx.status === 'pendente' && isMatchingCharge && isAmountValid) {
+                await supabase
+                    .from('transactions')
+                    .update({ 
+                        status: 'pago',
+                        asaas_payment_id: asaasId,
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('id', transactionId)
+
                 await supabase.from('jobs').update({ status: 'em_progresso' }).eq('id', tx.job_id)
                 
                 // Notifica o programador que o pagamento caiu

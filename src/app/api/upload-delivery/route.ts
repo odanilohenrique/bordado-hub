@@ -16,6 +16,11 @@ export async function POST(request: Request) {
             )
         }
 
+        const ALLOWED_BUCKETS = ['job-deliveries', 'chat-attachments', 'avatars', 'proposal_attachments']
+        if (!ALLOWED_BUCKETS.includes(bucket) || path.includes('..') || path.startsWith('/')) {
+            return NextResponse.json({ error: 'Destino de upload inválido ou não autorizado.' }, { status: 400 })
+        }
+
         const supabase = createServiceClient()
 
         // Convert File to Buffer for server-side upload

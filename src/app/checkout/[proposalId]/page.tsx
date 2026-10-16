@@ -166,12 +166,10 @@ function CheckoutClient({ proposalId }: { proposalId: string }) {
 
         setProcessing(true)
         try {
-            const tx = await createTransaction('asaas_pix')
-
             const res = await fetch('/api/payments/asaas/create-charge', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ transactionId: tx.id, cpfCnpj }),
+                body: JSON.stringify({ proposalId: proposal.id, cpfCnpj }),
             })
 
             const result = await res.json()
@@ -182,7 +180,7 @@ function CheckoutClient({ proposalId }: { proposalId: string }) {
                 pixQrCode: result.pixQrCode,
                 pixCopyPaste: result.pixCopyPaste,
                 expirationDate: result.expirationDate,
-                transactionId: tx.id,
+                transactionId: result.transactionId,
             })
 
             // Save CPF
@@ -220,13 +218,11 @@ function CheckoutClient({ proposalId }: { proposalId: string }) {
 
         setProcessing(true)
         try {
-            const tx = await createTransaction('asaas_cartao')
-
             const res = await fetch('/api/payments/asaas/create-card-charge', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    transactionId: tx.id,
+                    proposalId: proposal.id,
                     cpfCnpj,
                     holderName: cardData.holderName,
                     cardNumber: cardData.cardNumber,

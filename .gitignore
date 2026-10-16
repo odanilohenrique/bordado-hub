@@ -40,3 +40,12 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# legacy reference and scratch files
+modelo_referencia/
+check_*.js
+test_*.js
+scan_*.js
+*.log
+remotion/
+.agents/

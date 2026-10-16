@@ -1,14 +1,25 @@
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabaseClient'
+import { checkPaymentStatus } from '@/lib/asaas'
 
 export async function POST(request: Request) {
     try {
+        // 1. Optional Webhook Secret Token validation
+        const configuredToken = process.env.ASAAS_WEBHOOK_TOKEN
+        if (configuredToken) {
+            const incomingToken = request.headers.get('asaas-access-token')
+            if (incomingToken !== configuredToken) {
+                console.warn('⛔ Asaas Webhook: Unauthorized incoming token')
+                return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+            }
+        }
+
         const body = await request.json()
         const { event, payment } = body
 
         console.log(' Asaas Webhook Received:', event, payment?.id)
 
-        if (!payment) {
+        if (!payment || !payment.id) {
             return NextResponse.json({ received: true })
         }
 
@@ -17,6 +28,26 @@ export async function POST(request: Request) {
         if (event === 'PAYMENT_RECEIVED' || event === 'PAYMENT_CONFIRMED') {
             const externalReference = payment.externalReference
             const paymentId = payment.id
+
+            // 2. Anti-fraud: Live check directly with Asaas server (defense-in-depth against fake payloads)
+            let realPayment: any = null
+            try {
+                realPayment = await checkPaymentStatus(paymentId)
+            } catch (verifErr: any) {
+                console.error('⛔ Asaas Webhook: Failed to verify payment with Asaas API:', verifErr.message)
+                return NextResponse.json({ received: true })
+            }
+
+            const isReallyPaid = realPayment && (
+                realPayment.status === 'RECEIVED' ||
+                realPayment.status === 'CONFIRMED' ||
+                realPayment.status === 'RECEIVED_IN_CASH'
+            )
+
+            if (!isReallyPaid) {
+                console.warn(`⛔ Asaas Webhook: Live check says payment ${paymentId} is ${realPayment?.status || 'UNKNOWN'}. Ignored.`)
+                return NextResponse.json({ received: true })
+            }
 
             // Find transaction by externalReference (transaction.id) or asaas_payment_id
             let query = supabase.from('transactions').select('*, jobs(*)')
@@ -36,11 +67,22 @@ export async function POST(request: Request) {
                 return NextResponse.json({ received: true })
             }
 
+            // 3. Amount integrity verification (prevents paying R$ 1,00 for a R$ 100,00 job)
+            const expectedTotal = Number(transaction.total_pago || (Number(transaction.amount) + Number(transaction.taxa_cliente || 0)))
+            if (realPayment.value < (expectedTotal - 0.05)) {
+                console.warn(`⛔ Asaas Webhook: Underpayment detected! Real: R$ ${realPayment.value}, Expected: R$ ${expectedTotal}`)
+                return NextResponse.json({ received: true })
+            }
+
             if (transaction.status === 'pendente') {
                 // Mark transaction as paid
                 await supabase
                     .from('transactions')
-                    .update({ status: 'pago' })
+                    .update({ 
+                        status: 'pago',
+                        asaas_payment_id: paymentId,
+                        updated_at: new Date().toISOString()
+                    })
                     .eq('id', transaction.id)
 
                 // Update job status to em_progresso
@@ -52,9 +94,10 @@ export async function POST(request: Request) {
                 // Create notification for creator
                 await supabase.from('notifications').insert({
                     user_id: transaction.criador_id,
+                    type: 'pagamento_aprovado',
                     title: 'Pagamento Confirmado!',
-                    message: `O pagamento do pedido "${transaction.jobs?.title}" foi confirmado. Você pode iniciar o trabalho!`,
-                    link_url: `/producao`,
+                    message: `O pagamento do pedido "${transaction.jobs?.title}" foi confirmado. O valor está seguro em caução (escrow). Você pode iniciar o trabalho!`,
+                    link_url: `/jobs/${transaction.job_id}`,
                 })
             }
         }

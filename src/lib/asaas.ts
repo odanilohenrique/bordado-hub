@@ -252,8 +252,11 @@ export async function createCreditCardCharge(params: CreateCardPaymentDTO) {
 export async function checkPaymentStatus(paymentId: string) {
     const payment = await asaasFetch(`/payments/${paymentId}`)
     return {
+        id: payment.id,
         status: payment.status,
         confirmedDate: payment.confirmedDate,
+        value: Number(payment.value),
+        externalReference: payment.externalReference,
     }
 }
 
