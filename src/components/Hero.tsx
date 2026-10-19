@@ -1,12 +1,23 @@
+'use client'
+
+import { useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { ArrowRight, ShieldCheck, Zap, CheckCircle2, Sparkles, Download, Layers } from 'lucide-react'
+import { ArrowRight, ShieldCheck, Zap, CheckCircle2, Sparkles } from 'lucide-react'
+import ProgrammerInviteModal from '@/components/ProgrammerInviteModal'
 
 export default function Hero() {
+    const [isInviteModalOpen, setIsInviteModalOpen] = useState(false)
+
     return (
         <section className="relative bg-[#0F1115] pt-6 pb-16 sm:pt-12 sm:pb-24 overflow-hidden border-b border-white/5">
-            {/* Ambient Background Glow (GPU accelerated and lightweight on mobile) */}
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[320px] sm:w-[500px] h-[250px] bg-[#FFAE00]/10 blur-[60px] md:blur-[100px] rounded-full pointer-events-none -z-10 transform-gpu" />
+            {/* Ambient Background Glow (Leve e otimizado para celulares) */}
+            <div 
+                className="absolute top-0 left-1/2 -translate-x-1/2 w-[300px] sm:w-[500px] h-[220px] pointer-events-none -z-10 opacity-70"
+                style={{
+                    background: 'radial-gradient(ellipse at top, rgba(255, 174, 0, 0.12) 0%, rgba(255, 174, 0, 0) 70%)'
+                }}
+            />
 
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-center">
@@ -40,20 +51,23 @@ export default function Hero() {
 
                         {/* Sleek Touch-friendly CTA Buttons */}
                         <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start mb-8">
+                            {/* Comprar Matrizes -> Redireciona para /pedidos */}
                             <Link
-                                href="/jobs/new"
+                                href="/pedidos"
                                 className="flex items-center justify-center gap-2 bg-gradient-to-r from-[#FFAE00] to-yellow-400 hover:from-yellow-400 hover:to-[#FFAE00] text-black font-black text-sm px-6 py-3 rounded-xl shadow-lg shadow-[#FFAE00]/15 active:scale-95 transition-all text-center"
                             >
                                 <span>Comprar Matrizes</span>
                                 <ArrowRight className="w-4 h-4 stroke-[2.5]" />
                             </Link>
 
-                            <Link
-                                href="/jobs"
-                                className="flex items-center justify-center gap-2 bg-[#1A1D23] hover:bg-[#20242C] text-white font-bold text-sm px-6 py-3 rounded-xl border border-white/10 hover:border-[#FFAE00]/30 transition-all text-center"
+                            {/* Produzir Matrizes -> Abre Modal de Convite & Lista de Espera */}
+                            <button
+                                type="button"
+                                onClick={() => setIsInviteModalOpen(true)}
+                                className="flex items-center justify-center gap-2 bg-[#1A1D23] hover:bg-[#20242C] active:scale-95 text-white font-bold text-sm px-6 py-3 rounded-xl border border-white/10 hover:border-[#FFAE00]/30 transition-all text-center cursor-pointer"
                             >
                                 <span>Produzir Matrizes</span>
-                            </Link>
+                            </button>
                         </div>
 
                         {/* 3 Simplicity & Trust Pillars */}
@@ -132,7 +146,7 @@ export default function Hero() {
                                     <span className="text-[10px] font-black bg-white/5 border border-white/10 text-gray-300 px-1.5 py-0.5 rounded-md">.XXX</span>
                                 </div>
                                 <Link
-                                    href="/jobs/new"
+                                    href="/pedidos"
                                     className="text-xs font-bold text-[#FFAE00] hover:text-yellow-300 flex items-center gap-1 transition-colors shrink-0 ml-2"
                                 >
                                     Pedir Matriz <ArrowRight className="w-3.5 h-3.5" />
@@ -143,6 +157,12 @@ export default function Hero() {
 
                 </div>
             </div>
+
+            {/* Modal de Convite Exclusivo e Lista de Espera */}
+            <ProgrammerInviteModal
+                isOpen={isInviteModalOpen}
+                onClose={() => setIsInviteModalOpen(false)}
+            />
         </section>
     )
 }

@@ -29,9 +29,11 @@ import {
     CreditCard
 } from 'lucide-react'
 import Footer from '@/components/Footer'
+import ProgrammerInviteModal from '@/components/ProgrammerInviteModal'
 
 export default function HowItWorksPage() {
     const [faqOpen, setFaqOpen] = useState<number | null>(null)
+    const [isInviteModalOpen, setIsInviteModalOpen] = useState(false)
 
     const toggleFaq = (index: number) => {
         setFaqOpen(faqOpen === index ? null : index)
@@ -643,15 +645,22 @@ export default function HowItWorksPage() {
                             <ArrowRight className="w-5 h-5 stroke-[2.5]" />
                         </Link>
 
-                        <Link
-                            href="/jobs"
-                            className="w-full sm:w-auto bg-[#14171E] hover:bg-[#1A1E27] text-white font-bold text-base px-8 py-4 rounded-xl border border-white/10 hover:border-[#FFAE00]/40 transition-all flex items-center justify-center gap-2"
+                        <button
+                            type="button"
+                            onClick={() => setIsInviteModalOpen(true)}
+                            className="w-full sm:w-auto bg-[#14171E] hover:bg-[#1A1E27] active:scale-98 text-white font-bold text-base px-8 py-4 rounded-xl border border-white/10 hover:border-[#FFAE00]/40 transition-all flex items-center justify-center gap-2 cursor-pointer"
                         >
                             <span>Sou Programador & Quero Produzir</span>
-                        </Link>
+                        </button>
                     </div>
                 </div>
             </section>
+
+            {/* Modal de Convite de Programador */}
+            <ProgrammerInviteModal
+                isOpen={isInviteModalOpen}
+                onClose={() => setIsInviteModalOpen(false)}
+            />
 
             {/* 7. FOOTER */}
             <Footer />

@@ -1,4 +1,8 @@
+'use client'
+
+import { useState } from 'react'
 import Link from 'next/link'
+import ProgrammerInviteModal from '@/components/ProgrammerInviteModal'
 import {
     Sparkles,
     UploadCloud,
@@ -175,6 +179,8 @@ const workflows: WorkflowColumn[] = [
 ]
 
 export default function HowItWorks() {
+    const [isInviteModalOpen, setIsInviteModalOpen] = useState(false)
+
     return (
         <section className="bg-[#0F1115] py-14 sm:py-20 border-b border-white/5 relative overflow-hidden">
             {/* Sutil brilho de ambientação */}
@@ -252,7 +258,16 @@ export default function HowItWorks() {
 
                             {/* CTA no Rodapé do Card */}
                             <div className="pt-5 mt-4 border-t border-[#E7DBC5]">
-                                {workflow.ctaVariant === 'primary' ? (
+                                {workflow.id === 'produza' ? (
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsInviteModalOpen(true)}
+                                        className="w-full bg-[#181B22] hover:bg-[#222630] text-white font-bold text-xs sm:text-sm py-3 px-4 rounded-xl border border-black/10 shadow-md flex items-center justify-center gap-2 active:scale-95 transition-all text-center cursor-pointer"
+                                    >
+                                        <span>{workflow.ctaText}</span>
+                                        <ArrowRight className="w-4 h-4 stroke-[2.5] text-[#FFAE00]" />
+                                    </button>
+                                ) : workflow.ctaVariant === 'primary' ? (
                                     <Link
                                         href={workflow.ctaLink}
                                         className="w-full bg-gradient-to-r from-[#FFAE00] to-amber-500 hover:from-amber-500 hover:to-[#FFAE00] text-black font-black text-xs sm:text-sm py-3 px-4 rounded-xl shadow-md shadow-[#FFAE00]/20 flex items-center justify-center gap-2 active:scale-95 transition-all text-center"
@@ -299,6 +314,11 @@ export default function HowItWorks() {
                     </Link>
                 </div>
             </div>
+
+            <ProgrammerInviteModal
+                isOpen={isInviteModalOpen}
+                onClose={() => setIsInviteModalOpen(false)}
+            />
         </section>
     )
 }
