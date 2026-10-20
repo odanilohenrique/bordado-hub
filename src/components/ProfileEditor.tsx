@@ -262,21 +262,25 @@ export default function ProfileEditor({ profile, onCancel, onSave }: ProfileEdit
                 name: formData.name.trim() || profile.name,
                 avatar_url: safeAvatarUrl,
                 bio: formData.bio,
-                is_client: formData.is_client,
-                client_business_type: formData.client_business_type,
-                client_machine_brand: formData.client_machine_brand,
-                formats: formData.formats
             }
 
-            // Apenas envia dados de programador se o usuário já tiver sido aprovado
             if (isAlreadyProgrammer) {
+                // Programador: envia apenas campos profissionais
                 updatePayload.is_programmer = true
+                updatePayload.is_client = formData.is_client
                 updatePayload.skills = formData.skills
+                updatePayload.formats = formData.formats
                 updatePayload.portfolio_urls = safePortfolioUrls
                 updatePayload.cpf_cnpj = formData.cpf_cnpj
                 updatePayload.pix_key = formData.pix_key
                 updatePayload.pix_key_type = formData.pix_key_type
                 updatePayload.experience_level = formData.experience_level
+            } else {
+                // Comprador: envia apenas campos de comprador
+                updatePayload.is_client = true
+                updatePayload.client_business_type = formData.client_business_type
+                updatePayload.client_machine_brand = formData.client_machine_brand
+                updatePayload.formats = formData.formats
             }
 
             const res = await fetch('/api/profile/update', {
@@ -389,7 +393,9 @@ export default function ProfileEditor({ profile, onCancel, onSave }: ProfileEdit
 
                 {/* ============================================================== */}
                 {/* SEÇÃO DO CLIENTE: NÍVEL DE CONSCIÊNCIA E MÁQUINAS              */}
+                {/* Apenas visível para COMPRADORES (não-programadores)             */}
                 {/* ============================================================== */}
+                {!isAlreadyProgrammer && (
                 <div className="p-5 rounded-2xl bg-[#181C26] border border-white/[0.07] space-y-5">
                     <div className="flex items-center gap-2">
                         <ShoppingBag className="w-4 h-4 text-[#F5A623]" />
@@ -466,6 +472,7 @@ export default function ProfileEditor({ profile, onCancel, onSave }: ProfileEdit
                         </div>
                     </div>
                 </div>
+                )}
 
                 {/* ============================================================== */}
                 {/* SEÇÃO DO PROGRAMADOR (APENAS PARA PROGRAMADORES APROVADOS)     */}
@@ -503,6 +510,32 @@ export default function ProfileEditor({ profile, onCancel, onSave }: ProfileEdit
                                     </button>
                                 ))}
                             </div>
+                        </div>
+
+                        {/* Formatos que o Programador Exporta */}
+                        <div>
+                            <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-2.5">
+                                Formatos que Você Entrega / Exporta
+                            </label>
+                            <div className="flex flex-wrap gap-1.5">
+                                {FORMAT_OPTIONS.map(format => (
+                                    <button
+                                        type="button"
+                                        key={format}
+                                        onClick={() => toggleArrayItem('formats', format)}
+                                        className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                                            formData.formats.includes(format)
+                                                ? 'bg-[#F5A623] text-black'
+                                                : 'bg-[#0B0D11] text-gray-400 border border-white/10 hover:border-white/20'
+                                        }`}
+                                    >
+                                        {format}
+                                    </button>
+                                ))}
+                            </div>
+                            <p className="text-[11px] text-gray-500 mt-1.5">
+                                Selecione todos os formatos de bordado que você consegue exportar para seus clientes.
+                            </p>
                         </div>
 
                         {/* Bio Profissional */}

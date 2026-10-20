@@ -575,7 +575,7 @@ export default function ProfilePage() {
                                         Programador
                                     </span>
                                 )}
-                                {(profile.is_client || profile.client_business_type) && (
+                                {!(profile.is_programmer || profile.role === 'criador') && (profile.is_client || profile.client_business_type) && (
                                     <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold tracking-wide bg-white/5 text-gray-300 border border-white/10">
                                         {profile.client_business_type || 'Cliente'}
                                     </span>
