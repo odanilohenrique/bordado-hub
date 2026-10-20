@@ -6,7 +6,7 @@ import { useRouter, useParams } from 'next/navigation'
 import { QrCode, Copy, CheckCircle2, ShieldCheck, ArrowLeft, Loader2, Zap, CreditCard, Lock } from 'lucide-react'
 import Image from 'next/image'
 import { toast } from 'sonner'
-import { calculateTotals } from '@/lib/payments'
+import { calculateTotals, calculateCardFee } from '@/lib/payments'
 
 type PaymentMethod = 'pix' | 'cartao'
 
@@ -278,12 +278,18 @@ function CheckoutClient({ proposalId }: { proposalId: string }) {
     const baseAmount = Number(proposal.amount)
     const { taxaCliente: clientFee, totalPago: totalAmount } = calculateTotals(baseAmount)
 
-    // Generate installment options
+    // Taxa do cartão de crédito (repassada ao comprador)
+    const { taxaCartao: cardFee, totalComTaxa: cardTotalAmount } = calculateCardFee(baseAmount, cardData.installmentCount)
+
+    // Valor efetivo dependendo do método de pagamento
+    const effectiveTotal = paymentMethod === 'cartao' ? cardTotalAmount : totalAmount
+
+    // Generate installment options com taxa do cartão incluída
     const installmentOptions = []
     for (let i = 1; i <= 12; i++) {
-        const value = Math.ceil((totalAmount / i) * 100) / 100
-        if (value >= 5) {
-            installmentOptions.push({ count: i, value })
+        const { totalComTaxa: instTotal, valorParcela, taxaCartao: instFee } = calculateCardFee(baseAmount, i)
+        if (valorParcela >= 5) {
+            installmentOptions.push({ count: i, value: valorParcela, total: instTotal, fee: instFee })
         }
     }
 
@@ -327,13 +333,20 @@ function CheckoutClient({ proposalId }: { proposalId: string }) {
                                 <span>Valor da Matriz:</span>
                                 <span className="font-semibold text-white">R$ {baseAmount.toFixed(2)}</span>
                             </div>
-                            <div className="flex justify-between items-center text-xs">
-                                <span className="text-gray-400">Taxa da Plataforma:</span>
-                                <span className="text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">Grátis (Taxa Zero)</span>
-                            </div>
+                            {paymentMethod === 'pix' ? (
+                                <div className="flex justify-between items-center text-xs">
+                                    <span className="text-gray-400">Taxa de Processamento:</span>
+                                    <span className="text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">Grátis (PIX)</span>
+                                </div>
+                            ) : (
+                                <div className="flex justify-between items-center text-xs">
+                                    <span className="text-gray-400">Taxa do Cartão ({cardData.installmentCount <= 1 ? '2,99%' : '1,99%'} + R$0,49):</span>
+                                    <span className="text-amber-400 font-bold bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">+ R$ {cardFee.toFixed(2)}</span>
+                                </div>
+                            )}
                             <div className="flex justify-between text-base font-extrabold text-white border-t border-white/[0.07] pt-2">
                                 <span>Total a Pagar:</span>
-                                <span className="text-[#F5A623]">R$ {totalAmount.toFixed(2)}</span>
+                                <span className="text-[#F5A623]">R$ {effectiveTotal.toFixed(2)}</span>
                             </div>
                         </div>
                     </div>
@@ -590,10 +603,13 @@ function CheckoutClient({ proposalId }: { proposalId: string }) {
                                 >
                                     {installmentOptions.map(opt => (
                                         <option key={opt.count} value={opt.count}>
-                                            {opt.count}x de R$ {opt.value.toFixed(2)} {opt.count === 1 ? '(à vista)' : ''}
+                                            {opt.count}x de R$ {opt.value.toFixed(2)} {opt.count === 1 ? '(à vista)' : ''} — Total: R$ {opt.total.toFixed(2)}
                                         </option>
                                     ))}
                                 </select>
+                                <p className="text-[10px] text-gray-500 mt-1">
+                                    Taxa do cartão de R$ {cardFee.toFixed(2)} inclusa no valor total.
+                                </p>
                             </div>
 
                             <button
@@ -604,7 +620,7 @@ function CheckoutClient({ proposalId }: { proposalId: string }) {
                                 {processing ? (
                                     <><Loader2 className="w-5 h-5 animate-spin" /> Processando...</>
                                 ) : (
-                                    <><CreditCard className="w-5 h-5" /> Pagar R$ {totalAmount.toFixed(2)}</>
+                                    <><CreditCard className="w-5 h-5" /> Pagar R$ {cardTotalAmount.toFixed(2)}</>
                                 )}
                             </button>
 

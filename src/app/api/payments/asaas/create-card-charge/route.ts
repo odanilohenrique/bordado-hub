@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabaseClient'
 import { createCreditCardCharge } from '@/lib/asaas'
-import { calculateTotals } from '@/lib/payments'
+import { calculateTotals, calculateCardFee } from '@/lib/payments'
 
 export async function POST(request: Request) {
     try {
@@ -14,7 +14,7 @@ export async function POST(request: Request) {
             expiryMonth,
             expiryYear,
             ccv,
-            installmentCount,
+            installmentCount: installmentCount_raw,
             postalCode,
             addressNumber,
             phone,
@@ -149,7 +149,12 @@ export async function POST(request: Request) {
             targetTx = transaction
         }
 
-        const totalAmount = Number(targetTx.total_pago || (Number(targetTx.amount) + Number(targetTx.taxa_cliente || 0)))
+        const installmentCount = installmentCount_raw || 1
+        const { totalComTaxa: cardTotal, taxaCartao: cardFee } = calculateCardFee(
+            Number(targetTx.amount),
+            installmentCount
+        )
+        const totalAmount = cardTotal
         const jobTitle = (Array.isArray(targetTx.jobs) ? targetTx.jobs[0]?.title : targetTx.jobs?.title) || 'Serviço de Matriz de Bordado'
         const clientName = (Array.isArray(targetTx.cliente) ? targetTx.cliente[0]?.name : targetTx.cliente?.name) || 'Cliente BordadoHub'
         const clientEmail = (Array.isArray(targetTx.cliente) ? targetTx.cliente[0]?.email : targetTx.cliente?.email) || 'cliente@bordadohub.com'
@@ -180,6 +185,8 @@ export async function POST(request: Request) {
         await supabase
             .from('transactions')
             .update({
+                total_pago: totalAmount,
+                taxa_cliente: cardFee,
                 asaas_payment_id: cardResult.paymentId,
                 metodo: 'asaas_cartao',
                 status: isPaid ? 'pago' : 'pendente',
