@@ -1,78 +1,76 @@
 'use client'
 
 import { useEffect, Suspense, useRef, useState } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
 
 function AuthCallbackContent() {
-    const router = useRouter()
     const searchParams = useSearchParams()
     const code = searchParams.get('code')
     const next = searchParams.get('next') ?? '/pedidos'
 
     // Status para feedback na interface
-    const [status, setStatus] = useState('Verificando confirmação de e-mail...')
+    const [status, setStatus] = useState('Verificando confirmação de acesso...')
 
     // Refs para evitar execuções duplicadas
     const processedCode = useRef(false)
     const isRedirecting = useRef(false)
 
     useEffect(() => {
-        // Função para tratar autenticação e redirecionamento de sucesso
+        // Redireciona com window.location.replace para garantir troca limpa de contexto
+        // e evitar travamento do Next.js App Router SPA em transições de autenticação
+        const safeRedirect = (target: string) => {
+            if (typeof window !== 'undefined') {
+                window.location.replace(target)
+            }
+        }
+
+        // Função para tratar autenticação e redirecionamento rápido
         const handleAuthSuccess = async (userId: string) => {
             if (isRedirecting.current) return
             isRedirecting.current = true
-            setStatus('E-mail verificado! Entrando no BordadoHUB...')
+            setStatus('Autenticado com sucesso! Entrando...')
+
+            const defaultDestination = next && next.startsWith('/') ? next : '/pedidos'
 
             try {
-                // Checa perfil e avatar
-                const { data: profile } = await supabase
+                // Tenta consultar papel do usuário com limite rígido de 1.2s para nunca travar a tela
+                const userPromise = supabase
                     .from('users')
-                    .select('role, avatar_url')
+                    .select('role, is_programmer, avatar_url')
                     .eq('supabase_user_id', userId)
-                    .single()
+                    .maybeSingle()
 
-                const { data: { user } } = await supabase.auth.getUser()
-                const googleAvatar = user?.user_metadata?.avatar_url || user?.user_metadata?.picture
+                const timeoutPromise = new Promise<{ data: any }>((resolve) =>
+                    setTimeout(() => resolve({ data: null }), 1200)
+                )
+
+                const result = await Promise.race([userPromise, timeoutPromise])
+                const profile = result?.data
+
+                // Sincroniza foto do Google silenciosamente no background se não tiver
+                supabase.auth.getUser().then(({ data: { user } }) => {
+                    const googleAvatar = user?.user_metadata?.avatar_url || user?.user_metadata?.picture
+                    if (googleAvatar && profile && !profile.avatar_url) {
+                        supabase.from('users').update({ avatar_url: googleAvatar }).eq('supabase_user_id', userId).then(() => {})
+                    }
+                }).catch(() => {})
 
                 if (profile) {
-                    if (!profile.avatar_url && googleAvatar) {
-                        await supabase
-                            .from('users')
-                            .update({ avatar_url: googleAvatar })
-                            .eq('supabase_user_id', userId)
-                    }
-
                     if (next && next !== '/pedidos' && next.startsWith('/')) {
-                        router.push(next)
-                    } else if (profile.role === 'criador' || (profile as any).is_programmer) {
-                        router.push('/jobs')
-                    } else {
-                        router.push('/pedidos')
+                        safeRedirect(next)
+                        return
                     }
-                } else {
-                    try {
-                        await fetch('/api/create-profile', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                userId,
-                                name: user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email?.split('@')[0],
-                                email: user?.email,
-                                role: 'cliente',
-                                is_programmer: false,
-                                avatar_url: googleAvatar
-                            })
-                        })
-                    } catch (e) {
-                        console.error('Auto create profile error:', e)
+                    if (profile.role === 'criador' || profile.is_programmer) {
+                        safeRedirect('/jobs')
+                        return
                     }
-                    router.push(next && next.startsWith('/') ? next : '/pedidos')
                 }
-                router.refresh()
+
+                safeRedirect(defaultDestination)
             } catch (err) {
-                console.error('Profile fetch error:', err)
-                router.push('/pedidos')
+                console.warn('Erro ou timeout leve na consulta de perfil:', err)
+                safeRedirect(defaultDestination)
             }
         }
 
@@ -91,11 +89,14 @@ function AuthCallbackContent() {
                     }).then(({ data, error }) => {
                         if (!error && data?.session?.user) {
                             handleAuthSuccess(data.session.user.id)
+                        } else {
+                            safeRedirect('/pedidos')
                         }
-                    })
+                    }).catch(() => safeRedirect('/pedidos'))
                 }
             } catch (hashErr) {
                 console.error('Erro ao processar hash de autenticação:', hashErr)
+                safeRedirect('/pedidos')
             }
         }
 
@@ -107,10 +108,20 @@ function AuthCallbackContent() {
             supabase.auth.exchangeCodeForSession(code).then(({ data, error }) => {
                 if (error) {
                     console.error('Erro na troca do código:', error)
+                    // Se falhar a troca do código mas já houver sessão ativa, redireciona
+                    supabase.auth.getSession().then(({ data: sData }) => {
+                        if (sData?.session?.user) {
+                            handleAuthSuccess(sData.session.user.id)
+                        } else {
+                            safeRedirect('/login?message=erro_verificacao')
+                        }
+                    })
                 } else if (data.session?.user) {
                     handleAuthSuccess(data.session.user.id)
+                } else {
+                    safeRedirect('/pedidos')
                 }
-            })
+            }).catch(() => safeRedirect('/pedidos'))
         }
 
         // 3. Listener do Supabase Auth para capturar SIGNED_IN
@@ -120,24 +131,28 @@ function AuthCallbackContent() {
             }
         })
 
-        // 4. Timeout Failsafe: se já estiver logado, redireciona
-        const timeoutId = setTimeout(async () => {
+        // 4. Timeout Failsafe Absoluto (3 segundos): nunca deixa o usuário preso
+        const failsafeTimeout = setTimeout(async () => {
             if (isRedirecting.current) return
 
-            const { data: { session } } = await supabase.auth.getSession()
-            if (session?.user) {
-                handleAuthSuccess(session.user.id)
-            } else {
-                console.warn('Timeout na verificação de autenticação -> Redirecionando para login')
-                router.push('/login?message=email_confirmado')
+            try {
+                const { data: { session } } = await supabase.auth.getSession()
+                if (session?.user) {
+                    handleAuthSuccess(session.user.id)
+                } else {
+                    console.warn('Timeout na verificação -> Redirecionando para login')
+                    safeRedirect('/login?message=email_confirmado')
+                }
+            } catch {
+                safeRedirect('/pedidos')
             }
-        }, 6000)
+        }, 3000)
 
         return () => {
-            clearTimeout(timeoutId)
+            clearTimeout(failsafeTimeout)
             subscription.unsubscribe()
         }
-    }, [code, router, next])
+    }, [code, next])
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-[#0F1115] text-[#F3F4F6] px-4">

@@ -66,6 +66,13 @@ export default function ProfilePage() {
 
     useEffect(() => {
         loadData(true)
+
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+            if (session?.user) {
+                setCurrentUser(session.user)
+            }
+        })
+        return () => subscription.unsubscribe()
     }, [id])
 
     async function loadData(showSpinner = true) {
@@ -413,7 +420,14 @@ export default function ProfilePage() {
     if (!profile) return <div className="min-h-screen bg-[#0F1115] flex items-center justify-center text-white">Perfil não encontrado.</div>
 
     // 2. CHECK OWNERSHIP
-    const isOwner = currentUser?.id === profile.supabase_user_id || currentUser?.id === id || currentUser?.id === profile.id
+    const isOwner = Boolean(
+        id === 'me' ||
+        (currentUser?.id && (
+            currentUser.id === profile.supabase_user_id ||
+            currentUser.id === profile.id ||
+            currentUser.id === id
+        ))
+    )
 
     // 3. EDIT MODE
     if (isEditing) {
@@ -557,6 +571,33 @@ export default function ProfilePage() {
                             })()}
 
                             <h1 className="text-2xl font-bold text-[#F3F4F6] text-center mb-1">{profile.name}</h1>
+
+                            {/* Ações do Proprietário do Perfil */}
+                            {isOwner && (
+                                <div className="mt-4 mb-2 flex flex-col gap-2">
+                                    <button
+                                        onClick={() => {
+                                            setActivateProgrammer(false)
+                                            setIsEditing(true)
+                                        }}
+                                        className="w-full bg-gradient-to-r from-[#FFB703] to-[#FB8500] hover:brightness-110 active:scale-95 text-black px-4 py-2.5 rounded-xl text-xs font-black shadow-md shadow-[#FFB703]/20 transition-all flex items-center justify-center gap-2"
+                                    >
+                                        <Edit2 className="w-3.5 h-3.5" /> Configurar / Editar Perfil
+                                    </button>
+
+                                    {(!profile.is_programmer && profile.role !== 'criador') && (
+                                        <button
+                                            onClick={() => {
+                                                setActivateProgrammer(true)
+                                                setIsEditing(true)
+                                            }}
+                                            className="w-full bg-[#181C26] hover:bg-[#202533] text-[#FFAE00] border border-[#FFAE00]/30 hover:border-[#FFAE00] px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2"
+                                        >
+                                            <Code className="w-3.5 h-3.5" /> Quero Produzir Matrizes (Tenho Convite)
+                                        </button>
+                                    )}
+                                </div>
+                            )}
 
                             <div className="space-y-4 border-t border-gray-800 pt-6 mt-6">
                                 {/* Common Stats */}

@@ -35,8 +35,8 @@ export async function GET(
             return NextResponse.json({ error: 'Perfil não encontrado' }, { status: 404 })
         }
 
-        // Strip sensitive fields before returning public profile
-        const { cpf_cnpj, pix_key, pix_key_type, supabase_user_id, ...safeUser } = user
+        // Strip sensitive fields before returning public profile (keep supabase_user_id for ownership checks)
+        const { cpf_cnpj, pix_key, pix_key_type, ...safeUser } = user
 
         // 2. Fetch reviews
         let enrichedReviews: any[] = []
