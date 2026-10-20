@@ -2,45 +2,73 @@
 
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabaseClient'
-import { Save, X, Trash2, ImageIcon, Camera, CreditCard, ShoppingBag, Code, CheckCircle2, Loader2, FileText, Key, AlertCircle } from 'lucide-react'
+import { 
+    Camera, 
+    Save, 
+    X, 
+    Loader2, 
+    ShoppingBag, 
+    Code, 
+    CreditCard, 
+    Trash2, 
+    Image as ImageIcon
+} from 'lucide-react'
 import Image from 'next/image'
+import { toast } from 'sonner'
 import { optimizeImageFile } from '@/lib/helpers'
 
-// Comprehensive list of embroidery software
 const SOFTWARE_OPTIONS = [
-    'Wilcom Embroidery Studio',
-    'Embird',
+    'Wilcom ES',
+    'Wilcom Hatch',
+    'Embird Studio',
+    'Tajima DG/ML',
     'Brother PE-Design',
-    'Janome Digitizer MBX',
-    'Hatch Embroidery',
-    'Bernina Artlink',
-    'Sierra Stick',
-    'Floriani Total Control',
-    'Chroma',
-    'Wings XP',
-    'Pulse',
-    'Compucon'
+    'Pulse Signature',
+    'Bernina Designer',
+    'Janome Digitizer',
+    'Outros'
 ]
 
-const FORMAT_OPTIONS = ['PES', 'DST', 'JEF', 'XXX', 'EXP', 'HUS', 'VIP', 'VP3']
+const FORMAT_OPTIONS = [
+    '.DST (Tajima / Universal)',
+    '.PES (Brother / Babylock)',
+    '.JEF (Janome / Elna)',
+    '.EXP (Bernina / Melco)',
+    '.XXX (Singer)',
+    '.HUS (Husqvarna)',
+    '.VP3 (Pfaff / Husqvarna)',
+    '.EMB (Wilcom Fonte)',
+    '.OFM (Melco)'
+]
+
+const MACHINE_OPTIONS = [
+    'Brother (PR / BP / PE)',
+    'Janome (MC / MB)',
+    'Tajima (Multi-cabeças)',
+    'Barudan',
+    'SWF',
+    'Happy Japan',
+    'Elna',
+    'Singer',
+    'SunSpecial',
+    'Outra Marca'
+]
 
 const CLIENT_BUSINESS_OPTIONS = [
     { value: 'Iniciante / Hobby', title: 'Iniciante / Hobby', desc: 'Estou aprendendo e busco orientação sobre matrizes' },
     { value: 'Bordador Autônomo', title: 'Bordador Autônomo', desc: 'Produzo encomendas personalizadas com frequência' },
-    { value: 'Ateliê / Confecção', title: 'Dono de Ateliê / Confecção', desc: 'Produção diária, foco em agilidade e pontualidade' },
-    { value: 'Indústria / Alta Produção', title: 'Indústria / Alta Produção', desc: 'Máquinas multi-cabeças, exigência de cortes mínimos' },
+    { value: 'Confecção / Uniformaria', title: 'Confecção / Uniformaria', desc: 'Produção contínua em larga escala e alta demanda' },
+    { value: 'Atelier / Boutique', title: 'Atelier / Boutique', desc: 'Foco em detalhes finos, moda e alta costura' }
 ]
-
-const MACHINE_OPTIONS = ['Brother', 'Janome', 'Barudan', 'Tajima', 'Happy', 'SWF', 'Singer', 'Ricoma', 'Outra']
 
 interface UserProfile {
     id: string
-    name?: string
+    name: string
     avatar_url?: string
     bio?: string
-    role?: string
     is_client?: boolean
     is_programmer?: boolean
+    role?: string
     client_business_type?: string
     client_machine_brand?: string
     skills?: string[]
@@ -57,16 +85,17 @@ interface ProfileEditorProps {
     onCancel: () => void
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     onSave: (updatedUser?: any) => void
-    defaultProgrammer?: boolean
 }
 
-export default function ProfileEditor({ profile, onCancel, onSave, defaultProgrammer }: ProfileEditorProps) {
+export default function ProfileEditor({ profile, onCancel, onSave }: ProfileEditorProps) {
+    const isAlreadyProgrammer = Boolean(profile.is_programmer || profile.role === 'criador')
+
     const [formData, setFormData] = useState({
         name: profile.name || '',
         avatar_url: profile.avatar_url || '',
         bio: profile.bio || '',
-        is_client: profile.is_client ?? true,
-        is_programmer: defaultProgrammer ? true : (profile.is_programmer ?? (profile.role === 'criador' || Boolean(profile.skills && profile.skills.length > 0))),
+        is_client: isAlreadyProgrammer ? (profile.is_client ?? true) : true,
+        is_programmer: isAlreadyProgrammer,
         client_business_type: profile.client_business_type || 'Iniciante / Hobby',
         client_machine_brand: profile.client_machine_brand || '',
         skills: profile.skills || [],
@@ -78,17 +107,11 @@ export default function ProfileEditor({ profile, onCancel, onSave, defaultProgra
         pix_key_type: profile.pix_key_type || 'cpf'
     })
 
-    const isAlreadyProgrammer = Boolean(profile.is_programmer || profile.role === 'criador')
-    const [inviteCode, setInviteCode] = useState('')
-    const [inviteStatus, setInviteStatus] = useState<'idle' | 'validating' | 'valid' | 'invalid'>('idle')
-    const [inviteError, setInviteError] = useState<string | null>(null)
-
     const [avatarPreview, setAvatarPreview] = useState<string | null>(profile.avatar_url || null)
     const [saving, setSaving] = useState(false)
     const [uploading, setUploading] = useState(false)
     const [portfolioUploading, setPortfolioUploading] = useState(false)
     const [googleAvatarUrl, setGoogleAvatarUrl] = useState<string | null>(null)
-    const [roleError, setRoleError] = useState<string | null>(null)
 
     useEffect(() => {
         async function fetchGoogleAvatar() {
@@ -102,79 +125,42 @@ export default function ProfileEditor({ profile, onCancel, onSave, defaultProgra
             }
         }
         fetchGoogleAvatar()
-
-        // Detecta código de convite na URL (?convite=XXXX ou ?invite=XXXX)
-        if (typeof window !== 'undefined' && !isAlreadyProgrammer) {
-            const params = new URLSearchParams(window.location.search)
-            const codeParam = (params.get('convite') || params.get('invite') || '').trim().toUpperCase()
-            if (codeParam) {
-                setInviteCode(codeParam)
-                setFormData(prev => ({ ...prev, is_programmer: true }))
-                validateInviteCode(codeParam)
-            }
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
-
-    const validateInviteCode = async (codeToTest: string): Promise<boolean> => {
-        const clean = codeToTest.trim().toUpperCase()
-        if (!clean) {
-            setInviteStatus('invalid')
-            setInviteError('Por favor, informe seu código de convite.')
-            return false
-        }
-
-        setInviteStatus('validating')
-        setInviteError(null)
-
-        try {
-            const res = await fetch('/api/invites/validate', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ code: clean })
-            })
-
-            const data = await res.json()
-            if (res.ok && data.valid) {
-                setInviteStatus('valid')
-                setInviteError(null)
-                return true
-            } else {
-                setInviteStatus('invalid')
-                setInviteError(data.message || 'Código de convite inválido ou expirado.')
-                return false
-            }
-        } catch {
-            setInviteStatus('invalid')
-            setInviteError('Falha ao validar código. Verifique sua conexão e tente novamente.')
-            return false
-        }
-    }
 
     const handleChange = (field: string, value: any) => {
         setFormData(prev => ({ ...prev, [field]: value }))
-        if (field === 'is_client' || field === 'is_programmer') {
-            setRoleError(null)
-        }
-        if (field === 'is_programmer' && !value) {
-            setInviteError(null)
-        }
     }
 
-    const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-        const fileInput = event.target
-        try {
-            if (!fileInput.files || fileInput.files.length === 0) return
-            const file = fileInput.files[0]
-            
-            // 1. Instant local preview so the user immediately sees their photo
-            const localPreview = URL.createObjectURL(file)
-            setAvatarPreview(localPreview)
-            setUploading(true)
+    const toggleArrayItem = (field: 'skills' | 'formats', item: string) => {
+        setFormData(prev => {
+            const list = prev[field] || []
+            if (list.includes(item)) {
+                return { ...prev, [field]: list.filter(i => i !== item) }
+            } else {
+                return { ...prev, [field]: [...list, item] }
+            }
+        })
+    }
 
-            const optimized = await optimizeImageFile(file, 800, 0.85)
+    // Upload de avatar
+    const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0]
+        if (!file) return
+
+        if (!file.type.startsWith('image/')) {
+            alert('Apenas arquivos de imagem são permitidos.')
+            return
+        }
+
+        if (file.size > 5 * 1024 * 1024) {
+            alert('A imagem deve ter no máximo 5MB.')
+            return
+        }
+
+        setUploading(true)
+        try {
             const uploadData = new FormData()
-            uploadData.append('file', optimized)
+            uploadData.append('file', file)
             uploadData.append('userId', profile.id)
 
             const res = await fetch('/api/upload-avatar', {
@@ -182,161 +168,78 @@ export default function ProfileEditor({ profile, onCancel, onSave, defaultProgra
                 body: uploadData
             })
 
-            if (!res.ok) {
-                const text = await res.text()
-                let errMsg = 'Erro no upload da foto'
-                try {
-                    const errJson = JSON.parse(text)
-                    errMsg = errJson.error || errMsg
-                } catch {
-                    errMsg = `Erro (${res.status}): ${text.slice(0, 100)}`
-                }
-                throw new Error(errMsg)
-            }
-
             const json = await res.json()
-            const uploadedUrl = json.publicUrl || json.avatarUrl
-            if (uploadedUrl) {
-                handleChange('avatar_url', uploadedUrl)
-                setAvatarPreview(uploadedUrl)
-            }
+            if (!res.ok) throw new Error(json.error || 'Erro no upload')
+
+            setAvatarPreview(json.avatarUrl)
+            handleChange('avatar_url', json.avatarUrl)
         } catch (error: any) {
-            alert('Falha ao enviar foto: ' + error.message)
-            setAvatarPreview(formData.avatar_url || null)
+            alert('Falha ao subir foto: ' + error.message)
         } finally {
             setUploading(false)
-            if (fileInput) fileInput.value = ''
         }
     }
 
-    const toggleArrayItem = (field: 'skills' | 'formats', item: string) => {
-        setFormData(prev => {
-            const current = prev[field]
-            const next = current.includes(item)
-                ? current.filter(i => i !== item)
-                : [...current, item]
-            return { ...prev, [field]: next }
-        })
-    }
-
+    // Upload de portfólio (apenas para programadores)
     const handlePortfolioUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-        const fileInput = event.target
+        const files = event.target.files
+        if (!files || files.length === 0) return
+
+        const currentPortfolio = formData.portfolio_urls.filter((u): u is string => 
+            Boolean(u && typeof u === 'string' && u.trim().length > 0 && !u.startsWith('blob:'))
+        )
+        const remainingCapacity = 12 - currentPortfolio.length
+
+        if (remainingCapacity <= 0) {
+            toast.error('Limite máximo de 12 fotos atingido.')
+            return
+        }
+
+        const filesToUpload = Array.from(files).slice(0, remainingCapacity)
+        setPortfolioUploading(true)
+
         try {
-            if (!fileInput.files || fileInput.files.length === 0) return
+            const uploadPromises = filesToUpload.map(async (file) => {
+                const optimizedBlob = await optimizeImageFile(file, 1200, 0.82)
 
-            const currentValidUrls = (formData.portfolio_urls || []).filter(
-                (url): url is string => Boolean(url && typeof url === 'string' && url.trim().length > 0)
-            )
-
-            const remainingCapacity = 12 - currentValidUrls.length
-            if (remainingCapacity <= 0) {
-                alert('Limite máximo de 12 imagens no portfólio atingido.')
-                return
-            }
-
-            const filesArray = Array.from(fileInput.files)
-
-            const nonImages = filesArray.filter(f => f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf'))
-            if (nonImages.length > 0) {
-                alert('O portfólio aceita apenas fotos/imagens (JPG, PNG ou WebP). Arquivos PDF não são suportados como fotos de portfólio.')
-            }
-
-            const validImageFiles = filesArray.filter(f => f.type.startsWith('image/') && !f.name.toLowerCase().endsWith('.pdf'))
-            if (validImageFiles.length === 0) return
-
-            // Limit to at most 10 files per selection and remaining slots
-            const filesToUpload = validImageFiles.slice(0, Math.min(10, remainingCapacity))
-
-            if (validImageFiles.length > remainingCapacity) {
-                alert(`Você selecionou ${validImageFiles.length} fotos. Apenas as ${filesToUpload.length} que cabem no seu limite serão enviadas.`)
-            }
-
-            setPortfolioUploading(true)
-
-            // Upload de cada arquivo individualmente em paralelo e com compressão (evita 413 Payload Too Large na Vercel)
-            const uploadPromises = filesToUpload.map(async (rawFile) => {
-                const optimized = await optimizeImageFile(rawFile, 1600, 0.82)
                 const uploadData = new FormData()
-                uploadData.append('file', optimized)
+                uploadData.append('file', optimizedBlob, 'portfolio.jpg')
                 uploadData.append('userId', profile.id)
-                uploadData.append('isPortfolio', 'true')
 
                 const res = await fetch('/api/upload-avatar', {
                     method: 'POST',
                     body: uploadData
                 })
 
-                if (!res.ok) {
-                    const text = await res.text()
-                    let errMsg = 'Erro no envio de imagem'
-                    try {
-                        const errJson = JSON.parse(text)
-                        errMsg = errJson.error || errMsg
-                    } catch {
-                        errMsg = `Erro (${res.status}): ${text.slice(0, 100)}`
-                    }
-                    throw new Error(errMsg)
-                }
-
                 const json = await res.json()
-                const url = json.publicUrl || json.avatarUrl || (json.urls && json.urls[0])
-                return url as string
+                if (!res.ok) throw new Error(json.error || 'Erro ao subir amostra')
+                return json.avatarUrl as string
             })
 
-            const uploadedResults = await Promise.all(uploadPromises)
-            const newUrls: string[] = uploadedResults.filter(
-                (url): url is string => Boolean(url && typeof url === 'string' && url.trim().length > 0)
-            )
-
-            if (newUrls.length === 0) {
-                throw new Error('Nenhuma imagem válida foi retornada do servidor.')
-            }
+            const uploadedUrls = await Promise.all(uploadPromises)
+            const validUrls = uploadedUrls.filter(Boolean)
 
             setFormData(prev => ({
                 ...prev,
-                portfolio_urls: [
-                    ...prev.portfolio_urls.filter((url): url is string => Boolean(url && typeof url === 'string' && url.trim().length > 0)),
-                    ...newUrls
-                ]
+                portfolio_urls: [...prev.portfolio_urls, ...validUrls]
             }))
+            toast.success(`${validUrls.length} amostra(s) adicionada(s)!`)
         } catch (error: any) {
-            alert('Falha ao enviar imagens do portfólio: ' + error.message)
+            toast.error('Erro ao enviar fotos: ' + error.message)
         } finally {
             setPortfolioUploading(false)
-            if (fileInput) fileInput.value = ''
+            if (event.target) event.target.value = ''
         }
     }
 
-    const removePortfolioImage = (urlToRemove: string) => {
+    const removePortfolioImage = (indexToRemove: number) => {
         setFormData(prev => ({
             ...prev,
-            portfolio_urls: prev.portfolio_urls.filter(url => Boolean(url && url !== urlToRemove))
+            portfolio_urls: prev.portfolio_urls.filter((_, idx) => idx !== indexToRemove)
         }))
     }
 
     const handleSave = async () => {
-        if (!formData.is_client && !formData.is_programmer) {
-            setRoleError('Selecione ao menos uma forma de atuação no BordadoHUB.')
-            return
-        }
-
-        // Validate invite code if activating programmer mode for the first time
-        if (formData.is_programmer && !isAlreadyProgrammer) {
-            if (!inviteCode.trim()) {
-                setInviteStatus('invalid')
-                setInviteError('Por favor, informe seu código de convite para ativar o perfil de programador.')
-                setRoleError('Código de convite obrigatório para se cadastrar como programador.')
-                return
-            }
-
-            if (inviteStatus !== 'valid') {
-                const isValid = await validateInviteCode(inviteCode)
-                if (!isValid) {
-                    return
-                }
-            }
-        }
-
         if (uploading || portfolioUploading) {
             alert('Aguarde o envio das fotos terminar antes de salvar.')
             return
@@ -356,13 +259,24 @@ export default function ProfileEditor({ profile, onCancel, onSave, defaultProgra
 
             const updatePayload: Record<string, any> = {
                 userId: profile.id,
-                ...formData,
+                name: formData.name.trim() || profile.name,
                 avatar_url: safeAvatarUrl,
-                portfolio_urls: safePortfolioUrls
+                bio: formData.bio,
+                is_client: formData.is_client,
+                client_business_type: formData.client_business_type,
+                client_machine_brand: formData.client_machine_brand,
+                formats: formData.formats
             }
 
-            if (formData.is_programmer && !isAlreadyProgrammer) {
-                updatePayload.invite_code = inviteCode.trim().toUpperCase()
+            // Apenas envia dados de programador se o usuário já tiver sido aprovado
+            if (isAlreadyProgrammer) {
+                updatePayload.is_programmer = true
+                updatePayload.skills = formData.skills
+                updatePayload.portfolio_urls = safePortfolioUrls
+                updatePayload.cpf_cnpj = formData.cpf_cnpj
+                updatePayload.pix_key = formData.pix_key
+                updatePayload.pix_key_type = formData.pix_key_type
+                updatePayload.experience_level = formData.experience_level
             }
 
             const res = await fetch('/api/profile/update', {
@@ -377,23 +291,17 @@ export default function ProfileEditor({ profile, onCancel, onSave, defaultProgra
 
             const json = await res.json()
             if (!res.ok) {
-                if (res.status === 403 && formData.is_programmer && !isAlreadyProgrammer) {
-                    setInviteStatus('invalid')
-                    setInviteError(json.error || 'Código de convite inválido ou expirado.')
-                }
-                throw new Error(json.error || 'Erro ao salvar perfil')
+                throw new Error(json.error || 'Erro ao salvar alterações no perfil.')
             }
 
-            const updatedUserData = json.user || {
+            onSave({
                 ...profile,
-                ...formData,
-                avatar_url: safeAvatarUrl,
-                portfolio_urls: safePortfolioUrls
-            }
-            onSave(updatedUserData)
+                ...updatePayload,
+                ...(json.user || {})
+            })
         } catch (error: any) {
             console.error('Error saving profile:', error)
-            alert('Erro ao salvar: ' + (error.message || 'Falha na comunicação com o servidor'))
+            alert(error.message || 'Falha ao salvar perfil. Tente novamente.')
         } finally {
             setSaving(false)
         }
@@ -406,8 +314,14 @@ export default function ProfileEditor({ profile, onCancel, onSave, defaultProgra
             {/* Header */}
             <div className="flex justify-between items-center pb-5 mb-6 border-b border-white/[0.07]">
                 <div>
-                    <h2 className="text-xl font-extrabold text-white">Configurar Perfil Universal</h2>
-                    <p className="text-xs text-gray-400 mt-0.5">Gerencie suas atuações como comprador ou criador de matrizes</p>
+                    <h2 className="text-xl font-extrabold text-white">
+                        {isAlreadyProgrammer ? 'Editar Perfil Profissional' : 'Editar Perfil de Comprador'}
+                    </h2>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                        {isAlreadyProgrammer 
+                            ? 'Atualize suas habilidades, portfólio de matrizes e dados de recebimento' 
+                            : 'Atualize sua foto, nome de exibição e preferências de máquinas para pedidos'}
+                    </p>
                 </div>
                 <button 
                     onClick={onCancel} 
@@ -469,254 +383,95 @@ export default function ProfileEditor({ profile, onCancel, onSave, defaultProgra
                         value={formData.name}
                         onChange={(e) => handleChange('name', e.target.value)}
                         className="w-full bg-[#0B0D11] border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-[#F5A623] transition-all text-sm"
-                        placeholder="Seu nome ou nome do atelier"
+                        placeholder="Seu nome ou nome do ateliê"
                     />
-                </div>
-
-                {/* ============================================================== */}
-                {/* SELETOR DE ATUAÇÕES (PERFIL HÍBRIDO)                          */}
-                {/* ============================================================== */}
-                <div className="space-y-3 pt-2">
-                    <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider">
-                        Minhas Atuações no BordadoHUB
-                    </label>
-                    <p className="text-xs text-gray-400">
-                        Você pode marcar uma ou ambas as opções para comprar e prestar serviços com uma única conta.
-                    </p>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                        {/* Atuação: Cliente */}
-                        <div
-                            onClick={() => handleChange('is_client', !formData.is_client)}
-                            className={`p-4 rounded-xl border-2 cursor-pointer transition-all flex items-start gap-3.5 select-none ${
-                                formData.is_client
-                                    ? 'bg-[#F5A623]/10 border-[#F5A623] text-white shadow-lg shadow-[#F5A623]/5'
-                                    : 'bg-[#181C26] border-white/5 text-gray-400 hover:border-white/20'
-                            }`}
-                        >
-                            <div className={`p-2 rounded-lg shrink-0 mt-0.5 ${formData.is_client ? 'bg-[#F5A623] text-black' : 'bg-white/5 text-gray-400'}`}>
-                                <ShoppingBag className="w-5 h-5" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                                <div className="flex items-center justify-between">
-                                    <h4 className="text-sm font-bold text-white">Compro Matrizes</h4>
-                                    {formData.is_client && <CheckCircle2 className="w-4 h-4 text-[#F5A623]" />}
-                                </div>
-                                <p className="text-xs text-gray-400 mt-1 leading-relaxed">
-                                    Quero encomendar matrizes no mural e comprar arquivos prontos.
-                                </p>
-                            </div>
-                        </div>
-
-                        {/* Atuação: Programador */}
-                        <div
-                            onClick={() => handleChange('is_programmer', !formData.is_programmer)}
-                            className={`p-4 rounded-xl border-2 cursor-pointer transition-all flex items-start gap-3.5 select-none ${
-                                formData.is_programmer
-                                    ? 'bg-[#F5A623]/10 border-[#F5A623] text-white shadow-lg shadow-[#F5A623]/5'
-                                    : 'bg-[#181C26] border-white/5 text-gray-400 hover:border-white/20'
-                            }`}
-                        >
-                            <div className={`p-2 rounded-lg shrink-0 mt-0.5 ${formData.is_programmer ? 'bg-[#F5A623] text-black' : 'bg-white/5 text-gray-400'}`}>
-                                <Code className="w-5 h-5" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                                <div className="flex items-center justify-between">
-                                    <h4 className="text-sm font-bold text-white">Programo Matrizes</h4>
-                                    {formData.is_programmer && <CheckCircle2 className="w-4 h-4 text-[#F5A623]" />}
-                                </div>
-                                <p className="text-xs text-gray-400 mt-1 leading-relaxed">
-                                    Quero enviar propostas para pedidos de clientes e vender matrizes.
-                                </p>
-                            </div>
-                        </div>
-
-                        {/* Código de Convite (exclusivo para quem ativa modo programador pela primeira vez) */}
-                        {!isAlreadyProgrammer && formData.is_programmer && (
-                            <div className="sm:col-span-2 bg-[#0B0D11] border border-[#F5A623]/30 rounded-2xl p-4 sm:p-5 space-y-3.5 shadow-xl shadow-[#F5A623]/5 animate-in fade-in zoom-in-95 duration-200">
-                                <div className="flex items-start justify-between gap-3">
-                                    <div className="flex items-center gap-2.5">
-                                        <div className="p-2 rounded-xl bg-[#F5A623]/10 text-[#F5A623] shrink-0 border border-[#F5A623]/20">
-                                            <Key className="w-4 h-4" />
-                                        </div>
-                                        <div>
-                                            <h5 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
-                                                Código de Convite de Criador
-                                            </h5>
-                                            <p className="text-xs text-gray-400 mt-0.5">
-                                                O cadastro de programadores é exclusivo para convidados. Insira seu código para habilitar o perfil.
-                                            </p>
-                                        </div>
-                                    </div>
-                                    <span className="shrink-0 text-[10px] uppercase font-black tracking-wider px-2.5 py-1 rounded-full bg-[#F5A623]/15 text-[#F5A623] border border-[#F5A623]/30">
-                                        Acesso Restrito
-                                    </span>
-                                </div>
-
-                                <div className="flex flex-col sm:flex-row gap-2.5 pt-1">
-                                    <div className="relative flex-1">
-                                        <input
-                                            type="text"
-                                            value={inviteCode}
-                                            onChange={(e) => {
-                                                const val = e.target.value.toUpperCase().replace(/\s+/g, '')
-                                                setInviteCode(val)
-                                                setInviteStatus('idle')
-                                                setInviteError(null)
-                                            }}
-                                            onBlur={() => {
-                                                if (inviteCode.trim() && inviteStatus === 'idle') {
-                                                    validateInviteCode(inviteCode)
-                                                }
-                                            }}
-                                            placeholder="Ex: K8X2M9P4"
-                                            maxLength={16}
-                                            className={`w-full bg-[#181C26] border rounded-xl px-4 py-3 text-sm font-mono tracking-widest text-white uppercase placeholder-gray-500 focus:outline-none transition-all ${
-                                                inviteStatus === 'valid'
-                                                    ? 'border-emerald-500 focus:border-emerald-500 shadow-sm shadow-emerald-500/20'
-                                                    : inviteStatus === 'invalid' || inviteError
-                                                    ? 'border-red-500 focus:border-red-500 shadow-sm shadow-red-500/20'
-                                                    : 'border-white/10 focus:border-[#F5A623]'
-                                            }`}
-                                        />
-                                        {inviteStatus === 'validating' && (
-                                            <div className="absolute right-3.5 top-1/2 -translate-y-1/2">
-                                                <Loader2 className="w-4 h-4 text-[#F5A623] animate-spin" />
-                                            </div>
-                                        )}
-                                        {inviteStatus === 'valid' && (
-                                            <div className="absolute right-3.5 top-1/2 -translate-y-1/2 text-emerald-400">
-                                                <CheckCircle2 className="w-4 h-4" />
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    <button
-                                        type="button"
-                                        onClick={() => validateInviteCode(inviteCode)}
-                                        disabled={!inviteCode.trim() || inviteStatus === 'validating'}
-                                        className="px-5 py-3 rounded-xl text-xs font-black bg-gradient-to-r from-[#FFB703] to-[#FB8500] hover:brightness-110 active:scale-95 text-black disabled:opacity-40 disabled:cursor-not-allowed transition-all shrink-0 flex items-center justify-center gap-1.5 shadow-md shadow-[#FFB703]/10"
-                                    >
-                                        {inviteStatus === 'validating' ? (
-                                            <>
-                                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                                Validando...
-                                            </>
-                                        ) : (
-                                            'Validar Código'
-                                        )}
-                                    </button>
-                                </div>
-
-                                {inviteStatus === 'valid' && (
-                                    <p className="text-xs text-emerald-400 flex items-center gap-1.5 font-medium pt-0.5">
-                                        <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
-                                        Código verificado com sucesso! Você pode preencher seus dados de criador e salvar o perfil.
-                                    </p>
-                                )}
-
-                                {(inviteStatus === 'invalid' || inviteError) && (
-                                    <p className="text-xs text-red-400 flex items-center gap-1.5 font-medium pt-0.5">
-                                        <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                                        {inviteError || 'Código de convite inválido ou expirado.'}
-                                    </p>
-                                )}
-                            </div>
-                        )}
-                    </div>
-
-                    {roleError && (
-                        <p className="text-xs text-red-400 font-medium pt-1">{roleError}</p>
-                    )}
                 </div>
 
                 {/* ============================================================== */}
                 {/* SEÇÃO DO CLIENTE: NÍVEL DE CONSCIÊNCIA E MÁQUINAS              */}
                 {/* ============================================================== */}
-                {formData.is_client && (
-                    <div className="p-5 rounded-2xl bg-[#181C26] border border-white/[0.07] space-y-5 animate-in fade-in duration-200">
-                        <div className="flex items-center gap-2">
-                            <ShoppingBag className="w-4 h-4 text-[#F5A623]" />
-                            <h3 className="text-xs font-bold text-[#F5A623] uppercase tracking-wider">
-                                Perfil do Cliente (Nível de Consciência)
-                            </h3>
-                        </div>
-                        <p className="text-xs text-gray-400">
-                            Ajuda os programadores a entenderem suas necessidades técnicas e o tom de atendimento ideal.
-                        </p>
+                <div className="p-5 rounded-2xl bg-[#181C26] border border-white/[0.07] space-y-5">
+                    <div className="flex items-center gap-2">
+                        <ShoppingBag className="w-4 h-4 text-[#F5A623]" />
+                        <h3 className="text-xs font-bold text-[#F5A623] uppercase tracking-wider">
+                            Preferências de Bordado & Máquinas
+                        </h3>
+                    </div>
+                    <p className="text-xs text-gray-400">
+                        Ajuda os programadores a entenderem suas necessidades técnicas e os formatos ideais para seus trabalhos.
+                    </p>
 
-                        {/* Nível / Tipo de Negócio */}
+                    {/* Nível / Tipo de Negócio */}
+                    <div>
+                        <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-2.5">
+                            Tipo de Negócio / Maturidade no Bordado
+                        </label>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                            {CLIENT_BUSINESS_OPTIONS.map((opt) => (
+                                <button
+                                    type="button"
+                                    key={opt.value}
+                                    onClick={() => handleChange('client_business_type', opt.value)}
+                                    className={`p-3 rounded-xl border text-left transition-all ${
+                                        formData.client_business_type === opt.value
+                                            ? 'bg-[#F5A623]/10 border-[#F5A623] text-white'
+                                            : 'bg-[#0B0D11] border-white/5 text-gray-400 hover:border-white/20'
+                                    }`}
+                                >
+                                    <div className="text-xs font-bold text-white">{opt.title}</div>
+                                    <div className="text-[11px] text-gray-400 mt-0.5 leading-snug">{opt.desc}</div>
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Marca de Máquina e Formatos */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
                         <div>
-                            <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-2.5">
-                                Tipo de Negócio / Maturidade no Bordado
+                            <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-2">
+                                Marca da sua Máquina Principal
                             </label>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                                {CLIENT_BUSINESS_OPTIONS.map((opt) => (
+                            <select
+                                value={formData.client_machine_brand}
+                                onChange={(e) => handleChange('client_machine_brand', e.target.value)}
+                                className="w-full bg-[#0B0D11] border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-[#F5A623]"
+                            >
+                                <option value="">Selecione uma marca...</option>
+                                {MACHINE_OPTIONS.map(m => (
+                                    <option key={m} value={m}>{m}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div>
+                            <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-2">
+                                Formatos que Você Utiliza
+                            </label>
+                            <div className="flex flex-wrap gap-1.5">
+                                {FORMAT_OPTIONS.map(format => (
                                     <button
                                         type="button"
-                                        key={opt.value}
-                                        onClick={() => handleChange('client_business_type', opt.value)}
-                                        className={`p-3 rounded-xl border text-left transition-all ${
-                                            formData.client_business_type === opt.value
-                                                ? 'bg-[#F5A623]/10 border-[#F5A623] text-white'
-                                                : 'bg-[#0B0D11] border-white/5 text-gray-400 hover:border-white/20'
+                                        key={format}
+                                        onClick={() => toggleArrayItem('formats', format)}
+                                        className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
+                                            formData.formats.includes(format)
+                                                ? 'bg-[#F5A623] text-black'
+                                                : 'bg-[#0B0D11] text-gray-400 border border-white/10 hover:border-white/20'
                                         }`}
                                     >
-                                        <div className="text-xs font-bold text-white">{opt.title}</div>
-                                        <div className="text-[11px] text-gray-400 mt-0.5 leading-snug">{opt.desc}</div>
+                                        {format}
                                     </button>
                                 ))}
                             </div>
                         </div>
-
-                        {/* Marca de Máquina e Formatos */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
-                            <div>
-                                <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-2">
-                                    Marca da sua Máquina Principal
-                                </label>
-                                <select
-                                    value={formData.client_machine_brand}
-                                    onChange={(e) => handleChange('client_machine_brand', e.target.value)}
-                                    className="w-full bg-[#0B0D11] border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-[#F5A623]"
-                                >
-                                    <option value="">Selecione uma marca...</option>
-                                    {MACHINE_OPTIONS.map(m => (
-                                        <option key={m} value={m}>{m}</option>
-                                    ))}
-                                </select>
-                            </div>
-
-                            <div>
-                                <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-2">
-                                    Formatos que Você Utiliza
-                                </label>
-                                <div className="flex flex-wrap gap-1.5">
-                                    {FORMAT_OPTIONS.map(format => (
-                                        <button
-                                            type="button"
-                                            key={format}
-                                            onClick={() => toggleArrayItem('formats', format)}
-                                            className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
-                                                formData.formats.includes(format)
-                                                    ? 'bg-[#F5A623] text-black'
-                                                    : 'bg-[#0B0D11] text-gray-400 border border-white/10 hover:border-white/20'
-                                            }`}
-                                        >
-                                            {format}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
                     </div>
-                )}
+                </div>
 
                 {/* ============================================================== */}
-                {/* SEÇÃO DO PROGRAMADOR: SOFTWARES, PIX E PORTFÓLIO              */}
+                {/* SEÇÃO DO PROGRAMADOR (APENAS PARA PROGRAMADORES APROVADOS)     */}
                 {/* ============================================================== */}
-                {formData.is_programmer && (
-                    <div className="p-5 rounded-2xl bg-[#181C26] border border-white/[0.07] space-y-6 animate-in fade-in duration-200">
+                {isAlreadyProgrammer && (
+                    <div className="p-5 rounded-2xl bg-[#181C26] border border-white/[0.07] space-y-6">
                         <div className="flex items-center gap-2">
                             <Code className="w-4 h-4 text-[#F5A623]" />
                             <h3 className="text-xs font-bold text-[#F5A623] uppercase tracking-wider">
@@ -779,10 +534,10 @@ export default function ProfileEditor({ profile, onCancel, onSave, defaultProgra
                                     <label className="block text-[11px] font-medium text-gray-400 mb-1">CPF ou CNPJ</label>
                                     <input
                                         type="text"
-                                        placeholder="000.000.000-00"
                                         value={formData.cpf_cnpj}
                                         onChange={(e) => handleChange('cpf_cnpj', e.target.value)}
-                                        className="w-full bg-[#181C26] border border-white/10 rounded-lg p-2.5 text-xs text-white focus:border-[#F5A623] focus:outline-none"
+                                        className="w-full bg-[#181C26] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#F5A623]"
+                                        placeholder="000.000.000-00"
                                     />
                                 </div>
 
@@ -791,72 +546,50 @@ export default function ProfileEditor({ profile, onCancel, onSave, defaultProgra
                                     <select
                                         value={formData.pix_key_type}
                                         onChange={(e) => handleChange('pix_key_type', e.target.value)}
-                                        className="w-full bg-[#181C26] border border-white/10 rounded-lg p-2.5 text-xs text-white focus:border-[#F5A623] focus:outline-none"
+                                        className="w-full bg-[#181C26] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#F5A623]"
                                     >
                                         <option value="cpf">CPF</option>
                                         <option value="cnpj">CNPJ</option>
                                         <option value="email">E-mail</option>
-                                        <option value="phone">Telefone / Celular</option>
-                                        <option value="random">Chave Aleatória (EVP)</option>
+                                        <option value="telefone">Telefone</option>
+                                        <option value="aleatoria">Chave Aleatória</option>
                                     </select>
                                 </div>
-                            </div>
 
-                            <div>
-                                <label className="block text-[11px] font-medium text-gray-400 mb-1">Chave PIX</label>
-                                <input
-                                    type="text"
-                                    placeholder="Sua chave PIX"
-                                    value={formData.pix_key}
-                                    onChange={(e) => handleChange('pix_key', e.target.value)}
-                                    className="w-full bg-[#181C26] border border-white/10 rounded-lg p-2.5 text-xs text-white focus:border-[#F5A623] focus:outline-none"
-                                />
+                                <div className="sm:col-span-2">
+                                    <label className="block text-[11px] font-medium text-gray-400 mb-1">Chave PIX</label>
+                                    <input
+                                        type="text"
+                                        value={formData.pix_key}
+                                        onChange={(e) => handleChange('pix_key', e.target.value)}
+                                        className="w-full bg-[#181C26] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#F5A623]"
+                                        placeholder="Digite sua chave PIX completa"
+                                    />
+                                </div>
                             </div>
                         </div>
 
                         {/* Portfólio */}
                         <div>
-                            <div className="flex items-center justify-between mb-1">
+                            <div className="flex items-center justify-between mb-2">
                                 <label className="text-xs font-semibold text-gray-300 uppercase tracking-wider">
-                                    Amostras de Portfólio ({formData.portfolio_urls.filter(u => Boolean(u && typeof u === 'string' && u.trim().length > 0)).length}/12)
+                                    Portfólio de Amostras ({formData.portfolio_urls.length}/12)
                                 </label>
-                                <span className="text-[11px] text-[#F5A623] font-medium">
-                                    Selecione até 10 fotos de uma vez
-                                </span>
                             </div>
-                            <p className="text-[11px] text-gray-400 mb-3">
-                                Fotos de matrizes já bordadas ou simulações 3D para comprovar sua qualidade técnica.
-                            </p>
-
-                            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2.5">
+                            <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
                                 {formData.portfolio_urls
-                                    .filter((url): url is string => Boolean(url && typeof url === 'string' && url.trim().length > 0))
-                                     .map((url, index) => {
-                                        const isPdf = typeof url === 'string' && (url.toLowerCase().endsWith('.pdf') || url.toLowerCase().includes('.pdf?') || url.toLowerCase().includes('.pdf'))
-
+                                    .filter(url => Boolean(url && typeof url === 'string' && url.trim().length > 0))
+                                    .map((url, idx) => {
                                         return (
-                                            <div key={`${url}-${index}`} className="relative aspect-square rounded-xl overflow-hidden group border border-white/10 bg-black flex items-center justify-center">
-                                                {isPdf ? (
-                                                    <div className="flex flex-col items-center justify-center p-2 text-center">
-                                                        <FileText className="w-8 h-8 text-red-400 mb-1" />
-                                                        <span className="text-[10px] text-gray-300 font-semibold">Arquivo PDF</span>
-                                                    </div>
-                                                ) : (
-                                                    <Image
-                                                        src={url}
-                                                        alt={`Portfolio ${index + 1}`}
-                                                        fill
-                                                        className="object-contain"
-                                                        unoptimized
-                                                    />
-                                                )}
+                                            <div key={`${url}-${idx}`} className="relative aspect-square rounded-xl overflow-hidden border border-white/10 group bg-[#0B0D11]">
+                                                <Image src={url} alt={`Amostra ${idx + 1}`} fill className="object-cover" unoptimized />
                                                 <button
                                                     type="button"
-                                                    onClick={() => removePortfolioImage(url)}
-                                                    className="absolute inset-0 bg-red-600/80 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer"
-                                                    title="Remover do portfólio"
+                                                    onClick={() => removePortfolioImage(idx)}
+                                                    className="absolute top-1.5 right-1.5 p-1 rounded-lg bg-red-500/80 hover:bg-red-500 text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                                                    title="Remover foto"
                                                 >
-                                                    <Trash2 className="w-5 h-5 text-white" />
+                                                    <Trash2 className="w-3.5 h-3.5" />
                                                 </button>
                                             </div>
                                         )
@@ -873,7 +606,7 @@ export default function ProfileEditor({ profile, onCancel, onSave, defaultProgra
                                             <>
                                                 <ImageIcon className="w-5 h-5 text-gray-500" />
                                                 <span className="text-[10px] text-gray-400 leading-tight">
-                                                    + Fotos (até 10)
+                                                    + Amostras
                                                 </span>
                                             </>
                                         )}
@@ -892,16 +625,16 @@ export default function ProfileEditor({ profile, onCancel, onSave, defaultProgra
                     </div>
                 )}
 
-                {/* Bio Geral (se não for programador, para o cliente) */}
-                {!formData.is_programmer && (
+                {/* Bio Geral para Comprador */}
+                {!isAlreadyProgrammer && (
                     <div>
-                        <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-2">Sobre Você / Ateliê</label>
+                        <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-2">Sobre Você / Ateliê (Opcional)</label>
                         <textarea
                             value={formData.bio}
                             onChange={(e) => handleChange('bio', e.target.value)}
                             rows={3}
                             className="w-full bg-[#0B0D11] border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-[#F5A623] transition-all text-xs"
-                            placeholder="Descreva brevemente seu negócio, máquinas e os tipos de bordado que costuma produzir..."
+                            placeholder="Descreva brevemente seu negócio, máquinas e os tipos de bordado que costuma encomendar..."
                         />
                     </div>
                 )}
@@ -927,7 +660,7 @@ export default function ProfileEditor({ profile, onCancel, onSave, defaultProgra
                         ) : (
                             <>
                                 <Save className="w-4 h-4" />
-                                Salvar Perfil
+                                Salvar Alterações
                             </>
                         )}
                     </button>

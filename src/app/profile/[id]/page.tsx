@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabaseClient'
 import { User, Star, MapPin, Calendar, Award, Package, Code, Edit2, Eye, FileJson, Layers, Upload, Camera, Sparkles, ArrowRight, CheckCircle2, Trash2, Loader2, FileText } from 'lucide-react'
 import Image from 'next/image'
 import ProfileEditor from '@/components/ProfileEditor'
+import ProgrammerAccessModal from '@/components/ProgrammerAccessModal'
 import { toast } from 'sonner'
 import { optimizeImageFile } from '@/lib/helpers'
 
@@ -44,7 +45,8 @@ export default function ProfilePage() {
     const [isCreating, setIsCreating] = useState(false)
     const [newRole, setNewRole] = useState('cliente')
     const [isEditing, setIsEditing] = useState(false)
-    const [activateProgrammer, setActivateProgrammer] = useState(false)
+    const [isProgrammerModalOpen, setIsProgrammerModalOpen] = useState(false)
+    const [inviteCodeFromUrl, setInviteCodeFromUrl] = useState('')
 
     // Toggle for owner to preview their profile
     const [previewRole, setPreviewRole] = useState<string | null>(null)
@@ -58,8 +60,13 @@ export default function ProfilePage() {
             if (urlParams.get('edit') === 'true') {
                 setIsEditing(true)
             }
+            const codeParam = (urlParams.get('convite') || urlParams.get('invite') || '').trim().toUpperCase()
+            if (codeParam) {
+                setInviteCodeFromUrl(codeParam)
+                setIsProgrammerModalOpen(true)
+            }
             if (urlParams.get('activate') === 'programmer') {
-                setActivateProgrammer(true)
+                setIsProgrammerModalOpen(true)
             }
         }
     }, [])
@@ -436,10 +443,8 @@ export default function ProfilePage() {
                 <div className="max-w-3xl mx-auto">
                     <ProfileEditor
                         profile={profile}
-                        defaultProgrammer={activateProgrammer}
                         onCancel={() => {
                             setIsEditing(false)
-                            setActivateProgrammer(false)
                             if (typeof window !== 'undefined') {
                                 router.replace(`/profile/${profile?.id || id}`)
                             }
@@ -447,7 +452,6 @@ export default function ProfilePage() {
                         // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         onSave={(updatedUser?: any) => {
                             setIsEditing(false)
-                            setActivateProgrammer(false)
                             if (updatedUser) {
                                 setProfile(prev => prev ? { ...prev, ...updatedUser } : updatedUser)
                                 if (updatedUser.role) setPreviewRole(updatedUser.role)
@@ -486,18 +490,19 @@ export default function ProfilePage() {
             <div className="h-48 bg-gradient-to-r from-[#1A1D23] to-[#0F1115] border-b border-[#FFAE00]/10 relative">
                 <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10"></div>
                 {isOwner && (
-                    <div className="absolute top-4 right-4 z-50 flex flex-col md:flex-row gap-3">
-                        <button
-                            onClick={toggleView}
-                            className="bg-black/80 text-white px-3 py-2 rounded-full text-xs font-bold border border-white/20 hover:bg-black transition-all flex items-center gap-2 backdrop-blur-sm shadow-md"
-                        >
-                            <Eye className="w-3 h-3" />
-                            {isProgrammerView ? 'Ver como Cliente' : 'Ver como Programador'}
-                        </button>
+                    <div className="absolute top-4 right-4 z-50 flex flex-wrap gap-2.5 items-center justify-end">
+                        {(profile.is_programmer || profile.role === 'criador') && (
+                            <button
+                                onClick={toggleView}
+                                className="bg-black/80 hover:bg-black text-white px-3 py-2 rounded-xl text-xs font-bold border border-white/20 transition-all flex items-center gap-2 backdrop-blur-sm shadow-md"
+                            >
+                                <Eye className="w-3.5 h-3.5 text-[#FFAE00]" />
+                                {isProgrammerView ? 'Ver como Cliente' : 'Ver como Programador'}
+                            </button>
+                        )}
 
                         <button
                             onClick={() => {
-                                setActivateProgrammer(false)
                                 setIsEditing(true)
                             }}
                             className="bg-gradient-to-r from-[#FFB703] to-[#FB8500] hover:brightness-110 active:scale-95 text-black px-4 py-2 rounded-xl text-xs font-black shadow-lg shadow-[#FFB703]/20 transition-all flex items-center gap-2"
@@ -577,7 +582,6 @@ export default function ProfilePage() {
                                 <div className="mt-4 mb-2 flex flex-col gap-2">
                                     <button
                                         onClick={() => {
-                                            setActivateProgrammer(false)
                                             setIsEditing(true)
                                         }}
                                         className="w-full bg-gradient-to-r from-[#FFB703] to-[#FB8500] hover:brightness-110 active:scale-95 text-black px-4 py-2.5 rounded-xl text-xs font-black shadow-md shadow-[#FFB703]/20 transition-all flex items-center justify-center gap-2"
@@ -588,12 +592,11 @@ export default function ProfilePage() {
                                     {(!profile.is_programmer && profile.role !== 'criador') && (
                                         <button
                                             onClick={() => {
-                                                setActivateProgrammer(true)
-                                                setIsEditing(true)
+                                                setIsProgrammerModalOpen(true)
                                             }}
-                                            className="w-full bg-[#181C26] hover:bg-[#202533] text-[#FFAE00] border border-[#FFAE00]/30 hover:border-[#FFAE00] px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2"
+                                            className="w-full bg-[#181C26] hover:bg-[#202533] text-[#FFAE00] border border-[#FFAE00]/30 hover:border-[#FFAE00] px-3 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2"
                                         >
-                                            <Code className="w-3.5 h-3.5" /> Quero Produzir Matrizes (Tenho Convite)
+                                            <Code className="w-3.5 h-3.5" /> Quero Produzir Matrizes
                                         </button>
                                     )}
                                 </div>
@@ -673,13 +676,12 @@ export default function ProfilePage() {
                                             <button
                                                 type="button"
                                                 onClick={() => {
-                                                    setActivateProgrammer(true)
-                                                    setIsEditing(true)
+                                                    setIsProgrammerModalOpen(true)
                                                 }}
                                                 className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-[#FFB703] to-[#FB8500] hover:brightness-110 active:scale-95 text-black font-black text-xs shadow-lg shadow-[#FFB703]/20 flex items-center justify-center gap-2 transition-all cursor-pointer"
                                             >
                                                 <Code className="w-4 h-4" />
-                                                Ativar Perfil de Programador
+                                                Quero Produzir Matrizes
                                             </button>
                                             <p className="text-[11px] text-gray-400 text-center mt-2 leading-tight">
                                                 Necessário para enviar orçamentos
@@ -749,13 +751,12 @@ export default function ProfilePage() {
                                     <button
                                         type="button"
                                         onClick={() => {
-                                            setActivateProgrammer(true)
-                                            setIsEditing(true)
+                                            setIsProgrammerModalOpen(true)
                                         }}
                                         className="shrink-0 inline-flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-xl bg-gradient-to-r from-[#FFB703] to-[#FB8500] hover:brightness-110 active:scale-95 text-black font-black text-sm shadow-xl shadow-[#FFB703]/25 transition-all cursor-pointer"
                                     >
                                         <Code className="w-4 h-4" />
-                                        Ativar e Completar Perfil
+                                        Quero Produzir Matrizes
                                         <ArrowRight className="w-4 h-4" />
                                     </button>
                                 </div>
@@ -972,6 +973,19 @@ export default function ProfilePage() {
                     </div>
                 </div>
             </div>
+
+            {/* Modal de Acesso a Programadores (Convite ou Lista de Espera) */}
+            <ProgrammerAccessModal
+                isOpen={isProgrammerModalOpen}
+                onClose={() => setIsProgrammerModalOpen(false)}
+                userProfile={profile}
+                defaultCode={inviteCodeFromUrl}
+                onProgrammerActivated={(updated) => {
+                    setProfile(prev => prev ? { ...prev, ...updated, is_programmer: true, role: 'criador' } : updated)
+                    setPreviewRole('criador')
+                    loadData(false)
+                }}
+            />
         </div>
     )
 }
