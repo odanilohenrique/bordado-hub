@@ -36,9 +36,38 @@ export default function ProfilePage() {
     const params = useParams()
     const router = useRouter()
     const id = params?.id as string
-    const [profile, setProfile] = useState<UserProfile | null>(null)
+
+    // Instant hydration from cached profile if present (ZERO loading delay)
+    const [profile, setProfile] = useState<UserProfile | null>(() => {
+        if (typeof window !== 'undefined') {
+            try {
+                const cached = localStorage.getItem('current_user_profile')
+                if (cached) {
+                    const parsed = JSON.parse(cached)
+                    if (parsed && (id === 'me' || parsed.id === id || parsed.supabase_user_id === id)) {
+                        return parsed
+                    }
+                }
+            } catch {}
+        }
+        return null
+    })
+
     const [reviews, setReviews] = useState<any[]>([])
-    const [loading, setLoading] = useState(true)
+    const [loading, setLoading] = useState<boolean>(() => {
+        if (typeof window !== 'undefined') {
+            try {
+                const cached = localStorage.getItem('current_user_profile')
+                if (cached) {
+                    const parsed = JSON.parse(cached)
+                    if (parsed && (id === 'me' || parsed.id === id || parsed.supabase_user_id === id)) {
+                        return false
+                    }
+                }
+            } catch {}
+        }
+        return true
+    })
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [currentUser, setCurrentUser] = useState<any>(null)
@@ -83,15 +112,27 @@ export default function ProfilePage() {
     }, [id])
 
     async function loadData(showSpinner = true) {
-        if (showSpinner) setLoading(true)
+        if (showSpinner && !profile) setLoading(true)
+
+        // Failsafe timer: NUNCA deixa a tela congelada em loading por mais de 2 segundos
+        const failsafe = setTimeout(() => {
+            setLoading(false)
+        }, 2000)
+
         try {
             // Get current auth user
             const { data: { session } } = await supabase.auth.getSession().catch(() => ({ data: { session: null } }))
-            const user = session?.user ?? null
+            let user = session?.user ?? null
+
+            if (!user && typeof window !== 'undefined') {
+                const { data: userData } = await supabase.auth.getUser().catch(() => ({ data: { user: null } }))
+                if (userData?.user) user = userData.user
+            }
             setCurrentUser(user)
 
             if (!id) {
-                if (showSpinner) setLoading(false)
+                clearTimeout(failsafe)
+                setLoading(false)
                 return
             }
 
@@ -100,6 +141,8 @@ export default function ProfilePage() {
                 if (!user) {
                     const query = typeof window !== 'undefined' ? window.location.search : ''
                     router.push(`/login?redirect=${encodeURIComponent(`/profile/me${query}`)}`)
+                    clearTimeout(failsafe)
+                    setLoading(false)
                     return
                 }
                 targetId = user.id
@@ -108,9 +151,12 @@ export default function ProfilePage() {
             let profileData: any = null
             let reviewsData: any[] = []
 
-            // 1. Carrega via API interna (ultra-rápida, resiliente a id e supabase_user_id)
+            // 1. Carrega via API interna com timeout estrito de 2.5s
             try {
-                const res = await fetch(`/api/profile/${targetId}`, { cache: 'no-store' })
+                const res = await fetch(`/api/profile/${targetId}`, { 
+                    cache: 'no-store',
+                    signal: AbortSignal.timeout(2500)
+                })
                 if (res.ok) {
                     const json = await res.json()
                     if (json.success && json.profile) {
@@ -164,7 +210,8 @@ export default function ProfilePage() {
         } catch (err) {
             console.error('Error in loadData:', err)
         } finally {
-            if (showSpinner) setLoading(false)
+            clearTimeout(failsafe)
+            setLoading(false)
         }
     }
 
@@ -436,6 +483,8 @@ export default function ProfilePage() {
         ))
     )
 
+    const isProgrammer = Boolean(profile.is_programmer || profile.role === 'criador')
+
     // 3. EDIT MODE
     if (isEditing) {
         return (
@@ -671,7 +720,7 @@ export default function ProfilePage() {
 
                             {isOwner && (
                                 <div className="mt-6 pt-5 border-t border-white/[0.08] space-y-3">
-                                    {(!profile.is_programmer || !profile.skills || profile.skills.length === 0) ? (
+                                    {!isProgrammer ? (
                                         <div>
                                             <button
                                                 type="button"
@@ -684,16 +733,26 @@ export default function ProfilePage() {
                                                 Quero Produzir Matrizes
                                             </button>
                                             <p className="text-[11px] text-gray-400 text-center mt-2 leading-tight">
-                                                Necessário para enviar orçamentos
+                                                Acesso exclusivo para novos programadores
                                             </p>
                                         </div>
                                     ) : (
-                                        <Link
-                                            href="/jobs"
-                                            className="block w-full text-center bg-[#1A1D23] border border-[#FFAE00] text-[#FFAE00] hover:bg-[#FFAE00] hover:text-[#0F1115] font-bold py-2.5 rounded-xl transition-colors text-xs"
-                                        >
-                                            Mural de Pedidos
-                                        </Link>
+                                        <div className="space-y-2">
+                                            <button
+                                                type="button"
+                                                onClick={() => setIsEditing(true)}
+                                                className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-[#FFB703] to-[#FB8500] hover:brightness-110 active:scale-95 text-black font-black text-xs shadow-md shadow-[#FFB703]/20 flex items-center justify-center gap-2 transition-all cursor-pointer"
+                                            >
+                                                <Edit2 className="w-3.5 h-3.5" />
+                                                Configurar Portfólio & Softwares
+                                            </button>
+                                            <Link
+                                                href="/jobs"
+                                                className="block w-full text-center bg-[#1A1D23] border border-[#FFAE00] text-[#FFAE00] hover:bg-[#FFAE00] hover:text-[#0F1115] font-bold py-2.5 rounded-xl transition-colors text-xs"
+                                            >
+                                                Mural de Pedidos
+                                            </Link>
+                                        </div>
                                     )}
 
                                     <Link
@@ -731,21 +790,52 @@ export default function ProfilePage() {
                     {/* Main Content */}
                     <div className="flex-1 w-full space-y-6">
 
-                        {/* Onboarding Callout for Profile Owner needing to configure Programmer Profile */}
-                        {isOwner && (!profile.is_programmer || !profile.skills || profile.skills.length === 0) && (
+                        {/* Banner de Onboarding para Programador Aprovado configurar portfólio */}
+                        {isOwner && isProgrammer && (!profile.skills || profile.skills.length === 0) && (
                             <div className="bg-gradient-to-r from-[#181C26] via-[#151922] to-[#181C26] rounded-2xl border-2 border-[#FFB703]/30 p-6 shadow-2xl relative overflow-hidden">
                                 <div className="absolute top-0 right-0 -mr-8 -mt-8 w-32 h-32 bg-[#FFB703]/10 rounded-full blur-2xl pointer-events-none" />
                                 <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative z-10">
                                     <div className="space-y-2 max-w-xl">
-                                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#FFB703]/10 border border-[#FFB703]/30 text-[#FFB703] text-xs font-bold uppercase tracking-wider">
+                                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-bold uppercase tracking-wider">
                                             <Sparkles className="w-3.5 h-3.5" />
-                                            Envio de Propostas no Mural
+                                            Acesso de Programador Liberado!
                                         </div>
                                         <h3 className="text-lg sm:text-xl font-black text-white">
-                                            Deseja enviar propostas e trabalhar como programador?
+                                            Complete seu Perfil Profissional de Programador
                                         </h3>
                                         <p className="text-xs sm:text-sm text-gray-400 leading-relaxed">
-                                            Para enviar orçamentos nos pedidos dos clientes e receber pagamentos com segurança via chave PIX, complete seu perfil ativando a opção de <strong className="text-gray-200">Programador</strong> e selecionando os softwares de matrizes que você domina (Wilcom, Embird, Tajima, etc.).
+                                            Seu convite foi validado com sucesso! Agora configure seus softwares (Wilcom, Embird, etc.), biografia, portfólio de matrizes e chave PIX para começar a enviar propostas no mural.
+                                        </p>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setIsEditing(true)
+                                        }}
+                                        className="shrink-0 inline-flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-xl bg-gradient-to-r from-[#FFB703] to-[#FB8500] hover:brightness-110 active:scale-95 text-black font-black text-sm shadow-xl shadow-[#FFB703]/25 transition-all cursor-pointer"
+                                    >
+                                        <Edit2 className="w-4 h-4" />
+                                        Configurar Perfil e Portfólio
+                                        <ArrowRight className="w-4 h-4" />
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Banner de Onboarding para Comprador que deseja virar Programador */}
+                        {isOwner && !isProgrammer && (
+                            <div className="bg-gradient-to-r from-[#181C26] via-[#151922] to-[#181C26] rounded-2xl border-2 border-white/10 p-6 shadow-2xl relative overflow-hidden">
+                                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative z-10">
+                                    <div className="space-y-2 max-w-xl">
+                                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#FFB703]/10 border border-[#FFB703]/30 text-[#FFB703] text-xs font-bold uppercase tracking-wider">
+                                            <Code className="w-3.5 h-3.5" />
+                                            Mural de Pedidos
+                                        </div>
+                                        <h3 className="text-lg sm:text-xl font-black text-white">
+                                            Deseja produzir matrizes e enviar propostas?
+                                        </h3>
+                                        <p className="text-xs sm:text-sm text-gray-400 leading-relaxed">
+                                            O cadastro de novos programadores é exclusivo para convidados selecionados. Se você é um profissional de bordado, clique abaixo para solicitar convite ou validar seu código.
                                         </p>
                                     </div>
                                     <button
@@ -981,9 +1071,22 @@ export default function ProfilePage() {
                 userProfile={profile}
                 defaultCode={inviteCodeFromUrl}
                 onProgrammerActivated={(updated) => {
-                    setProfile(prev => prev ? { ...prev, ...updated, is_programmer: true, role: 'criador' } : updated)
+                    const fullUpdated = {
+                        ...profile,
+                        ...updated,
+                        is_programmer: true,
+                        role: 'criador'
+                    }
+                    setProfile(fullUpdated)
                     setPreviewRole('criador')
+                    try {
+                        localStorage.setItem('current_user_profile', JSON.stringify(fullUpdated))
+                    } catch {}
+                    setIsEditing(true)
                     loadData(false)
+                }}
+                onConfigureProfile={() => {
+                    setIsEditing(true)
                 }}
             />
         </div>

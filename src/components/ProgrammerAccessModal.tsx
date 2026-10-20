@@ -12,6 +12,7 @@ interface ProgrammerAccessModalProps {
         email?: string
     } | null
     onProgrammerActivated: (updatedProfile: any) => void
+    onConfigureProfile?: () => void
     defaultCode?: string
 }
 
@@ -22,6 +23,7 @@ export default function ProgrammerAccessModal({
     onClose,
     userProfile,
     onProgrammerActivated,
+    onConfigureProfile,
     defaultCode = ''
 }: ProgrammerAccessModalProps) {
     // Aba ativa: 'waitlist' (Não tenho convite) ou 'invite' (Já tenho um código)
@@ -233,12 +235,18 @@ export default function ProgrammerAccessModal({
                             </p>
                         </div>
 
-                        <div className="pt-4">
+                        <div className="pt-4 flex flex-col gap-2.5">
                             <button
-                                onClick={handleClose}
-                                className="w-full py-3.5 px-4 bg-gradient-to-r from-[#FFAE00] to-yellow-400 hover:brightness-110 active:scale-95 text-black font-black text-sm rounded-xl transition-all shadow-lg shadow-[#FFAE00]/20 flex items-center justify-center gap-2"
+                                onClick={() => {
+                                    handleClose()
+                                    if (onConfigureProfile) {
+                                        onConfigureProfile()
+                                    }
+                                }}
+                                className="w-full py-3.5 px-4 bg-gradient-to-r from-[#FFAE00] to-yellow-400 hover:brightness-110 active:scale-95 text-black font-black text-sm rounded-xl transition-all shadow-lg shadow-[#FFAE00]/20 flex items-center justify-center gap-2 cursor-pointer"
                             >
-                                <span>Acessar Meu Painel de Programador</span>
+                                <Sparkles className="w-4 h-4" />
+                                <span>Configurar Portfólio & Informações Agora</span>
                                 <ArrowRight className="w-4 h-4 stroke-[2.5]" />
                             </button>
                         </div>
