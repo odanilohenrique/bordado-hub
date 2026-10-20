@@ -512,32 +512,6 @@ export default function ProfileEditor({ profile, onCancel, onSave }: ProfileEdit
                             </div>
                         </div>
 
-                        {/* Formatos que o Programador Exporta */}
-                        <div>
-                            <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-2.5">
-                                Formatos que Você Entrega / Exporta
-                            </label>
-                            <div className="flex flex-wrap gap-1.5">
-                                {FORMAT_OPTIONS.map(format => (
-                                    <button
-                                        type="button"
-                                        key={format}
-                                        onClick={() => toggleArrayItem('formats', format)}
-                                        className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                                            formData.formats.includes(format)
-                                                ? 'bg-[#F5A623] text-black'
-                                                : 'bg-[#0B0D11] text-gray-400 border border-white/10 hover:border-white/20'
-                                        }`}
-                                    >
-                                        {format}
-                                    </button>
-                                ))}
-                            </div>
-                            <p className="text-[11px] text-gray-500 mt-1.5">
-                                Selecione todos os formatos de bordado que você consegue exportar para seus clientes.
-                            </p>
-                        </div>
-
                         {/* Bio Profissional */}
                         <div>
                             <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-2">
