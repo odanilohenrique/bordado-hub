@@ -610,8 +610,8 @@ export default function ProfileEditor({ profile, onCancel, onSave }: ProfileEdit
                                     .filter(url => Boolean(url && typeof url === 'string' && url.trim().length > 0))
                                     .map((url, idx) => {
                                         return (
-                                            <div key={`${url}-${idx}`} className="relative aspect-square rounded-xl overflow-hidden border border-white/10 group bg-[#0B0D11]">
-                                                <Image src={url} alt={`Amostra ${idx + 1}`} fill className="object-cover" unoptimized />
+                                            <div key={`${url}-${idx}`} className="relative aspect-square rounded-xl overflow-hidden border border-white/10 group bg-white">
+                                                <Image src={url} alt={`Amostra ${idx + 1}`} fill className="object-cover object-center" unoptimized />
                                                 <button
                                                     type="button"
                                                     onClick={() => removePortfolioImage(idx)}

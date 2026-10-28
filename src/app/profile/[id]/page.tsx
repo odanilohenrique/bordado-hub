@@ -938,12 +938,12 @@ export default function ProfilePage() {
                                                 }
 
                                                 return (
-                                                    <div key={idx} className="aspect-square bg-black rounded-xl overflow-hidden border border-gray-800 hover:border-[#FFAE00] transition-colors group relative">
+                                                    <div key={idx} className="aspect-square bg-white rounded-xl overflow-hidden border border-gray-800 hover:border-[#FFAE00] transition-colors group relative">
                                                         <Image
                                                             src={url}
                                                             alt={`Portfolio ${idx + 1}`}
                                                             fill
-                                                            className="object-contain group-hover:scale-105 transition-transform duration-300"
+                                                            className="object-cover object-center group-hover:scale-105 transition-transform duration-300"
                                                             unoptimized
                                                         />
                                                         {isOwner && (
