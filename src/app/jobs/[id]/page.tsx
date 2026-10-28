@@ -172,6 +172,7 @@ function JobDetailClient({ jobId }: { jobId: string }) {
     const [savingEditProposal, setSavingEditProposal] = useState(false)
     const [counterAmount, setCounterAmount] = useState('')
     const [counterMessage, setCounterMessage] = useState('')
+    const [submittingCounter, setSubmittingCounter] = useState(false)
     const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({})
     const [confirmAcceptModal, setConfirmAcceptModal] = useState<string | null>(null)
     const hasHandledPayParamRef = useRef(false)
@@ -706,45 +707,32 @@ function JobDetailClient({ jobId }: { jobId: string }) {
         const propId = targetProposalId || activeCounterProposalId || negotiatingProposalId
         if (!propId) return
 
-        const val = overrideAmount !== undefined ? overrideAmount : parseFloat(counterAmount)
+        const rawVal = overrideAmount !== undefined ? String(overrideAmount) : counterAmount
+        const val = parseFloat(String(rawVal).replace(',', '.').trim())
         if (!val || isNaN(val) || val <= 0) {
             toast.error('Informe um valor válido para a contraproposta.')
             return
         }
 
+        setSubmittingCounter(true)
         try {
-            const numericCounter = val
-            const { error } = await supabase
-                .from('proposals')
-                .update({
-                    status: 'contraproposta',
-                    counter_amount: numericCounter,
-                    counter_message: counterMessage || 'Contraproposta do cliente'
+            const res = await fetch('/api/jobs/counter-proposal', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    proposalId: propId,
+                    counterAmount: val,
+                    counterMessage: counterMessage || 'Contraproposta do cliente',
+                    senderId: currentUser?.id
                 })
-                .eq('id', propId)
-
-            if (error) throw error
-
-            // Send notification message in chat
-            await supabase.from('proposal_messages').insert({
-                proposal_id: propId,
-                sender_id: currentUser?.id,
-                content: `Fiz uma contraproposta oficial de R$ ${numericCounter.toFixed(2)}. Veja os detalhes e aceite para fecharmos!`
             })
 
-            // Create notification for the programmer with direct link to chat
-            const targetProp = proposals.find(p => p.id === propId)
-            if (targetProp?.criador_id) {
-                await supabase.from('notifications').insert({
-                    user_id: targetProp.criador_id,
-                    type: 'contraproposta',
-                    title: 'Contraproposta Recebida',
-                    message: `O cliente fez uma contraproposta de R$ ${numericCounter.toFixed(2)} no pedido "${job?.title || 'Bordado'}".`,
-                    link_url: `/jobs/${jobId}?chat=${propId}`
-                })
+            const data = await res.json()
+            if (!res.ok) {
+                throw new Error(data.error || 'Erro ao enviar contraproposta')
             }
 
-            toast.success(`Contraproposta de R$ ${numericCounter.toFixed(2)} enviada!`)
+            toast.success(`Contraproposta de R$ ${val.toFixed(2)} enviada com sucesso!`)
             setCounterAmount('')
             setCounterMessage('')
             setActiveCounterProposalId(null)
@@ -753,7 +741,10 @@ function JobDetailClient({ jobId }: { jobId: string }) {
             await loadData()
             router.refresh()
         } catch (err: any) {
-            toast.error('Erro: ' + err.message)
+            console.error('Error submitting counter proposal:', err)
+            toast.error('Erro ao enviar contraproposta: ' + err.message)
+        } finally {
+            setSubmittingCounter(false)
         }
     }
 
@@ -809,69 +800,40 @@ function JobDetailClient({ jobId }: { jobId: string }) {
     }
 
     const handleProgrammerResponse = async (proposalId: string, action: 'accept_counter' | 'reject_counter', proposal: Proposal) => {
+        setSubmittingCounter(true)
         try {
+            const apiAction = action === 'accept_counter' ? 'accept' : 'reject'
+            const res = await fetch('/api/jobs/counter-proposal', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    proposalId,
+                    action: apiAction,
+                    senderId: currentUser?.id
+                })
+            })
+
+            const data = await res.json()
+            if (!res.ok) {
+                throw new Error(data.error || 'Erro ao processar resposta')
+            }
+
+            clearCache('pedidos_jobs')
+            clearCache('producao_data')
+
             if (action === 'accept_counter') {
                 const targetAmount = proposal.counter_amount || proposal.amount
-                const { error } = await supabase
-                    .from('proposals')
-                    .update({
-                        job_id: jobId,
-                        amount: targetAmount,
-                        status: 'pendente',
-                        counter_amount: null,
-                        counter_message: null
-                    })
-                    .eq('id', proposalId)
-
-                if (error) throw error
-
-                // Send update into chat
-                await supabase.from('proposal_messages').insert({
-                    proposal_id: proposalId,
-                    sender_id: currentUser?.id,
-                    content: `[CONTRAOFERTA ACEITA] Aceitei sua contraproposta de R$ ${Number(targetAmount).toFixed(2)}. O valor foi atualizado!`
-                })
-
-                // Notify client
-                if (job?.cliente_id) {
-                    await supabase.from('notifications').insert({
-                        user_id: job.cliente_id,
-                        type: 'contraproposta_aceita',
-                        title: 'Contraproposta Aceita!',
-                        message: `O produtor aceitou sua oferta de R$ ${Number(targetAmount).toFixed(2)} para o pedido "${job.title}". Conclua o pagamento para iniciar a produção.`,
-                        link_url: `/jobs/${job.id}?pay=${proposalId}`
-                    })
-                }
-
-                clearCache('pedidos_jobs')
-                clearCache('producao_data')
                 toast.success(`Oferta aceita! O valor foi atualizado para R$ ${Number(targetAmount).toFixed(2)}. Aguarde o pagamento do cliente.`)
             } else {
-                const { error } = await supabase
-                    .from('proposals')
-                    .update({
-                        status: 'pendente',
-                        counter_amount: null,
-                        counter_message: null
-                    })
-                    .eq('id', proposalId)
-
-                if (error) throw error
-
-                await supabase.from('proposal_messages').insert({
-                    proposal_id: proposalId,
-                    sender_id: currentUser?.id,
-                    content: `[CONTRAOFERTA RECUSADA] O valor original de R$ ${Number(proposal.amount).toFixed(2)} foi mantido.`
-                })
-
-                clearCache('pedidos_jobs')
-                clearCache('producao_data')
                 toast.success('Contraproposta recusada. Valor original mantido.')
             }
+
             await loadData()
             router.refresh()
         } catch (err: any) {
             toast.error('Erro: ' + err.message)
+        } finally {
+            setSubmittingCounter(false)
         }
     }
 
@@ -2581,10 +2543,11 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                                         </div>
                                                         <button 
                                                             onClick={() => submitCounterProposal(proposal.id)} 
-                                                            disabled={!counterAmount} 
-                                                            className="bg-[#FFAE00] hover:bg-yellow-400 text-black text-xs font-black px-4 py-2 rounded-lg disabled:opacity-50 transition-all whitespace-nowrap active:scale-95 shadow"
+                                                            disabled={!counterAmount || submittingCounter} 
+                                                            className="bg-[#FFAE00] hover:bg-yellow-400 text-black text-xs font-black px-4 py-2 rounded-lg disabled:opacity-50 transition-all whitespace-nowrap active:scale-95 shadow flex items-center justify-center gap-1.5 cursor-pointer"
                                                         >
-                                                            Enviar
+                                                            {submittingCounter && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                                                            {submittingCounter ? 'Enviando...' : 'Enviar'}
                                                         </button>
                                                     </div>
                                                     <div className="flex items-center gap-1.5 pt-0.5 flex-wrap">

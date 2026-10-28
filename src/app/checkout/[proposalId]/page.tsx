@@ -279,7 +279,7 @@ function CheckoutClient({ proposalId }: { proposalId: string }) {
     const { taxaCliente: clientFee, totalPago: totalAmount } = calculateTotals(baseAmount)
 
     // Taxa do cartão de crédito (repassada ao comprador)
-    const { taxaCartao: cardFee, totalComTaxa: cardTotalAmount } = calculateCardFee(baseAmount, cardData.installmentCount)
+    const { taxaCartao: cardFee, totalComTaxa: cardTotalAmount, rate: cardRate } = calculateCardFee(baseAmount, cardData.installmentCount)
 
     // Valor efetivo dependendo do método de pagamento
     const effectiveTotal = paymentMethod === 'cartao' ? cardTotalAmount : totalAmount
@@ -340,7 +340,7 @@ function CheckoutClient({ proposalId }: { proposalId: string }) {
                                 </div>
                             ) : (
                                 <div className="flex justify-between items-center text-xs">
-                                    <span className="text-gray-400">Taxa do Cartão ({cardData.installmentCount <= 1 ? '2,99%' : '1,99%'} + R$0,49):</span>
+                                    <span className="text-gray-400">Taxa do Cartão ({cardData.installmentCount}x • {((cardRate || 0.0299) * 100).toFixed(1).replace('.', ',')}% + R$0,49):</span>
                                     <span className="text-amber-400 font-bold bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">+ R$ {cardFee.toFixed(2)}</span>
                                 </div>
                             )}

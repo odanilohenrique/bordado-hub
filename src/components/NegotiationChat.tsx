@@ -281,42 +281,19 @@ export default function NegotiationChat({
         setProcessingCounter(true)
         try {
             const targetAmount = proposalData.counter_amount
-            const { error: propError } = await supabase
-                .from('proposals')
-                .update({
-                    job_id: jobId,
-                    amount: targetAmount,
-                    status: 'pendente',
-                    counter_amount: null,
-                    counter_message: null
+
+            const res = await fetch('/api/jobs/counter-proposal', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    proposalId,
+                    action: 'accept',
+                    senderId: currentUserId
                 })
-                .eq('id', proposalId)
-
-            if (propError) throw propError
-
-            // Insert system message into chat
-            await supabase.from('proposal_messages').insert({
-                proposal_id: proposalId,
-                sender_id: currentUserId,
-                content: `[CONTRAOFERTA ACEITA] Aceitei sua contraproposta de R$ ${Number(targetAmount).toFixed(2)}. O valor foi atualizado!`
             })
 
-            // Notify client
-            const { data: jobInfo } = await supabase
-                .from('jobs')
-                .select('cliente_id, title')
-                .eq('id', jobId)
-                .single()
-
-            if (jobInfo?.cliente_id) {
-                await supabase.from('notifications').insert({
-                    user_id: jobInfo.cliente_id,
-                    type: 'contraproposta_aceita',
-                    title: 'Contraproposta Aceita!',
-                    message: `O produtor aceitou sua oferta de R$ ${Number(targetAmount).toFixed(2)} no pedido "${jobInfo.title}". Conclua o pagamento para iniciar a produção.`,
-                    link_url: `/jobs/${jobId}?pay=${proposalId}`
-                })
-            }
+            const data = await res.json()
+            if (!res.ok) throw new Error(data.error || 'Erro ao aceitar oferta')
 
             setProposalData(prev => prev ? ({
                 ...prev,
@@ -338,22 +315,18 @@ export default function NegotiationChat({
     const handleRejectCounter = async () => {
         setProcessingCounter(true)
         try {
-            const { error: propError } = await supabase
-                .from('proposals')
-                .update({
-                    status: 'pendente',
-                    counter_amount: null,
-                    counter_message: null
+            const res = await fetch('/api/jobs/counter-proposal', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    proposalId,
+                    action: 'reject',
+                    senderId: currentUserId
                 })
-                .eq('id', proposalId)
-
-            if (propError) throw propError
-
-            await supabase.from('proposal_messages').insert({
-                proposal_id: proposalId,
-                sender_id: currentUserId,
-                content: `[CONTRAOFERTA RECUSADA] O valor original de R$ ${Number(proposalData?.amount || initialAmount).toFixed(2)} foi mantido.`
             })
+
+            const data = await res.json()
+            if (!res.ok) throw new Error(data.error || 'Erro ao recusar contraproposta')
 
             setProposalData(prev => prev ? ({
                 ...prev,
@@ -400,25 +373,21 @@ export default function NegotiationChat({
 
         setSending(true)
         try {
-            const finalAmount = parseFloat(agreedValue)
+            const finalAmount = parseFloat(String(agreedValue).replace(',', '.').trim())
 
-            // 1. Update proposal amount and status
-            const { error: propError } = await supabase
-                .from('proposals')
-                .update({ 
-                    amount: finalAmount,
-                    status: 'aceita' 
+            const res = await fetch('/api/jobs/counter-proposal', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    proposalId,
+                    action: 'quick_deal',
+                    counterAmount: finalAmount,
+                    senderId: currentUserId
                 })
-                .eq('id', proposalId)
-
-            if (propError) throw propError
-
-            // Insert system message in chat
-            await supabase.from('proposal_messages').insert({
-                proposal_id: proposalId,
-                sender_id: currentUserId,
-                content: `[NEGÓCIO FECHADO] Valor acordado: R$ ${finalAmount.toFixed(2)}`
             })
+
+            const data = await res.json()
+            if (!res.ok) throw new Error(data.error || 'Erro ao fechar negócio')
 
             window.location.href = `/checkout/${proposalId}`
         } catch (error: any) {
@@ -430,45 +399,26 @@ export default function NegotiationChat({
     }
 
     const handleOwnerSendCounter = async () => {
-        const num = parseFloat(agreedValue)
+        const num = parseFloat(String(agreedValue).replace(',', '.').trim())
         if (!num || isNaN(num) || num <= 0) {
             toast.error('Informe um valor válido para sua contraproposta.')
             return
         }
         setProcessingCounter(true)
         try {
-            const { error: propError } = await supabase
-                .from('proposals')
-                .update({
-                    status: 'contraproposta',
-                    counter_amount: num,
-                    counter_message: 'Contraproposta enviada pelo chat'
+            const res = await fetch('/api/jobs/counter-proposal', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    proposalId,
+                    counterAmount: num,
+                    counterMessage: 'Contraproposta enviada pelo chat',
+                    senderId: currentUserId
                 })
-                .eq('id', proposalId)
-
-            if (propError) throw propError
-
-            await supabase.from('proposal_messages').insert({
-                proposal_id: proposalId,
-                sender_id: currentUserId,
-                content: `Fiz uma contraproposta oficial de R$ ${num.toFixed(2)}. Veja os detalhes para aceitar e fecharmos!`
             })
 
-            if (proposalData?.criador_id) {
-                const { data: jobInfo } = await supabase
-                    .from('jobs')
-                    .select('title')
-                    .eq('id', jobId)
-                    .single()
-
-                await supabase.from('notifications').insert({
-                    user_id: proposalData.criador_id,
-                    type: 'contraproposta',
-                    title: 'Contraproposta Recebida',
-                    message: `O cliente fez uma contraproposta de R$ ${num.toFixed(2)} no pedido "${jobInfo?.title || 'Bordado'}".`,
-                    link_url: `/jobs/${jobId}?chat=${proposalId}`
-                })
-            }
+            const data = await res.json()
+            if (!res.ok) throw new Error(data.error || 'Erro ao enviar contraproposta')
 
             setProposalData(prev => prev ? ({
                 ...prev,
