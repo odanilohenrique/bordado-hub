@@ -49,17 +49,20 @@ export async function POST(request: Request) {
         const isActivatingProgrammer = Boolean(fields.is_programmer && !wasProgrammer)
 
         if (isActivatingProgrammer) {
-            const rawInviteCode = fields.invite_code || body.invite_code
-            if (!rawInviteCode || typeof rawInviteCode !== 'string' || !rawInviteCode.trim()) {
-                return NextResponse.json({ error: 'Código de convite inválido ou expirado.' }, { status: 403 })
-            }
+            // Admin/master account bypass
+            if (targetUser.email !== 'odanilohenrique@gmail.com') {
+                const rawInviteCode = fields.invite_code || body.invite_code
+                if (!rawInviteCode || typeof rawInviteCode !== 'string' || !rawInviteCode.trim()) {
+                    return NextResponse.json({ error: 'Código de convite inválido ou expirado.' }, { status: 403 })
+                }
 
-            const check = await checkInviteValidity(rawInviteCode)
-            if (!check.valid) {
-                return NextResponse.json({ error: check.message || 'Código de convite inválido ou expirado.' }, { status: 403 })
-            }
+                const check = await checkInviteValidity(rawInviteCode)
+                if (!check.valid) {
+                    return NextResponse.json({ error: check.message || 'Código de convite inválido ou expirado.' }, { status: 403 })
+                }
 
-            await consumeInviteCode(rawInviteCode, targetUser.email || '')
+                await consumeInviteCode(rawInviteCode, targetUser.email || '')
+            }
         }
 
         // Sanitize avatar_url (never allow blob: URLs in DB)

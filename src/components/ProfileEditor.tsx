@@ -241,7 +241,7 @@ export default function ProfileEditor({ profile, onCancel, onSave }: ProfileEdit
 
     const handleSave = async () => {
         if (uploading || portfolioUploading) {
-            alert('Aguarde o envio das fotos terminar antes de salvar.')
+            toast.warning('Aguarde o envio das fotos terminar antes de salvar.')
             return
         }
 
@@ -255,7 +255,19 @@ export default function ProfileEditor({ profile, onCancel, onSave }: ProfileEdit
                 Boolean(url && typeof url === 'string' && url.trim().length > 0 && !url.startsWith('blob:'))
             )
 
-            const { data: { session } } = await supabase.auth.getSession()
+            // Failsafe timeout no getSession para nunca travar a tela
+            let token: string | undefined
+            try {
+                const sessionRes = await Promise.race([
+                    supabase.auth.getSession(),
+                    new Promise<{ data: { session: null } }>(resolve => 
+                        setTimeout(() => resolve({ data: { session: null } }), 2000)
+                    )
+                ])
+                token = sessionRes?.data?.session?.access_token
+            } catch (err) {
+                console.warn('Could not retrieve auth session token quickly:', err)
+            }
 
             const updatePayload: Record<string, any> = {
                 userId: profile.id,
@@ -287,16 +299,18 @@ export default function ProfileEditor({ profile, onCancel, onSave }: ProfileEdit
                 method: 'POST',
                 headers: { 
                     'Content-Type': 'application/json',
-                    ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {})
+                    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
                 },
                 body: JSON.stringify(updatePayload),
-                signal: AbortSignal.timeout(15000)
+                signal: AbortSignal.timeout(12000)
             })
 
-            const json = await res.json()
+            const json = await res.json().catch(() => ({}))
             if (!res.ok) {
-                throw new Error(json.error || 'Erro ao salvar alterações no perfil.')
+                throw new Error(json.error || `Erro HTTP ${res.status}: Não foi possível salvar o perfil.`)
             }
+
+            toast.success('Perfil atualizado com sucesso!')
 
             onSave({
                 ...profile,
@@ -305,7 +319,10 @@ export default function ProfileEditor({ profile, onCancel, onSave }: ProfileEdit
             })
         } catch (error: any) {
             console.error('Error saving profile:', error)
-            alert(error.message || 'Falha ao salvar perfil. Tente novamente.')
+            const errorMsg = error.name === 'TimeoutError'
+                ? 'Tempo limite esgotado ao salvar. Verifique sua conexão e tente novamente.'
+                : (error.message || 'Falha ao salvar perfil. Tente novamente.')
+            toast.error(errorMsg)
         } finally {
             setSaving(false)
         }
@@ -514,14 +531,19 @@ export default function ProfileEditor({ profile, onCancel, onSave }: ProfileEdit
 
                         {/* Bio Profissional */}
                         <div>
-                            <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-2">
-                                Bio Profissional & Experiência
-                            </label>
+                            <div className="flex items-center justify-between mb-2">
+                                <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider">
+                                    Bio Profissional & Experiência
+                                </label>
+                                <span className="text-[11px] text-gray-400">
+                                    {formData.bio.length} caracteres • Arraste o canto inferior se desejar ampliar
+                                </span>
+                            </div>
                             <textarea
                                 value={formData.bio}
                                 onChange={(e) => handleChange('bio', e.target.value)}
-                                rows={3}
-                                className="w-full bg-[#0B0D11] border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-[#F5A623] transition-all text-xs"
+                                rows={8}
+                                className="w-full bg-[#0B0D11] border border-white/10 rounded-xl p-4 text-white focus:outline-none focus:border-[#F5A623] transition-all text-sm leading-relaxed min-h-[190px] resize-y placeholder-gray-500 font-normal shadow-inner"
                                 placeholder="Conte sobre seus anos de experiência, especialidades (ex: ponto cheio, 3D puff, logos) e compromisso com qualidade..."
                             />
                         </div>
@@ -635,12 +657,19 @@ export default function ProfileEditor({ profile, onCancel, onSave }: ProfileEdit
                 {/* Bio Geral para Comprador */}
                 {!isAlreadyProgrammer && (
                     <div>
-                        <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-2">Sobre Você / Ateliê (Opcional)</label>
+                        <div className="flex items-center justify-between mb-2">
+                            <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider">
+                                Sobre Você / Ateliê (Opcional)
+                            </label>
+                            <span className="text-[11px] text-gray-400">
+                                {formData.bio.length} caracteres
+                            </span>
+                        </div>
                         <textarea
                             value={formData.bio}
                             onChange={(e) => handleChange('bio', e.target.value)}
-                            rows={3}
-                            className="w-full bg-[#0B0D11] border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-[#F5A623] transition-all text-xs"
+                            rows={5}
+                            className="w-full bg-[#0B0D11] border border-white/10 rounded-xl p-4 text-white focus:outline-none focus:border-[#F5A623] transition-all text-sm leading-relaxed min-h-[140px] resize-y placeholder-gray-500 font-normal shadow-inner"
                             placeholder="Descreva brevemente seu negócio, máquinas e os tipos de bordado que costuma encomendar..."
                         />
                     </div>
