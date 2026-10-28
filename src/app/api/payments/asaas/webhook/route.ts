@@ -2,6 +2,14 @@ import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabaseClient'
 import { checkPaymentStatus } from '@/lib/asaas'
 
+export async function GET() {
+    return NextResponse.json({
+        status: 'active',
+        service: 'BordadoHub Asaas Webhook',
+        message: 'Endpoint online e pronto para receber notificações automáticas do Asaas via POST.'
+    })
+}
+
 export async function POST(request: Request) {
     try {
         // 1. Optional Webhook Secret Token validation
