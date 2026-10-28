@@ -135,11 +135,22 @@ export async function consumeInviteCode(codeToConsume: string, usedByEmail: stri
         const newUses = (physicalInvite.current_uses || 0) + 1
         const shouldDeactivate = newUses >= (physicalInvite.max_uses || 1)
 
+        // Agrupa os e-mails dos usuários que usaram o convite sem duplicar
+        const existingUsers = (physicalInvite.used_by || '')
+            .split(',')
+            .map((e: string) => e.trim())
+            .filter(Boolean)
+
+        if (usedByEmail && !existingUsers.includes(usedByEmail)) {
+            existingUsers.push(usedByEmail)
+        }
+        const updatedUsedBy = existingUsers.join(', ') || usedByEmail || 'desconhecido'
+
         await supabase
             .from('invites')
             .update({
                 current_uses: newUses,
-                used_by: usedByEmail || 'desconhecido',
+                used_by: updatedUsedBy,
                 used_at: new Date().toISOString(),
                 active: !shouldDeactivate
             })
@@ -157,10 +168,20 @@ export async function consumeInviteCode(codeToConsume: string, usedByEmail: stri
     const newUses = (inv.current_uses || 0) + 1
     const shouldDeactivate = newUses >= inv.max_uses
 
+    const existingUsers = (inv.used_by || '')
+        .split(',')
+        .map((e: string) => e.trim())
+        .filter(Boolean)
+
+    if (usedByEmail && !existingUsers.includes(usedByEmail)) {
+        existingUsers.push(usedByEmail)
+    }
+    const updatedUsedBy = existingUsers.join(', ') || usedByEmail || 'desconhecido'
+
     list[index] = {
         ...inv,
         current_uses: newUses,
-        used_by: usedByEmail || 'desconhecido',
+        used_by: updatedUsedBy,
         used_at: new Date().toISOString(),
         active: !shouldDeactivate
     }
