@@ -147,8 +147,7 @@ export async function POST(request: Request) {
                     .from('transactions')
                     .update({ 
                         status: 'pago',
-                        asaas_payment_id: paymentId,
-                        updated_at: new Date().toISOString()
+                        asaas_payment_id: paymentId
                     })
                     .eq('id', transaction.id)
 

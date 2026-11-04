@@ -63,8 +63,7 @@ export async function GET(request: Request) {
                     .from('transactions')
                     .update({ 
                         status: 'pago',
-                        asaas_payment_id: asaasId,
-                        updated_at: new Date().toISOString()
+                        asaas_payment_id: asaasId
                     })
                     .eq('id', transactionId)
 

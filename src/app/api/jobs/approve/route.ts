@@ -133,8 +133,7 @@ export async function POST(request: Request) {
 
                 await supabase.from('transactions').update({
                     status: 'liberado',
-                    asaas_transfer_id: transfer.transferId,
-                    updated_at: new Date().toISOString()
+                    asaas_transfer_id: transfer.transferId
                 }).eq('id', tx.id)
 
                 payoutStatus = 'success'
