@@ -1,6 +1,26 @@
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabaseClient'
-import { transferPixToCreator } from '@/lib/asaas'
+import { transferPixToCreator, asaasRawGet } from '@/lib/asaas'
+
+export async function GET(request: Request) {
+    try {
+        const adminSecret = process.env.ADMIN_SECRET || 'bordadohub_admin_secret_2026'
+        const authHeader = request.headers.get('authorization')
+        const token = authHeader?.startsWith('Bearer ') ? authHeader.substring(7).trim() : null
+
+        if (!token || token !== adminSecret.trim()) {
+            return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+        }
+
+        const { searchParams } = new URL(request.url)
+        const endpoint = searchParams.get('endpoint') || '/payments?limit=10'
+
+        const result = await asaasRawGet(endpoint)
+        return NextResponse.json({ success: true, result })
+    } catch (err: any) {
+        return NextResponse.json({ error: err.message }, { status: 500 })
+    }
+}
 
 export async function POST(request: Request) {
     try {

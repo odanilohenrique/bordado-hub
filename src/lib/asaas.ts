@@ -295,3 +295,10 @@ export async function transferPixToCreator(params: PixTransferDTO) {
         status: transfer.status,
     }
 }
+
+/**
+ * 5. Diagnostic raw GET wrapper for authorized debug routes
+ */
+export async function asaasRawGet(endpoint: string) {
+    return asaasFetch(endpoint)
+}
