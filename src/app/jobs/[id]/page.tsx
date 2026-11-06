@@ -1218,15 +1218,15 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                             {job.status.replace('_', ' ')}
                                         </span>
                                         {/* Botão Cancelar Pedido — visível apenas para o dono e em status cancelável */}
-                                        {isOwner && ['aberto', 'aguardando_pagamento'].includes(job.status) && (
+                                        {isOwner && ['aberto', 'aguardando_pagamento', 'cancelado'].includes(job.status) && (
                                             <button
                                                 type="button"
                                                 onClick={() => setShowCancelModal(true)}
                                                 className="px-3 py-1.5 bg-red-500/10 text-red-400 border border-red-500/25 rounded-full text-xs font-bold tracking-wider uppercase hover:bg-red-500/20 hover:border-red-500/40 transition-all flex items-center gap-1.5"
-                                                title="Cancelar este pedido"
+                                                title="Excluir este pedido definitivamente"
                                             >
                                                 <Trash2 className="w-3 h-3" />
-                                                Cancelar
+                                                Excluir
                                             </button>
                                         )}
                                     </div>
@@ -2931,27 +2931,27 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                     <Trash2 className="w-6 h-6 text-red-400" />
                                 </div>
                                 <div>
-                                    <h3 className="text-lg font-extrabold text-white">Cancelar Pedido</h3>
-                                    <p className="text-xs text-gray-400">Esta ação não pode ser desfeita</p>
+                                    <h3 className="text-lg font-extrabold text-white">Excluir Pedido Definitivamente</h3>
+                                    <p className="text-xs text-gray-400">Esta ação apagará o pedido do banco de dados</p>
                                 </div>
                             </div>
 
                             <div className="bg-red-500/5 border border-red-500/15 rounded-xl p-4 mb-5">
                                 <p className="text-sm text-gray-300 leading-relaxed">
-                                    Tem certeza que deseja cancelar o pedido <strong className="text-white">&quot;{job?.title}&quot;</strong>?
+                                    Tem certeza que deseja apagar o pedido <strong className="text-white">&quot;{job?.title}&quot;</strong>?
                                 </p>
                                 <ul className="mt-3 space-y-1.5 text-xs text-gray-400">
                                     <li className="flex items-start gap-2">
                                         <AlertCircle className="w-3.5 h-3.5 text-red-400 shrink-0 mt-0.5" />
-                                        Todas as propostas recebidas serão canceladas
+                                        O pedido será apagado permanentemente do banco de dados
                                     </li>
                                     <li className="flex items-start gap-2">
                                         <AlertCircle className="w-3.5 h-3.5 text-red-400 shrink-0 mt-0.5" />
-                                        Cobranças pendentes serão canceladas automaticamente
+                                        Cobranças pendentes serão canceladas no Asaas
                                     </li>
                                     <li className="flex items-start gap-2">
                                         <AlertCircle className="w-3.5 h-3.5 text-red-400 shrink-0 mt-0.5" />
-                                        Os programadores serão notificados do cancelamento
+                                        Propostas vinculadas serão removidas
                                     </li>
                                 </ul>
                             </div>
@@ -2974,12 +2974,12 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                     {cancelling ? (
                                         <>
                                             <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                            Cancelando...
+                                            Excluindo...
                                         </>
                                     ) : (
                                         <>
                                             <Trash2 className="w-4 h-4" />
-                                            Sim, Cancelar Pedido
+                                            Sim, Excluir Pedido
                                         </>
                                     )}
                                 </button>

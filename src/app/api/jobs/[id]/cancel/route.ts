@@ -4,18 +4,19 @@ import { createServiceClient } from '@/lib/supabaseClient'
 /**
  * POST /api/jobs/[id]/cancel
  * 
- * Cancels a job (pedido). Only the job owner (cliente) can cancel.
- * Allowed only when the job is in a cancellable state:
- *   - "aberto" (receiving proposals, no payment yet)
- *   - "aguardando_pagamento" (waiting for payment, can still back out)
+ * Cancela e EXCLUI definitivamente um pedido do banco de dados.
+ * Apenas o dono do pedido (cliente) pode executar essa ação.
+ * Permitido apenas para pedidos em estados não-iniciados ou cancelados:
+ *   - "aberto"
+ *   - "aguardando_pagamento"
+ *   - "cancelado"
  * 
- * Actions performed:
- *   1. Validates ownership and cancellable status
- *   2. Cancels any pending Asaas charges to prevent stale "cobrança vencida" emails
- *   3. Updates all related proposals to "cancelada"
- *   4. Updates the job status to "cancelado"
- *   5. Sends notifications to programmers who had proposals
- *   6. Returns success response
+ * Ações executadas:
+ *   1. Valida se o usuário é o dono do pedido
+ *   2. Cancela cobranças Asaas pendentes no gateway para evitar e-mails de vencimento
+ *   3. Notifica programadores que enviaram propostas
+ *   4. Exclui em cascata: proposal_messages, proposals, transactions, reviews, notifications
+ *   5. Remove permanentemente o registro da tabela `jobs`
  */
 export async function POST(
     request: Request,
@@ -41,38 +42,45 @@ export async function POST(
             .from('jobs')
             .select('id, title, cliente_id, status')
             .eq('id', jobId)
-            .single()
+            .maybeSingle()
 
-        if (jobError || !job) {
-            return NextResponse.json({ error: 'Pedido não encontrado.' }, { status: 404 })
+        if (jobError) {
+            console.error('Erro ao buscar pedido para cancelamento:', jobError)
+            return NextResponse.json({ error: jobError.message }, { status: 500 })
         }
 
-        // 2. Verify ownership — only the client who created the job can cancel
+        if (!job) {
+            // Se já não existe no banco, considera excluído com sucesso
+            return NextResponse.json({ 
+                success: true, 
+                message: 'Pedido já foi removido.' 
+            })
+        }
+
+        // 2. Verify ownership — only the client who created the job can cancel/delete
         if (job.cliente_id !== userId) {
             return NextResponse.json({ 
-                error: 'Apenas o dono do pedido pode cancelá-lo.' 
+                error: 'Apenas o dono do pedido pode cancelá-lo ou excluí-lo.' 
             }, { status: 403 })
         }
 
-        // 3. Check if job is in a cancellable state
-        const cancellableStatuses = ['aberto', 'aguardando_pagamento']
+        // 3. Check if job is in a deletable/cancellable state
+        const cancellableStatuses = ['aberto', 'aguardando_pagamento', 'cancelado']
         if (!cancellableStatuses.includes(job.status)) {
             return NextResponse.json({ 
-                error: `Não é possível cancelar um pedido com status "${job.status}". Apenas pedidos abertos ou aguardando pagamento podem ser cancelados.` 
+                error: `Não é possível excluir um pedido com status "${job.status}". Apenas pedidos em aberto, aguardando pagamento ou cancelados podem ser excluídos.` 
             }, { status: 400 })
         }
 
-        // 4. Cancel any pending Asaas charges to avoid stale "cobrança vencida" emails
+        // 4. Cancel any pending Asaas charges in gateway to avoid stale "cobrança vencida" emails
         const { data: pendingTransactions } = await supabase
             .from('transactions')
             .select('id, asaas_payment_id, status')
             .eq('job_id', jobId)
-            .in('status', ['pendente', 'aguardando'])
 
         if (pendingTransactions && pendingTransactions.length > 0) {
             for (const tx of pendingTransactions) {
-                // Cancel Asaas charge if exists
-                if (tx.asaas_payment_id) {
+                if (tx.asaas_payment_id && tx.status !== 'pago') {
                     try {
                         const ASAAS_API_URL = process.env.ASAAS_API_URL || 'https://sandbox.asaas.com/api/v3'
                         const ASAAS_API_KEY = process.env.ASAAS_API_KEY || ''
@@ -85,45 +93,26 @@ export async function POST(
                                     'access_token': ASAAS_API_KEY.trim().replace(/^['"]|['"]$/g, ''),
                                 },
                             })
-                            console.log(`✅ Asaas charge ${tx.asaas_payment_id} cancelled for job ${jobId}`)
+                            console.log(`✅ Cobrança Asaas ${tx.asaas_payment_id} cancelada para o pedido ${jobId}`)
                         }
                     } catch (asaasErr) {
-                        // Log but don't block cancellation — the charge will expire naturally
-                        console.warn(`⚠️ Failed to cancel Asaas charge ${tx.asaas_payment_id}:`, asaasErr)
+                        console.warn(`⚠️ Falha ao cancelar cobrança Asaas ${tx.asaas_payment_id}:`, asaasErr)
                     }
                 }
-
-                // Update transaction status to cancelled
-                await supabase
-                    .from('transactions')
-                    .update({ status: 'cancelado' })
-                    .eq('id', tx.id)
             }
         }
 
-        // 5. Fetch proposals to notify programmers
+        // 5. Fetch proposals
         const { data: proposals } = await supabase
             .from('proposals')
             .select('id, criador_id, status')
             .eq('job_id', jobId)
 
-        // Update all active proposals to cancelled
-        if (proposals && proposals.length > 0) {
-            const activeProposalIds = proposals
-                .filter(p => !['cancelada', 'recusada'].includes(p.status))
-                .map(p => p.id)
-
-            if (activeProposalIds.length > 0) {
-                await supabase
-                    .from('proposals')
-                    .update({ status: 'cancelada' })
-                    .in('id', activeProposalIds)
-            }
-
-            // Send notifications to all programmers who had proposals
+        // Se houver propostas ativas e o job ainda estava aberto/aguardando, notifica os criadores
+        if (proposals && proposals.length > 0 && job.status !== 'cancelado') {
             const uniqueCreatorIds = [...new Set(
                 proposals
-                    .filter(p => p.criador_id)
+                    .filter(p => p.criador_id && p.status !== 'recusada' && p.status !== 'cancelada')
                     .map(p => p.criador_id)
             )]
 
@@ -132,7 +121,7 @@ export async function POST(
                     user_id: creatorId,
                     type: 'pedido_cancelado',
                     title: 'Pedido Cancelado pelo Cliente',
-                    message: `O pedido "${job.title}" foi cancelado pelo cliente. Todas as propostas foram encerradas.`,
+                    message: `O pedido "${job.title}" foi cancelado pelo cliente e removido da plataforma.`,
                     link_url: `/pedidos`,
                     is_read: false,
                 }))
@@ -141,27 +130,61 @@ export async function POST(
             }
         }
 
-        // 6. Update job status to cancelled
-        const { error: updateError } = await supabase
+        // 6. Delete related data in order to respect foreign key constraints
+        const proposalIds = (proposals || []).map(p => p.id)
+        if (proposalIds.length > 0) {
+            // Delete messages from proposals
+            await supabase
+                .from('proposal_messages')
+                .delete()
+                .in('proposal_id', proposalIds)
+
+            // Delete proposals
+            await supabase
+                .from('proposals')
+                .delete()
+                .eq('job_id', jobId)
+        }
+
+        // Delete transactions for this job
+        await supabase
+            .from('transactions')
+            .delete()
+            .eq('job_id', jobId)
+
+        // Delete reviews if any
+        await supabase
+            .from('reviews')
+            .delete()
+            .eq('job_id', jobId)
+
+        // Clean up notifications pointing to this job
+        await supabase
+            .from('notifications')
+            .delete()
+            .like('link_url', `%${jobId}%`)
+
+        // 7. Delete the job record from database
+        const { error: deleteJobError } = await supabase
             .from('jobs')
-            .update({ status: 'cancelado' })
+            .delete()
             .eq('id', jobId)
 
-        if (updateError) {
-            console.error('Error updating job status:', updateError)
+        if (deleteJobError) {
+            console.error('Erro ao excluir pedido do banco:', deleteJobError)
             return NextResponse.json({ 
-                error: 'Erro ao atualizar o status do pedido.' 
+                error: 'Erro ao remover pedido do banco de dados.' 
             }, { status: 500 })
         }
 
-        console.log(`✅ Job ${jobId} ("${job.title}") cancelled by user ${userId}`)
+        console.log(`✅ Pedido ${jobId} ("${job.title}") EXCLUÍDO do banco de dados pelo usuário ${userId}`)
 
         return NextResponse.json({ 
             success: true, 
-            message: 'Pedido cancelado com sucesso.' 
+            message: 'Pedido excluído permanentemente do banco de dados.' 
         })
     } catch (err: any) {
-        console.error('Error in /api/jobs/[id]/cancel:', err)
+        console.error('Erro em POST /api/jobs/[id]/cancel:', err)
         return NextResponse.json({ 
             error: err.message || 'Erro interno do servidor.' 
         }, { status: 500 })

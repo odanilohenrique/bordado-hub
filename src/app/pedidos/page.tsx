@@ -5,7 +5,9 @@ import { supabase } from '@/lib/supabaseClient'
 import { useAuth } from '@/contexts/AuthContext'
 import JobCard from '@/components/JobCard'
 import Link from 'next/link'
-import { Plus, Inbox, Target } from 'lucide-react'
+import { Plus, Inbox, Target, Trash2, AlertCircle } from 'lucide-react'
+import { clearCache } from '@/lib/clientCache'
+import { toast } from 'sonner'
 import { getCached, setCached } from '@/lib/clientCache'
 
 function PedidoCardSkeleton() {
@@ -29,6 +31,45 @@ export default function PedidosPage() {
     const [jobs, setJobs] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
     const [filter, setFilter] = useState<string>('all')
+    const [jobToDelete, setJobToDelete] = useState<{ id: string; title: string } | null>(null)
+    const [isDeleting, setIsDeleting] = useState(false)
+
+    const handleConfirmDelete = async () => {
+        if (!jobToDelete) return
+        const currentUserId = profileId || getCached<string>('current_user_profile_id')
+        if (!currentUserId) {
+            toast.error('Sessão expirada. Faça login novamente.')
+            return
+        }
+        setIsDeleting(true)
+        try {
+            const res = await fetch(`/api/jobs/${jobToDelete.id}/cancel`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: currentUserId }),
+            })
+            const data = await res.json()
+            if (!res.ok) {
+                toast.error(data.error || 'Erro ao excluir pedido.')
+                setIsDeleting(false)
+                return
+            }
+
+            toast.success('Pedido excluído com sucesso!')
+            setJobs(prev => {
+                const next = prev.filter(j => j.id !== jobToDelete.id)
+                setCached('pedidos_jobs', next, 120000)
+                return next
+            })
+            clearCache()
+            setJobToDelete(null)
+        } catch (err) {
+            console.error('Erro ao excluir pedido:', err)
+            toast.error('Erro ao excluir pedido. Tente novamente.')
+        } finally {
+            setIsDeleting(false)
+        }
+    }
 
     useEffect(() => {
         let isMounted = true
@@ -199,11 +240,68 @@ export default function PedidosPage() {
                                         job={job}
                                         hasNegotiation={job.proposals?.some((p: { status: string }) => p.status === 'contraproposta')}
                                         viewerRole="client"
+                                        onDelete={(id, title) => setJobToDelete({ id, title })}
                                     />
                                 </div>
                             </div>
                         ))
                     )}
+                </div>
+            )}
+
+            {/* Modal de Confirmação para Excluir Pedido */}
+            {jobToDelete && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-[#12151C] border border-white/10 rounded-2xl p-6 max-w-md w-full shadow-2xl animate-in zoom-in-95 duration-200">
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="w-12 h-12 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center shrink-0">
+                                <Trash2 className="w-6 h-6 text-red-400" />
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-extrabold text-white">Excluir Pedido</h3>
+                                <p className="text-xs text-gray-400">Esta ação não poderá ser desfeita</p>
+                            </div>
+                        </div>
+
+                        <div className="bg-red-500/5 border border-red-500/15 rounded-xl p-4 mb-5">
+                            <p className="text-sm text-gray-300 leading-relaxed">
+                                Tem certeza que deseja apagar o pedido <strong className="text-white">&quot;{jobToDelete.title}&quot;</strong>?
+                            </p>
+                            <p className="text-xs text-gray-400 mt-2 flex items-center gap-1.5">
+                                <AlertCircle className="w-3.5 h-3.5 text-red-400 shrink-0" />
+                                Ele será removido permanentemente do banco de dados e do seu painel.
+                            </p>
+                        </div>
+
+                        <div className="flex gap-3">
+                            <button
+                                type="button"
+                                onClick={() => setJobToDelete(null)}
+                                disabled={isDeleting}
+                                className="flex-1 bg-white/5 border border-white/10 text-gray-400 font-bold py-3 rounded-xl hover:bg-white/10 transition-colors text-sm disabled:opacity-50"
+                            >
+                                Voltar
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleConfirmDelete}
+                                disabled={isDeleting}
+                                className="flex-1 bg-red-500 hover:bg-red-600 text-white font-black py-3 rounded-xl transition-all shadow-lg shadow-red-500/20 disabled:opacity-50 flex items-center justify-center gap-2 text-sm"
+                            >
+                                {isDeleting ? (
+                                    <>
+                                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                        Excluindo...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Trash2 className="w-4 h-4" />
+                                        Sim, Excluir
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    </div>
                 </div>
             )}
         </div>
