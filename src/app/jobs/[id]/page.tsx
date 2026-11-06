@@ -10,7 +10,7 @@ import NegotiationChat from '@/components/NegotiationChat'
 import { toast } from 'sonner'
 import JSZip from 'jszip'
 import { saveAs } from 'file-saver'
-import { clearCache } from '@/lib/clientCache'
+import { clearCache, getCached, setCached } from '@/lib/clientCache'
 
 interface ParsedMatrix {
     name: string
@@ -125,34 +125,101 @@ interface Proposal {
     }
 }
 
+function JobDetailSkeleton() {
+    return (
+        <div className="min-h-screen bg-[#0B0D11] py-4 px-4 sm:px-6 lg:px-8 text-slate-100 animate-pulse">
+            <div className="max-w-6xl mx-auto flex flex-col gap-4">
+                {/* Back button skeleton */}
+                <div className="h-4 w-36 bg-white/5 rounded-lg" />
+
+                {/* Status Progress Tracker Bar Skeleton */}
+                <div className="bg-[#12151C] border border-white/[0.07] rounded-2xl p-4 sm:p-5">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        {[1, 2, 3, 4].map(i => (
+                            <div key={i} className="flex items-center gap-3 p-2.5 rounded-xl bg-white/[0.03]">
+                                <div className="w-9 h-9 rounded-xl bg-white/10 shrink-0" />
+                                <div className="space-y-1.5 flex-1">
+                                    <div className="h-3 w-16 bg-white/10 rounded" />
+                                    <div className="h-2 w-24 bg-white/5 rounded" />
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                {/* Main Job Card Skeleton */}
+                <div className="bg-[#12151C] border border-white/[0.07] rounded-2xl overflow-hidden md:flex">
+                    <div className="w-full md:w-80 h-72 md:h-auto bg-[#0F1115] p-6 flex flex-col items-center justify-center border-b md:border-b-0 md:border-r border-white/5">
+                        <div className="w-48 h-48 rounded-xl bg-white/5" />
+                    </div>
+                    <div className="flex-1 p-6 flex flex-col justify-between space-y-4">
+                        <div className="space-y-3">
+                            <div className="flex justify-between items-start gap-4">
+                                <div className="h-7 w-2/3 bg-white/10 rounded-lg" />
+                                <div className="h-6 w-20 bg-white/5 rounded-full" />
+                            </div>
+                            <div className="h-4 w-32 bg-white/5 rounded-full" />
+                            <div className="h-24 bg-white/[0.03] border border-white/5 rounded-xl p-4 mt-3" />
+                        </div>
+                        <div className="h-10 w-full bg-white/5 rounded-xl mt-4" />
+                    </div>
+                </div>
+
+                {/* Proposals area skeleton */}
+                <div className="bg-[#12151C] border border-white/[0.07] rounded-2xl p-6">
+                    <div className="h-5 w-48 bg-white/10 rounded mb-4" />
+                    <div className="space-y-3">
+                        <div className="h-20 bg-white/[0.02] border border-white/5 rounded-xl" />
+                        <div className="h-20 bg-white/[0.02] border border-white/5 rounded-xl" />
+                    </div>
+                </div>
+            </div>
+        </div>
+    )
+}
+
 export default function JobDetail() {
     const params = useParams()
     const id = params?.id as string
 
-    if (!id) return (
-        <div className="min-h-screen bg-[#0F1115] flex items-center justify-center">
-            <div className="w-16 h-16 border-4 border-[#FFAE00]/30 border-t-[#FFAE00] rounded-full animate-spin" />
-        </div>
-    )
+    if (!id) return <JobDetailSkeleton />
 
     return (
-        <Suspense fallback={
-            <div className="min-h-screen bg-[#0F1115] flex items-center justify-center">
-                <div className="w-16 h-16 border-4 border-[#FFAE00]/30 border-t-[#FFAE00] rounded-full animate-spin" />
-            </div>
-        }>
+        <Suspense fallback={<JobDetailSkeleton />}>
             <JobDetailClient jobId={id} />
         </Suspense>
     )
 }
 
 function JobDetailClient({ jobId }: { jobId: string }) {
-    const [job, setJob] = useState<Job | null>(null)
+    // Instant cache read for 0ms transition without white/black flicker
+    const [job, setJob] = useState<Job | null>(() => {
+        const cached = getCached<any>(`job_detail_${jobId}`)
+        if (cached?.job) return cached.job
+        const fromPedidos = getCached<any[]>('pedidos_jobs')?.find((j: any) => j.id === jobId)
+        if (fromPedidos) return fromPedidos
+        const fromFeed = getCached<any[]>('jobs_all')?.find((j: any) => j.id === jobId) ||
+            getCached<any[]>('jobs_aberto')?.find((j: any) => j.id === jobId)
+        if (fromFeed) return fromFeed
+        return null
+    })
     const [selectedMatrixIdx, setSelectedMatrixIdx] = useState(0)
-    const [proposals, setProposals] = useState<Proposal[]>([])
+    const [proposals, setProposals] = useState<Proposal[]>(() => {
+        const cached = getCached<any>(`job_detail_${jobId}`)
+        return cached?.proposals || []
+    })
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [currentUser, setCurrentUser] = useState<any>(null)
-    const [loading, setLoading] = useState(true)
+    const [loading, setLoading] = useState<boolean>(() => {
+        const cached = getCached<any>(`job_detail_${jobId}`)
+        if (cached?.job) return false
+        const fromPedidos = getCached<any[]>('pedidos_jobs')?.find((j: any) => j.id === jobId)
+        if (fromPedidos) return false
+        const fromFeed = getCached<any[]>('jobs_all')?.find((j: any) => j.id === jobId) ||
+            getCached<any[]>('jobs_aberto')?.find((j: any) => j.id === jobId)
+        if (fromFeed) return false
+        return true
+    })
 
     // Proposal form
     const [amount, setAmount] = useState('')
@@ -244,6 +311,8 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                 if (apiData.review) setJobReview(apiData.review)
                 if (apiData.transaction) setJobTransaction(apiData.transaction)
                 if (apiData.unreadCounts) setUnreadCounts(apiData.unreadCounts)
+                // Cache this detail for fast back-and-forth navigation
+                setCached(`job_detail_${jobId}`, apiData, 120000)
             }
 
             // Auto-mark notifications for this job as read
@@ -1002,11 +1071,9 @@ function JobDetailClient({ jobId }: { jobId: string }) {
     }
     const activeImageUrl = currentMatrix?.image_url || job?.image_urls?.[safeMatrixIdx] || job?.image_urls?.[0] || null
 
-    if (loading) return (
-        <div className="min-h-screen bg-[#0F1115] flex items-center justify-center">
-            <div className="w-16 h-16 border-4 border-[#FFAE00]/30 border-t-[#FFAE00] rounded-full animate-spin" />
-        </div>
-    )
+    if (loading && !job) {
+        return <JobDetailSkeleton />
+    }
 
     if (!job) return (
         <div className="min-h-screen bg-[#0F1115] flex items-center justify-center text-[#F3F4F6]">

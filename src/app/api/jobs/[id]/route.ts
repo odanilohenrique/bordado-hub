@@ -13,12 +13,30 @@ export async function GET(
 
         const supabase = createServiceClient()
 
-        // 1. Fetch job with client info
-        const { data: job, error: jobError } = await supabase
-            .from('jobs')
-            .select('*, users!jobs_cliente_id_fkey(name, avatar_url)')
-            .eq('id', jobId)
-            .maybeSingle()
+        // 1 & 2. Fetch job and proposals in PARALLEL to cut server latency in half
+        const [jobResult, proposalsResult] = await Promise.all([
+            supabase
+                .from('jobs')
+                .select('*, users!jobs_cliente_id_fkey(name, avatar_url)')
+                .eq('id', jobId)
+                .maybeSingle(),
+            supabase
+                .from('proposals')
+                .select(`
+                    *,
+                    users:criador_id (
+                        id,
+                        name,
+                        avatar_url,
+                        rating
+                    )
+                `)
+                .eq('job_id', jobId)
+                .order('created_at', { ascending: false })
+        ])
+
+        const { data: job, error: jobError } = jobResult
+        const { data: proposals, error: proposalsError } = proposalsResult
 
         if (jobError) {
             console.error('API Error fetching job:', jobError)
@@ -29,63 +47,50 @@ export async function GET(
             return NextResponse.json({ error: 'Job não encontrado' }, { status: 404 })
         }
 
-        // 2. Fetch proposals with creator details
-        const { data: proposals, error: proposalsError } = await supabase
-            .from('proposals')
-            .select(`
-                *,
-                users:criador_id (
-                    id,
-                    name,
-                    avatar_url,
-                    rating
-                )
-            `)
-            .eq('job_id', jobId)
-            .order('created_at', { ascending: false })
-
         if (proposalsError) {
             console.error('API Error fetching proposals:', proposalsError)
         }
 
-        // 3. Fetch review & transaction if job is finalized
-        let review = null
-        let transaction = null
-        if (job.status === 'finalizado') {
-            const [{ data: rev }, { data: tx }] = await Promise.all([
-                supabase
-                    .from('reviews')
-                    .select('*')
-                    .eq('job_id', jobId)
-                    .maybeSingle(),
-                supabase
-                    .from('transactions')
-                    .select('metodo, status')
-                    .eq('job_id', jobId)
-                    .order('created_at', { ascending: false })
-                    .limit(1)
-                    .maybeSingle()
-            ])
-            review = rev || null
-            transaction = tx || null
-        }
-
-        // 4. Unread messages count for proposals
-        const unreadCounts: Record<string, number> = {}
         const proposalList = proposals || []
-        if (proposalList.length > 0) {
-            const proposalIds = proposalList.map((p: any) => p.id)
-            const { data: messages } = await supabase
-                .from('proposal_messages')
-                .select('proposal_id, sender_id, read')
-                .in('proposal_id', proposalIds)
-                .eq('read', false)
+        const proposalIds = proposalList.map((p: any) => p.id)
 
-            if (messages) {
-                messages.forEach((msg: any) => {
-                    unreadCounts[msg.proposal_id] = (unreadCounts[msg.proposal_id] || 0) + 1
-                })
-            }
+        // 3 & 4. Fetch review/transaction and unread messages in PARALLEL
+        const reviewPromise = job.status === 'finalizado'
+            ? (async () => {
+                const { data } = await supabase.from('reviews').select('*').eq('job_id', jobId).maybeSingle()
+                return data || null
+            })()
+            : Promise.resolve(null)
+
+        const transactionPromise = job.status === 'finalizado'
+            ? (async () => {
+                const { data } = await supabase.from('transactions').select('metodo, status').eq('job_id', jobId).order('created_at', { ascending: false }).limit(1).maybeSingle()
+                return data || null
+            })()
+            : Promise.resolve(null)
+
+        const unreadPromise = proposalIds.length > 0
+            ? (async () => {
+                const { data } = await supabase
+                    .from('proposal_messages')
+                    .select('proposal_id, sender_id, read')
+                    .in('proposal_id', proposalIds)
+                    .eq('read', false)
+                return data || []
+            })()
+            : Promise.resolve([])
+
+        const [review, transaction, unreadMessages] = await Promise.all([
+            reviewPromise,
+            transactionPromise,
+            unreadPromise
+        ])
+
+        const unreadCounts: Record<string, number> = {}
+        if (Array.isArray(unreadMessages)) {
+            unreadMessages.forEach((msg: any) => {
+                unreadCounts[msg.proposal_id] = (unreadCounts[msg.proposal_id] || 0) + 1
+            })
         }
 
         return NextResponse.json({

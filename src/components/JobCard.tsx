@@ -2,6 +2,7 @@
 
 import { formatDate } from '@/lib/helpers'
 import Link from 'next/link'
+import { setCached } from '@/lib/clientCache'
 import Image from 'next/image'
 import { Clock, ArrowRight, User, Calendar, Layers, Zap, Image as ImageIcon, Target, Handshake, Sparkles, Send, CheckCircle, Wrench, Package, Maximize2, Trash2 } from 'lucide-react'
 
@@ -158,6 +159,12 @@ export default function JobCard({ job, hasNegotiation, viewerRole, proposalCount
         <Link
             href={`/jobs/${job.id}`}
             className="block group"
+            onMouseEnter={() => {
+                try { setCached(`job_detail_${job.id}`, { job }, 120000) } catch {}
+            }}
+            onClick={() => {
+                try { setCached(`job_detail_${job.id}`, { job }, 120000) } catch {}
+            }}
         >
             <div className={`bg-[#12151C] border border-white/[0.07] hover:border-[#F5A623]/35 rounded-2xl overflow-hidden transition-all duration-300 md:flex interactive-card shadow-lg ${hasNegotiation ? 'ring-2 ring-red-500 ring-offset-2 ring-offset-[#0B0D11]' : ''}`}>
 
