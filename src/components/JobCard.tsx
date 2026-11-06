@@ -162,6 +162,9 @@ export default function JobCard({ job, hasNegotiation, viewerRole, proposalCount
             onMouseEnter={() => {
                 try { setCached(`job_detail_${job.id}`, { job }, 120000) } catch {}
             }}
+            onTouchStart={() => {
+                try { setCached(`job_detail_${job.id}`, { job }, 120000) } catch {}
+            }}
             onClick={() => {
                 try { setCached(`job_detail_${job.id}`, { job }, 120000) } catch {}
             }}

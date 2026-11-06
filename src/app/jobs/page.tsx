@@ -27,8 +27,15 @@ function JobCardSkeleton() {
 export default function JobsPage() {
     const { profileId } = useAuth()
     const [filter, setFilter] = useState<string>('all')
-    const [jobs, setJobs] = useState<any[]>([])
-    const [loading, setLoading] = useState<boolean>(true)
+    const [jobs, setJobs] = useState<any[]>(() => {
+        if (typeof window === 'undefined') return []
+        return getCached<any[]>('jobs_all') || []
+    })
+    const [loading, setLoading] = useState<boolean>(() => {
+        if (typeof window === 'undefined') return true
+        const cached = getCached<any[]>('jobs_all')
+        return !(cached && cached.length > 0)
+    })
     const [currentUserId, setCurrentUserId] = useState<string | null>(profileId || null)
     const [lostBids, setLostBids] = useState<Set<string>>(new Set())
 
@@ -41,9 +48,11 @@ export default function JobsPage() {
     useEffect(() => {
         // If cached for this filter, display instantly without spinner
         const cached = getCached<any[]>(`jobs_${filter}`)
-        if (cached) {
+        if (cached && cached.length > 0) {
             setJobs(cached)
             setLoading(false)
+        } else if (jobs.length === 0) {
+            setLoading(true)
         }
 
         async function fetchJobs() {
@@ -94,7 +103,7 @@ export default function JobsPage() {
 
                 // Timeout promise to guarantee the page NEVER hangs forever (6s safety net)
                 const timeoutPromise = new Promise<{ data: any; error: any }>((resolve) =>
-                    setTimeout(() => resolve({ data: null, error: new Error('Jobs query timeout') }), 6000)
+                    setTimeout(() => resolve({ data: null, error: new Error('Jobs query timeout') }), 3000)
                 )
 
                 // Execute jobs query and proposals in parallel with timeout safety net

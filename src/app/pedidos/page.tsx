@@ -28,8 +28,15 @@ function PedidoCardSkeleton() {
 
 export default function PedidosPage() {
     const { profileId, loading: authLoading } = useAuth()
-    const [jobs, setJobs] = useState<any[]>([])
-    const [loading, setLoading] = useState(true)
+    const [jobs, setJobs] = useState<any[]>(() => {
+        if (typeof window === 'undefined') return []
+        return getCached<any[]>('pedidos_jobs') || []
+    })
+    const [loading, setLoading] = useState<boolean>(() => {
+        if (typeof window === 'undefined') return true
+        const cached = getCached<any[]>('pedidos_jobs')
+        return !(cached && cached.length > 0)
+    })
     const [filter, setFilter] = useState<string>('all')
     const [jobToDelete, setJobToDelete] = useState<{ id: string; title: string } | null>(null)
     const [isDeleting, setIsDeleting] = useState(false)
