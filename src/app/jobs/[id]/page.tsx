@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabaseClient'
 import { useRouter, useParams, useSearchParams } from 'next/navigation'
 import { formatDate } from '@/lib/helpers'
 import Link from 'next/link'
-import { ArrowLeft, Clock, Calendar, MessageSquare, AlertCircle, CheckCircle, Package, Zap, User, X, Star, PenTool, Download, Upload, Send, Sparkles, DollarSign, Wrench, Camera, RotateCcw, Ruler, Maximize2, Handshake, Check, Code, Loader2 } from 'lucide-react'
+import { ArrowLeft, Clock, Calendar, MessageSquare, AlertCircle, CheckCircle, Package, Zap, User, X, Star, PenTool, Download, Upload, Send, Sparkles, DollarSign, Wrench, Camera, RotateCcw, Ruler, Maximize2, Handshake, Check, Code, Loader2, Trash2 } from 'lucide-react'
 import NegotiationChat from '@/components/NegotiationChat'
 import { toast } from 'sonner'
 import JSZip from 'jszip'
@@ -197,6 +197,10 @@ function JobDetailClient({ jobId }: { jobId: string }) {
     const [revisionNotes, setRevisionNotes] = useState('')
     const [revisionPhoto, setRevisionPhoto] = useState<File | null>(null)
     const [submittingRevision, setSubmittingRevision] = useState(false)
+
+    // Cancel/Delete job state
+    const [showCancelModal, setShowCancelModal] = useState(false)
+    const [cancelling, setCancelling] = useState(false)
 
     const router = useRouter()
     const isFetchingRef = useRef(false)
@@ -960,6 +964,33 @@ function JobDetailClient({ jobId }: { jobId: string }) {
         }
     }
 
+    // Cancel/Delete job handler
+    const handleCancelJob = async () => {
+        if (!job || !currentUser) return
+        setCancelling(true)
+        try {
+            const res = await fetch(`/api/jobs/${job.id}/cancel`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: currentUser.id }),
+            })
+            const data = await res.json()
+            if (!res.ok) {
+                toast.error(data.error || 'Erro ao cancelar pedido.')
+                setCancelling(false)
+                return
+            }
+            toast.success('Pedido cancelado com sucesso!')
+            clearCache()
+            setShowCancelModal(false)
+            router.push('/pedidos')
+        } catch (err) {
+            console.error('Error cancelling job:', err)
+            toast.error('Erro ao cancelar pedido. Tente novamente.')
+            setCancelling(false)
+        }
+    }
+
     const matrixList = useMemo(() => getMatrixList(job), [job])
     const safeMatrixIdx = Math.min(selectedMatrixIdx, Math.max(0, matrixList.length - 1))
     const currentMatrix = matrixList[safeMatrixIdx] || matrixList[0] || {
@@ -1186,6 +1217,18 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                         <span className="px-3.5 py-1.5 bg-[#FFAE00]/10 text-[#FFAE00] border border-[#FFAE00]/25 rounded-full text-xs font-bold tracking-wider uppercase">
                                             {job.status.replace('_', ' ')}
                                         </span>
+                                        {/* Botão Cancelar Pedido — visível apenas para o dono e em status cancelável */}
+                                        {isOwner && ['aberto', 'aguardando_pagamento'].includes(job.status) && (
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowCancelModal(true)}
+                                                className="px-3 py-1.5 bg-red-500/10 text-red-400 border border-red-500/25 rounded-full text-xs font-bold tracking-wider uppercase hover:bg-red-500/20 hover:border-red-500/40 transition-all flex items-center gap-1.5"
+                                                title="Cancelar este pedido"
+                                            >
+                                                <Trash2 className="w-3 h-3" />
+                                                Cancelar
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
 
@@ -2874,6 +2917,72 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                         )}
                                     </button>
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Modal de Confirmação — Cancelar/Excluir Pedido */}
+                {showCancelModal && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+                        <div className="bg-[#12151C] border border-white/10 rounded-2xl p-6 max-w-md w-full shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+                            <div className="flex items-center gap-3 mb-4">
+                                <div className="w-12 h-12 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center shrink-0">
+                                    <Trash2 className="w-6 h-6 text-red-400" />
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-extrabold text-white">Cancelar Pedido</h3>
+                                    <p className="text-xs text-gray-400">Esta ação não pode ser desfeita</p>
+                                </div>
+                            </div>
+
+                            <div className="bg-red-500/5 border border-red-500/15 rounded-xl p-4 mb-5">
+                                <p className="text-sm text-gray-300 leading-relaxed">
+                                    Tem certeza que deseja cancelar o pedido <strong className="text-white">&quot;{job?.title}&quot;</strong>?
+                                </p>
+                                <ul className="mt-3 space-y-1.5 text-xs text-gray-400">
+                                    <li className="flex items-start gap-2">
+                                        <AlertCircle className="w-3.5 h-3.5 text-red-400 shrink-0 mt-0.5" />
+                                        Todas as propostas recebidas serão canceladas
+                                    </li>
+                                    <li className="flex items-start gap-2">
+                                        <AlertCircle className="w-3.5 h-3.5 text-red-400 shrink-0 mt-0.5" />
+                                        Cobranças pendentes serão canceladas automaticamente
+                                    </li>
+                                    <li className="flex items-start gap-2">
+                                        <AlertCircle className="w-3.5 h-3.5 text-red-400 shrink-0 mt-0.5" />
+                                        Os programadores serão notificados do cancelamento
+                                    </li>
+                                </ul>
+                            </div>
+
+                            <div className="flex gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowCancelModal(false)}
+                                    disabled={cancelling}
+                                    className="flex-1 bg-white/5 border border-white/10 text-gray-400 font-bold py-3 rounded-xl hover:bg-white/10 transition-colors text-sm disabled:opacity-50"
+                                >
+                                    Voltar
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleCancelJob}
+                                    disabled={cancelling}
+                                    className="flex-1 bg-red-500 hover:bg-red-600 text-white font-black py-3 rounded-xl transition-all shadow-lg shadow-red-500/20 disabled:opacity-50 flex items-center justify-center gap-2 text-sm"
+                                >
+                                    {cancelling ? (
+                                        <>
+                                            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                            Cancelando...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Trash2 className="w-4 h-4" />
+                                            Sim, Cancelar Pedido
+                                        </>
+                                    )}
+                                </button>
                             </div>
                         </div>
                     </div>
