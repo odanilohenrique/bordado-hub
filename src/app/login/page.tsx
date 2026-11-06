@@ -16,6 +16,8 @@ function LoginForm() {
     const router = useRouter()
     const searchParams = useSearchParams()
     const redirectUrl = searchParams.get('redirect')
+    const conviteParam = searchParams.get('convite') || searchParams.get('invite')
+    const effectiveRedirect = redirectUrl || (conviteParam ? `/profile/me?convite=${conviteParam}` : null)
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -34,8 +36,8 @@ function LoginForm() {
         } else {
             console.log('Login successful')
 
-            if (redirectUrl && redirectUrl.startsWith('/')) {
-                router.push(redirectUrl)
+            if (effectiveRedirect && effectiveRedirect.startsWith('/')) {
+                router.push(effectiveRedirect)
                 router.refresh()
                 return
             }
@@ -168,7 +170,7 @@ function LoginForm() {
                         <p className="text-sm text-gray-400">
                             Não tem uma conta?{' '}
                             <Link
-                                href={redirectUrl ? `/register?redirect=${encodeURIComponent(redirectUrl)}` : '/register'}
+                                href={effectiveRedirect ? `/register?redirect=${encodeURIComponent(effectiveRedirect)}` : '/register'}
                                 className="text-[#FFAE00] hover:text-[#FF8C00] font-semibold transition-colors"
                             >
                                 Criar conta grátis

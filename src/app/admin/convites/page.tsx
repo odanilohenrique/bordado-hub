@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { Key, Shield, Plus, Copy, Check, Users, Sparkles, AlertCircle, RefreshCw, Lock, Phone, Mail, MessageSquare, Code2 } from 'lucide-react'
+import { Key, Shield, Plus, Copy, Check, Users, Sparkles, AlertCircle, RefreshCw, Lock, Phone, Mail, MessageSquare, Code2, Link2, ExternalLink, Share2, CheckCircle2 } from 'lucide-react'
 
 interface Invite {
     id: string
@@ -41,6 +41,8 @@ export default function AdminInvitesPage() {
     const [maxUses, setMaxUses] = useState(1)
     const [creating, setCreating] = useState(false)
     const [createSuccess, setCreateSuccess] = useState<string | null>(null)
+    const [lastGeneratedInvite, setLastGeneratedInvite] = useState<{ code: string; url: string } | null>(null)
+    const [linkCodeInput, setLinkCodeInput] = useState('')
 
     useEffect(() => {
         const savedSecret = sessionStorage.getItem('bh_admin_secret')
@@ -77,8 +79,12 @@ export default function AdminInvitesPage() {
 
             const waitlistData = await waitlistRes.json()
 
-            setInvites(invitesData.invites || [])
+            const list = invitesData.invites || []
+            setInvites(list)
             setWaitlist(waitlistData.waitlist || [])
+            if (list.length > 0) {
+                setLinkCodeInput(prev => prev || list[0].code)
+            }
             setIsAuthenticated(true)
             sessionStorage.setItem('bh_admin_secret', secret.trim())
         } catch (err: any) {
@@ -112,7 +118,11 @@ export default function AdminInvitesPage() {
                 throw new Error(data.error || 'Erro ao gerar convite.')
             }
 
-            setCreateSuccess(`Convite ${data.invite.code} gerado com sucesso!`)
+            const newCode = data.invite.code
+            const newUrl = getInviteUrl(newCode)
+            setCreateSuccess(`Convite ${newCode} gerado com sucesso!`)
+            setLastGeneratedInvite({ code: newCode, url: newUrl })
+            setLinkCodeInput(newCode)
             setCustomCode('')
             setMaxUses(1)
             fetchData(adminSecret)
@@ -132,6 +142,14 @@ export default function AdminInvitesPage() {
     const getInviteUrl = (code: string) => {
         if (typeof window === 'undefined') return ''
         return `${window.location.origin}/profile/me?convite=${code}`
+    }
+
+    const shareOnWhatsApp = (code: string) => {
+        const url = getInviteUrl(code)
+        const text = encodeURIComponent(
+            `Olá! Aqui é da equipe do BordadoHUB.\n\nSegue seu convite exclusivo para ativar seu perfil de programador:\n\n🔗 Link de ativação (código já aplicado):\n${url}\n\n🔑 Código: ${code}\n\nAo clicar no link, o código já fica preenchido e seu perfil de programador é ativado na hora. Seja bem-vindo!`
+        )
+        window.open(`https://wa.me/?text=${text}`, '_blank')
     }
 
     const openWhatsAppInvite = (candidate: WaitlistCandidate) => {
@@ -355,10 +373,59 @@ export default function AdminInvitesPage() {
                                         </div>
                                     </form>
 
-                                    {createSuccess && (
-                                        <div className="mt-4 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs flex items-center gap-2">
-                                            <Check className="w-4 h-4 shrink-0" />
-                                            <span>{createSuccess}</span>
+                                    {lastGeneratedInvite && (
+                                        <div className="mt-5 p-5 rounded-2xl bg-gradient-to-r from-[#FFAE00]/10 via-[#FFAE00]/5 to-transparent border border-[#FFAE00]/30 animate-in fade-in slide-in-from-top-2 duration-300">
+                                            <div className="flex items-center gap-2 mb-2 text-emerald-400 text-sm font-bold">
+                                                <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+                                                <span>Convite <span className="font-mono text-white underline">{lastGeneratedInvite.code}</span> gerado com sucesso!</span>
+                                            </div>
+                                            <p className="text-xs text-gray-300 mb-3 leading-relaxed">
+                                                O link abaixo já possui o código aplicado. Ao clicar, o cliente já abre a tela com o convite ativado:
+                                            </p>
+                                            
+                                            {/* Campo com o link gerado */}
+                                            <div className="flex flex-col sm:flex-row gap-2 mb-3">
+                                                <input
+                                                    type="text"
+                                                    readOnly
+                                                    value={lastGeneratedInvite.url}
+                                                    className="flex-1 bg-[#0B0D11] border border-[#FFAE00]/40 rounded-xl px-4 py-2.5 text-xs text-[#FFAE00] font-mono select-all focus:outline-none"
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => copyToClipboard(lastGeneratedInvite.url, 'created_link')}
+                                                    className="px-4 py-2.5 bg-gradient-to-r from-[#FFB703] to-[#FB8500] hover:brightness-110 active:scale-95 text-black font-extrabold text-xs rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-md shadow-[#FFB703]/20 shrink-0"
+                                                >
+                                                    {copiedCode === 'created_link' ? (
+                                                        <>
+                                                            <Check className="w-3.5 h-3.5" />
+                                                            <span>Link Copiado!</span>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <Copy className="w-3.5 h-3.5" />
+                                                            <span>Copiar Link Completo</span>
+                                                        </>
+                                                    )}
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => copyToClipboard(lastGeneratedInvite.code, 'created_code')}
+                                                    className="px-3.5 py-2.5 bg-white/5 hover:bg-white/10 text-gray-200 border border-white/10 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 shrink-0"
+                                                    title="Copiar apenas o código"
+                                                >
+                                                    {copiedCode === 'created_code' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Key className="w-3.5 h-3.5" />}
+                                                    <span>{copiedCode === 'created_code' ? 'Código Copiado!' : 'Copiar Código'}</span>
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => shareOnWhatsApp(lastGeneratedInvite.code)}
+                                                    className="px-3.5 py-2.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 shrink-0"
+                                                >
+                                                    <MessageSquare className="w-3.5 h-3.5" />
+                                                    <span>WhatsApp</span>
+                                                </button>
+                                            </div>
                                         </div>
                                     )}
 
@@ -366,6 +433,121 @@ export default function AdminInvitesPage() {
                                         <div className="mt-4 p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs flex items-center gap-2">
                                             <AlertCircle className="w-4 h-4 shrink-0" />
                                             <span>{error}</span>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Card: Gerador e Copiador de Link com Código Aplicado */}
+                                <div className="bg-[#12151C] border border-[#FFAE00]/30 rounded-2xl p-6 shadow-xl space-y-4">
+                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                        <div>
+                                            <h2 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                                                <Link2 className="w-4 h-4 text-[#FFAE00]" />
+                                                Gerador de Link com Código Aplicado
+                                            </h2>
+                                            <p className="text-xs text-gray-400 mt-1">
+                                                Escolha ou digite um código para gerar o link direto. O cliente clica no link e o código já fica aplicado automaticamente!
+                                            </p>
+                                        </div>
+                                        {invites.length > 0 && (
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-[11px] text-gray-400 font-semibold shrink-0">Selecionar convite existente:</span>
+                                                <select
+                                                    value={linkCodeInput}
+                                                    onChange={(e) => setLinkCodeInput(e.target.value)}
+                                                    className="bg-[#0B0D11] border border-white/10 rounded-xl px-3 py-1.5 text-xs text-[#FFAE00] focus:outline-none focus:border-[#FFAE00] font-mono font-bold"
+                                                >
+                                                    <option value="">-- Escolha um convite --</option>
+                                                    {invites.map(inv => (
+                                                        <option key={inv.id} value={inv.code}>
+                                                            {inv.code} ({inv.current_uses}/{inv.max_uses} usos)
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5 pt-1">
+                                        <div className="lg:col-span-4">
+                                            <label className="block text-[11px] font-bold text-gray-400 mb-1.5 uppercase tracking-wider">
+                                                Código do Convite
+                                            </label>
+                                            <div className="relative">
+                                                <input
+                                                    type="text"
+                                                    value={linkCodeInput}
+                                                    onChange={(e) => setLinkCodeInput(e.target.value.toUpperCase())}
+                                                    placeholder="Digite ou escolha um código..."
+                                                    className="w-full bg-[#0B0D11] border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#FFAE00] uppercase font-mono font-bold"
+                                                />
+                                                {linkCodeInput.trim() && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => copyToClipboard(linkCodeInput.trim(), 'generator_code_only')}
+                                                        className="absolute right-2 top-1/2 -translate-y-1/2 px-2 py-1 rounded bg-white/5 hover:bg-white/10 text-[10px] text-gray-300 flex items-center gap-1 font-semibold"
+                                                        title="Copiar apenas o código"
+                                                    >
+                                                        {copiedCode === 'generator_code_only' ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                                                        <span>{copiedCode === 'generator_code_only' ? 'Copiado!' : 'Copiar Código'}</span>
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        <div className="lg:col-span-8">
+                                            <label className="block text-[11px] font-bold text-gray-400 mb-1.5 uppercase tracking-wider">
+                                                Link Direto para Enviar ao Cliente (Código já Aplicado)
+                                            </label>
+                                            <div className="flex flex-col sm:flex-row gap-2">
+                                                <input
+                                                    type="text"
+                                                    readOnly
+                                                    value={linkCodeInput.trim() ? getInviteUrl(linkCodeInput.trim()) : 'Selecione ou digite um código ao lado para visualizar o link...'}
+                                                    className="flex-1 bg-[#0B0D11] border border-[#FFAE00]/30 rounded-xl px-4 py-2.5 text-xs text-[#FFAE00] font-mono select-all focus:outline-none"
+                                                />
+                                                <button
+                                                    type="button"
+                                                    disabled={!linkCodeInput.trim()}
+                                                    onClick={() => copyToClipboard(getInviteUrl(linkCodeInput.trim()), 'generator_full_link')}
+                                                    className="px-5 py-2.5 bg-gradient-to-r from-[#FFB703] to-[#FB8500] hover:brightness-110 active:scale-95 text-black font-extrabold text-xs rounded-xl transition-all disabled:opacity-40 flex items-center justify-center gap-1.5 shadow-md shadow-[#FFB703]/20 shrink-0"
+                                                >
+                                                    {copiedCode === 'generator_full_link' ? (
+                                                        <>
+                                                            <Check className="w-4 h-4" />
+                                                            <span>Link Copiado!</span>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <Copy className="w-4 h-4" />
+                                                            <span>Copiar Link Completo</span>
+                                                        </>
+                                                    )}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {linkCodeInput.trim() && (
+                                        <div className="flex flex-wrap items-center gap-3 pt-3 border-t border-white/[0.06]">
+                                            <span className="text-xs text-gray-400">Opções de compartilhamento:</span>
+                                            <button
+                                                type="button"
+                                                onClick={() => shareOnWhatsApp(linkCodeInput.trim())}
+                                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 transition-all active:scale-95 shadow-sm"
+                                            >
+                                                <MessageSquare className="w-3.5 h-3.5" />
+                                                <span>Enviar pelo WhatsApp</span>
+                                            </button>
+                                            <a
+                                                href={getInviteUrl(linkCodeInput.trim())}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white border border-white/10 transition-all"
+                                            >
+                                                <ExternalLink className="w-3.5 h-3.5 text-[#FFAE00]" />
+                                                <span>Testar Link (Nova Aba)</span>
+                                            </a>
                                         </div>
                                     )}
                                 </div>
@@ -450,22 +632,33 @@ export default function AdminInvitesPage() {
                                                                 </td>
 
                                                                 <td className="py-4 px-6 text-right">
-                                                                    <button
-                                                                        onClick={() => copyToClipboard(inviteUrl, `link_${inv.id}`)}
-                                                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white border border-white/10 transition-all"
-                                                                    >
-                                                                        {copiedCode === `link_${inv.id}` ? (
-                                                                            <>
-                                                                                <Check className="w-3.5 h-3.5 text-emerald-400" />
-                                                                                <span className="text-emerald-400">Link Copiado!</span>
-                                                                            </>
-                                                                        ) : (
-                                                                            <>
-                                                                                <Copy className="w-3.5 h-3.5" />
-                                                                                <span>Copiar Link</span>
-                                                                            </>
-                                                                        )}
-                                                                    </button>
+                                                                    <div className="flex items-center justify-end gap-2">
+                                                                        <button
+                                                                            onClick={() => copyToClipboard(inviteUrl, `link_${inv.id}`)}
+                                                                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-[#FFAE00]/10 hover:bg-[#FFAE00]/20 text-[#FFAE00] border border-[#FFAE00]/25 transition-all shadow-sm"
+                                                                            title="Copiar link completo com código aplicado"
+                                                                        >
+                                                                            {copiedCode === `link_${inv.id}` ? (
+                                                                                <>
+                                                                                    <Check className="w-3.5 h-3.5 text-emerald-400" />
+                                                                                    <span className="text-emerald-400">Link Copiado!</span>
+                                                                                </>
+                                                                            ) : (
+                                                                                <>
+                                                                                    <Copy className="w-3.5 h-3.5" />
+                                                                                    <span>Copiar Link</span>
+                                                                                </>
+                                                                            )}
+                                                                        </button>
+                                                                        <button
+                                                                            onClick={() => shareOnWhatsApp(inv.code)}
+                                                                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/25 transition-all"
+                                                                            title="Mandar no WhatsApp"
+                                                                        >
+                                                                            <MessageSquare className="w-3.5 h-3.5" />
+                                                                            <span className="hidden sm:inline">WhatsApp</span>
+                                                                        </button>
+                                                                    </div>
                                                                 </td>
                                                             </tr>
                                                         )

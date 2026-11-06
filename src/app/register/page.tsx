@@ -24,6 +24,8 @@ function RegisterForm() {
     const router = useRouter()
     const searchParams = useSearchParams()
     const redirectUrl = searchParams.get('redirect')
+    const conviteParam = searchParams.get('convite') || searchParams.get('invite')
+    const effectiveRedirect = redirectUrl || (conviteParam ? `/profile/me?convite=${conviteParam}` : null)
 
     const handleRegister = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -46,7 +48,7 @@ function RegisterForm() {
         try {
             // 1. Criar usuário no Supabase Auth com link de retorno
             const callbackUrl = typeof window !== 'undefined'
-                ? `${window.location.origin}/auth/callback?next=${encodeURIComponent(redirectUrl || '/jobs')}`
+                ? `${window.location.origin}/auth/callback?next=${encodeURIComponent(effectiveRedirect || '/jobs')}`
                 : undefined
 
             const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -99,8 +101,8 @@ function RegisterForm() {
             }
 
             // Se o e-mail já estiver confirmado ou a confirmação estiver desativada no Supabase
-            if (redirectUrl && redirectUrl.startsWith('/')) {
-                router.push(redirectUrl)
+            if (effectiveRedirect && effectiveRedirect.startsWith('/')) {
+                router.push(effectiveRedirect)
             } else {
                 router.push('/jobs')
             }
@@ -118,7 +120,7 @@ function RegisterForm() {
         setResendMessage(null)
         try {
             const callbackUrl = typeof window !== 'undefined'
-                ? `${window.location.origin}/auth/callback?next=${encodeURIComponent(redirectUrl || '/jobs')}`
+                ? `${window.location.origin}/auth/callback?next=${encodeURIComponent(effectiveRedirect || '/jobs')}`
                 : undefined
 
             const { error: resendErr } = await supabase.auth.resend({
@@ -198,7 +200,7 @@ function RegisterForm() {
 
                             <div className="pt-2 space-y-3">
                                 <Link
-                                    href={redirectUrl ? `/login?redirect=${encodeURIComponent(redirectUrl)}` : '/login'}
+                                    href={effectiveRedirect ? `/login?redirect=${encodeURIComponent(effectiveRedirect)}` : '/login'}
                                     className="w-full flex items-center justify-center gap-2 py-3.5 px-4 bg-gradient-to-r from-[#FFB703] to-[#FB8500] hover:brightness-110 active:scale-95 text-black font-black text-sm rounded-xl transition-all shadow-lg shadow-[#FFB703]/10"
                                 >
                                     <span>Já confirmei, ir para o Login</span>
@@ -358,7 +360,7 @@ function RegisterForm() {
                             {/* Login Link */}
                             <div className="mt-5">
                                 <Link
-                                    href={redirectUrl ? `/login?redirect=${encodeURIComponent(redirectUrl)}` : '/login'}
+                                    href={effectiveRedirect ? `/login?redirect=${encodeURIComponent(effectiveRedirect)}` : '/login'}
                                     className="w-full flex items-center justify-center gap-2 py-3 px-4 border border-white/10 hover:border-white/20 rounded-xl text-gray-300 hover:text-white hover:bg-white/[0.03] transition-all text-sm font-semibold"
                                 >
                                     Fazer Login
