@@ -32,6 +32,49 @@ interface UserProfile {
     created_at: string
 }
 
+function ProfileSkeleton() {
+    return (
+        <div className="min-h-screen bg-[#0B0D11] text-gray-100 pb-16 animate-pulse">
+            {/* Banner Skeleton */}
+            <div className="h-44 sm:h-56 bg-gradient-to-r from-gray-900 via-[#181C26] to-gray-900 border-b border-white/5 relative" />
+
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-20 relative z-10">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                    {/* Sidebar Skeleton */}
+                    <div className="lg:col-span-4 space-y-6">
+                        <div className="bg-[#12151C] border border-white/[0.07] rounded-2xl p-6 text-center space-y-4">
+                            <div className="w-32 h-32 mx-auto rounded-full bg-white/10 border-4 border-[#0F1115]" />
+                            <div className="h-6 w-3/4 mx-auto bg-white/10 rounded-lg" />
+                            <div className="h-4 w-1/2 mx-auto bg-white/5 rounded-full" />
+                            <div className="pt-4 border-t border-white/5 space-y-3">
+                                <div className="h-4 w-full bg-white/5 rounded" />
+                                <div className="h-4 w-4/5 bg-white/5 rounded" />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Main Content Skeleton */}
+                    <div className="lg:col-span-8 space-y-6">
+                        <div className="bg-[#12151C] border border-white/[0.07] rounded-2xl p-6 space-y-4">
+                            <div className="h-6 w-48 bg-white/10 rounded-lg" />
+                            <div className="h-4 w-full bg-white/5 rounded" />
+                            <div className="h-4 w-3/4 bg-white/5 rounded" />
+                        </div>
+                        <div className="bg-[#12151C] border border-white/[0.07] rounded-2xl p-6">
+                            <div className="h-6 w-40 bg-white/10 rounded-lg mb-4" />
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                                {[1, 2, 3, 4, 5, 6].map(i => (
+                                    <div key={i} className="aspect-square bg-white/5 rounded-xl border border-white/5" />
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    )
+}
+
 export default function ProfilePage() {
     const params = useParams()
     const router = useRouter()
@@ -416,12 +459,8 @@ export default function ProfilePage() {
         }
     }
 
-    if (loading) {
-        return (
-            <div className="min-h-screen bg-[#0F1115] flex items-center justify-center">
-                <div className="w-16 h-16 border-4 border-[#FFAE00]/30 border-t-[#FFAE00] rounded-full animate-spin" />
-            </div>
-        )
+    if (loading && !profile) {
+        return <ProfileSkeleton />
     }
 
     // 1. CREATE PROFILE FALLBACK
