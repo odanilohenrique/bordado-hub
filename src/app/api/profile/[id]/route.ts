@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabaseClient'
 
+export const dynamic = 'force-dynamic'
+
 export async function GET(
     request: Request,
     { params }: { params: Promise<{ id: string }> }
@@ -13,18 +15,23 @@ export async function GET(
 
         const supabase = createServiceClient()
 
-        // Sanitize ID to prevent injection in .or() filters
+        // Sanitize ID to prevent injection
         const cleanId = id.replace(/[^a-zA-Z0-9\-_]/g, '')
         if (!cleanId || cleanId !== id) {
             return NextResponse.json({ error: 'ID inválido' }, { status: 400 })
         }
 
-        // 1. Fetch user by id or supabase_user_id
-        const { data: user, error: userError } = await supabase
-            .from('users')
-            .select('*')
-            .or(`id.eq.${cleanId},supabase_user_id.eq.${cleanId}`)
-            .maybeSingle()
+        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cleanId)
+
+        // 1. Fetch user by id or supabase_user_id (safely handling non-uuid values)
+        let userQuery = supabase.from('users').select('*')
+        if (isUuid) {
+            userQuery = userQuery.or(`id.eq.${cleanId},supabase_user_id.eq.${cleanId}`)
+        } else {
+            userQuery = userQuery.eq('supabase_user_id', cleanId)
+        }
+
+        const { data: user, error: userError } = await userQuery.maybeSingle()
 
         if (userError) {
             console.error('Error fetching user profile:', userError)
@@ -35,7 +42,7 @@ export async function GET(
             return NextResponse.json({ error: 'Perfil não encontrado' }, { status: 404 })
         }
 
-        // Strip sensitive fields before returning public profile (keep supabase_user_id for ownership checks)
+        // Strip sensitive fields before returning public profile
         const { cpf_cnpj, pix_key, pix_key_type, ...safeUser } = user
 
         // 2. Fetch reviews
@@ -51,16 +58,20 @@ export async function GET(
                 const reviewerIds = Array.from(new Set(reviewsData.map(r => r.reviewer_id).filter(Boolean)))
                 const reviewerMap = new Map()
                 if (reviewerIds.length > 0) {
-                    const { data: reviewers } = await supabase
-                        .from('users')
-                        .select('id, supabase_user_id, name, avatar_url')
-                        .or(`id.in.(${reviewerIds.join(',')}),supabase_user_id.in.(${reviewerIds.join(',')})`)
+                    const validUuids = reviewerIds.filter(rid => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(rid as string))
+                    if (validUuids.length > 0) {
+                        const { data: reviewers } = await supabase
+                            .from('users')
+                            .select('id, supabase_user_id, name, avatar_url')
+                            .or(`id.in.(${validUuids.join(',')}),supabase_user_id.in.(${validUuids.join(',')})`)
 
-                    reviewers?.forEach(u => {
-                        reviewerMap.set(u.id, u)
-                        if (u.supabase_user_id) reviewerMap.set(u.supabase_user_id, u)
-                    })
+                        reviewers?.forEach(u => {
+                            reviewerMap.set(u.id, u)
+                            if (u.supabase_user_id) reviewerMap.set(u.supabase_user_id, u)
+                        })
+                    }
                 }
+
                 enrichedReviews = reviewsData.map(r => ({
                     ...r,
                     reviewer: reviewerMap.get(r.reviewer_id) || { name: 'Cliente' }
@@ -70,11 +81,18 @@ export async function GET(
             console.warn('Reviews fetch warning:', revErr)
         }
 
-        return NextResponse.json({
-            success: true,
-            profile: safeUser,
-            reviews: enrichedReviews
-        })
+        return NextResponse.json(
+            {
+                success: true,
+                profile: safeUser,
+                reviews: enrichedReviews
+            },
+            {
+                headers: {
+                    'Cache-Control': 'public, s-maxage=10, stale-while-revalidate=60'
+                }
+            }
+        )
     } catch (err: any) {
         console.error('Server error in /api/profile/[id]:', err)
         return NextResponse.json({ error: err.message }, { status: 500 })

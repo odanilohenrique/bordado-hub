@@ -157,27 +157,47 @@ export default function ProfilePage() {
     async function loadData(showSpinner = true) {
         if (showSpinner && !profile) setLoading(true)
 
-        // Failsafe timer: NUNCA deixa a tela congelada em loading por mais de 2 segundos
+        // Failsafe timer de proteção (8s para redes móveis/conexões instáveis)
         const failsafe = setTimeout(() => {
             setLoading(false)
-        }, 2000)
+        }, 8000)
 
         try {
-            // Get current auth user
-            const { data: { session } } = await supabase.auth.getSession().catch(() => ({ data: { session: null } }))
-            let user = session?.user ?? null
-
-            if (!user && typeof window !== 'undefined') {
-                const { data: userData } = await supabase.auth.getUser().catch(() => ({ data: { user: null } }))
-                if (userData?.user) user = userData.user
-            }
-            setCurrentUser(user)
-
             if (!id) {
                 clearTimeout(failsafe)
                 setLoading(false)
                 return
             }
+
+            // Para perfis públicos (id !== 'me'), dispara busca no milissegundo 0 em paralelo!
+            const isPublicProfile = id !== 'me'
+            const profilePromise = isPublicProfile
+                ? fetch(`/api/profile/${id}`, { cache: 'no-store' })
+                    .then(async (res) => {
+                        if (res.ok) {
+                            const json = await res.json()
+                            if (json.success && json.profile) return json
+                        }
+                        return null
+                    })
+                    .catch((err) => {
+                        console.warn('API profile fetch error:', err)
+                        return null
+                    })
+                : Promise.resolve(null)
+
+            const authPromise = (async () => {
+                const { data: { session } } = await supabase.auth.getSession().catch(() => ({ data: { session: null } }))
+                let u = session?.user ?? null
+                if (!u && typeof window !== 'undefined') {
+                    const { data: userData } = await supabase.auth.getUser().catch(() => ({ data: { user: null } }))
+                    if (userData?.user) u = userData.user
+                }
+                return u
+            })()
+
+            const [initialResult, user] = await Promise.all([profilePromise, authPromise])
+            setCurrentUser(user)
 
             let targetId = id
             if (id === 'me') {
@@ -191,39 +211,41 @@ export default function ProfilePage() {
                 targetId = user.id
             }
 
-            let profileData: any = null
-            let reviewsData: any[] = []
+            let profileData: any = initialResult?.profile || null
+            let reviewsData: any[] = initialResult?.reviews || []
 
-            // 1. Carrega via API interna com timeout estrito de 2.5s
-            try {
-                const res = await fetch(`/api/profile/${targetId}`, { 
-                    cache: 'no-store',
-                    signal: AbortSignal.timeout(2500)
-                })
-                if (res.ok) {
-                    const json = await res.json()
-                    if (json.success && json.profile) {
-                        profileData = json.profile
-                        reviewsData = json.reviews || []
+            // Se ainda não encontrou (ou for 'me'), tenta a API interna
+            if (!profileData) {
+                try {
+                    const res = await fetch(`/api/profile/${targetId}`, { cache: 'no-store' })
+                    if (res.ok) {
+                        const json = await res.json()
+                        if (json.success && json.profile) {
+                            profileData = json.profile
+                            reviewsData = json.reviews || []
+                        }
                     }
+                } catch (apiErr) {
+                    console.warn('API profile fetch error, fallback to client:', apiErr)
                 }
-            } catch (apiErr) {
-                console.warn('API profile fetch error, fallback to client:', apiErr)
             }
 
-            // 2. Fallback: Consulta direta via Supabase Client se a API falhar
+            // Fallback direto via Supabase Client
             if (!profileData) {
-                const { data } = await supabase
-                    .from('users')
-                    .select('*')
-                    .or(`id.eq.${targetId},supabase_user_id.eq.${targetId}`)
-                    .maybeSingle()
+                const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(targetId)
+                let query = supabase.from('users').select('*')
+                if (isUuid) {
+                    query = query.or(`id.eq.${targetId},supabase_user_id.eq.${targetId}`)
+                } else {
+                    query = query.eq('supabase_user_id', targetId)
+                }
+                const { data } = await query.maybeSingle()
                 if (data) {
                     profileData = data
                 }
             }
 
-            // 3. Se for 'me' e não tiver perfil no banco ainda, auto-provisiona
+            // Se for 'me' e não tiver perfil no banco ainda, auto-provisiona
             if (!profileData && id === 'me' && user) {
                 const googleAvatar = user.user_metadata?.avatar_url || user.user_metadata?.picture
                 const { data: newProfile } = await supabase
@@ -510,7 +532,35 @@ export default function ProfilePage() {
         )
     }
 
-    if (!profile) return <div className="min-h-screen bg-[#0F1115] flex items-center justify-center text-white">Perfil não encontrado.</div>
+    if (!profile) {
+        return (
+            <div className="min-h-screen bg-[#0B0D11] text-gray-100 flex items-center justify-center px-4">
+                <div className="bg-[#12151C] border border-white/[0.07] rounded-2xl p-10 max-w-md w-full text-center space-y-4 shadow-2xl">
+                    <div className="w-16 h-16 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mx-auto text-gray-400">
+                        <User className="w-8 h-8" />
+                    </div>
+                    <h2 className="text-xl font-extrabold text-white">Perfil não encontrado</h2>
+                    <p className="text-gray-400 text-sm leading-relaxed">
+                        Não foi possível carregar as informações deste usuário ou o perfil ainda não foi configurado.
+                    </p>
+                    <div className="pt-4 flex flex-col sm:flex-row gap-3">
+                        <Link
+                            href="/programadores"
+                            className="flex-1 py-3 px-4 rounded-xl border border-white/10 hover:border-white/20 text-gray-300 hover:text-white font-bold text-xs transition-all text-center"
+                        >
+                            Ver Programadores
+                        </Link>
+                        <button
+                            onClick={() => loadData(true)}
+                            className="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-[#FFB703] to-[#FB8500] hover:brightness-110 text-black font-extrabold text-xs transition-all shadow-md shadow-[#FFB703]/10 text-center"
+                        >
+                            Tentar Novamente
+                        </button>
+                    </div>
+                </div>
+            </div>
+        )
+    }
 
     // 2. CHECK OWNERSHIP
     const isOwner = Boolean(
