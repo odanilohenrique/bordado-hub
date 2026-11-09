@@ -93,9 +93,51 @@ export async function GET(
             })
         }
 
+        // Privacidade das Propostas:
+        // Apenas o cliente dono do pedido pode ver todas as propostas completas (valores, prazos e mensagens).
+        // Outros programadores e visitantes NUNCA devem ver quem ou quanto os concorrentes orçaram.
+        const url = new URL(request.url)
+        const requestUserId = url.searchParams.get('userId') || ''
+
+        let isJobOwner = false
+        if (requestUserId) {
+            if (job.cliente_id === requestUserId) {
+                isJobOwner = true
+            } else {
+                const { data: userProfile } = await supabase
+                    .from('users')
+                    .select('id, supabase_user_id')
+                    .or('id.eq.' + requestUserId + ',supabase_user_id.eq.' + requestUserId)
+                    .maybeSingle()
+                if (userProfile && (userProfile.id === job.cliente_id || userProfile.supabase_user_id === job.cliente_id)) {
+                    isJobOwner = true
+                }
+            }
+        }
+
+        const sanitizedProposals = isJobOwner
+            ? proposalList
+            : proposalList.map((p: any) => {
+                // Se for a proposta enviada pelo próprio usuário conectado, preserva os dados dele
+                const isMyProposal = requestUserId && (
+                    p.criador_id === requestUserId ||
+                    (p.users && (p.users.id === requestUserId || p.users.supabase_user_id === requestUserId))
+                )
+                if (isMyProposal) {
+                    return p
+                }
+                // Propostas de outros programadores: oculta valor, mensagem, prazo e dados de perfil
+                return {
+                    id: p.id,
+                    job_id: p.job_id,
+                    status: p.status,
+                    created_at: p.created_at
+                }
+            })
+
         return NextResponse.json({
             job,
-            proposals: proposalList,
+            proposals: sanitizedProposals,
             review,
             transaction,
             unreadCounts

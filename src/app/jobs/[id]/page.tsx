@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabaseClient'
 import { useRouter, useParams, useSearchParams } from 'next/navigation'
 import { formatDate } from '@/lib/helpers'
 import Link from 'next/link'
-import { ArrowLeft, Clock, Calendar, MessageSquare, AlertCircle, CheckCircle, Package, Zap, User, X, Star, PenTool, Download, Upload, Send, Sparkles, DollarSign, Wrench, Camera, RotateCcw, Ruler, Maximize2, Handshake, Check, Code, Loader2, Trash2 } from 'lucide-react'
+import { ArrowLeft, Clock, Calendar, MessageSquare, AlertCircle, CheckCircle, Package, Zap, User, X, Star, PenTool, Download, Upload, Send, Sparkles, DollarSign, Wrench, Camera, RotateCcw, Ruler, Maximize2, Handshake, Check, Code, Loader2, Trash2, Lock } from 'lucide-react'
 import NegotiationChat from '@/components/NegotiationChat'
 import { toast } from 'sonner'
 import JSZip from 'jszip'
@@ -277,23 +277,23 @@ function JobDetailClient({ jobId }: { jobId: string }) {
         isFetchingRef.current = true
         try {
             // 1. Fetch current user session in parallel without blocking
-            const authPromise = (async () => {
-                const { data: { session } } = await supabase.auth.getSession()
-                const user = session?.user
-                if (!user) return null
+            const { data: { session } } = await supabase.auth.getSession().catch(() => ({ data: { session: null } }))
+            const authUserId = session?.user?.id
+
+            const authPromise = authUserId ? (async () => {
                 const { data: profile } = await supabase
                     .from('users')
                     .select('*')
-                    .eq('supabase_user_id', user.id)
+                    .eq('supabase_user_id', authUserId)
                     .maybeSingle()
                 return profile
             })().catch(err => {
                 console.warn('Auth session check error:', err)
                 return null
-            })
+            }) : Promise.resolve(null)
 
-            // 2. Fetch full job details from fast server API route
-            const apiPromise = fetch(`/api/jobs/${jobId}`, {
+            // 2. Fetch full job details from fast server API route (passing userId for privacy check)
+            const apiPromise = fetch(`/api/jobs/${jobId}${authUserId ? `?userId=${encodeURIComponent(authUserId)}` : ''}`, {
                 cache: 'no-store',
                 signal: AbortSignal.timeout(6000)
             }).then(r => r.json()).catch(err => {
@@ -1081,7 +1081,7 @@ function JobDetailClient({ jobId }: { jobId: string }) {
         </div>
     )
 
-    const isOwner = currentUser?.id === job.cliente_id
+    const isOwner = Boolean(currentUser && (currentUser.id === job.cliente_id || currentUser.supabase_user_id === job.cliente_id))
     const myExistingProposal = proposals.find((p: any) => p.criador_id === currentUser?.id)
     const hasAlreadySentProposal = !!myExistingProposal
     const hasAnyAcceptedProposal = proposals.some((p: any) => p.status === 'aceita')
@@ -2228,7 +2228,11 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                         <div className="flex items-center justify-between mb-4">
                             <h2 className="text-lg font-bold text-[#F3F4F6] flex items-center gap-2">
                                 <MessageSquare className="w-4 h-4 text-[#FFAE00]" />
-                                Propostas Privadas ({proposals.length})
+                                {isOwner ? (
+                                    <>Propostas Recebidas ({proposals.length})</>
+                                ) : (
+                                    <>{proposals.length === 0 ? 'Nenhuma proposta recebida' : `${proposals.length} ${proposals.length === 1 ? 'proposta recebida' : 'propostas recebidas'}`}</>
+                                )}
                             </h2>
                         </div>
 
@@ -2519,7 +2523,8 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                             </div>
                         )}
 
-                        <div className="flex gap-4 overflow-x-auto pb-2 snap-x custom-scrollbar">
+                        {isOwner ? (
+                            <div className="flex gap-4 overflow-x-auto pb-2 snap-x custom-scrollbar">
                             {proposals.length === 0 ? (
                                 <div className="w-full text-center py-6 text-gray-500 text-sm">Nenhuma proposta enviada.</div>
                             ) : (
@@ -2730,8 +2735,27 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                         </div>
                                     </div>
                                 ))
-                            )}
-                        </div>
+                                )}
+                            </div>
+                        ) : (
+                            <div className="bg-[#12151C] border border-white/[0.07] rounded-2xl p-6 text-center flex flex-col items-center justify-center gap-2.5">
+                                <div className="w-10 h-10 rounded-full bg-[#FFAE00]/10 border border-[#FFAE00]/20 flex items-center justify-center text-[#FFAE00]">
+                                    <Lock className="w-5 h-5" />
+                                </div>
+                                <p className="text-sm font-bold text-white">
+                                    {proposals.length === 0 
+                                        ? 'Nenhuma proposta recebida até o momento' 
+                                        : `${proposals.length} ${proposals.length === 1 ? 'proposta recebida' : 'propostas recebidas'}`
+                                    }
+                                </p>
+                                <p className="text-xs text-gray-400 max-w-md leading-relaxed">
+                                    {proposals.length === 0 
+                                        ? 'Seja o primeiro a enviar uma proposta de orçamento para este pedido!' 
+                                        : 'As propostas e valores são confidenciais e visíveis exclusivamente para o cliente deste pedido.'
+                                    }
+                                </p>
+                            </div>
+                        )}
                     </div>
                 )}
 
