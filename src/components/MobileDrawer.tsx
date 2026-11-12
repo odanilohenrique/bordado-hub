@@ -183,17 +183,14 @@ export default function MobileDrawer({ isOpen, onClose, profile, userId }: Mobil
                                 Programadores
                             </Link>
 
-                            <div
-                                className="flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium text-gray-500 bg-white/[0.02] border border-white/5 opacity-75 select-none"
+                            <Link
+                                href="/marketplace"
+                                onClick={onClose}
+                                className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-300 hover:text-white hover:bg-white/5 transition-all"
                             >
-                                <div className="flex items-center gap-3">
-                                    <Store className="w-4 h-4 text-gray-500" />
-                                    <span>Marketplace de Matrizes</span>
-                                </div>
-                                <span className="text-[10px] font-black uppercase tracking-wider bg-[#FFAE00]/15 text-[#FFAE00] border border-[#FFAE00]/30 px-1.5 py-0.5 rounded">
-                                    Em breve
-                                </span>
-                            </div>
+                                <Store className="w-4 h-4 text-[#FFAE00]" />
+                                <span>Marketplace de Matrizes</span>
+                            </Link>
                         </div>
                     </div>
 

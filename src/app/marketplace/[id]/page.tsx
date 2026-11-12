@@ -1,553 +1,422 @@
 'use client'
 
-import { useEffect, useState, use } from 'react'
-import { useRouter } from 'next/navigation'
-import Link from 'next/link'
+import { useEffect, useState, useRef } from 'react'
+import { useParams, useRouter } from 'next/navigation'
 import Image from 'next/image'
+import Link from 'next/link'
 import { supabase } from '@/lib/supabaseClient'
+import { useAuth } from '@/contexts/AuthContext'
 import { 
     ArrowLeft, 
     Download, 
-    ShieldCheck, 
-    Layers, 
+    CheckCircle, 
     Store, 
-    User, 
-    Tag, 
-    CheckCircle2, 
+    Sparkles, 
+    ShieldCheck, 
+    Zap, 
     Copy, 
     Check, 
-    Clock, 
-    AlertCircle, 
-    ExternalLink,
-    Sparkles,
-    FileArchive
+    Loader2, 
+    AlertCircle,
+    Package,
+    Tag,
+    Clock
 } from 'lucide-react'
+import { toast } from 'sonner'
 
-interface Product {
-    id: string
-    title: string
-    description: string | null
-    price: number
-    image_url: string
-    file_url: string
-    formats: string[]
-    category: string
-    is_bundle: boolean
-    items_count: number
-    sales_count: number
-    created_at: string
-    seller: {
-        id: string
-        name: string
-        avatar_url: string | null
-        bio: string | null
-        rating?: number
-    }
-}
-
-export default function ProductDetailPage({ params }: { params: Promise<{ id: string }> }) {
-    const { id: productId } = use(params)
+export default function MarketplaceProductPage() {
+    const params = useParams()
     const router = useRouter()
+    const { user, profile } = useAuth()
+    const productId = params?.id as string
 
-    const [product, setProduct] = useState<Product | null>(null)
+    const [product, setProduct] = useState<any>(null)
     const [loading, setLoading] = useState(true)
-    const [currentUser, setCurrentUser] = useState<any>(null)
-    const [isOwner, setIsOwner] = useState(false)
-    const [hasPurchased, setHasPurchased] = useState(false)
-    const [downloadUrl, setDownloadUrl] = useState<string | null>(null)
-
-    // Checkout modal state
-    const [checkoutOpen, setCheckoutOpen] = useState(false)
-    const [cpf, setCpf] = useState('')
-    const [generatingPix, setGeneratingPix] = useState(false)
-    const [pixData, setPixData] = useState<{
-        orderId: string
-        pixQrCode: string
-        pixCopyPaste: string
-        amount: number
-    } | null>(null)
+    const [cpfCnpj, setCpfCnpj] = useState('')
+    
+    // Checkout states
+    const [isPurchasing, setIsPurchasing] = useState(false)
+    const [orderData, setOrderData] = useState<any>(null)
+    const [pixData, setPixData] = useState<{ qrCode: string; copyPaste: string } | null>(null)
     const [copied, setCopied] = useState(false)
-    const [checkoutError, setCheckoutError] = useState<string | null>(null)
-    const [paymentApproved, setPaymentApproved] = useState(false)
+    const [paymentStatus, setPaymentStatus] = useState<'idle' | 'pending' | 'paid'>('idle')
+    const [downloadUrl, setDownloadUrl] = useState<string | null>(null)
+    const pollingRef = useRef<NodeJS.Timeout | null>(null)
 
+    // 1. Fetch Product
     useEffect(() => {
-        async function loadProductAndStatus() {
-            setLoading(true)
+        if (!productId) return
 
-            // 1. Fetch Product
-            const { data: prod, error: prodErr } = await supabase
-                .from('marketplace_products')
-                .select('*, seller:seller_id(id, name, avatar_url, bio, rating)')
-                .eq('id', productId)
-                .single()
+        async function loadProduct() {
+            try {
+                const { data, error } = await supabase
+                    .from('marketplace_products')
+                    .select('*, seller:seller_id(id, name, avatar_url, rating, reviews_count)')
+                    .eq('id', productId)
+                    .single()
 
-            if (prodErr || !prod) {
-                setLoading(false)
-                return
-            }
-
-            setProduct(prod)
-
-            // 2. Fetch current session & user profile
-            const { data: { session } } = await supabase.auth.getSession()
-            if (session?.user) {
-                const { data: profile } = await supabase
-                    .from('users')
-                    .select('id, name, email')
-                    .eq('supabase_user_id', session.user.id)
-                    .maybeSingle()
-
-                if (profile) {
-                    setCurrentUser(profile)
-
-                    // Check if owner
-                    if (prod.seller_id === profile.id) {
-                        setIsOwner(true)
-                        setDownloadUrl(prod.file_url)
-                    } else {
-                        // Check if already purchased
-                        const { data: order } = await supabase
-                            .from('marketplace_orders')
-                            .select('id, status')
-                            .eq('product_id', prod.id)
-                            .eq('buyer_id', profile.id)
-                            .eq('status', 'paid')
-                            .maybeSingle()
-
-                        if (order) {
-                            setHasPurchased(true)
-                            setDownloadUrl(prod.file_url)
-                        }
-                    }
+                if (error || !data) {
+                    console.error('Produto não encontrado:', error)
+                    toast.error('Produto não encontrado.')
+                } else {
+                    setProduct(data)
                 }
+            } catch (err) {
+                console.error('Erro ao carregar produto:', err)
+            } finally {
+                setLoading(false)
             }
-
-            setLoading(false)
         }
 
-        loadProductAndStatus()
+        loadProduct()
     }, [productId])
 
-    // Poll for payment confirmation
+    // 2. Verifica se o usuário logado já comprou este produto
     useEffect(() => {
-        if (!pixData?.orderId || paymentApproved) return
+        if (!user || !productId) return
 
-        const interval = setInterval(async () => {
+        async function checkAlreadyPurchased() {
+            const currentId = profile?.id || user?.id
+            if (!currentId) return
+
+            const { data } = await supabase
+                .from('marketplace_orders')
+                .select('id, status, product:product_id(file_url)')
+                .eq('product_id', productId)
+                .eq('buyer_id', currentId)
+                .eq('status', 'paid')
+                .maybeSingle()
+
+            if (data) {
+                setPaymentStatus('paid')
+                const fileUrl = (data as any).product?.file_url
+                if (fileUrl) setDownloadUrl(fileUrl)
+            }
+        }
+
+        checkAlreadyPurchased()
+    }, [user, profile, productId])
+
+    // 3. Polling de status quando PIX estiver aberto
+    useEffect(() => {
+        if (paymentStatus !== 'pending' || !orderData?.id) return
+
+        pollingRef.current = setInterval(async () => {
             try {
                 const res = await fetch('/api/marketplace/check-status', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ orderId: pixData.orderId }),
+                    body: JSON.stringify({ orderId: orderData.id })
                 })
-                const data = await res.json()
-                if (data.status === 'paid') {
-                    setPaymentApproved(true)
-                    setHasPurchased(true)
-                    setDownloadUrl(data.downloadUrl || product?.file_url || null)
-                    clearInterval(interval)
+                const result = await res.json()
+
+                if (result.status === 'paid') {
+                    setPaymentStatus('paid')
+                    setDownloadUrl(result.downloadUrl)
+                    toast.success('🎉 Pagamento confirmado! Seu download foi liberado.')
+                    if (pollingRef.current) clearInterval(pollingRef.current)
                 }
-            } catch {
-                // silent
+            } catch (err) {
+                console.error('Erro no polling de status:', err)
             }
         }, 3000)
 
-        return () => clearInterval(interval)
-    }, [pixData?.orderId, paymentApproved, product?.file_url])
+        return () => {
+            if (pollingRef.current) clearInterval(pollingRef.current)
+        }
+    }, [paymentStatus, orderData])
 
-    const handleStartCheckout = () => {
-        if (!currentUser) {
+    // Iniciar compra PIX
+    const handleBuyPix = async () => {
+        if (!user) {
+            toast.error('Faça login para comprar.')
             router.push(`/login?redirect=/marketplace/${productId}`)
             return
         }
-        setCheckoutOpen(true)
-        setCheckoutError(null)
-    }
 
-    const handleGeneratePix = async (e: React.FormEvent) => {
-        e.preventDefault()
-        setCheckoutError(null)
-
-        const cleanCpf = cpf.replace(/\D/g, '')
-        if (cleanCpf.length !== 11) {
-            setCheckoutError('Por favor, informe um CPF válido com 11 dígitos.')
+        const cleanCpf = cpfCnpj.replace(/\D/g, '')
+        if (cleanCpf.length !== 11 && cleanCpf.length !== 14) {
+            toast.error('Digite um CPF ou CNPJ válido para gerar a cobrança PIX.')
             return
         }
 
-        setGeneratingPix(true)
-
+        setIsPurchasing(true)
         try {
             const res = await fetch('/api/marketplace/create-pix', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    productId: product?.id,
-                    buyerId: currentUser?.id,
-                    cpfCnpj: cleanCpf,
-                }),
+                    productId: product.id,
+                    buyerId: profile?.id || user.id,
+                    cpfCnpj: cleanCpf
+                })
             })
 
             const data = await res.json()
-            if (!res.ok || !data.success) {
-                throw new Error(data.error || 'Erro ao gerar o Pix.')
+            if (!res.ok || data.error) {
+                throw new Error(data.error || 'Erro ao gerar PIX.')
             }
 
+            setOrderData(data.order)
             setPixData({
-                orderId: data.orderId,
-                pixQrCode: data.pixQrCode,
-                pixCopyPaste: data.pixCopyPaste,
-                amount: data.amount,
+                qrCode: data.pixQrCode,
+                copyPaste: data.pixCopyPaste
             })
+            setPaymentStatus('pending')
+            toast.success('Chave PIX gerada com sucesso! Pague para liberar o download.')
         } catch (err: any) {
-            setCheckoutError(err.message || 'Falha ao conectar com o gateway de pagamento.')
+            console.error('Erro ao comprar matriz:', err)
+            toast.error(err.message || 'Erro ao processar compra.')
         } finally {
-            setGeneratingPix(false)
+            setIsPurchasing(false)
         }
     }
 
     const handleCopyPix = () => {
-        if (pixData?.pixCopyPaste) {
-            navigator.clipboard.writeText(pixData.pixCopyPaste)
-            setCopied(true)
-            setTimeout(() => setCopied(false), 2500)
-        }
+        if (!pixData?.copyPaste) return
+        navigator.clipboard.writeText(pixData.copyPaste)
+        setCopied(true)
+        toast.success('Código PIX Copia e Cola copiado!')
+        setTimeout(() => setCopied(false), 3000)
     }
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-[#0F1115] flex items-center justify-center">
-                <div className="w-12 h-12 border-4 border-[#FFAE00]/30 border-t-[#FFAE00] rounded-full animate-spin" />
+            <div className="min-h-screen bg-[#0B0D11] flex items-center justify-center">
+                <Loader2 className="w-8 h-8 text-[#FFAE00] animate-spin" />
             </div>
         )
     }
 
     if (!product) {
         return (
-            <div className="min-h-screen bg-[#0F1115] text-white flex flex-col items-center justify-center p-4">
-                <h1 className="text-2xl font-black mb-2">Matriz não encontrada</h1>
-                <p className="text-gray-400 mb-6">Este produto foi removido ou não está mais disponível.</p>
-                <Link
-                    href="/marketplace"
-                    className="px-6 py-2.5 rounded-xl bg-[#FFAE00] text-[#0F1115] font-bold text-sm"
-                >
-                    Voltar ao Marketplace
+            <div className="min-h-screen bg-[#0B0D11] text-white flex flex-col items-center justify-center p-4">
+                <AlertCircle className="w-12 h-12 text-red-500 mb-3" />
+                <h1 className="text-xl font-bold">Matriz não encontrada</h1>
+                <Link href="/marketplace" className="mt-4 text-[#FFAE00] hover:underline flex items-center gap-2">
+                    <ArrowLeft className="w-4 h-4" /> Voltar ao Marketplace
                 </Link>
             </div>
         )
     }
 
-    const canDownload = isOwner || hasPurchased
+    const isOwnProduct = user && product.seller_id === (profile?.id || user.id)
 
     return (
-        <div className="min-h-screen bg-[#0F1115] text-[#F3F4F6] py-10 px-4 sm:px-6 lg:px-8">
+        <div className="min-h-screen bg-[#0B0D11] text-white py-8 px-4 sm:px-6 lg:px-8">
             <div className="max-w-6xl mx-auto">
                 {/* Back Link */}
-                <div className="mb-6">
-                    <Link
-                        href="/marketplace"
-                        className="inline-flex items-center gap-2 text-xs font-bold text-gray-400 hover:text-[#FFAE00] transition-colors"
-                    >
-                        <ArrowLeft className="w-4 h-4" /> Voltar ao Marketplace
-                    </Link>
-                </div>
+                <Link 
+                    href="/marketplace" 
+                    className="inline-flex items-center gap-2 text-sm text-gray-400 hover:text-white mb-6 transition-colors"
+                >
+                    <ArrowLeft className="w-4 h-4" /> Voltar para o Marketplace
+                </Link>
 
-                {/* Main Content Grid */}
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-                    
-                    {/* Left Column: Image Gallery (7 cols) */}
-                    <div className="lg:col-span-7 bg-[#16191F] border border-white/5 rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden">
-                        <div className="relative w-full h-80 sm:h-[420px] rounded-2xl overflow-hidden bg-[#0F1115] flex items-center justify-center border border-white/5">
-                            <Image
-                                src={product.image_url}
-                                alt={product.title}
-                                fill
-                                sizes="(max-width: 1024px) 100vw, 600px"
-                                className="object-contain p-4"
+                    {/* Coluna Esquerda: Preview da Imagem */}
+                    <div className="lg:col-span-7 space-y-4">
+                        <div className="relative aspect-square w-full rounded-2xl overflow-hidden bg-[#161920] border border-white/10 shadow-2xl">
+                            <Image 
+                                src={product.image_url} 
+                                alt={product.title} 
+                                fill 
+                                sizes="(max-width: 1024px) 100vw, 60vw"
                                 priority
+                                className="object-cover"
                             />
-                        </div>
-
-                        {/* Formats Pills */}
-                        <div className="mt-6 flex flex-wrap items-center gap-2">
-                            <span className="text-xs font-bold text-gray-400 uppercase tracking-wider mr-2">
-                                Formatos Inclusos:
-                            </span>
-                            {product.formats?.map((fmt) => (
-                                <span
-                                    key={fmt}
-                                    className="px-3 py-1 rounded-lg text-xs font-bold bg-[#0F1115] border border-white/10 text-gray-300"
-                                >
-                                    .{fmt}
-                                </span>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* Right Column: Details & Purchase (5 cols) */}
-                    <div className="lg:col-span-5 space-y-6">
-                        
-                        {/* Title and Badge Card */}
-                        <div className="bg-[#16191F] border border-white/5 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-4">
-                            <div className="flex flex-wrap items-center gap-2">
-                                {product.is_bundle ? (
-                                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#FFAE00]/15 text-[#FFAE00] text-xs font-black uppercase tracking-wider border border-[#FFAE00]/30">
-                                        <Layers className="w-3.5 h-3.5" />
-                                        Pacote com {product.items_count} Matrizes
-                                    </span>
-                                ) : (
-                                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 text-gray-300 text-xs font-bold uppercase tracking-wider border border-white/10">
-                                        Matriz Individual
-                                    </span>
-                                )}
-                                <span className="text-xs text-gray-500 uppercase tracking-wider">
-                                    • {product.category}
-                                </span>
-                            </div>
-
-                            <h1 className="text-2xl sm:text-3xl font-black text-white leading-tight">
-                                {product.title}
-                            </h1>
-
-                            {/* Price */}
-                            <div className="pt-3 pb-1 border-t border-white/5 flex items-baseline gap-2">
-                                <span className="text-3xl sm:text-4xl font-black text-[#FFAE00]">
-                                    R$ {Number(product.price).toFixed(2).replace('.', ',')}
-                                </span>
-                                <span className="text-xs text-gray-400">
-                                    pagamento único via Pix
-                                </span>
-                            </div>
-
-                            {/* Action Buttons */}
-                            {canDownload ? (
-                                <div className="space-y-3 pt-2">
-                                    <div className="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl flex items-center gap-3 text-emerald-400 text-xs">
-                                        <CheckCircle2 className="w-5 h-5 shrink-0" />
-                                        <span>
-                                            {isOwner 
-                                                ? 'Você é o criador desta matriz.' 
-                                                : 'Compra confirmada! Seus arquivos estão liberados para download.'}
-                                        </span>
-                                    </div>
-                                    {downloadUrl && (
-                                        <a
-                                            href={downloadUrl}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            download
-                                            className="w-full py-4 rounded-2xl bg-emerald-500 hover:bg-emerald-600 text-white font-black text-sm uppercase tracking-wider transition-all shadow-xl shadow-emerald-500/20 hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2"
-                                        >
-                                            <Download className="w-5 h-5" />
-                                            Baixar Arquivos da Matriz (.ZIP)
-                                        </a>
-                                    )}
-                                </div>
-                            ) : (
-                                <div className="space-y-3 pt-2">
-                                    <button
-                                        onClick={handleStartCheckout}
-                                        className="w-full py-4 rounded-2xl bg-gradient-to-r from-[#FFAE00] to-yellow-400 hover:from-yellow-400 hover:to-[#FFAE00] text-[#0F1115] font-black text-sm uppercase tracking-wider transition-all duration-300 shadow-xl shadow-[#FFAE00]/25 hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2"
-                                    >
-                                        <Sparkles className="w-4 h-4" />
-                                        Comprar Agora no Pix • Download Imediato
-                                    </button>
-                                    <div className="flex items-center justify-center gap-2 text-[11px] text-gray-400 text-center">
-                                        <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                                        Download liberado automaticamente após confirmação
-                                    </div>
+                            {product.is_bundle && (
+                                <div className="absolute top-4 left-4 bg-gradient-to-r from-[#FFAE00] to-amber-500 text-black font-extrabold text-xs uppercase tracking-wider px-3 py-1.5 rounded-lg shadow-lg flex items-center gap-1.5">
+                                    <Package className="w-3.5 h-3.5" />
+                                    Pacote ({product.items_count} Matrizes)
                                 </div>
                             )}
                         </div>
 
-                        {/* Seller Store Card */}
-                        <div className="bg-[#16191F] border border-white/5 rounded-3xl p-6 shadow-2xl">
-                            <span className="text-[10px] font-black uppercase tracking-widest text-gray-500 block mb-3">
-                                Criado & Publicado Por
-                            </span>
-                            <div className="flex items-center justify-between gap-4">
-                                <div className="flex items-center gap-3 min-w-0">
-                                    <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-800 border border-[#FFAE00]/30 shrink-0">
-                                        {product.seller?.avatar_url ? (
-                                            <img
-                                                src={product.seller.avatar_url}
-                                                alt={product.seller.name}
-                                                className="w-full h-full object-cover"
-                                            />
-                                        ) : (
-                                            <div className="w-full h-full flex items-center justify-center text-gray-500">
-                                                <User className="w-6 h-6" />
-                                            </div>
-                                        )}
-                                    </div>
-                                    <div className="min-w-0">
-                                        <h3 className="text-sm font-bold text-white truncate">
-                                            {product.seller?.name || 'Programador'}
-                                        </h3>
-                                        <p className="text-xs text-gray-400 truncate">
-                                            {product.seller?.bio || 'Programador de Matrizes'}
+                        {/* Formatos incluídos */}
+                        <div className="bg-[#12151C] border border-white/5 rounded-xl p-4">
+                            <p className="text-xs uppercase tracking-wider text-gray-400 font-semibold mb-2">Formatos Disponíveis no Download:</p>
+                            <div className="flex flex-wrap gap-2">
+                                {product.formats && product.formats.length > 0 ? (
+                                    product.formats.map((fmt: string) => (
+                                        <span key={fmt} className="bg-white/5 border border-white/10 px-3 py-1 rounded-lg text-sm font-bold text-[#FFAE00]">
+                                            .{fmt.toUpperCase()}
+                                        </span>
+                                    ))
+                                ) : (
+                                    <span className="text-sm text-gray-400">PES, DST, JEF</span>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Coluna Direita: Detalhes, Vendedor e Compra */}
+                    <div className="lg:col-span-5 space-y-6">
+                        <div className="bg-[#12151C] border border-white/5 rounded-2xl p-6 sm:p-8 space-y-6 shadow-xl">
+                            <div>
+                                <div className="flex items-center gap-2 mb-2">
+                                    <span className="text-xs font-semibold px-2.5 py-1 rounded-md bg-[#FFAE00]/10 text-[#FFAE00] border border-[#FFAE00]/20 uppercase">
+                                        {product.category || 'Geral'}
+                                    </span>
+                                    <span className="text-xs text-gray-400 flex items-center gap-1">
+                                        <Sparkles className="w-3.5 h-3.5 text-[#FFAE00]" />
+                                        {product.sales_count || 0} {product.sales_count === 1 ? 'venda' : 'vendas'}
+                                    </span>
+                                </div>
+                                <h1 className="text-2xl sm:text-3xl font-black text-white leading-tight">
+                                    {product.title}
+                                </h1>
+                            </div>
+
+                            {/* Preço */}
+                            <div className="pt-2 border-t border-white/5">
+                                <span className="text-xs uppercase tracking-wider text-gray-400 font-medium">Preço à vista via PIX</span>
+                                <div className="text-4xl font-black text-[#FFAE00] mt-1">
+                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(product.price))}
+                                </div>
+                            </div>
+
+                            {/* Vendedor */}
+                            <div className="pt-4 border-t border-white/5">
+                                <Link 
+                                    href={`/loja/${product.seller_id}`}
+                                    className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] border border-white/5 transition-all group"
+                                >
+                                    {product.seller?.avatar_url ? (
+                                        <img src={product.seller.avatar_url} alt={product.seller.name} className="w-10 h-10 rounded-full object-cover border border-white/10" />
+                                    ) : (
+                                        <div className="w-10 h-10 rounded-full bg-[#FFAE00]/20 text-[#FFAE00] font-bold flex items-center justify-center">
+                                            {product.seller?.name?.[0]?.toUpperCase() || 'P'}
+                                        </div>
+                                    )}
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-xs text-gray-400">Criado e vendido por</p>
+                                        <p className="text-sm font-bold text-white group-hover:text-[#FFAE00] transition-colors truncate">
+                                            {product.seller?.name || 'Programador BordadoHub'}
                                         </p>
                                     </div>
-                                </div>
-
-                                <Link
-                                    href={`/loja/${product.seller?.id}`}
-                                    className="px-4 py-2 rounded-xl bg-white/5 hover:bg-[#FFAE00]/10 hover:text-[#FFAE00] text-gray-300 text-xs font-bold border border-white/10 hover:border-[#FFAE00]/30 transition-all shrink-0 flex items-center gap-1.5"
-                                >
-                                    <Store className="w-3.5 h-3.5" />
-                                    Ver Lojinha
+                                    <Store className="w-4 h-4 text-gray-500 group-hover:text-[#FFAE00] transition-colors" />
                                 </Link>
                             </div>
-                        </div>
 
-                        {/* Description Card */}
-                        {product.description && (
-                            <div className="bg-[#16191F] border border-white/5 rounded-3xl p-6 shadow-2xl space-y-3">
-                                <h3 className="text-xs font-black uppercase tracking-widest text-gray-400">
-                                    Sobre Esta Matriz
-                                </h3>
-                                <p className="text-xs sm:text-sm text-gray-300 leading-relaxed whitespace-pre-line">
-                                    {product.description}
-                                </p>
-                            </div>
-                        )}
-
-                    </div>
-                </div>
-            </div>
-
-            {/* PIX CHECKOUT MODAL */}
-            {checkoutOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-                    <div className="bg-[#16191F] border border-white/10 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl relative space-y-6">
-                        
-                        {/* Close button */}
-                        <button
-                            onClick={() => setCheckoutOpen(false)}
-                            className="absolute top-5 right-5 text-gray-400 hover:text-white p-1 rounded-lg"
-                        >
-                            ✕
-                        </button>
-
-                        <div className="text-center">
-                            <span className="text-[11px] font-black uppercase tracking-widest text-[#FFAE00] bg-[#FFAE00]/10 px-3 py-1 rounded-full border border-[#FFAE00]/20">
-                                Pagamento Seguro Pix
-                            </span>
-                            <h3 className="text-xl font-black text-white mt-3">
-                                {paymentApproved ? 'Pagamento Aprovado!' : 'Finalizar Compra'}
-                            </h3>
-                            <p className="text-xs text-gray-400 mt-1">
-                                {product.title}
-                            </p>
-                        </div>
-
-                        {paymentApproved ? (
-                            <div className="text-center py-6 space-y-4">
-                                <div className="w-16 h-16 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center mx-auto">
-                                    <CheckCircle2 className="w-10 h-10" />
-                                </div>
-                                <h4 className="text-lg font-bold text-white">Parabéns pela compra!</h4>
-                                <p className="text-xs text-gray-400">
-                                    Seu pagamento foi confirmado instantaneamente. O arquivo já está liberado para você baixar.
-                                </p>
-                                {downloadUrl && (
+                            {/* Bloco de Ação: Download (se pago) ou Checkout PIX */}
+                            {paymentStatus === 'paid' && downloadUrl ? (
+                                <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-5 space-y-4 text-center">
+                                    <div className="w-12 h-12 bg-green-500/20 rounded-full flex items-center justify-center mx-auto text-green-400">
+                                        <CheckCircle className="w-6 h-6" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-base font-bold text-green-400">Matriz Liberada!</h3>
+                                        <p className="text-xs text-gray-300 mt-1">Seu pagamento foi confirmado. Baixe os arquivos agora.</p>
+                                    </div>
                                     <a
                                         href={downloadUrl}
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         download
-                                        className="w-full py-3.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-sm flex items-center justify-center gap-2 shadow-lg"
+                                        className="w-full py-3.5 px-4 bg-green-500 hover:bg-green-400 text-black font-extrabold rounded-xl transition-all shadow-lg shadow-green-500/20 flex items-center justify-center gap-2"
                                     >
                                         <Download className="w-5 h-5" />
-                                        Baixar Matriz Agora (.ZIP)
+                                        Baixar Arquivos da Matriz
                                     </a>
-                                )}
-                            </div>
-                        ) : !pixData ? (
-                            /* Step 1: Request CPF */
-                            <form onSubmit={handleGeneratePix} className="space-y-4">
-                                {checkoutError && (
-                                    <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-xs text-red-400 flex items-center gap-2">
-                                        <AlertCircle className="w-4 h-4 shrink-0" />
-                                        <span>{checkoutError}</span>
+                                </div>
+                            ) : paymentStatus === 'pending' && pixData ? (
+                                <div className="bg-[#0B0D11] border border-[#FFAE00]/30 rounded-xl p-5 space-y-4">
+                                    <div className="text-center space-y-1">
+                                        <div className="flex items-center justify-center gap-1.5 text-xs font-bold text-[#FFAE00]">
+                                            <Clock className="w-4 h-4 animate-spin" />
+                                            Aguardando pagamento PIX...
+                                        </div>
+                                        <p className="text-xs text-gray-400">Escaneie o QR Code ou copie o código abaixo</p>
                                     </div>
-                                )}
 
-                                <div>
-                                    <label className="block text-xs font-bold uppercase tracking-wider text-gray-300 mb-2">
-                                        Informe seu CPF (exigência do Banco Central para emissão do Pix) *
-                                    </label>
-                                    <input
-                                        type="text"
-                                        required
-                                        placeholder="000.000.000-00"
-                                        value={cpf}
-                                        onChange={(e) => setCpf(e.target.value)}
-                                        className="w-full bg-[#0F1115] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#FFAE00]"
-                                    />
+                                    {/* QR Code Img */}
+                                    <div className="bg-white p-3 rounded-xl mx-auto w-48 h-48 flex items-center justify-center shadow-lg">
+                                        <img 
+                                            src={`data:image/png;base64,${pixData.qrCode}`} 
+                                            alt="QR Code PIX" 
+                                            className="w-full h-full object-contain"
+                                        />
+                                    </div>
+
+                                    {/* Copia e Cola */}
+                                    <button
+                                        onClick={handleCopyPix}
+                                        className="w-full py-2.5 px-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-xs font-semibold text-gray-200 flex items-center justify-center gap-2 transition-colors"
+                                    >
+                                        {copied ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4 text-[#FFAE00]" />}
+                                        {copied ? 'Código Copiado!' : 'Copiar Chave Copia e Cola'}
+                                    </button>
+
+                                    <div className="text-[11px] text-gray-500 text-center">
+                                        Assim que pagar no app do seu banco, esta página liberará o download automaticamente.
+                                    </div>
                                 </div>
-
-                                <div className="p-3 bg-[#0F1115] rounded-xl border border-white/5 flex items-center justify-between text-xs">
-                                    <span className="text-gray-400">Total a pagar:</span>
-                                    <span className="text-base font-black text-[#FFAE00]">
-                                        R$ {Number(product.price).toFixed(2).replace('.', ',')}
-                                    </span>
+                            ) : isOwnProduct ? (
+                                <div className="bg-white/5 border border-white/10 rounded-xl p-4 text-center">
+                                    <p className="text-xs text-gray-400">Esta matriz pertence à sua loja.</p>
+                                    <a
+                                        href={product.file_url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="mt-3 inline-flex items-center gap-2 text-xs font-bold text-[#FFAE00] hover:underline"
+                                    >
+                                        <Download className="w-4 h-4" /> Baixar seu arquivo original
+                                    </a>
                                 </div>
-
-                                <button
-                                    type="submit"
-                                    disabled={generatingPix}
-                                    className="w-full py-3.5 rounded-xl bg-[#FFAE00] hover:bg-yellow-400 text-[#0F1115] font-black text-sm uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-lg shadow-[#FFAE00]/20 disabled:opacity-50"
-                                >
-                                    {generatingPix ? (
-                                        <>
-                                            <div className="w-4 h-4 border-2 border-[#0F1115]/30 border-t-[#0F1115] rounded-full animate-spin" />
-                                            Gerando Pix...
-                                        </>
-                                    ) : (
-                                        'Gerar Código Pix'
-                                    )}
-                                </button>
-                            </form>
-                        ) : (
-                            /* Step 2: Show Pix QR Code and Copy/Paste string */
-                            <div className="space-y-4 text-center">
-                                <div className="bg-white p-4 rounded-2xl inline-block mx-auto border-4 border-[#FFAE00]/30 shadow-lg">
-                                    <img
-                                        src={`data:image/png;base64,${pixData.pixQrCode}`}
-                                        alt="QR Code Pix"
-                                        className="w-48 h-48 mx-auto"
-                                    />
-                                </div>
-
-                                <div className="space-y-2">
-                                    <span className="text-xs text-gray-400 block">
-                                        Ou use o Pix Copia e Cola:
-                                    </span>
-                                    <div className="flex items-center gap-2 bg-[#0F1115] border border-white/10 rounded-xl p-2.5">
+                            ) : (
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="block text-xs font-medium text-gray-300 mb-1.5">
+                                            CPF ou CNPJ para emissão do PIX:
+                                        </label>
                                         <input
                                             type="text"
-                                            readOnly
-                                            value={pixData.pixCopyPaste}
-                                            className="w-full bg-transparent text-xs text-gray-300 font-mono focus:outline-none"
+                                            value={cpfCnpj}
+                                            onChange={(e) => setCpfCnpj(e.target.value)}
+                                            placeholder="000.000.000-00"
+                                            className="w-full px-3.5 py-2.5 bg-[#0B0D11] border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:border-[#FFAE00] transition-colors"
                                         />
-                                        <button
-                                            onClick={handleCopyPix}
-                                            className="p-2 rounded-lg bg-[#FFAE00]/10 hover:bg-[#FFAE00]/20 text-[#FFAE00] shrink-0 transition-colors"
-                                            title="Copiar Código"
-                                        >
-                                            {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
-                                        </button>
+                                    </div>
+
+                                    <button
+                                        onClick={handleBuyPix}
+                                        disabled={isPurchasing}
+                                        className="w-full py-4 px-6 bg-gradient-to-r from-[#FFAE00] to-amber-500 hover:from-yellow-400 hover:to-[#FFAE00] text-black font-extrabold text-base rounded-xl transition-all shadow-xl shadow-[#FFAE00]/20 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        {isPurchasing ? (
+                                            <>
+                                                <Loader2 className="w-5 h-5 animate-spin" />
+                                                Gerando cobrança PIX...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Zap className="w-5 h-5 fill-current" />
+                                                Comprar com PIX e Baixar Agora
+                                            </>
+                                        )}
+                                    </button>
+
+                                    <div className="flex items-center justify-center gap-2 text-xs text-gray-400 pt-2">
+                                        <ShieldCheck className="w-4 h-4 text-green-400" />
+                                        Entrega imediata e garantia BordadoHub
                                     </div>
                                 </div>
+                            )}
 
-                                <div className="pt-3 border-t border-white/5 flex items-center justify-center gap-2 text-xs text-gray-400">
-                                    <div className="w-3 h-3 border-2 border-[#FFAE00]/30 border-t-[#FFAE00] rounded-full animate-spin" />
-                                    <span>Aguardando pagamento no banco... Liberando download automático</span>
+                            {/* Descrição */}
+                            {product.description && (
+                                <div className="pt-4 border-t border-white/5">
+                                    <h3 className="text-xs uppercase tracking-wider text-gray-400 font-semibold mb-2">Descrição da Matriz:</h3>
+                                    <p className="text-sm text-gray-300 whitespace-pre-line leading-relaxed">
+                                        {product.description}
+                                    </p>
                                 </div>
-                            </div>
-                        )}
+                            )}
+                        </div>
                     </div>
                 </div>
-            )}
+            </div>
         </div>
     )
 }
