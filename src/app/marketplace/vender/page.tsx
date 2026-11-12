@@ -88,9 +88,19 @@ export default function VenderMatrizPage() {
         }
     }
 
+    const MAX_FILE_SIZE_MB = 30
+    const MAX_BUNDLE_ITEMS = 20
+
     const handleMatrixFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0]
         if (file) {
+            const sizeInMb = file.size / (1024 * 1024)
+            if (sizeInMb > MAX_FILE_SIZE_MB) {
+                setErrorMessage(`O arquivo excede o limite máximo permitido de ${MAX_FILE_SIZE_MB} MB. Seu arquivo tem ${sizeInMb.toFixed(1)} MB.`)
+                e.target.value = ''
+                return
+            }
+            setErrorMessage(null)
             setMatrixFile(file)
         }
     }
@@ -130,8 +140,18 @@ export default function VenderMatrizPage() {
             return
         }
 
+        if (isBundle && (itemsCount < 2 || itemsCount > MAX_BUNDLE_ITEMS)) {
+            setErrorMessage(`Em pacotes, você pode incluir no máximo ${MAX_BUNDLE_ITEMS} matrizes por produto.`)
+            return
+        }
+
         if (!matrixFile) {
             setErrorMessage('Envie o arquivo digital (.ZIP ou matriz) para entrega aos compradores.')
+            return
+        }
+
+        if ((matrixFile.size / (1024 * 1024)) > MAX_FILE_SIZE_MB) {
+            setErrorMessage(`O arquivo excede o limite máximo de ${MAX_FILE_SIZE_MB} MB.`)
             return
         }
 
@@ -178,10 +198,11 @@ export default function VenderMatrizPage() {
                     price: numPrice,
                     image_url: imageUrl,
                     file_url: fileUrl,
+                    storage_path: filePath,
                     formats: selectedFormats,
                     category: category,
                     is_bundle: isBundle,
-                    items_count: isBundle ? Math.max(2, itemsCount) : 1,
+                    items_count: isBundle ? Math.min(MAX_BUNDLE_ITEMS, Math.max(2, itemsCount)) : 1,
                     sales_count: 0,
                     is_active: true,
                 })
@@ -311,12 +332,13 @@ export default function VenderMatrizPage() {
                             <input
                                 type="number"
                                 min={2}
+                                max={20}
                                 value={itemsCount}
-                                onChange={(e) => setItemsCount(parseInt(e.target.value) || 2)}
+                                onChange={(e) => setItemsCount(Math.min(20, Math.max(2, parseInt(e.target.value) || 2)))}
                                 className="w-32 bg-[#0F1115] border border-white/10 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-[#FFAE00]"
                             />
                             <p className="text-[11px] text-gray-400 mt-2">
-                                Pacotes com muitas matrizes têm taxa de conversão até 4x maior.
+                                Limite de até 20 matrizes por pacote (máx. 30 MB) para manter o download leve e rápido.
                             </p>
                         </div>
                     )}

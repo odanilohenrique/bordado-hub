@@ -41,6 +41,33 @@ export default function MarketplaceProductPage() {
     const [copied, setCopied] = useState(false)
     const [paymentStatus, setPaymentStatus] = useState<'idle' | 'pending' | 'paid'>('idle')
     const [downloadUrl, setDownloadUrl] = useState<string | null>(null)
+    const [isDownloading, setIsDownloading] = useState(false)
+
+    const handleDownloadSecure = async () => {
+        const currentUserId = profile?.id || user?.id
+        if (!currentUserId) {
+            toast.error('Faça login para baixar seus arquivos.')
+            return
+        }
+
+        setIsDownloading(true)
+        try {
+            const res = await fetch(`/api/marketplace/download/${productId}?userId=${currentUserId}`)
+            const data = await res.json()
+            if (!res.ok || data.error || !data.downloadUrl) {
+                throw new Error(data.error || 'Erro ao gerar download seguro.')
+            }
+
+            // Abre o link temporário assinado (expira em 60s)
+            window.location.href = data.downloadUrl
+            toast.success('Download iniciado com sucesso!')
+        } catch (err: any) {
+            console.error('Download error:', err)
+            toast.error(err.message || 'Falha no download.')
+        } finally {
+            setIsDownloading(false)
+        }
+    }
     const pollingRef = useRef<NodeJS.Timeout | null>(null)
 
     // 1. Fetch Product
@@ -309,16 +336,23 @@ export default function MarketplaceProductPage() {
                                         <h3 className="text-base font-bold text-green-400">Matriz Liberada!</h3>
                                         <p className="text-xs text-gray-300 mt-1">Seu pagamento foi confirmado. Baixe os arquivos agora.</p>
                                     </div>
-                                    <a
-                                        href={downloadUrl}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        download
-                                        className="w-full py-3.5 px-4 bg-green-500 hover:bg-green-400 text-black font-extrabold rounded-xl transition-all shadow-lg shadow-green-500/20 flex items-center justify-center gap-2"
+                                    <button
+                                        onClick={handleDownloadSecure}
+                                        disabled={isDownloading}
+                                        className="w-full py-3.5 px-4 bg-green-500 hover:bg-green-400 disabled:opacity-50 text-black font-extrabold rounded-xl transition-all shadow-lg shadow-green-500/20 flex items-center justify-center gap-2 cursor-pointer"
                                     >
-                                        <Download className="w-5 h-5" />
-                                        Baixar Arquivos da Matriz
-                                    </a>
+                                        {isDownloading ? (
+                                            <>
+                                                <Loader2 className="w-5 h-5 animate-spin" />
+                                                Gerando link seguro...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Download className="w-5 h-5" />
+                                                Baixar Arquivos da Matriz
+                                            </>
+                                        )}
+                                    </button>
                                 </div>
                             ) : paymentStatus === 'pending' && pixData ? (
                                 <div className="bg-[#0B0D11] border border-[#FFAE00]/30 rounded-xl p-5 space-y-4">
