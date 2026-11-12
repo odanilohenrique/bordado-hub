@@ -595,30 +595,22 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                 throw new Error('Não foi possível identificar o seu perfil de usuário. Por favor, recarregue a página e tente novamente.')
             }
 
-            const { error } = await supabase
-                .from('proposals')
-                .insert([{
-                    job_id: jobId,
-                    criador_id: creatorId,
+            // Envia via API com notificacao interna e Web Push ao cliente
+            const res = await fetch('/api/jobs/proposals/create', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    jobId,
+                    criadorId: creatorId,
                     amount: parseFloat(amount),
                     message,
-                    deadline_text: deadline,
-                    status: 'pendente'
-                }])
-
-            if (error) throw error
-
-            // Notify the job owner about the new proposal
-            if (job?.cliente_id) {
-                const creatorName = currentUser?.name || 'Um produtor'
-                await supabase.from('notifications').insert({
-                    user_id: job.cliente_id,
-                    type: 'nova_proposta',
-                    title: 'Nova proposta recebida',
-                    message: `${creatorName} enviou uma proposta de R$ ${parseFloat(amount).toFixed(2)} para "${job.title || 'seu pedido'}"`,
-                    link_url: `/jobs/${jobId}`,
-                    is_read: false
+                    deadlineText: deadline
                 })
+            })
+
+            const resData = await res.json()
+            if (!res.ok || resData.error) {
+                throw new Error(resData.error || 'Erro ao enviar proposta.')
             }
 
             toast.success('Proposta enviada com sucesso!')
