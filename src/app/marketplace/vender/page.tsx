@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabaseClient'
+import JSZip from 'jszip'
 import { 
     ArrowLeft, 
     UploadCloud, 
@@ -88,18 +89,63 @@ export default function VenderMatrizPage() {
         }
     }
 
-    const MAX_FILE_SIZE_MB = 30
+    const MAX_TOTAL_SIZE_MB = 30
+    const MAX_SINGLE_FILE_MB = 2
     const MAX_BUNDLE_ITEMS = 20
 
-    const handleMatrixFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleMatrixFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0]
-        if (file) {
-            const sizeInMb = file.size / (1024 * 1024)
-            if (sizeInMb > MAX_FILE_SIZE_MB) {
-                setErrorMessage(`O arquivo excede o limite máximo permitido de ${MAX_FILE_SIZE_MB} MB. Seu arquivo tem ${sizeInMb.toFixed(1)} MB.`)
+        if (!file) return
+
+        const sizeInMb = file.size / (1024 * 1024)
+        const isZip = file.name.toLowerCase().endsWith('.zip')
+
+        // 1. Validação de arquivo único direto (fora de ZIP)
+        if (!isZip) {
+            if (sizeInMb > MAX_SINGLE_FILE_MB) {
+                setErrorMessage(`Matriz individual excede o limite máximo de ${MAX_SINGLE_FILE_MB} MB. Seu arquivo tem ${sizeInMb.toFixed(2)} MB.`)
                 e.target.value = ''
                 return
             }
+            setErrorMessage(null)
+            setMatrixFile(file)
+            return
+        }
+
+        // 2. Validação do tamanho total do ZIP (anúncio total)
+        if (sizeInMb > MAX_TOTAL_SIZE_MB) {
+            setErrorMessage(`O pacote (.ZIP) excede o limite total de ${MAX_TOTAL_SIZE_MB} MB. Seu arquivo tem ${sizeInMb.toFixed(1)} MB.`)
+            e.target.value = ''
+            return
+        }
+
+        // 3. Inspeção interna do ZIP: cada arquivo interno <= 2 MB e total de arquivos <= 20
+        try {
+            const zip = await JSZip.loadAsync(file)
+            const entries = Object.values(zip.files).filter(f => !f.dir && !f.name.startsWith('__MACOSX/'))
+
+            if (entries.length > MAX_BUNDLE_ITEMS) {
+                setErrorMessage(`O pacote .ZIP contém ${entries.length} arquivos. O limite máximo permitido é de ${MAX_BUNDLE_ITEMS} arquivos por anúncio.`)
+                e.target.value = ''
+                return
+            }
+
+            for (const entry of entries) {
+                // Tamanho descomprimido em bytes
+                const uncompressedBytes = (entry as any)._data?.uncompressedSize || 0
+                const entryMb = uncompressedBytes / (1024 * 1024)
+                if (entryMb > MAX_SINGLE_FILE_MB) {
+                    setErrorMessage(`O arquivo "${entry.name}" dentro do ZIP tem ${entryMb.toFixed(2)} MB. O limite máximo por arquivo individual é de ${MAX_SINGLE_FILE_MB} MB.`)
+                    e.target.value = ''
+                    return
+                }
+            }
+
+            setErrorMessage(null)
+            setMatrixFile(file)
+        } catch (err) {
+            console.warn('Erro ao ler zip para validacao:', err)
+            // Se o zip for válido pelo navegador mas tiver formato específico, respeita o teto de 30MB
             setErrorMessage(null)
             setMatrixFile(file)
         }
@@ -150,8 +196,16 @@ export default function VenderMatrizPage() {
             return
         }
 
-        if ((matrixFile.size / (1024 * 1024)) > MAX_FILE_SIZE_MB) {
-            setErrorMessage(`O arquivo excede o limite máximo de ${MAX_FILE_SIZE_MB} MB.`)
+        const totalMb = matrixFile.size / (1024 * 1024)
+        const isZip = matrixFile.name.toLowerCase().endsWith('.zip')
+
+        if (!isZip && totalMb > MAX_SINGLE_FILE_MB) {
+            setErrorMessage(`Arquivo único não pode exceder ${MAX_SINGLE_FILE_MB} MB.`)
+            return
+        }
+
+        if (totalMb > MAX_TOTAL_SIZE_MB) {
+            setErrorMessage(`O pacote excede o limite total de ${MAX_TOTAL_SIZE_MB} MB.`)
             return
         }
 
@@ -483,7 +537,7 @@ export default function VenderMatrizPage() {
                                         Clique para anexar o arquivo digital
                                     </span>
                                     <span className="text-xs text-gray-500 block">
-                                        Envie preferencialmente um arquivo <strong>.ZIP</strong> contendo os formatos ou o arquivo da matriz
+                                        Arquivo único: <strong>máx. 2 MB</strong> | Pacote (.ZIP): <strong>máx. 30 MB e até 20 arquivos</strong> (cada um máx. 2 MB)
                                     </span>
                                     <input
                                         type="file"
