@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabaseClient'
+import { sendPushToUser } from '@/lib/pushNotifications'
 
 export async function POST(request: Request) {
     try {
@@ -150,6 +151,14 @@ export async function POST(request: Request) {
                             message: isEmbroidery ? `${senderName} enviou a matriz "${file.name}" no chat.` : `${senderName} enviou um arquivo no pedido.`,
                             link_url: `/jobs/${proposal.job_id}?chat=${proposalId}`
                         })
+
+                        // Push notification para o destinatário (fire-and-forget)
+                        sendPushToUser(recipientId, {
+                            title: isEmbroidery ? '🧵 Nova Matriz no Chat' : `📎 Novo Anexo de ${senderName}`,
+                            body: isEmbroidery ? `${senderName} enviou a matriz "${file.name}".` : `${senderName} enviou um arquivo no pedido.`,
+                            tag: `chat-${proposalId}`,
+                            url: `/jobs/${proposal.job_id}?chat=${proposalId}`
+                        }).catch(console.warn)
                     }
                 }
             }

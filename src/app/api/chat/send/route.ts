@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabaseClient'
+import { sendPushToUser } from '@/lib/pushNotifications'
 
 export async function POST(request: Request) {
     try {
@@ -63,6 +64,14 @@ export async function POST(request: Request) {
                     message: content.length > 90 ? `${content.slice(0, 90)}...` : content,
                     link_url: `/jobs/${proposal.job_id}?chat=${proposalId}`
                 })
+
+                // 4. Push notification (fire-and-forget)
+                sendPushToUser(recipientId, {
+                    title: isAdjustment ? '🔧 Ajuste Solicitado' : `💬 ${senderName}`,
+                    body: content.length > 100 ? `${content.slice(0, 100)}...` : content,
+                    tag: `chat-${proposalId}`,
+                    url: `/jobs/${proposal.job_id}?chat=${proposalId}`
+                }).catch(console.warn)
             }
         }
 

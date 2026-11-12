@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabaseClient'
+import { sendPushToProgrammers } from '@/lib/pushNotifications'
 
 export async function POST(request: Request) {
     try {
@@ -128,6 +129,15 @@ export async function POST(request: Request) {
                 console.warn('Erro ao notificar programador do pedido direto:', notifErr)
             }
         }
+
+        // Dispara push para todos os programadores cadastrados (fire-and-forget)
+        sendPushToProgrammers({
+            title: '🧵 Novo Pedido no Mural!',
+            body: `"${jobPayload.title}" — seja o primeiro a enviar proposta!`,
+            icon: '/icon.png',
+            tag: 'novo-pedido',
+            url: `/jobs/${job.id}`
+        }, jobPayload.cliente_id).catch(console.warn)
 
         return NextResponse.json({ success: true, jobId: job.id }, { status: 200 })
     } catch (err: any) {

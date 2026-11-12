@@ -7,6 +7,7 @@ import { Search, Plus, Handshake } from 'lucide-react'
 import Link from 'next/link'
 import { getCached, setCached } from '@/lib/clientCache'
 import { useAuth } from '@/contexts/AuthContext'
+import PushNotificationBanner from '@/components/PushNotificationBanner'
 
 function JobCardSkeleton() {
     return (
@@ -25,7 +26,7 @@ function JobCardSkeleton() {
 }
 
 export default function JobsPage() {
-    const { profileId } = useAuth()
+    const { profileId, profile } = useAuth()
     const [filter, setFilter] = useState<string>('all')
     const [jobs, setJobs] = useState<any[]>(() => {
         if (typeof window === 'undefined') return []
@@ -146,6 +147,8 @@ export default function JobsPage() {
     return (
         <div className="min-h-screen bg-[#0B0D11] py-8 px-4 sm:px-6 lg:px-8">
             <div className="max-w-7xl mx-auto">
+                {/* Banner de Push Notifications — aparece apenas para programadores não inscritos */}
+                <PushNotificationBanner userId={profileId} role={profile?.role} />
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
                     <div>
                         <h1 className="text-3xl font-extrabold text-[#F8FAFC] tracking-tight">Pedidos de Clientes</h1>
