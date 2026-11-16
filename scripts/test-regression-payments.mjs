@@ -1,9 +1,11 @@
 /**
- * SUÍTE DE TESTES DE REGRESSÃO — BORDADOHUB
- * Executado via Node.js para validação do checklist da diretriz GEMINI.md
+ * SUÍTE DE TESTES DE REGRESSÃO OFICIAL — BORDADOHUB
+ * Executado via `npm test` para validação obrigatória de Finanças, Segurança, LGPD e Arquitetura.
  */
 
 import assert from 'node:assert/strict'
+import fs from 'node:fs'
+import path from 'node:path'
 import { 
     calculateTotals, 
     calculateCardFee, 
@@ -11,7 +13,7 @@ import {
     ASAAS_CARD_FIXED_FEE 
 } from '../src/lib/payments.js'
 
-console.log('🧪 Iniciando Testes de Regressão: Domínio Financeiro & Taxas...')
+console.log('🧪 Iniciando Suíte de Testes de Regressão (Finanças, Segurança, LGPD & Arquitetura)...')
 
 let passed = 0
 let failed = 0
@@ -34,8 +36,6 @@ function test(description, fn) {
 test('Cartão 1x: Repasse de taxa à vista + tarifa fixa preserva valor base', () => {
     const base = 100.00
     const fee1x = calculateCardFee(base, 1)
-    
-    // totalComTaxa = (100 + 0.49) / (1 - 0.0299) = 103.59
     assert(fee1x.totalComTaxa > base, 'Total com taxa deve ser maior que o valor base')
     assert.equal(fee1x.rate, ASAAS_INSTALLMENT_RATES[1])
     assert.equal(fee1x.valorParcela, fee1x.totalComTaxa)
@@ -62,11 +62,9 @@ test('Fórmula Inversa Asaas: Desconto do Asaas sobre totalComTaxa deve deixar e
     const base = 250.00
     for (let parcelas = 1; parcelas <= 12; parcelas++) {
         const fee = calculateCardFee(base, parcelas)
-        // O Asaas desconta: totalComTaxa * rate + fixedFee
         const asaasCut = (fee.totalComTaxa * fee.rate) + ASAAS_CARD_FIXED_FEE
         const liquidoQueSobra = fee.totalComTaxa - asaasCut
         
-        // Deve sobrar pelo menos o valor base (arredondamento seguro para cima)
         assert(
             liquidoQueSobra >= base - 0.02, 
             `No parcelamento em ${parcelas}x o líquido (${liquidoQueSobra.toFixed(2)}) ficou menor que o base (${base})`
@@ -111,6 +109,55 @@ test('Marketplace: Matriz individual ou pacote retém 15% e repassa 85% líquido
             'A soma da taxa da plataforma + líquido do vendedor deve ser exatamente igual ao preço'
         )
         assert(sellerNet > platformFee, 'Líquido do vendedor deve ser maior que a taxa da plataforma')
+    }
+})
+
+// ==============================================================================
+// 4. REGRAS DE SEGURANÇA E LIMITES DE UPLOAD DO MARKETPLACE
+// ==============================================================================
+test('Marketplace Upload: Limite triplo (2MB arquivo único, 20 arquivos, 30MB total) ativo', () => {
+    const venderPage = fs.readFileSync(path.resolve('src/app/marketplace/vender/page.tsx'), 'utf8')
+    assert(venderPage.includes('MAX_TOTAL_SIZE_MB = 30'), 'Limite total de 30MB deve estar presente')
+    assert(venderPage.includes('MAX_SINGLE_FILE_MB = 2'), 'Limite de arquivo único de 2MB deve estar presente')
+    assert(venderPage.includes('MAX_BUNDLE_ITEMS = 20'), 'Limite de 20 arquivos por pacote deve estar presente')
+})
+
+test('Marketplace Download: Rota segura exige status paid e gera Signed URL temporária', () => {
+    const downloadRoute = fs.readFileSync(path.resolve('src/app/api/marketplace/download/[productId]/route.ts'), 'utf8')
+    assert(downloadRoute.includes(".eq('status', 'paid')"), 'Rota de download deve validar status paid')
+    assert(downloadRoute.includes('.createSignedUrl('), 'Rota de download deve usar Signed URL temporária')
+})
+
+// ==============================================================================
+// 5. CONFORMIDADE LGPD EM ROTAS PÚBLICAS DE PERFIL
+// ==============================================================================
+test('LGPD: Rota pública /api/programadores não expõe CPF, chave PIX ou dados bancários', () => {
+    const progRoute = fs.readFileSync(path.resolve('src/app/api/programadores/route.ts'), 'utf8')
+    assert(!progRoute.includes('pix_key'), 'Rota pública de programadores não pode expor pix_key')
+    assert(!progRoute.includes('cpf'), 'Rota pública de programadores não pode expor cpf')
+})
+
+// ==============================================================================
+// 6. INTEGRIDADE DO TIME DE AGENTES (12 SKILLS OFICIAIS)
+// ==============================================================================
+test('Organograma de Agentes: Todas as 12 Skills especialistas estão instaladas em .agents/skills/', () => {
+    const requiredSkills = [
+        'cybersecurity-appsec',
+        'legal-lgpd-compliance',
+        'backend-fintech-payments',
+        'qa-regression-engineer',
+        'frontend-performance',
+        'database-supabase-architect',
+        'ux-ui-product-designer',
+        'design-system-guardian',
+        'videomaker-remotion',
+        'product-growth-strategist',
+        'conversion-sales-copywriter',
+        'seo-viral-marketing'
+    ]
+    for (const skill of requiredSkills) {
+        const skillPath = path.resolve('.agents/skills', skill, 'SKILL.md')
+        assert(fs.existsSync(skillPath), `Skill obrigatória ausente: ${skill}`)
     }
 })
 
