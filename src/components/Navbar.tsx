@@ -10,7 +10,7 @@ import { useRouter, usePathname } from 'next/navigation'
 import NotificationBell from '@/components/NotificationBell'
 
 export default function Navbar() {
-    const { user } = useAuth()
+    const { user, profile } = useAuth()
     const [isOpen, setIsOpen] = useState(false)
     const [mounted, setMounted] = useState(false)
     const router = useRouter()
@@ -99,7 +99,7 @@ export default function Navbar() {
                                     Meus Pedidos
                                 </Link>
                                 <Link 
-                                    href={`/profile/${mountedUser.id}`} 
+                                    href={`/profile/${profile?.id || mountedUser.id}`} 
                                     className="text-sm font-medium text-gray-300 hover:text-white px-3 py-2 rounded-lg hover:bg-white/5 transition-colors"
                                 >
                                     Meu Perfil
@@ -194,7 +194,7 @@ export default function Navbar() {
                                     Meus Pedidos
                                 </Link>
                                 <Link 
-                                    href={`/profile/${mountedUser.id}`} 
+                                    href={`/profile/${profile?.id || mountedUser.id}`} 
                                     className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium text-gray-200 hover:bg-white/5"
                                 >
                                     Meu Perfil

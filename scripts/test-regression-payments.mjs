@@ -1707,6 +1707,87 @@ test('Cenário 7: Resistência Adversária contra Tentativas de Abuso (Spoofing,
 })
 
 // ==============================================================================
+// 5. TIER 5 — SINCRONIA DE CACHE/BANCO, ANTI-FANTASMA DE PERFIL & ANTI-TRAVAMENTO SPA
+// ==============================================================================
+runner.suite('5. TIER 5 — SINCRONIA DE CACHE/BANCO, ANTI-PERFIL FANTASMA & FAILSAFES')
+
+test('T5-SYNC-01: clientCache.ts aplica expiração real de TTL e possui clearCacheByPrefix', () => {
+    verifyFileContent('src/lib/clientCache.ts', {
+        includes: [
+            'Date.now() - entry.timestamp < entry.ttl',
+            'Date.now() - parsed.timestamp < parsed.ttl',
+            'export function clearCacheByPrefix',
+            "removeItem('current_user_profile')"
+        ]
+    })
+})
+
+test('T5-SYNC-02: AuthContext.tsx valida supabase_user_id do perfil em cache e limpa sessão ao sair/trocar', () => {
+    verifyFileContent('src/contexts/AuthContext.tsx', {
+        includes: [
+            'isProfileMatchingUser',
+            'cachedProf.supabase_user_id !== supabaseUserId',
+            'bordadohub_profile_updated',
+            'clearTimeout(timeoutTimer)'
+        ]
+    })
+})
+
+test('T5-SYNC-03: /profile/[id] remove localStorage fantasma, usa useAuth e reseta estado ao trocar de ID', () => {
+    verifyFileContent('src/app/profile/[id]/page.tsx', {
+        includes: [
+            "removeItem('current_user_profile')",
+            'getValidatedInitialProfile',
+            'syncProfileCache',
+            'useAuth'
+        ],
+        excludes: [
+            "localStorage.getItem('current_user_profile')"
+        ]
+    })
+})
+
+test('T5-SYNC-04: ProfileEditor e Navbar sincronizam cache global e ID primário do perfil', () => {
+    verifyFileContent('src/components/ProfileEditor.tsx', {
+        includes: [
+            "setCached('current_user_profile'",
+            "clearCache('programmers_list')",
+            'bordadohub_profile_updated'
+        ]
+    })
+    verifyFileContent('src/components/Navbar.tsx', {
+        includes: [
+            'profile?.id || mountedUser.id'
+        ]
+    })
+})
+
+test('T5-PERF-01: Páginas do Marketplace, Loja, Mural e Checkout possuem failsafe timers e zero bloqueio por auth', () => {
+    verifyFileContent('src/app/loja/[sellerId]/page.tsx', {
+        includes: ['safetyTimer', 'clearTimeout(safetyTimer)'],
+        excludes: ['if (authLoading) return']
+    })
+    verifyFileContent('src/app/marketplace/page.tsx', {
+        includes: ['safetyTimer', ".eq('is_active', true)"]
+    })
+    verifyFileContent('src/app/marketplace/vender/page.tsx', {
+        includes: ['useAuth', 'safetyTimer', "clearCache('marketplace_products')"]
+    })
+    verifyFileContent('src/app/marketplace/[id]/page.tsx', {
+        includes: ['safetyTimer', 'marketplace_product_']
+    })
+    verifyFileContent('src/app/jobs/page.tsx', {
+        includes: ['safetyTimer', 'Promise.all([query, fetchProposals()])']
+    })
+    verifyFileContent('src/app/jobs/new/page.tsx', {
+        includes: ['useAuth', 'safetyTimer']
+    })
+    verifyFileContent('src/app/checkout/[proposalId]/page.tsx', {
+        includes: ['safetyTimer', 'finally {']
+    })
+})
+
+// ==============================================================================
 // EXECUÇÃO DO RUNNER E CÓDIGO DE SAÍDA (TOP-LEVEL AWAIT)
 // ==============================================================================
 await runner.run(true)

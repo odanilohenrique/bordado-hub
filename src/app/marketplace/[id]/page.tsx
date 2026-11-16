@@ -6,6 +6,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabaseClient'
 import { useAuth } from '@/contexts/AuthContext'
+import { getCached, setCached } from '@/lib/clientCache'
 import { 
     ArrowLeft, 
     Download, 
@@ -30,8 +31,14 @@ export default function MarketplaceProductPage() {
     const { user, profile } = useAuth()
     const productId = params?.id as string
 
-    const [product, setProduct] = useState<any>(null)
-    const [loading, setLoading] = useState(true)
+    const [product, setProduct] = useState<any>(() => {
+        if (typeof window === 'undefined' || !productId) return null
+        return getCached<any>(`marketplace_product_${productId}`)
+    })
+    const [loading, setLoading] = useState(() => {
+        if (typeof window === 'undefined' || !productId) return true
+        return !getCached<any>(`marketplace_product_${productId}`)
+    })
     const [cpfCnpj, setCpfCnpj] = useState('')
     
     // Checkout states
@@ -73,29 +80,54 @@ export default function MarketplaceProductPage() {
     // 1. Fetch Product
     useEffect(() => {
         if (!productId) return
+        let isMounted = true
+
+        const cached = getCached<any>(`marketplace_product_${productId}`)
+        if (cached) {
+            setProduct(cached)
+            setLoading(false)
+        }
+
+        const safetyTimer = setTimeout(() => {
+            if (isMounted) setLoading(false)
+        }, 4000)
 
         async function loadProduct() {
             try {
-                const { data, error } = await supabase
+                const queryPromise = supabase
                     .from('marketplace_products')
                     .select('*, seller:seller_id(id, name, avatar_url, rating, reviews_count)')
                     .eq('id', productId)
                     .single()
 
+                const timeoutPromise = new Promise<{ data: any; error: any }>((resolve) =>
+                    setTimeout(() => resolve({ data: null, error: new Error('Product query timeout') }), 4500)
+                )
+
+                const { data, error } = await Promise.race([queryPromise, timeoutPromise])
+                if (!isMounted) return
+
                 if (error || !data) {
                     console.error('Produto não encontrado:', error)
-                    toast.error('Produto não encontrado.')
+                    if (!cached) toast.error('Produto não encontrado.')
                 } else {
                     setProduct(data)
+                    setCached(`marketplace_product_${productId}`, data, 60000)
                 }
             } catch (err) {
                 console.error('Erro ao carregar produto:', err)
             } finally {
-                setLoading(false)
+                clearTimeout(safetyTimer)
+                if (isMounted) setLoading(false)
             }
         }
 
         loadProduct()
+
+        return () => {
+            isMounted = false
+            clearTimeout(safetyTimer)
+        }
     }, [productId])
 
     // 2. Verifica se o usuário logado já comprou este produto

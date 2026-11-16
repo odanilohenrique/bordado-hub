@@ -9,6 +9,7 @@ import { toast } from 'sonner'
 import { createNotification } from '@/lib/notifications'
 import { optimizeImageFile } from '@/lib/helpers'
 import { clearCache } from '@/lib/clientCache'
+import { useAuth } from '@/contexts/AuthContext'
 
 const PRESET_FORMATS = ['.PES', '.JEF', '.DST', '.XXX', '.VP3', '.HUS', '.EXP']
 
@@ -39,6 +40,7 @@ export interface ExtraImageItem {
 function NewJobContent() {
     const router = useRouter()
     const searchParams = useSearchParams()
+    const { user: authUser, profileId: authProfileId, loading: authLoading } = useAuth()
 
     const [title, setTitle] = useState('')
     const [description, setDescription] = useState('')
@@ -48,8 +50,8 @@ function NewJobContent() {
     const [extraImages, setExtraImages] = useState<ExtraImageItem[]>([])
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
-    const [checkingAuth, setCheckingAuth] = useState(true)
-    const [currentUserProfileId, setCurrentUserProfileId] = useState<string | null>(null)
+    const [checkingAuth, setCheckingAuth] = useState(() => !(authProfileId || authUser?.id))
+    const [currentUserProfileId, setCurrentUserProfileId] = useState<string | null>(() => authProfileId || authUser?.id || null)
     const [directProgrammerId, setDirectProgrammerId] = useState<string | null>(null)
     const [directProgrammerName, setDirectProgrammerName] = useState<string | null>(null)
 
@@ -61,18 +63,38 @@ function NewJobContent() {
     // Check authentication on page load and cache user ID to avoid locks on mobile
     useEffect(() => {
         let isMounted = true
+
+        if (authProfileId) {
+            setCurrentUserProfileId(authProfileId)
+            setCheckingAuth(false)
+            return
+        }
+
+        const safetyTimer = setTimeout(() => {
+            if (isMounted) setCheckingAuth(false)
+        }, 3000)
+
         const checkAuth = async () => {
             try {
-                const { data: { session } } = await supabase.auth.getSession()
-                if (!session?.user) {
-                    router.push('/login?redirect=/jobs/new')
+                let authUserId = authUser?.id
+                if (!authUserId) {
+                    const { data: { session } } = await Promise.race([
+                        supabase.auth.getSession(),
+                        new Promise<any>((resolve) => setTimeout(() => resolve({ data: { session: null } }), 2500))
+                    ])
+                    authUserId = session?.user?.id
+                }
+
+                if (!authUserId) {
+                    if (!authLoading) {
+                        router.push('/login?redirect=/jobs/new')
+                    }
                     return
                 }
 
-                const authUserId = session.user.id
                 let profileId = authUserId
 
-                // Busca o ID em public.users com timeout de 5s
+                // Busca o ID em public.users com timeout de 3s
                 try {
                     const profilePromise = supabase
                         .from('users')
@@ -81,7 +103,7 @@ function NewJobContent() {
                         .maybeSingle()
 
                     const timeoutPromise = new Promise((_, reject) =>
-                        setTimeout(() => reject(new Error('timeout')), 5000)
+                        setTimeout(() => reject(new Error('timeout')), 3000)
                     )
 
                     const { data: userProfile } = await Promise.race([profilePromise, timeoutPromise]) as any
@@ -100,11 +122,16 @@ function NewJobContent() {
             } catch (err) {
                 console.error('Erro na checagem de autenticação:', err)
                 if (isMounted) setCheckingAuth(false)
+            } finally {
+                clearTimeout(safetyTimer)
             }
         }
         checkAuth()
-        return () => { isMounted = false }
-    }, [router])
+        return () => {
+            isMounted = false
+            clearTimeout(safetyTimer)
+        }
+    }, [router, authProfileId, authUser?.id, authLoading])
 
     // Check for direct programmer ID from URL
     useEffect(() => {

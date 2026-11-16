@@ -47,6 +47,8 @@ export default function JobsPage() {
     }, [profileId])
 
     useEffect(() => {
+        let isMounted = true
+
         // If cached for this filter, display instantly without spinner
         const cached = getCached<any[]>(`jobs_${filter}`)
         if (cached && cached.length > 0) {
@@ -55,6 +57,10 @@ export default function JobsPage() {
         } else if (jobs.length === 0) {
             setLoading(true)
         }
+
+        const safetyTimer = setTimeout(() => {
+            if (isMounted) setLoading(false)
+        }, 4000)
 
         async function fetchJobs() {
             try {
@@ -85,7 +91,7 @@ export default function JobsPage() {
                             .select('job_id, status')
                             .eq('criador_id', profileId)
 
-                        if (myProps) {
+                        if (myProps && isMounted) {
                             myProps.forEach((p: any) => {
                                 myProposalsMap[p.job_id] = p.status
                             })
@@ -102,16 +108,17 @@ export default function JobsPage() {
                     return myProposalsMap
                 }
 
-                // Timeout promise to guarantee the page NEVER hangs forever (6s safety net)
-                const timeoutPromise = new Promise<{ data: any; error: any }>((resolve) =>
-                    setTimeout(() => resolve({ data: null, error: new Error('Jobs query timeout') }), 3000)
+                // Timeout promise to guarantee neither query nor fetchProposals hangs forever
+                const timeoutPromise = new Promise<[{ data: any }, Record<string, string>]>((resolve) =>
+                    setTimeout(() => resolve([{ data: null }, {}]), 3500)
                 )
 
-                // Execute jobs query and proposals in parallel with timeout safety net
-                const [{ data: rawJobs }, myProposalsMap] = await Promise.all([
-                    Promise.race([query, timeoutPromise]),
-                    fetchProposals()
+                const [{ data: rawJobs }, myProposalsMap] = await Promise.race([
+                    Promise.all([query, fetchProposals()]),
+                    timeoutPromise
                 ])
+
+                if (!isMounted) return
 
                 if (rawJobs) {
                     // Extract proposal count, ownership and sent proposal status
@@ -137,11 +144,17 @@ export default function JobsPage() {
             } catch (err) {
                 console.error('Erro ao buscar jobs:', err)
             } finally {
-                setLoading(false)
+                clearTimeout(safetyTimer)
+                if (isMounted) setLoading(false)
             }
         }
 
         fetchJobs()
+
+        return () => {
+            isMounted = false
+            clearTimeout(safetyTimer)
+        }
     }, [filter, profileId])
 
     return (

@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabaseClient'
 import { useAuth } from '@/contexts/AuthContext'
+import { clearCache } from '@/lib/clientCache'
 import ProductCard from '@/components/ProductCard'
 import { toast } from 'sonner'
 import { 
@@ -57,12 +58,15 @@ export default function SellerStorePage() {
 
     useEffect(() => {
         if (!sellerId) return
-        if (authLoading) return
 
         let isMounted = true
 
+        const safetyTimer = setTimeout(() => {
+            if (isMounted) setLoading(false)
+        }, 4000)
+
         async function loadStore() {
-            setLoading(true)
+            if (!seller) setLoading(true)
             try {
                 const cleanSellerId = sellerId.trim()
                 const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cleanSellerId)
@@ -78,7 +82,7 @@ export default function SellerStorePage() {
                     sellerQuery = sellerQuery.eq('id', cleanSellerId)
                 }
 
-                const { data: sellerData, error: sErr } = await sellerQuery.maybeSingle()
+                const { data: sellerData } = await sellerQuery.maybeSingle()
 
                 if (!sellerData) {
                     if (isMounted) {
@@ -109,7 +113,7 @@ export default function SellerStorePage() {
                     prodQuery = prodQuery.eq('is_active', true)
                 }
 
-                const { data: prods, error: pErr } = await prodQuery.order('created_at', { ascending: false })
+                const { data: prods } = await prodQuery.order('created_at', { ascending: false })
 
                 if (isMounted && prods) {
                     setProducts(prods)
@@ -117,6 +121,7 @@ export default function SellerStorePage() {
             } catch (err) {
                 console.error('Erro ao carregar loja do vendedor:', err)
             } finally {
+                clearTimeout(safetyTimer)
                 if (isMounted) setLoading(false)
             }
         }
@@ -125,8 +130,9 @@ export default function SellerStorePage() {
 
         return () => {
             isMounted = false
+            clearTimeout(safetyTimer)
         }
-    }, [sellerId, authLoading, profile?.id, profileId, user?.id])
+    }, [sellerId, profile?.id, profileId, user?.id])
 
     // Toggle Pause / Resume
     const handleTogglePause = async (product: any) => {
@@ -160,6 +166,7 @@ export default function SellerStorePage() {
                 throw new Error(data.error || 'Erro ao atualizar status da matriz.')
             }
 
+            clearCache('marketplace_products')
             toast.success(nextActiveState ? 'Matriz reativada com sucesso!' : 'Matriz pausada com sucesso!')
         } catch (err: any) {
             console.error('Erro ao alternar status da matriz:', err)
@@ -194,6 +201,7 @@ export default function SellerStorePage() {
 
             // Remove from current local state
             setProducts(prev => prev.filter(p => p.id !== productToDelete.id))
+            clearCache('marketplace_products')
             toast.success('Matriz desativada com sucesso!')
             setProductToDelete(null)
         } catch (err: any) {

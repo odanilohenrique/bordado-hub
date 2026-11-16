@@ -16,6 +16,7 @@ import {
 import Image from 'next/image'
 import { toast } from 'sonner'
 import { optimizeImageFile } from '@/lib/helpers'
+import { setCached, clearCache } from '@/lib/clientCache'
 
 const SOFTWARE_OPTIONS = [
     'Wilcom ES',
@@ -310,13 +311,24 @@ export default function ProfileEditor({ profile, onCancel, onSave }: ProfileEdit
                 throw new Error(json.error || `Erro HTTP ${res.status}: Não foi possível salvar o perfil.`)
             }
 
-            toast.success('Perfil atualizado com sucesso!')
-
-            onSave({
+            const mergedUpdated = {
                 ...profile,
                 ...updatePayload,
                 ...(json.user || {})
-            })
+            }
+            setCached('current_user_profile', mergedUpdated, 300000)
+            if (mergedUpdated.id) {
+                setCached(`profile_${mergedUpdated.id}`, mergedUpdated, 120000)
+                setCached('current_user_profile_id', mergedUpdated.id, 300000)
+            }
+            clearCache('programmers_list')
+            if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('bordadohub_profile_updated', { detail: mergedUpdated }))
+            }
+
+            toast.success('Perfil atualizado com sucesso!')
+
+            onSave(mergedUpdated)
         } catch (error: any) {
             console.error('Error saving profile:', error)
             const errorMsg = error.name === 'TimeoutError'

@@ -10,6 +10,8 @@ import ProfileEditor from '@/components/ProfileEditor'
 import ProgrammerAccessModal from '@/components/ProgrammerAccessModal'
 import { toast } from 'sonner'
 import { optimizeImageFile } from '@/lib/helpers'
+import { useAuth } from '@/contexts/AuthContext'
+import { getCached, setCached, clearCache } from '@/lib/clientCache'
 
 interface UserProfile {
     id: string
@@ -79,41 +81,44 @@ export default function ProfilePage() {
     const params = useParams()
     const router = useRouter()
     const id = params?.id as string
+    const { user: authUser, profile: authProfile, refreshProfile } = useAuth()
 
-    // Instant hydration from cached profile if present (ZERO loading delay)
-    const [profile, setProfile] = useState<UserProfile | null>(() => {
-        if (typeof window !== 'undefined') {
-            try {
-                const cached = localStorage.getItem('current_user_profile')
-                if (cached) {
-                    const parsed = JSON.parse(cached)
-                    if (parsed && (id === 'me' || parsed.id === id || parsed.supabase_user_id === id)) {
-                        return parsed
-                    }
-                }
-            } catch {}
+    // Instant hydration from validated sessionStorage cache (ZERO stale localStorage ghosts)
+    const getValidatedInitialProfile = (): UserProfile | null => {
+        if (typeof window === 'undefined') return null
+        try {
+            window.localStorage.removeItem('current_user_profile')
+        } catch {}
+
+        const cachedAuth = getCached<{ id?: string }>('current_user_auth')
+        const myCached = getCached<UserProfile>('current_user_profile')
+        const isOwnTarget =
+            id === 'me' ||
+            (myCached && (myCached.id === id || myCached.supabase_user_id === id)) ||
+            (cachedAuth && cachedAuth.id === id)
+
+        if (isOwnTarget && myCached && myCached.id) {
+            if (!cachedAuth?.id || !myCached.supabase_user_id || myCached.supabase_user_id === cachedAuth.id) {
+                return myCached
+            }
+        }
+
+        if (id && id !== 'me') {
+            const cachedPublic = getCached<UserProfile>(`profile_${id}`)
+            if (cachedPublic && cachedPublic.id) {
+                return cachedPublic
+            }
         }
         return null
-    })
+    }
+
+    const [profile, setProfile] = useState<UserProfile | null>(() => getValidatedInitialProfile())
 
     const [reviews, setReviews] = useState<any[]>([])
-    const [loading, setLoading] = useState<boolean>(() => {
-        if (typeof window !== 'undefined') {
-            try {
-                const cached = localStorage.getItem('current_user_profile')
-                if (cached) {
-                    const parsed = JSON.parse(cached)
-                    if (parsed && (id === 'me' || parsed.id === id || parsed.supabase_user_id === id)) {
-                        return false
-                    }
-                }
-            } catch {}
-        }
-        return true
-    })
+    const [loading, setLoading] = useState<boolean>(() => !getValidatedInitialProfile())
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const [currentUser, setCurrentUser] = useState<any>(null)
+    const [currentUser, setCurrentUser] = useState<any>(() => authUser || null)
     const [isCreating, setIsCreating] = useState(false)
     const [newRole, setNewRole] = useState('cliente')
     const [isEditing, setIsEditing] = useState(false)
@@ -143,24 +148,60 @@ export default function ProfilePage() {
         }
     }, [])
 
+    const syncProfileCache = (profileData: UserProfile, sessionUser?: any) => {
+        if (!profileData?.id) return
+        setCached(`profile_${profileData.id}`, profileData, 120000)
+        const u = sessionUser || currentUser || authUser
+        const isOwn =
+            id === 'me' ||
+            (u && (profileData.supabase_user_id === u.id || profileData.id === u.id)) ||
+            (authProfile && authProfile.id === profileData.id)
+
+        if (isOwn) {
+            setCached('current_user_profile', profileData, 300000)
+            setCached('current_user_profile_id', profileData.id, 300000)
+            clearCache('programmers_list')
+            if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('bordadohub_profile_updated', { detail: profileData }))
+            }
+        }
+    }
+
     useEffect(() => {
+        const nextCached = getValidatedInitialProfile()
+        const currentlyMatches =
+            profile &&
+            (id === 'me'
+                ? Boolean(authUser?.id && (!profile.supabase_user_id || profile.supabase_user_id === authUser.id))
+                : (profile.id === id || profile.supabase_user_id === id))
+
+        if (!currentlyMatches) {
+            setProfile(nextCached)
+            setLoading(!nextCached)
+        }
+
         loadData(true)
 
         const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
             if (session?.user) {
                 setCurrentUser(session.user)
+            } else {
+                setCurrentUser(null)
             }
         })
         return () => subscription.unsubscribe()
     }, [id])
 
     async function loadData(showSpinner = true) {
-        if (showSpinner && !profile) setLoading(true)
+        const hasMatchingCurrent =
+            profile &&
+            (id === 'me' || profile.id === id || profile.supabase_user_id === id)
+        if (showSpinner && !hasMatchingCurrent) setLoading(true)
 
-        // Failsafe timer de proteção (8s para redes móveis/conexões instáveis)
+        // Failsafe timer de proteção (5s para redes móveis/conexões instáveis)
         const failsafe = setTimeout(() => {
             setLoading(false)
-        }, 8000)
+        }, 5000)
 
         try {
             if (!id) {
@@ -186,15 +227,19 @@ export default function ProfilePage() {
                     })
                 : Promise.resolve(null)
 
-            const authPromise = (async () => {
-                const { data: { session } } = await supabase.auth.getSession().catch(() => ({ data: { session: null } }))
-                let u = session?.user ?? null
-                if (!u && typeof window !== 'undefined') {
-                    const { data: userData } = await supabase.auth.getUser().catch(() => ({ data: { user: null } }))
-                    if (userData?.user) u = userData.user
-                }
-                return u
-            })()
+            const authPromise = Promise.race([
+                (async () => {
+                    if (authUser) return authUser
+                    const { data: { session } } = await supabase.auth.getSession().catch(() => ({ data: { session: null } }))
+                    let u = session?.user ?? null
+                    if (!u && typeof window !== 'undefined') {
+                        const { data: userData } = await supabase.auth.getUser().catch(() => ({ data: { user: null } }))
+                        if (userData?.user) u = userData.user
+                    }
+                    return u
+                })(),
+                new Promise<any>((resolve) => setTimeout(() => resolve(authUser || null), 2500))
+            ])
 
             const [initialResult, user] = await Promise.all([profilePromise, authPromise])
             setCurrentUser(user)
@@ -272,6 +317,7 @@ export default function ProfilePage() {
             setProfile(profileData)
             setReviews(reviewsData)
             setPreviewRole(profileData.role)
+            syncProfileCache(profileData, user)
         } catch (err) {
             console.error('Error in loadData:', err)
         } finally {
@@ -472,7 +518,9 @@ export default function ProfilePage() {
 
             if (updateError) throw updateError
 
-            setProfile(prev => prev ? { ...prev, portfolio_urls: updatedPortfolio } : null)
+            const updated = { ...profile, portfolio_urls: updatedPortfolio }
+            setProfile(updated)
+            syncProfileCache(updated)
             toast.success('Item removido do portfólio com sucesso.')
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (err: any) {
@@ -591,8 +639,11 @@ export default function ProfilePage() {
                         onSave={(updatedUser?: any) => {
                             setIsEditing(false)
                             if (updatedUser) {
-                                setProfile(prev => prev ? { ...prev, ...updatedUser } : updatedUser)
+                                const merged = profile ? { ...profile, ...updatedUser } : updatedUser
+                                setProfile(merged)
                                 if (updatedUser.role) setPreviewRole(updatedUser.role)
+                                syncProfileCache(merged)
+                                refreshProfile()
                             }
                             toast.success('Perfil atualizado com sucesso!')
 

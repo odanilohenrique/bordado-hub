@@ -30,6 +30,8 @@ export default function MarketplacePage() {
     const [activeFilter, setActiveFilter] = useState<string>('all')
 
     useEffect(() => {
+        let isMounted = true
+
         // Fast client-side cache mount (0ms latency without breaking SSR hydration)
         const cached = getCached<any[]>('marketplace_products')
         if (cached && cached.length > 0) {
@@ -37,12 +39,25 @@ export default function MarketplacePage() {
             setLoading(false)
         }
 
+        const safetyTimer = setTimeout(() => {
+            if (isMounted) setLoading(false)
+        }, 4000)
+
         async function fetchProducts() {
             try {
-                const { data, error } = await supabase
+                const queryPromise = supabase
                     .from('marketplace_products')
                     .select('*, seller:seller_id(name, avatar_url, rating)')
+                    .eq('is_active', true)
                     .order('created_at', { ascending: false })
+
+                const timeoutPromise = new Promise<{ data: any; error: any }>((resolve) =>
+                    setTimeout(() => resolve({ data: null, error: new Error('Marketplace query timeout') }), 4500)
+                )
+
+                const { data, error } = await Promise.race([queryPromise, timeoutPromise])
+
+                if (!isMounted) return
 
                 if (data) {
                     setProducts(data)
@@ -53,11 +68,17 @@ export default function MarketplacePage() {
             } catch (err) {
                 console.error('Erro ao buscar marketplace:', err)
             } finally {
-                setLoading(false)
+                clearTimeout(safetyTimer)
+                if (isMounted) setLoading(false)
             }
         }
 
         fetchProducts()
+
+        return () => {
+            isMounted = false
+            clearTimeout(safetyTimer)
+        }
     }, [])
 
     const filteredProducts = products

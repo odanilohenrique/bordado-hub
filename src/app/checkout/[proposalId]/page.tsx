@@ -7,6 +7,7 @@ import { QrCode, Copy, CheckCircle2, ShieldCheck, ArrowLeft, Loader2, Zap, Credi
 import Image from 'next/image'
 import { toast } from 'sonner'
 import { calculateTotals, calculateCardFee } from '@/lib/payments'
+import { useAuth } from '@/contexts/AuthContext'
 
 type PaymentMethod = 'pix' | 'cartao'
 
@@ -55,48 +56,78 @@ function CheckoutClient({ proposalId }: { proposalId: string }) {
     const [isPaid, setIsPaid] = useState(false)
     const router = useRouter()
 
+    const { profile: authProfile } = useAuth()
+
     useEffect(() => {
+        let isMounted = true
+        const safetyTimer = setTimeout(() => {
+            if (isMounted) setLoading(false)
+        }, 5000)
+
         async function loadData() {
-            const { data: proposalData } = await supabase
-                .from('proposals')
-                .select('*, criador:criador_id(name)')
-                .eq('id', proposalId)
-                .single()
-
-            if (!proposalData) {
-                toast('Proposta não encontrada')
-                router.push('/pedidos')
-                return
-            }
-
-            setProposal(proposalData)
-
-            const { data: jobData } = await supabase
-                .from('jobs')
-                .select('*')
-                .eq('id', proposalData.job_id)
-                .single()
-
-            setJob(jobData)
-
-            const { data: { session } } = await supabase.auth.getSession()
-            const user = session?.user
-            if (user) {
-                const { data: profile } = await supabase
-                    .from('users')
-                    .select('cpf_cnpj, name')
-                    .eq('supabase_user_id', user.id)
+            try {
+                const { data: proposalData } = await supabase
+                    .from('proposals')
+                    .select('*, criador:criador_id(name)')
+                    .eq('id', proposalId)
                     .single()
 
-                if (profile?.cpf_cnpj) setCpfCnpj(profile.cpf_cnpj)
-                if (profile?.name) setCardData(prev => ({ ...prev, holderName: profile.name }))
-            }
+                if (!isMounted) return
 
-            setLoading(false)
+                if (!proposalData) {
+                    toast('Proposta não encontrada')
+                    router.push('/pedidos')
+                    return
+                }
+
+                setProposal(proposalData)
+
+                const [{ data: jobData }, sessionResult] = await Promise.all([
+                    supabase
+                        .from('jobs')
+                        .select('*')
+                        .eq('id', proposalData.job_id)
+                        .single(),
+                    Promise.race([
+                        supabase.auth.getSession(),
+                        new Promise<any>((resolve) => setTimeout(() => resolve({ data: { session: null } }), 3000))
+                    ])
+                ])
+
+                if (!isMounted) return
+                setJob(jobData)
+
+                if (authProfile?.cpf_cnpj) setCpfCnpj(authProfile.cpf_cnpj)
+                if (authProfile?.name) setCardData(prev => ({ ...prev, holderName: authProfile.name }))
+
+                const user = sessionResult?.data?.session?.user
+                if (user && !authProfile?.cpf_cnpj) {
+                    const { data: profile } = await supabase
+                        .from('users')
+                        .select('cpf_cnpj, name')
+                        .eq('supabase_user_id', user.id)
+                        .maybeSingle()
+
+                    if (!isMounted) return
+                    if (profile?.cpf_cnpj) setCpfCnpj(profile.cpf_cnpj)
+                    if (profile?.name) setCardData(prev => ({ ...prev, holderName: profile.name }))
+                }
+            } catch (err) {
+                console.error('Erro ao carregar checkout:', err)
+                toast.error('Erro ao carregar dados do pagamento.')
+            } finally {
+                clearTimeout(safetyTimer)
+                if (isMounted) setLoading(false)
+            }
         }
 
         loadData()
-    }, [proposalId, router])
+
+        return () => {
+            isMounted = false
+            clearTimeout(safetyTimer)
+        }
+    }, [proposalId, router, authProfile?.cpf_cnpj, authProfile?.name])
 
     // Poll for payment confirmation (PIX)
     const checkStatus = useCallback(async () => {

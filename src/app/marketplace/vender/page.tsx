@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabaseClient'
+import { useAuth } from '@/contexts/AuthContext'
+import { clearCache } from '@/lib/clientCache'
 import JSZip from 'jszip'
 import { 
     ArrowLeft, 
@@ -34,9 +36,10 @@ const CATEGORIES = [
 
 export default function VenderMatrizPage() {
     const router = useRouter()
+    const { user: authUser, profile: authProfile, loading: authLoading } = useAuth()
     const [loading, setLoading] = useState(false)
-    const [checkingAuth, setCheckingAuth] = useState(true)
-    const [profile, setProfile] = useState<any>(null)
+    const [checkingAuth, setCheckingAuth] = useState(() => !authProfile)
+    const [profile, setProfile] = useState<any>(() => authProfile || null)
 
     // Form state
     const [title, setTitle] = useState('')
@@ -56,30 +59,65 @@ export default function VenderMatrizPage() {
     const [successMessage, setSuccessMessage] = useState<string | null>(null)
 
     useEffect(() => {
-        async function checkUser() {
-            const { data: { session } } = await supabase.auth.getSession()
-            if (!session?.user) {
-                router.push('/login?redirect=/marketplace/vender')
-                return
-            }
+        let isMounted = true
 
-            const { data: userProfile } = await supabase
-                .from('users')
-                .select('id, name, role')
-                .eq('supabase_user_id', session.user.id)
-                .maybeSingle()
-
-            if (!userProfile) {
-                router.push('/login')
-                return
-            }
-
-            setProfile(userProfile)
+        if (authProfile?.id) {
+            setProfile(authProfile)
             setCheckingAuth(false)
+            return
+        }
+
+        const safetyTimer = setTimeout(() => {
+            if (isMounted) setCheckingAuth(false)
+        }, 4000)
+
+        async function checkUser() {
+            try {
+                let targetAuthId = authUser?.id
+                if (!targetAuthId) {
+                    const { data: { session } } = await Promise.race([
+                        supabase.auth.getSession(),
+                        new Promise<any>((resolve) => setTimeout(() => resolve({ data: { session: null } }), 3000))
+                    ])
+                    targetAuthId = session?.user?.id
+                }
+
+                if (!targetAuthId) {
+                    if (!authLoading) {
+                        router.push('/login?redirect=/marketplace/vender')
+                    }
+                    return
+                }
+
+                const { data: userProfile } = await supabase
+                    .from('users')
+                    .select('id, name, role')
+                    .eq('supabase_user_id', targetAuthId)
+                    .maybeSingle()
+
+                if (!userProfile) {
+                    router.push('/login')
+                    return
+                }
+
+                if (isMounted) {
+                    setProfile(userProfile)
+                }
+            } catch (err) {
+                console.warn('Erro ao validar usuário em /marketplace/vender:', err)
+            } finally {
+                clearTimeout(safetyTimer)
+                if (isMounted) setCheckingAuth(false)
+            }
         }
 
         checkUser()
-    }, [router])
+
+        return () => {
+            isMounted = false
+            clearTimeout(safetyTimer)
+        }
+    }, [router, authProfile, authUser?.id, authLoading])
 
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0]
@@ -267,6 +305,7 @@ export default function VenderMatrizPage() {
                 throw new Error(`Erro ao salvar produto: ${insertErr.message}`)
             }
 
+            clearCache('marketplace_products')
             setSuccessMessage('Matriz publicada com sucesso na sua lojinha!')
             setTimeout(() => {
                 router.push(`/marketplace/${insertedProduct.id}`)
