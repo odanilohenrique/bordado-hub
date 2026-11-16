@@ -24,16 +24,21 @@ import {
     Check, 
     AlertCircle,
     Package,
-    ArrowDownRight
+    ArrowDownRight,
+    ShoppingBag,
+    Layers
 } from 'lucide-react'
 import { formatDate } from '@/lib/helpers'
 import { toast } from 'sonner'
 
 interface FinancialRecord {
     id: string
-    job_id: string
+    type: 'job' | 'marketplace'
+    job_id?: string | null
+    product_id?: string | null
     title: string
     client_name: string
+    client_email?: string | null
     client_avatar: string | null
     created_at: string
     gross_amount: number
@@ -41,6 +46,43 @@ interface FinancialRecord {
     payment_method: string
     status: 'liberado' | 'custodia' | 'pendente'
     items_count: number
+}
+
+interface ActionLinkInfo {
+    href: string
+    label: string
+    tooltip: string
+}
+
+function getFinancialActionLink(record: FinancialRecord): ActionLinkInfo {
+    if (record.type === 'marketplace') {
+        if (record.product_id) {
+            return {
+                href: `/marketplace/${record.product_id}`,
+                label: 'Ver Matriz',
+                tooltip: 'Visualizar matriz na Loja'
+            }
+        }
+        return {
+            href: '/marketplace',
+            label: 'Ver Loja',
+            tooltip: 'Ir para a vitrine do Marketplace'
+        }
+    }
+
+    if (record.job_id) {
+        return {
+            href: `/jobs/${record.job_id}`,
+            label: 'Ver Pedido',
+            tooltip: 'Ver detalhes do pedido sob medida'
+        }
+    }
+
+    return {
+        href: '/jobs',
+        label: 'Ver Pedidos',
+        tooltip: 'Ir para lista de pedidos'
+    }
 }
 
 export default function FinancialDashboard() {
@@ -70,10 +112,10 @@ export default function FinancialDashboard() {
             setRecords(cached)
             setLoading(false)
         }
-        // Guaranteed safety timer: never spin longer than 2s under any circumstance
+        // Guaranteed safety timer: never spin longer than 3s under any circumstance
         const safetyTimer = setTimeout(() => {
             if (isMounted) setLoading(false)
-        }, 2000)
+        }, 3000)
 
         const targetId = profileId || getCached<string>('current_user_profile_id')
         if (!targetId && !authLoading) {
@@ -84,7 +126,7 @@ export default function FinancialDashboard() {
 
         async function fetchFinancialData() {
             try {
-                // Run all 3 queries in PARALLEL with 2.5s timeout safety net
+                // Run all 4 queries in PARALLEL with 2.5s timeout safety net
                 const fetchPromise = Promise.all([
                     supabase
                         .from('users')
@@ -108,6 +150,7 @@ export default function FinancialDashboard() {
                                 cliente:cliente_id (
                                     id,
                                     name,
+                                    email,
                                     avatar_url
                                 )
                             )
@@ -117,16 +160,48 @@ export default function FinancialDashboard() {
                         .order('created_at', { ascending: false }),
                     supabase
                         .from('transactions')
-                        .select('*')
+                        .select('*, cliente:cliente_id(name, email, avatar_url)')
                         .eq('criador_id', targetId)
+                        .order('created_at', { ascending: false }),
+                    supabase
+                        .from('marketplace_orders')
+                        .select(`
+                            id,
+                            amount,
+                            platform_fee,
+                            seller_net,
+                            status,
+                            payment_method,
+                            created_at,
+                            asaas_payment_id,
+                            product:product_id (
+                                id,
+                                title,
+                                items_count,
+                                image_url
+                            ),
+                            buyer:buyer_id (
+                                id,
+                                name,
+                                email,
+                                avatar_url
+                            )
+                        `)
+                        .eq('seller_id', targetId)
+                        .eq('status', 'paid')
                         .order('created_at', { ascending: false })
                 ])
 
                 const timeoutPromise = new Promise<any>((resolve) =>
-                    setTimeout(() => resolve([{ data: null }, { data: null }, { data: null }]), 2500)
+                    setTimeout(() => resolve([{ data: null }, { data: null }, { data: null }, { data: null }]), 2500)
                 )
 
-                const [{ data: userProfile }, { data: myProposals }, { data: myTransactions }] = await Promise.race([
+                const [
+                    { data: userProfile },
+                    { data: myProposals },
+                    { data: myTransactions },
+                    { data: marketplaceOrders }
+                ] = await Promise.race([
                     fetchPromise,
                     timeoutPromise
                 ])
@@ -137,6 +212,13 @@ export default function FinancialDashboard() {
                     setPixKeyType(userProfile.pix_key_type || 'cpf')
                 }
 
+                // Se todas as fontes retornaram null (timeout de rede) e já temos registros, não sobrescrever com vazio
+                const isAllNull = !userProfile && !myProposals && !myTransactions && !marketplaceOrders
+                const cachedRecords = getCached<FinancialRecord[]>('financeiro_records')
+                if (isAllNull && (records.length > 0 || (cachedRecords && cachedRecords.length > 0))) {
+                    return
+                }
+
                 const txMap = new Map<string, any>()
                 if (myTransactions) {
                     (myTransactions as any[]).forEach((tx: any) => {
@@ -144,22 +226,56 @@ export default function FinancialDashboard() {
                     })
                 }
 
-                // 4. Mapeia os registros consolidados
                 const consolidated: FinancialRecord[] = []
+                const marketplaceTxAsaasIds = new Set<string>()
 
+                // 1. Processa vendas do Marketplace (marketplace_orders com status = 'paid')
+                if (marketplaceOrders) {
+                    for (const order of (marketplaceOrders as any[])) {
+                        if (order.asaas_payment_id) {
+                            marketplaceTxAsaasIds.add(order.asaas_payment_id.trim().toLowerCase())
+                        }
+
+                        const productObj = Array.isArray(order.product) ? order.product[0] : order.product
+                        const buyerObj = Array.isArray(order.buyer) ? order.buyer[0] : order.buyer
+
+                        const gross = Number(order.amount || 0)
+                        const net = order.seller_net != null ? Number(order.seller_net) : Number((gross * 0.85).toFixed(2))
+
+                        consolidated.push({
+                            id: order.id,
+                            type: 'marketplace',
+                            job_id: null,
+                            product_id: productObj?.id || order.product_id || null,
+                            title: productObj?.title || 'Matriz do Marketplace',
+                            client_name: buyerObj?.name || (buyerObj?.email ? buyerObj.email.split('@')[0] : 'Comprador'),
+                            client_email: buyerObj?.email || null,
+                            client_avatar: buyerObj?.avatar_url || null,
+                            created_at: order.created_at,
+                            gross_amount: gross,
+                            net_amount: net,
+                            payment_method: order.payment_method || 'asaas_pix',
+                            status: 'liberado',
+                            items_count: productObj?.items_count || 1,
+                        })
+                    }
+                }
+
+                // 2. Processa propostas aceitas de pedidos sob medida (jobs)
                 if (myProposals) {
                     for (const prop of (myProposals as any[])) {
                         const job = Array.isArray(prop.jobs) ? prop.jobs[0] : prop.jobs
                         if (!job) continue
 
                         const tx = txMap.get(job.id)
+                        if (tx?.asaas_payment_id) {
+                            marketplaceTxAsaasIds.add(tx.asaas_payment_id.trim().toLowerCase())
+                        }
+
                         const gross = tx?.amount ? Number(tx.amount) : Number(prop.amount)
                         const net = tx?.valor_liquido ? Number(tx.valor_liquido) : Math.round(gross * 0.90 * 100) / 100
                         const method = tx?.metodo || 'asaas_pix'
 
-                        // Determina status financeiro:
-                        // 'finalizado' => valor liberado para o programador
-                        // 'em_progresso' / 'entregue' / 'em_revisao' => saldo em custódia garantido
                         let financialStatus: 'liberado' | 'custodia' | 'pendente' = 'custodia'
                         if (job.status === 'finalizado' || tx?.status === 'liberado') {
                             financialStatus = 'liberado'
@@ -169,13 +285,15 @@ export default function FinancialDashboard() {
 
                         const clientObj: any = Array.isArray(job.cliente) ? job.cliente[0] : job.cliente
 
-                        // Só inclui registros que foram pagos pelo comprador ou estão em andamento/concluídos
                         if (job.status !== 'aberto' || tx?.status === 'pago') {
                             consolidated.push({
                                 id: tx?.id || prop.id,
+                                type: 'job',
                                 job_id: job.id,
-                                title: job.title,
+                                product_id: null,
+                                title: job.title || 'Pedido Sob Medida',
                                 client_name: clientObj?.name || 'Cliente',
+                                client_email: clientObj?.email || null,
                                 client_avatar: clientObj?.avatar_url || null,
                                 created_at: tx?.created_at || job.created_at || prop.created_at,
                                 gross_amount: gross,
@@ -188,6 +306,47 @@ export default function FinancialDashboard() {
                     }
                 }
 
+                // 3. Fallback de transações avulsas sem job_id (evitando duplicação via Set)
+                if (myTransactions) {
+                    for (const tx of (myTransactions as any[])) {
+                        if (!tx.job_id && (tx.status === 'liberado' || tx.status === 'pago')) {
+                            if (tx.asaas_payment_id) {
+                                if (marketplaceTxAsaasIds.has(tx.asaas_payment_id.trim().toLowerCase())) {
+                                    continue
+                                }
+                                marketplaceTxAsaasIds.add(tx.asaas_payment_id.trim().toLowerCase())
+                            }
+                            const clientObj = Array.isArray(tx.cliente) ? tx.cliente[0] : tx.cliente
+                            const gross = Number(tx.amount || 0)
+                            const net = tx.valor_liquido != null ? Number(tx.valor_liquido) : Number((gross * 0.85).toFixed(2))
+
+                            consolidated.push({
+                                id: tx.id,
+                                type: 'marketplace',
+                                job_id: null,
+                                product_id: null,
+                                title: 'Venda de Matriz (Transação Avulsa)',
+                                client_name: clientObj?.name || (clientObj?.email ? clientObj.email.split('@')[0] : 'Comprador'),
+                                client_email: clientObj?.email || null,
+                                client_avatar: clientObj?.avatar_url || null,
+                                created_at: tx.created_at,
+                                gross_amount: gross,
+                                net_amount: net,
+                                payment_method: tx.metodo || 'asaas_pix',
+                                status: 'liberado',
+                                items_count: 1,
+                            })
+                        }
+                    }
+                }
+
+                // 4. Ordena por data decrescente com proteção contra datas nulas
+                consolidated.sort((a, b) => {
+                    const timeA = a.created_at ? new Date(a.created_at).getTime() : 0
+                    const timeB = b.created_at ? new Date(b.created_at).getTime() : 0
+                    return timeB - timeA
+                })
+
                 if (isMounted) {
                     setRecords(consolidated)
                     setCached('financeiro_records', consolidated, 120000)
@@ -195,6 +354,7 @@ export default function FinancialDashboard() {
             } catch (err) {
                 console.error('Erro ao carregar dados financeiros:', err)
             } finally {
+                clearTimeout(safetyTimer)
                 if (isMounted) setLoading(false)
             }
         }
@@ -266,9 +426,11 @@ export default function FinancialDashboard() {
     const filteredRecords = useMemo(() => {
         return records.filter(r => {
             const matchesStatus = statusFilter === 'todos' || r.status === statusFilter
+            const searchLower = searchTerm.toLowerCase()
             const matchesSearch = searchTerm.trim() === '' || 
-                r.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                r.client_name.toLowerCase().includes(searchTerm.toLowerCase())
+                (r.title ? r.title.toLowerCase().includes(searchLower) : false) || 
+                (r.client_name ? r.client_name.toLowerCase().includes(searchLower) : false) ||
+                (r.client_email ? r.client_email.toLowerCase().includes(searchLower) : false)
             return matchesStatus && matchesSearch
         })
     }, [records, statusFilter, searchTerm])
@@ -276,7 +438,7 @@ export default function FinancialDashboard() {
 
 
     return (
-        <div className="space-y-8 pb-12">
+        <div className="space-y-8 pb-24 sm:pb-12">
             {/* Header Principal */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-800 pb-6">
                 <div>
@@ -526,110 +688,257 @@ export default function FinancialDashboard() {
                         <div className="h-10 bg-white/5 rounded-lg animate-pulse" />
                     </div>
                 ) : filteredRecords.length > 0 ? (
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left border-collapse">
-                            <thead>
-                                <tr className="border-b border-white/5 bg-[#0F1115]/50 text-[11px] font-bold text-gray-400 uppercase tracking-wider">
-                                    <th className="py-3 px-4">Data</th>
-                                    <th className="py-3 px-4">Pedido / Matriz</th>
-                                    <th className="py-3 px-4">Comprador</th>
-                                    <th className="py-3 px-4">Método</th>
-                                    <th className="py-3 px-4">Status do Repasse</th>
-                                    <th className="py-3 px-4 text-right">Valor Líquido</th>
-                                    <th className="py-3 px-4 text-center">Ação</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-white/5 text-xs">
-                                {filteredRecords.map(rec => (
-                                    <tr key={rec.id} className="hover:bg-white/[0.02] transition-colors group">
-                                        {/* Data */}
-                                        <td className="py-3.5 px-4 text-gray-400 whitespace-nowrap">
-                                            <div className="flex items-center gap-1.5 font-mono text-[11px]">
+                    <div>
+                        {/* Desktop Table (hidden md:block) */}
+                        <div className="hidden md:block overflow-x-auto">
+                            <table className="w-full text-left border-collapse">
+                                <thead>
+                                    <tr className="border-b border-white/5 bg-[#0F1115]/50 text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+                                        <th className="py-3 px-4">Data</th>
+                                        <th className="py-3 px-4">Pedido / Matriz</th>
+                                        <th className="py-3 px-4">Comprador</th>
+                                        <th className="py-3 px-4">Método</th>
+                                        <th className="py-3 px-4">Status do Repasse</th>
+                                        <th className="py-3 px-4 text-right">Valor Líquido</th>
+                                        <th className="py-3 px-4 text-center">Ação</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-white/5 text-xs">
+                                    {filteredRecords.map(rec => {
+                                        const action = getFinancialActionLink(rec)
+                                        return (
+                                            <tr key={rec.id} className="hover:bg-white/[0.02] transition-colors group">
+                                                {/* Data */}
+                                                <td className="py-3.5 px-4 text-gray-400 whitespace-nowrap">
+                                                    <div className="flex items-center gap-1.5 font-mono text-[11px]">
+                                                        <Calendar className="w-3 h-3 text-gray-500" />
+                                                        {formatDate(rec.created_at)}
+                                                    </div>
+                                                </td>
+
+                                                {/* Pedido / Matriz */}
+                                                <td className="py-3.5 px-4 max-w-[260px]">
+                                                    <div className="flex items-center gap-1.5 mb-1 flex-wrap">
+                                                        {rec.type === 'marketplace' ? (
+                                                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-[#FFAE00]/10 text-[#FFAE00] border border-[#FFAE00]/25">
+                                                                <ShoppingBag className="w-2.5 h-2.5" />
+                                                                Loja
+                                                            </span>
+                                                        ) : (
+                                                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-cyan-500/10 text-cyan-400 border border-cyan-500/25">
+                                                                <Layers className="w-2.5 h-2.5" />
+                                                                Sob Medida
+                                                            </span>
+                                                        )}
+                                                        {rec.items_count > 1 && (
+                                                            <span className="text-[10px] text-gray-400 font-medium bg-white/5 px-1.5 py-0.5 rounded border border-white/5">
+                                                                Kit com {rec.items_count} matrizes
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <div className="font-semibold text-white truncate text-xs sm:text-sm hover:text-gray-200 transition-colors" title={rec.title}>
+                                                        {rec.title}
+                                                    </div>
+                                                </td>
+
+                                                {/* Comprador */}
+                                                <td className="py-3.5 px-4 whitespace-nowrap">
+                                                    <div className="flex items-center gap-2.5">
+                                                        {rec.client_avatar ? (
+                                                            <img 
+                                                                src={rec.client_avatar} 
+                                                                alt={rec.client_name} 
+                                                                className="w-7 h-7 rounded-full object-cover border border-white/10 shrink-0" 
+                                                            />
+                                                        ) : (
+                                                            <div className="w-7 h-7 rounded-full bg-gray-800 border border-white/10 flex items-center justify-center text-[11px] text-gray-300 font-bold shrink-0">
+                                                                {rec.client_name?.charAt(0)?.toUpperCase() || 'C'}
+                                                            </div>
+                                                        )}
+                                                        <div className="flex flex-col min-w-0">
+                                                            <span className="font-bold text-white text-xs truncate max-w-[150px]" title={rec.client_name}>
+                                                                {rec.client_name}
+                                                            </span>
+                                                            {rec.client_email ? (
+                                                                <span className="text-[10px] text-gray-400 font-mono truncate max-w-[150px]" title={rec.client_email}>
+                                                                    {rec.client_email}
+                                                                </span>
+                                                            ) : (
+                                                                <span className="text-[10px] text-gray-500 italic">
+                                                                    Cliente BordadoHUB
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </td>
+
+                                                {/* Método */}
+                                                <td className="py-3.5 px-4 text-gray-400 whitespace-nowrap">
+                                                    <div className="flex items-center gap-1.5">
+                                                        {rec.payment_method?.includes('cartao') ? (
+                                                            <>
+                                                                <CreditCard className="w-3.5 h-3.5 text-blue-400" />
+                                                                <span>Cartão</span>
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <QrCode className="w-3.5 h-3.5 text-green-400" />
+                                                                <span>PIX</span>
+                                                            </>
+                                                        )}
+                                                    </div>
+                                                </td>
+
+                                                {/* Status do Repasse */}
+                                                <td className="py-3.5 px-4 whitespace-nowrap">
+                                                    {rec.status === 'liberado' ? (
+                                                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-green-500/10 text-green-400 border border-green-500/20">
+                                                            <CheckCircle2 className="w-3 h-3" />
+                                                            Liberado via PIX
+                                                        </span>
+                                                    ) : (
+                                                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#FFAE00]/10 text-[#FFAE00] border border-[#FFAE00]/20">
+                                                            <Clock className="w-3 h-3" />
+                                                            Em Custódia
+                                                        </span>
+                                                    )}
+                                                </td>
+
+                                                {/* Valor Líquido e Bruto */}
+                                                <td className="py-3.5 px-4 text-right whitespace-nowrap font-mono">
+                                                    <div className={`text-sm font-extrabold ${rec.status === 'liberado' ? 'text-emerald-400' : 'text-gray-200'}`}>
+                                                        R$ {rec.net_amount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                    </div>
+                                                    <div className="text-[10px] text-gray-400 mt-0.5 flex items-center justify-end gap-1.5 font-sans">
+                                                        <span>Bruto: R$ {rec.gross_amount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                                        <span className={`px-1 py-0.2 rounded text-[9px] font-bold ${
+                                                            rec.type === 'marketplace' 
+                                                                ? 'bg-[#FFAE00]/10 text-[#FFAE00] border border-[#FFAE00]/20' 
+                                                                : 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20'
+                                                        }`}>
+                                                            {rec.type === 'marketplace' ? '85%' : '90%'} líq
+                                                        </span>
+                                                    </div>
+                                                </td>
+
+                                                {/* Ação */}
+                                                <td className="py-3.5 px-4 text-center whitespace-nowrap">
+                                                    <Link
+                                                        href={action.href}
+                                                        className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-bold text-gray-300 hover:text-[#FFAE00] bg-white/[0.03] hover:bg-[#FFAE00]/10 border border-white/5 hover:border-[#FFAE00]/30 transition-all group/btn"
+                                                        title={action.tooltip}
+                                                    >
+                                                        <span>{action.label}</span>
+                                                        <ArrowUpRight className="w-3.5 h-3.5 text-gray-400 group-hover/btn:text-[#FFAE00] transition-colors" />
+                                                    </Link>
+                                                </td>
+                                            </tr>
+                                        )
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        {/* Mobile Cards (block md:hidden) */}
+                        <div className="block md:hidden divide-y divide-white/5">
+                            {filteredRecords.map(rec => {
+                                const action = getFinancialActionLink(rec)
+                                return (
+                                    <div key={rec.id} className="p-4 space-y-3 hover:bg-white/[0.02] transition-colors">
+                                        {/* Linha Superior: Badges e Data */}
+                                        <div className="flex items-center justify-between gap-2">
+                                            <div className="flex items-center gap-1.5 flex-wrap">
+                                                {rec.type === 'marketplace' ? (
+                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-[#FFAE00]/10 text-[#FFAE00] border border-[#FFAE00]/25">
+                                                        <ShoppingBag className="w-3 h-3" />
+                                                        Loja
+                                                    </span>
+                                                ) : (
+                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-cyan-500/10 text-cyan-400 border border-cyan-500/25">
+                                                        <Layers className="w-3 h-3" />
+                                                        Sob Medida
+                                                    </span>
+                                                )}
+                                                {rec.items_count > 1 && (
+                                                    <span className="text-[10px] text-gray-400 font-medium bg-white/5 px-1.5 py-0.5 rounded border border-white/5">
+                                                        Kit com {rec.items_count} matrizes
+                                                    </span>
+                                                )}
+                                            </div>
+
+                                            <div className="flex items-center gap-1 font-mono text-[11px] text-gray-400 shrink-0">
                                                 <Calendar className="w-3 h-3 text-gray-500" />
                                                 {formatDate(rec.created_at)}
                                             </div>
-                                        </td>
+                                        </div>
 
-                                        {/* Título do Pedido */}
-                                        <td className="py-3.5 px-4 font-medium text-white max-w-[240px]">
-                                            <div className="truncate" title={rec.title}>
-                                                {rec.title}
-                                            </div>
-                                            {rec.items_count > 1 && (
-                                                <span className="text-[10px] text-gray-500">
-                                                    Kit com {rec.items_count} matrizes
-                                                </span>
-                                            )}
-                                        </td>
+                                        {/* Título do Pedido ou Matriz */}
+                                        <h4 className="text-sm font-bold text-white leading-snug line-clamp-2">
+                                            {rec.title}
+                                        </h4>
 
-                                        {/* Comprador */}
-                                        <td className="py-3.5 px-4 text-gray-300 whitespace-nowrap">
-                                            <div className="flex items-center gap-2">
+                                        {/* Bloco Comprador & Status */}
+                                        <div className="flex items-center justify-between gap-2 pt-2 border-t border-white/5">
+                                            <div className="flex items-center gap-2.5 min-w-0">
                                                 {rec.client_avatar ? (
-                                                    <img src={rec.client_avatar} alt="" className="w-5 h-5 rounded-full object-cover" />
+                                                    <img src={rec.client_avatar} alt="" className="w-6 h-6 rounded-full object-cover border border-white/10 shrink-0" />
                                                 ) : (
-                                                    <div className="w-5 h-5 rounded-full bg-gray-800 flex items-center justify-center text-[10px] text-gray-400 font-bold">
-                                                        {rec.client_name.charAt(0)}
+                                                    <div className="w-6 h-6 rounded-full bg-gray-800 border border-white/10 flex items-center justify-center text-[10px] text-gray-300 font-bold shrink-0">
+                                                        {rec.client_name?.charAt(0)?.toUpperCase() || 'C'}
                                                     </div>
                                                 )}
-                                                <span className="truncate max-w-[120px]">{rec.client_name}</span>
+                                                <div className="flex flex-col min-w-0">
+                                                    <span className="text-xs font-bold text-white truncate max-w-[150px]">{rec.client_name}</span>
+                                                    {rec.client_email && (
+                                                        <span className="text-[10px] text-gray-400 font-mono truncate max-w-[150px]">{rec.client_email}</span>
+                                                    )}
+                                                </div>
                                             </div>
-                                        </td>
 
-                                        {/* Método de Pagamento */}
-                                        <td className="py-3.5 px-4 text-gray-400 whitespace-nowrap">
-                                            <div className="flex items-center gap-1.5">
-                                                {rec.payment_method?.includes('cartao') ? (
-                                                    <>
-                                                        <CreditCard className="w-3.5 h-3.5 text-blue-400" />
-                                                        <span>Cartão</span>
-                                                    </>
+                                            <div className="text-right shrink-0">
+                                                {rec.status === 'liberado' ? (
+                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-500/10 text-green-400 border border-green-500/20">
+                                                        <CheckCircle2 className="w-3 h-3" />
+                                                        Liberado
+                                                    </span>
                                                 ) : (
-                                                    <>
-                                                        <QrCode className="w-3.5 h-3.5 text-green-400" />
-                                                        <span>PIX</span>
-                                                    </>
+                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#FFAE00]/10 text-[#FFAE00] border border-[#FFAE00]/20">
+                                                        <Clock className="w-3 h-3" />
+                                                        Custódia
+                                                    </span>
                                                 )}
                                             </div>
-                                        </td>
+                                        </div>
 
-                                        {/* Status */}
-                                        <td className="py-3.5 px-4 whitespace-nowrap">
-                                            {rec.status === 'liberado' ? (
-                                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-green-500/10 text-green-400 border border-green-500/20">
-                                                    <CheckCircle2 className="w-3 h-3" />
-                                                    Liberado via PIX
-                                                </span>
-                                            ) : (
-                                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#FFAE00]/10 text-[#FFAE00] border border-[#FFAE00]/20">
-                                                    <Clock className="w-3 h-3" />
-                                                    Em Custódia
-                                                </span>
-                                            )}
-                                        </td>
+                                        {/* Linha Inferior: Valores e Botão de Ação (Área de toque 44px) */}
+                                        <div className="flex items-center justify-between gap-3 pt-2">
+                                            <div>
+                                                <div className={`text-base font-black font-mono ${rec.status === 'liberado' ? 'text-emerald-400' : 'text-gray-200'}`}>
+                                                    R$ {rec.net_amount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                </div>
+                                                <div className="text-[10px] text-gray-400 flex items-center gap-1.5 font-sans">
+                                                    <span>Bruto: R$ {rec.gross_amount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                                    <span className={`px-1 py-0.2 rounded text-[9px] font-bold ${
+                                                        rec.type === 'marketplace' ? 'text-[#FFAE00]' : 'text-cyan-400'
+                                                    }`}>
+                                                        ({rec.type === 'marketplace' ? '85%' : '90%'} líq)
+                                                    </span>
+                                                </div>
+                                            </div>
 
-                                        {/* Valor Líquido */}
-                                        <td className="py-3.5 px-4 text-right whitespace-nowrap font-mono font-bold text-sm">
-                                            <span className={rec.status === 'liberado' ? 'text-green-400' : 'text-gray-200'}>
-                                                R$ {rec.net_amount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                            </span>
-                                        </td>
-
-                                        {/* Ação */}
-                                        <td className="py-3.5 px-4 text-center whitespace-nowrap">
                                             <Link
-                                                href={`/jobs/${rec.job_id}`}
-                                                className="inline-flex items-center gap-1 text-[11px] font-bold text-gray-400 hover:text-[#FFAE00] transition-colors p-1"
-                                                title="Ver Detalhes do Pedido"
+                                                href={action.href}
+                                                className="inline-flex items-center gap-1 px-3.5 py-2.5 rounded-xl text-xs font-bold text-gray-200 bg-white/5 hover:bg-[#FFAE00]/10 border border-white/10 hover:border-[#FFAE00]/30 transition-all shrink-0 min-h-[44px]"
+                                                title={action.tooltip}
                                             >
-                                                <span>Ver</span>
-                                                <ArrowUpRight className="w-3.5 h-3.5" />
+                                                <span>{action.label}</span>
+                                                <ArrowUpRight className="w-4 h-4 text-[#FFAE00]" />
                                             </Link>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                                        </div>
+                                    </div>
+                                )
+                            })}
+                        </div>
                     </div>
                 ) : (
                     <div className="py-16 text-center text-gray-500 px-4">
