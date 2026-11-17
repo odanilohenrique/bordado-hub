@@ -1,0 +1,32 @@
+{
+  "name": "videos",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@createjs/tweenjs": "^2.0.0-beta.4",
+    "@remotion/cli": "^4.0.544",
+    "@remotion/lottie": "^4.0.544",
+    "@remotion/three": "^4.0.544",
+    "animejs": "^4.5.0",
+    "gifenc": "^1.0.3",
+    "konva": "^10.9.1",
+    "lottie-web": "^5.13.0",
+    "motion": "^14.14.0",
+    "ola": "^1.2.2",
+    "proton-engine": "^7.1.5",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "remotion": "^4.0.544",
+    "shifty": "^3.0.6",
+    "three": "^0.187.0",
+    "two.js": "^0.8.24"
+  }
+}
