@@ -1347,6 +1347,44 @@ test('T2-F12-05: Verificação de existência das 12 skills oficiais da equipe d
     assert(count >= 12, 'Deve haver ao menos 12 skills instaladas')
 })
 
+test('T2-LGPD-01: Ocultação de email e campos sensíveis em /api/profile/[id] e /api/jobs/[id]', () => {
+    verifyFileContent('src/app/api/profile/[id]/route.ts', {
+        includes: ['cpf_cnpj', 'pix_key', 'pix_key_type', 'email']
+    })
+    verifyFileContent('src/app/api/jobs/[id]/route.ts', {
+        includes: ['delivery_url: null']
+    })
+})
+
+test('T2-SEC-01: Autorização de escrow em /api/jobs/approve e timingSafeEqual em /api/invites', () => {
+    verifyFileContent('src/app/api/jobs/approve/route.ts', {
+        includes: ['job.cliente_id']
+    })
+    verifyFileContent('src/app/api/invites/route.ts', {
+        includes: ['timingSafeEqual']
+    })
+})
+
+test('T2-SEC-02: Idempotência de ledger e ocultação de file_url em /api/marketplace/check-status e /api/payments/asaas/webhook', () => {
+    verifyFileContent('src/app/api/marketplace/check-status/route.ts', {
+        includes: [
+            '/api/marketplace/download/',
+            'existingTx',
+            'product:product_id(id, title, sales_count)'
+        ],
+        excludes: [
+            'file_url',
+            'product:product_id(*)'
+        ]
+    })
+    verifyFileContent('src/app/api/payments/asaas/webhook/route.ts', {
+        includes: [
+            'existingTx',
+            ".eq('asaas_payment_id', paymentId)"
+        ]
+    })
+})
+
 // FEATURE 13 (Boundary)
 test('T2-F13-01: Verificação de que a branch atual não é a main (isolamento rigoroso)', () => {
     const head = fs.readFileSync('.git/HEAD', 'utf8')

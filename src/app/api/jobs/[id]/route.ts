@@ -17,7 +17,7 @@ export async function GET(
         const [jobResult, proposalsResult] = await Promise.all([
             supabase
                 .from('jobs')
-                .select('*, users!jobs_cliente_id_fkey(name, avatar_url)')
+                .select('*, users!jobs_cliente_id_fkey(id, name, avatar_url, supabase_user_id)')
                 .eq('id', jobId)
                 .maybeSingle(),
             supabase
@@ -28,7 +28,8 @@ export async function GET(
                         id,
                         name,
                         avatar_url,
-                        rating
+                        rating,
+                        supabase_user_id
                     )
                 `)
                 .eq('job_id', jobId)
@@ -101,19 +102,48 @@ export async function GET(
 
         let isJobOwner = false
         if (requestUserId) {
-            if (job.cliente_id === requestUserId) {
+            if (
+                job.cliente_id === requestUserId ||
+                job.users?.id === requestUserId ||
+                job.users?.supabase_user_id === requestUserId
+            ) {
                 isJobOwner = true
             } else {
-                const { data: userProfile } = await supabase
+                const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(requestUserId)
+                let userQuery = supabase
                     .from('users')
                     .select('id, supabase_user_id')
-                    .or('id.eq.' + requestUserId + ',supabase_user_id.eq.' + requestUserId)
-                    .maybeSingle()
+                if (isUuid) {
+                    userQuery = userQuery.or(`id.eq.${requestUserId},supabase_user_id.eq.${requestUserId}`)
+                } else {
+                    userQuery = userQuery.eq('supabase_user_id', requestUserId)
+                }
+                const { data: userProfile } = await userQuery.maybeSingle()
                 if (userProfile && (userProfile.id === job.cliente_id || userProfile.supabase_user_id === job.cliente_id)) {
                     isJobOwner = true
                 }
             }
         }
+
+        const isAcceptedCreator = proposalList.some(
+            (p: any) =>
+                p.status === 'aceita' &&
+                requestUserId &&
+                (p.criador_id === requestUserId ||
+                    p.users?.id === requestUserId ||
+                    p.users?.supabase_user_id === requestUserId)
+        )
+
+        const canAccessDelivery = isJobOwner || isAcceptedCreator
+        const sanitizedJob = canAccessDelivery
+            ? job
+            : {
+                  ...job,
+                  delivery_url: null,
+                  delivery_notes: null,
+                  revision_notes: null,
+                  revision_image_url: null,
+              }
 
         const sanitizedProposals = isJobOwner
             ? proposalList
@@ -136,7 +166,7 @@ export async function GET(
             })
 
         return NextResponse.json({
-            job,
+            job: sanitizedJob,
             proposals: sanitizedProposals,
             review,
             transaction,
@@ -241,9 +271,11 @@ export async function DELETE(
             await supabase.from('proposals').delete().eq('job_id', jobId)
         }
 
-        await supabase.from('transactions').delete().eq('job_id', jobId)
-        await supabase.from('reviews').delete().eq('job_id', jobId)
-        await supabase.from('notifications').delete().like('link_url', `%${jobId}%`)
+        await Promise.all([
+            supabase.from('transactions').delete().eq('job_id', jobId),
+            supabase.from('reviews').delete().eq('job_id', jobId),
+            supabase.from('notifications').delete().like('link_url', `%${jobId}%`),
+        ])
 
         // 6. Delete the job
         const { error: deleteError } = await supabase.from('jobs').delete().eq('id', jobId)

@@ -10,12 +10,16 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Parâmetros incompletos.' }, { status: 400 })
         }
 
+        if (cancelledBy !== 'programmer' && cancelledBy !== 'client') {
+            return NextResponse.json({ error: 'Origem de cancelamento inválida.' }, { status: 400 })
+        }
+
         const supabase = createServiceClient()
 
-        // 1. Fetch proposal
+        // 1. Fetch proposal and related job in a single query
         const { data: proposal, error: propError } = await supabase
             .from('proposals')
-            .select('id, job_id, criador_id, amount, status')
+            .select('id, job_id, criador_id, amount, status, jobs:job_id(id, title, cliente_id, status)')
             .eq('id', proposalId)
             .single()
 
@@ -23,15 +27,19 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Proposta não encontrada.' }, { status: 404 })
         }
 
-        // 2. Fetch job
-        const { data: job, error: jobError } = await supabase
-            .from('jobs')
-            .select('id, title, cliente_id, status')
-            .eq('id', proposal.job_id)
-            .single()
+        // 2. Resolve job (fallback query only if relational join returns empty)
+        let job = Array.isArray(proposal.jobs) ? proposal.jobs[0] : proposal.jobs
+        if (!job) {
+            const { data: fallbackJob, error: jobError } = await supabase
+                .from('jobs')
+                .select('id, title, cliente_id, status')
+                .eq('id', proposal.job_id)
+                .single()
 
-        if (jobError || !job) {
-            return NextResponse.json({ error: 'Pedido não encontrado.' }, { status: 404 })
+            if (jobError || !fallbackJob) {
+                return NextResponse.json({ error: 'Pedido não encontrado.' }, { status: 404 })
+            }
+            job = fallbackJob
         }
 
         // Safety: Cannot cancel reservation if job is already in progress (paid)

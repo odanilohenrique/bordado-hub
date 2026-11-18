@@ -42,9 +42,9 @@ export async function GET(
             return NextResponse.json({ error: 'Perfil não encontrado' }, { status: 404 })
         }
 
-        // Strip sensitive fields before returning public profile
+        // Strip sensitive fields before returning public profile (LGPD Art. 6º, III)
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { cpf_cnpj, pix_key, pix_key_type, ...safeUser } = user
+        const { cpf_cnpj, pix_key, pix_key_type, email, phone, whatsapp, telefone, ...safeUser } = user
 
         // 2. Fetch reviews
         let enrichedReviews: any[] = []

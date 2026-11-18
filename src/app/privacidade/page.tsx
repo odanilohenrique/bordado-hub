@@ -85,7 +85,7 @@ export default function PrivacidadePage() {
                             <strong>Nós não vendemos e nunca venderemos seus dados pessoais.</strong> O compartilhamento ocorre apenas com parceiros essenciais para a operação técnica da plataforma:
                         </p>
                         <ul className="space-y-2 list-disc list-inside text-gray-400">
-                            <li><strong>Instituições de Pagamento:</strong> Asaas e Mercado Pago para liquidação de Pix, boletos e cartões.</li>
+                            <li><strong>Instituições de Pagamento:</strong> Asaas (instituição de pagamento regulada pelo Banco Central do Brasil) para processamento e liquidação segura de transações via PIX e cartão de crédito.</li>
                             <li><strong>Infraestrutura de Banco de Dados:</strong> Supabase (com criptografia ponta a ponta e certificados SSL/TLS).</li>
                             <li><strong>Autoridades Públicas:</strong> Exclusivamente quando houver ordem judicial ou requisição legal formal fundamentada.</li>
                         </ul>

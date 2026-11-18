@@ -89,16 +89,24 @@ export async function POST(request: Request) {
                                     .eq('id', order.product_id)
                             }
 
-                            await supabase.from('transactions').insert({
-                                cliente_id: order.buyer_id,
-                                criador_id: order.seller_id,
-                                amount: order.amount,
-                                taxa_cliente: 0,
-                                valor_liquido: order.seller_net,
-                                status: 'liberado',
-                                metodo: 'asaas_pix',
-                                asaas_payment_id: paymentId,
-                            })
+                            const { data: existingTx } = await supabase
+                                .from('transactions')
+                                .select('id')
+                                .eq('asaas_payment_id', paymentId)
+                                .maybeSingle()
+
+                            if (!existingTx) {
+                                await supabase.from('transactions').insert({
+                                    cliente_id: order.buyer_id,
+                                    criador_id: order.seller_id,
+                                    amount: order.amount,
+                                    taxa_cliente: 0,
+                                    valor_liquido: order.seller_net,
+                                    status: 'liberado',
+                                    metodo: 'asaas_pix',
+                                    asaas_payment_id: paymentId,
+                                })
+                            }
 
                             await supabase.from('notifications').insert({
                                 user_id: order.seller_id,

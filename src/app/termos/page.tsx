@@ -104,7 +104,7 @@ export default function TermosPage() {
                                 <strong>Licença de Uso:</strong> A compra de uma matriz no marketplace confere ao comprador uma licença não exclusiva para confeccionar e comercializar peças físicas bordadas (camisetas, bonés, uniformes, toalhas, etc.). É <strong>terminantemente proibida</strong> a revenda, compartilhamento gratuito, redistribuição ou rateio do arquivo digital bruto.
                             </p>
                             <p>
-                                <strong>Comissão da Plataforma:</strong> Sobre cada venda concluída no Marketplace, o BordadoHUB retém uma taxa de comissão de intermediação e custos operacionais previamente estipulada, repassando o valor líquido para a carteira virtual do criador.
+                                <strong>Comissão da Plataforma:</strong> Sobre cada venda concluída no Marketplace, o BordadoHUB aplica uma participação da plataforma de <strong>15% (quinze por cento)</strong> sobre o valor da venda acrescida de <strong>R$ 1,00 (um real)</strong> referente ao custo operacional da transação PIX, repassando o valor líquido diretamente para a carteira virtual do criador.
                             </p>
                         </div>
                     </section>

@@ -26,6 +26,29 @@ export async function POST(request: Request) {
 
         const job = Array.isArray(proposal.jobs) ? proposal.jobs[0] : proposal.jobs
 
+        if (senderId) {
+            let isParticipant = senderId === proposal.criador_id || senderId === job?.cliente_id
+            if (!isParticipant && typeof senderId === 'string' && /^[a-zA-Z0-9_-]+$/.test(senderId)) {
+                const { data: senderProfile } = await supabase
+                    .from('users')
+                    .select('id, supabase_user_id')
+                    .or(`id.eq.${senderId},supabase_user_id.eq.${senderId}`)
+                    .maybeSingle()
+                if (senderProfile) {
+                    const participantIds = [proposal.criador_id, job?.cliente_id].filter(Boolean)
+                    isParticipant =
+                        participantIds.includes(senderProfile.id) ||
+                        (Boolean(senderProfile.supabase_user_id) && participantIds.includes(senderProfile.supabase_user_id))
+                }
+            }
+            if (!isParticipant) {
+                return NextResponse.json(
+                    { error: 'Acesso negado: apenas participantes do pedido podem negociar esta proposta.' },
+                    { status: 403 }
+                )
+            }
+        }
+
         // 2. Handle Action: Accept Counter-Proposal (by Creator)
         if (action === 'accept') {
             const targetAmount = Number(proposal.counter_amount || proposal.amount)

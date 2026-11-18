@@ -12,10 +12,10 @@ export async function POST(request: Request) {
 
         const supabase = createServiceClient()
 
-        // 1. Fetch Order with product
+        // 1. Fetch Order with product (only non-sensitive fields; download uses authenticated /api/marketplace/download/[productId])
         const { data: order, error: orderErr } = await supabase
             .from('marketplace_orders')
-            .select('*, product:product_id(*)')
+            .select('*, product:product_id(id, title, sales_count)')
             .eq('id', orderId)
             .single()
 
@@ -23,11 +23,13 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Pedido não encontrado.' }, { status: 404 })
         }
 
+        const secureDownloadUrl = order.product_id ? `/api/marketplace/download/${order.product_id}` : null
+
         // If already marked as paid
         if (order.status === 'paid') {
             return NextResponse.json({
                 status: 'paid',
-                downloadUrl: order.product?.file_url || null,
+                downloadUrl: secureDownloadUrl,
             })
         }
 
@@ -58,7 +60,7 @@ export async function POST(request: Request) {
                 // Already processed by concurrent request or webhook
                 return NextResponse.json({
                     status: 'paid',
-                    downloadUrl: order.product?.file_url || null,
+                    downloadUrl: secureDownloadUrl,
                 })
             }
 
@@ -71,19 +73,29 @@ export async function POST(request: Request) {
                     .eq('id', order.product_id)
             }
 
-            // Register in transactions table as 'liberado' for the seller's wallet
-            await supabase
-                .from('transactions')
-                .insert({
-                    cliente_id: order.buyer_id,
-                    criador_id: order.seller_id,
-                    amount: order.amount,
-                    taxa_cliente: 0,
-                    valor_liquido: order.seller_net,
-                    status: 'liberado', // Instantly available to withdraw!
-                    metodo: 'asaas_pix',
-                    asaas_payment_id: order.asaas_payment_id,
-                })
+            // Register in transactions table as 'liberado' for the seller's wallet (idempotent by asaas_payment_id)
+            const { data: existingTx } = order.asaas_payment_id
+                ? await supabase
+                    .from('transactions')
+                    .select('id')
+                    .eq('asaas_payment_id', order.asaas_payment_id)
+                    .maybeSingle()
+                : { data: null }
+
+            if (!existingTx) {
+                await supabase
+                    .from('transactions')
+                    .insert({
+                        cliente_id: order.buyer_id,
+                        criador_id: order.seller_id,
+                        amount: order.amount,
+                        taxa_cliente: 0,
+                        valor_liquido: order.seller_net,
+                        status: 'liberado', // Instantly available to withdraw!
+                        metodo: 'asaas_pix',
+                        asaas_payment_id: order.asaas_payment_id,
+                    })
+            }
 
             // Send in-app notification to seller
             await supabase
@@ -99,7 +111,7 @@ export async function POST(request: Request) {
 
             return NextResponse.json({
                 status: 'paid',
-                downloadUrl: order.product?.file_url || null,
+                downloadUrl: secureDownloadUrl,
             })
         }
 

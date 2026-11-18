@@ -29,7 +29,12 @@ function isAuthorizedAdmin(request: Request): boolean {
     }
 
     const token = authHeader.substring(7).trim()
-    return token === adminSecret.trim()
+    const tokenBuf = Buffer.from(token, 'utf8')
+    const secretBuf = Buffer.from(adminSecret.trim(), 'utf8')
+    if (tokenBuf.length !== secretBuf.length) {
+        return false
+    }
+    return crypto.timingSafeEqual(tokenBuf, secretBuf)
 }
 
 /**

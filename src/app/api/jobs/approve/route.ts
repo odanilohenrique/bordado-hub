@@ -6,11 +6,45 @@ export async function POST(request: Request) {
     try {
         const { jobId, reviewerId, revieweeId, ratingMatrix, ratingService, comment } = await request.json()
 
-        if (!jobId || !revieweeId) {
+        if (!jobId || !revieweeId || !reviewerId) {
             return NextResponse.json({ error: 'Faltam dados da avaliação.' }, { status: 400 })
         }
 
         const supabase = createServiceClient()
+
+        // 0. Fetch job & verify ownership before modifying reviews or releasing escrow
+        const { data: job, error: jobFetchErr } = await supabase
+            .from('jobs')
+            .select('id, cliente_id, status')
+            .eq('id', jobId)
+            .maybeSingle()
+
+        if (jobFetchErr || !job) {
+            return NextResponse.json({ error: 'Pedido não encontrado.' }, { status: 404 })
+        }
+
+        let isAuthorizedClient = reviewerId === job.cliente_id
+        if (!isAuthorizedClient && typeof reviewerId === 'string' && /^[a-zA-Z0-9_-]+$/.test(reviewerId)) {
+            const { data: callerProfile } = await supabase
+                .from('users')
+                .select('id, supabase_user_id')
+                .or(`id.eq.${reviewerId},supabase_user_id.eq.${reviewerId}`)
+                .maybeSingle()
+            isAuthorizedClient = Boolean(
+                callerProfile && (callerProfile.id === job.cliente_id || callerProfile.supabase_user_id === job.cliente_id)
+            )
+        }
+
+        if (!isAuthorizedClient) {
+            return NextResponse.json(
+                { error: 'Apenas o cliente dono do pedido pode aprovar a entrega e liberar o pagamento.' },
+                { status: 403 }
+            )
+        }
+
+        const safeMatrix = Math.min(5, Math.max(1, Math.round(Number(ratingMatrix) || 5)))
+        const safeService = Math.min(5, Math.max(1, Math.round(Number(ratingService) || 5)))
+        const safeComment = typeof comment === 'string' ? comment.trim().slice(0, 2000) : ''
 
         // 1. Insert or Update Review
         const { data: existingReview } = await supabase
@@ -24,10 +58,10 @@ export async function POST(request: Request) {
             const { error: updErr } = await supabase
                 .from('reviews')
                 .update({
-                    rating_matrix: ratingMatrix,
-                    rating_service: ratingService,
-                    comment,
-                    rating: Math.round((ratingMatrix + ratingService) / 2)
+                    rating_matrix: safeMatrix,
+                    rating_service: safeService,
+                    comment: safeComment,
+                    rating: Math.round((safeMatrix + safeService) / 2)
                 })
                 .eq('id', existingReview.id)
             reviewError = updErr
@@ -38,10 +72,10 @@ export async function POST(request: Request) {
                     job_id: jobId,
                     reviewer_id: reviewerId,
                     reviewee_id: revieweeId,
-                    rating_matrix: ratingMatrix,
-                    rating_service: ratingService,
-                    comment,
-                    rating: Math.round((ratingMatrix + ratingService) / 2)
+                    rating_matrix: safeMatrix,
+                    rating_service: safeService,
+                    comment: safeComment,
+                    rating: Math.round((safeMatrix + safeService) / 2)
                 }])
             reviewError = insErr
         }
