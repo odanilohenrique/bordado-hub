@@ -5,6 +5,7 @@
  */
 
 import assert from 'node:assert/strict'
+import { execFileSync } from 'node:child_process'
 import fs from 'node:fs'
 import path from 'node:path'
 import { 
@@ -1785,6 +1786,31 @@ test('T5-PERF-01: Páginas do Marketplace, Loja, Mural e Checkout possuem failsa
     verifyFileContent('src/app/checkout/[proposalId]/page.tsx', {
         includes: ['safetyTimer', 'finally {']
     })
+})
+
+function runSubSuite(scriptRelPath) {
+    try {
+        execFileSync(process.execPath, [scriptRelPath], {
+            cwd: process.cwd(),
+            encoding: 'utf8',
+            stdio: 'pipe',
+        })
+    } catch (err) {
+        const output = [err?.stdout, err?.stderr].filter(Boolean).join('\n')
+        throw new Error(`Sub-suite ${scriptRelPath} failed:\n${output || err.message}`)
+    }
+}
+
+test('T5-M1-SYNC: Suíte completa de sincronização e timing (scripts/test-m1-sync.mjs)', () => {
+    runSubSuite('scripts/test-m1-sync.mjs')
+})
+
+test('T5-M2-MARKETPLACE: Suíte completa de formatos, fotos, capa, edição e API do Marketplace (scripts/test-m2-marketplace.mjs)', () => {
+    runSubSuite('scripts/test-m2-marketplace.mjs')
+})
+
+test('T5-M3-NOTIFICATIONS: Suíte completa de supressão e sincronia de alertas Web Push (scripts/test-m3-notifications.mjs)', () => {
+    runSubSuite('scripts/test-m3-notifications.mjs')
 })
 
 // ==============================================================================

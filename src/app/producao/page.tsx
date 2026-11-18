@@ -1,99 +1,207 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { useAuth } from '@/contexts/AuthContext'
-import { getCached, setCached } from '@/lib/clientCache'
+import { getCached, setCached, getScopedCached, setScopedCached, hasNonEmptyCacheData } from '@/lib/clientCache'
 import JobCard from '@/components/JobCard'
 import Link from 'next/link'
-import { Briefcase, Target, Clock, CheckCircle, Wrench, AlertCircle, Package, Award, Wallet } from 'lucide-react'
+import { Briefcase, Target, Clock, CheckCircle, Wrench, AlertCircle, Package, Award, Wallet, RefreshCw } from 'lucide-react'
 
 export default function CreatorDashboard() {
-    const { profileId, loading: authLoading } = useAuth()
-    const cachedData = getCached<any>('producao_data')
+    const { user: authUser, profileId, loading: authLoading, profileLoading } = useAuth()
+    const authUserId = authUser?.id || null
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const [inRevision, setInRevision] = useState<any[]>(() => cachedData?.inRevision || [])
+    const [inRevision, setInRevision] = useState<any[]>([])
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const [inProduction, setInProduction] = useState<any[]>(() => cachedData?.inProduction || [])
+    const [inProduction, setInProduction] = useState<any[]>([])
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const [delivered, setDelivered] = useState<any[]>(() => cachedData?.delivered || [])
+    const [delivered, setDelivered] = useState<any[]>([])
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const [completed, setCompleted] = useState<any[]>(() => cachedData?.completed || [])
+    const [completed, setCompleted] = useState<any[]>([])
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const [pendingProposals, setPendingProposals] = useState<any[]>(() => cachedData?.pendingProposals || [])
+    const [pendingProposals, setPendingProposals] = useState<any[]>([])
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const [directRequests, setDirectRequests] = useState<any[]>(() => cachedData?.directRequests || [])
-    const [loading, setLoading] = useState(() => !cachedData)
+    const [directRequests, setDirectRequests] = useState<any[]>([])
+    const [loading, setLoading] = useState<boolean>(true)
+    const [fetchError, setFetchError] = useState<string | null>(null)
+    const [retryTick, setRetryTick] = useState<number>(0)
+
+    const hasDataRef = useRef<boolean>(false)
+
+    useEffect(() => {
+        if (typeof window === 'undefined') return
+        const handleReload = () => setRetryTick((t) => t + 1)
+        const handleVisibility = () => {
+            if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+                setRetryTick((t) => t + 1)
+            }
+        }
+        window.addEventListener('bordadohub_reload_job', handleReload)
+        document.addEventListener('visibilitychange', handleVisibility)
+        return () => {
+            window.removeEventListener('bordadohub_reload_job', handleReload)
+            document.removeEventListener('visibilitychange', handleVisibility)
+        }
+    }, [])
 
     useEffect(() => {
         let isMounted = true
-        // Guaranteed safety timer: never spin longer than 2s under any circumstance
         const safetyTimer = setTimeout(() => {
             if (isMounted) setLoading(false)
-        }, 2000)
+        }, 8500)
 
         const targetId = profileId || getCached<string>('current_user_profile_id')
-        if (!targetId && !authLoading) {
-            setLoading(false)
-            return () => clearTimeout(safetyTimer)
+        const isIdentityPending = !targetId && (authLoading || profileLoading || Boolean(authUserId))
+
+        if (isIdentityPending) {
+            setLoading(true)
+            return () => {
+                isMounted = false
+                clearTimeout(safetyTimer)
+            }
         }
-        if (!targetId) return () => clearTimeout(safetyTimer)
+
+        if (!targetId) {
+            if (authUserId) {
+                setFetchError('Não foi possível confirmar seu perfil no momento. Tente novamente.')
+            }
+            setLoading(false)
+            return () => {
+                isMounted = false
+                clearTimeout(safetyTimer)
+            }
+        }
+
+        const cachedData =
+            getScopedCached<any>('producao_data', targetId, { requireNonEmpty: true }) ||
+            getCached<any>(`producao_data_${targetId}`)
+
+        if (cachedData && hasNonEmptyCacheData(cachedData)) {
+            setInRevision(cachedData.inRevision || [])
+            setInProduction(cachedData.inProduction || [])
+            setDelivered(cachedData.delivered || [])
+            setCompleted(cachedData.completed || [])
+            setPendingProposals(cachedData.pendingProposals || [])
+            setDirectRequests(cachedData.directRequests || [])
+            hasDataRef.current = true
+            setFetchError(null)
+            setLoading(false)
+        } else if (!hasDataRef.current) {
+            setLoading(true)
+        }
 
         async function fetchData() {
             try {
-                const fetchPromise = Promise.all([
-                    supabase
-                        .from('jobs')
-                        .select('*, users!jobs_cliente_id_fkey(name, avatar_url)')
-                        .eq('target_programmer_id', targetId)
-                        .eq('status', 'aberto')
-                        .order('created_at', { ascending: false }),
-                    supabase
-                        .from('proposals')
-                        .select('status, jobs(*, users!jobs_cliente_id_fkey(name, avatar_url))')
-                        .eq('criador_id', targetId)
-                        .order('created_at', { ascending: false })
-                ])
+                let directResult: any[] | null = null
+                let proposalsResult: any[] | null = null
+                let lastError: any = null
 
-                const timeoutPromise = new Promise<any>((resolve) =>
-                    setTimeout(() => resolve([{ data: null }, { data: null }]), 2500)
-                )
+                for (let attempt = 0; attempt < 2; attempt++) {
+                    if (!isMounted) return
 
-                const [{ data: directData }, { data: myProposalsData }] = await Promise.race([
-                    fetchPromise,
-                    timeoutPromise
-                ])
+                    const fetchPromise = Promise.all([
+                        supabase
+                            .from('jobs')
+                            .select('*, users!jobs_cliente_id_fkey(name, avatar_url)')
+                            .eq('target_programmer_id', targetId)
+                            .eq('status', 'aberto')
+                            .order('created_at', { ascending: false }),
+                        supabase
+                            .from('proposals')
+                            .select('status, jobs(*, users!jobs_cliente_id_fkey(name, avatar_url))')
+                            .eq('criador_id', targetId)
+                            .order('created_at', { ascending: false })
+                    ])
 
-                if (directData && isMounted) setDirectRequests(directData)
+                    const timeoutPromise = new Promise<[{ data: any; error: any }, { data: any; error: any }]>((resolve) =>
+                        setTimeout(
+                            () =>
+                                resolve([
+                                    { data: null, error: new Error('Direct requests timeout') },
+                                    { data: null, error: new Error('Proposals timeout') },
+                                ]),
+                            7500
+                        )
+                    )
 
-                if (myProposalsData && isMounted) {
-                    const mapped = myProposalsData.map((p: any) => {
-                        const jobData = Array.isArray(p.jobs) ? p.jobs[0] : p.jobs
-                        return { ...jobData, my_proposal_status: p.status }
-                    }).filter(Boolean)
+                    const [{ data: directData, error: directError }, { data: myProposalsData, error: proposalsError }] =
+                        await Promise.race([fetchPromise, timeoutPromise])
 
-                    const rev = mapped.filter((j: any) => j.my_proposal_status === 'aceita' && j.status === 'em_revisao')
-                    const prod = mapped.filter((j: any) => j.my_proposal_status === 'aceita' && (j.status === 'em_progresso' || !j.status))
-                    const deliv = mapped.filter((j: any) => j.my_proposal_status === 'aceita' && j.status === 'entregue')
-                    const comp = mapped.filter((j: any) => j.my_proposal_status === 'aceita' && (j.status === 'finalizado' || j.status === 'concluido'))
-                    const pend = mapped.filter((j: any) => j.my_proposal_status === 'pendente' || j.my_proposal_status === 'contraproposta')
+                    if (!isMounted) return
 
-                    setInRevision(rev)
-                    setInProduction(prod)
-                    setDelivered(deliv)
-                    setCompleted(comp)
-                    setPendingProposals(pend)
+                    if (!directError && !proposalsError && (Array.isArray(directData) || Array.isArray(myProposalsData))) {
+                        directResult = Array.isArray(directData) ? directData : []
+                        proposalsResult = Array.isArray(myProposalsData) ? myProposalsData : []
+                        lastError = null
+                        break
+                    }
 
-                    setCached('producao_data', {
-                        directRequests: directData || [],
-                        inRevision: rev, inProduction: prod, delivered: deliv,
-                        completed: comp, pendingProposals: pend
-                    }, 120000)
+                    lastError = directError || proposalsError || new Error('Falha ao sincronizar produção')
+                    if (attempt === 0) {
+                        await new Promise((resolve) => setTimeout(resolve, 350))
+                    }
                 }
+
+                if (!isMounted) return
+
+                if (lastError && !directResult && !proposalsResult) {
+                    console.warn('Erro ao sincronizar produção:', lastError)
+                    if (!hasDataRef.current) {
+                        setFetchError('Não foi possível sincronizar sua produção. Tente novamente.')
+                    }
+                    return
+                }
+
+                const nextDirect = directResult || []
+                const mapped = (proposalsResult || [])
+                    .map((p: any) => {
+                        const jobData = Array.isArray(p.jobs) ? p.jobs[0] : p.jobs
+                        return jobData ? { ...jobData, my_proposal_status: p.status } : null
+                    })
+                    .filter(Boolean)
+
+                const rev = mapped.filter((j: any) => j.my_proposal_status === 'aceita' && j.status === 'em_revisao')
+                const prod = mapped.filter((j: any) => j.my_proposal_status === 'aceita' && (j.status === 'em_progresso' || !j.status))
+                const deliv = mapped.filter((j: any) => j.my_proposal_status === 'aceita' && j.status === 'entregue')
+                const comp = mapped.filter((j: any) => j.my_proposal_status === 'aceita' && (j.status === 'finalizado' || j.status === 'concluido'))
+                const pend = mapped.filter((j: any) => j.my_proposal_status === 'pendente' || j.my_proposal_status === 'contraproposta')
+
+                setDirectRequests(nextDirect)
+                setInRevision(rev)
+                setInProduction(prod)
+                setDelivered(deliv)
+                setCompleted(comp)
+                setPendingProposals(pend)
+                setFetchError(null)
+                hasDataRef.current = hasNonEmptyCacheData({
+                    directRequests: nextDirect,
+                    inRevision: rev,
+                    inProduction: prod,
+                    delivered: deliv,
+                    completed: comp,
+                    pendingProposals: pend,
+                })
+
+                const payload = {
+                    directRequests: nextDirect,
+                    inRevision: rev,
+                    inProduction: prod,
+                    delivered: deliv,
+                    completed: comp,
+                    pendingProposals: pend,
+                }
+                setScopedCached('producao_data', targetId, payload, 120000)
+                setCached(`producao_data_${targetId}`, payload, 120000)
+                setCached('producao_data', payload, 120000)
             } catch (err) {
                 console.error('Erro ao buscar producao:', err)
+                if (isMounted && !hasDataRef.current) {
+                    setFetchError('Não foi possível sincronizar sua produção. Tente novamente.')
+                }
             } finally {
+                clearTimeout(safetyTimer)
                 if (isMounted) setLoading(false)
             }
         }
@@ -103,7 +211,7 @@ export default function CreatorDashboard() {
             isMounted = false
             clearTimeout(safetyTimer)
         }
-    }, [profileId, authLoading])
+    }, [profileId, authLoading, profileLoading, authUserId, retryTick])
 
     const totalActive = inRevision.length + inProduction.length + delivered.length + completed.length + pendingProposals.length + directRequests.length
 
@@ -158,6 +266,21 @@ export default function CreatorDashboard() {
                 <div className="space-y-4">
                     <div className="h-28 bg-[#12151C] border border-white/[0.07] rounded-2xl animate-pulse" />
                     <div className="h-28 bg-[#12151C] border border-white/[0.07] rounded-2xl animate-pulse" />
+                </div>
+            ) : fetchError && totalActive === 0 ? (
+                <div className="bg-[#12151C] border border-red-500/20 rounded-2xl p-10 text-center">
+                    <div className="bg-red-500/10 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-red-500/20">
+                        <AlertCircle className="w-8 h-8 text-red-400" />
+                    </div>
+                    <h3 className="text-lg font-bold text-white mb-2">{fetchError}</h3>
+                    <button
+                        type="button"
+                        onClick={() => setRetryTick((t) => t + 1)}
+                        className="mt-4 inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[#FFB703] to-[#FB8500] hover:brightness-110 text-black font-extrabold text-sm rounded-xl transition-all shadow-md"
+                    >
+                        <RefreshCw className="w-4 h-4" />
+                        Tentar novamente
+                    </button>
                 </div>
             ) : totalActive === 0 && (
                 <div className="bg-[#12151C] border border-white/[0.07] rounded-2xl p-12 text-center">

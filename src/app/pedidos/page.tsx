@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { useAuth } from '@/contexts/AuthContext'
 import JobCard from '@/components/JobCard'
@@ -17,9 +17,10 @@ import {
     CheckCircle2, 
     Store, 
     ExternalLink, 
-    FileCode 
+    FileCode,
+    RefreshCw
 } from 'lucide-react'
-import { clearCache, getCached, setCached } from '@/lib/clientCache'
+import { clearCache, getCached, setCached, getScopedCached, setScopedCached } from '@/lib/clientCache'
 import { toast } from 'sonner'
 
 interface MarketplaceProductItem {
@@ -96,36 +97,38 @@ function MarketplacePurchaseSkeleton() {
 }
 
 export default function PedidosPage() {
-    const { profileId, loading: authLoading } = useAuth()
+    const { user: authUser, profileId, loading: authLoading, profileLoading } = useAuth()
+    const authUserId = authUser?.id || null
 
     // Tab state: 'jobs' = Encomendas Sob Medida, 'marketplace' = Minhas Compras do Marketplace
     const [activeTab, setActiveTab] = useState<'jobs' | 'marketplace'>('jobs')
 
-    // Jobs state
-    const [jobs, setJobs] = useState<any[]>(() => {
-        if (typeof window === 'undefined') return []
-        return getCached<any[]>('pedidos_jobs') || []
-    })
-    const [loading, setLoading] = useState<boolean>(() => {
-        if (typeof window === 'undefined') return true
-        const cached = getCached<any[]>('pedidos_jobs')
-        return !(cached && cached.length > 0)
-    })
+    // Jobs state (SSR-safe initialization; cache hydrated inside useEffect)
+    const [jobs, setJobs] = useState<any[]>([])
+    const [loading, setLoading] = useState<boolean>(true)
+    const [jobsError, setJobsError] = useState<string | null>(null)
     const [filter, setFilter] = useState<string>('all')
     const [jobToDelete, setJobToDelete] = useState<{ id: string; title: string } | null>(null)
     const [isDeleting, setIsDeleting] = useState(false)
 
     // Marketplace orders state
-    const [marketplaceOrders, setMarketplaceOrders] = useState<MarketplaceOrderItem[]>(() => {
-        if (typeof window === 'undefined') return []
-        return getCached<MarketplaceOrderItem[]>('pedidos_marketplace_orders') || []
-    })
-    const [ordersLoading, setOrdersLoading] = useState<boolean>(() => {
-        if (typeof window === 'undefined') return true
-        const cached = getCached<MarketplaceOrderItem[]>('pedidos_marketplace_orders')
-        return !(cached && cached.length > 0)
-    })
+    const [marketplaceOrders, setMarketplaceOrders] = useState<MarketplaceOrderItem[]>([])
+    const [ordersLoading, setOrdersLoading] = useState<boolean>(true)
+    const [ordersError, setOrdersError] = useState<string | null>(null)
     const [downloadingProductId, setDownloadingProductId] = useState<string | null>(null)
+    const [retryTick, setRetryTick] = useState<number>(0)
+
+    const jobsRef = useRef<any[]>([])
+    const ordersRef = useRef<MarketplaceOrderItem[]>([])
+
+    useEffect(() => {
+        if (typeof window === 'undefined') return
+        const handleReload = () => setRetryTick((t) => t + 1)
+        window.addEventListener('bordadohub_reload_job', handleReload)
+        return () => {
+            window.removeEventListener('bordadohub_reload_job', handleReload)
+        }
+    }, [])
 
     // URL query sync
     useEffect(() => {
@@ -170,6 +173,9 @@ export default function PedidosPage() {
             toast.success('Pedido excluído com sucesso!')
             setJobs(prev => {
                 const next = prev.filter(j => j.id !== jobToDelete.id)
+                jobsRef.current = next
+                setScopedCached('pedidos_jobs', currentUserId, next, 120000)
+                setCached(`pedidos_jobs_${currentUserId}`, next, 120000)
                 setCached('pedidos_jobs', next, 120000)
                 return next
             })
@@ -227,52 +233,101 @@ export default function PedidosPage() {
     useEffect(() => {
         let isMounted = true
 
-        // Fast client-side cache mount (0ms latency without breaking SSR hydration)
-        const cachedJobs = getCached<any[]>('pedidos_jobs')
-        if (cachedJobs && cachedJobs.length > 0) {
-            setJobs(cachedJobs)
-            setLoading(false)
-        }
-
-        const cachedOrders = getCached<MarketplaceOrderItem[]>('pedidos_marketplace_orders')
-        if (cachedOrders && cachedOrders.length > 0) {
-            setMarketplaceOrders(cachedOrders)
-            setOrdersLoading(false)
-        }
-
-        // Fallback safety: never let pedidos spin longer than 2s under any circumstance
+        // Fallback safety: never let pedidos spin forever
         const authSafetyTimer = setTimeout(() => {
             if (isMounted) {
                 setLoading(false)
                 setOrdersLoading(false)
             }
-        }, 2000)
+        }, 8500)
 
         const targetId = profileId || getCached<string>('current_user_profile_id')
-        if (!targetId && !authLoading) {
+        const isIdentityPending = !targetId && (authLoading || profileLoading || Boolean(authUserId))
+
+        if (isIdentityPending) {
+            setLoading(true)
+            setOrdersLoading(true)
+            return () => {
+                isMounted = false
+                clearTimeout(authSafetyTimer)
+            }
+        }
+
+        if (!targetId) {
+            if (authUserId) {
+                setJobsError('Não foi possível confirmar seu perfil no momento. Tente novamente.')
+                setOrdersError('Não foi possível confirmar seu perfil no momento. Tente novamente.')
+            }
             setLoading(false)
             setOrdersLoading(false)
-            return () => clearTimeout(authSafetyTimer)
+            return () => {
+                isMounted = false
+                clearTimeout(authSafetyTimer)
+            }
         }
-        if (!targetId) return () => clearTimeout(authSafetyTimer)
+
+        // Fast user-scoped client-side cache mount (0ms latency without SSR hydration mismatch)
+        const cachedJobs =
+            getScopedCached<any[]>('pedidos_jobs', targetId, { requireNonEmpty: true }) ||
+            getCached<any[]>(`pedidos_jobs_${targetId}`)
+        if (cachedJobs && cachedJobs.length > 0) {
+            jobsRef.current = cachedJobs
+            setJobs(cachedJobs)
+            setJobsError(null)
+            setLoading(false)
+        } else if (jobsRef.current.length === 0) {
+            setLoading(true)
+        }
+
+        const cachedOrders =
+            getScopedCached<MarketplaceOrderItem[]>('pedidos_marketplace_orders', targetId, { requireNonEmpty: true }) ||
+            getCached<MarketplaceOrderItem[]>(`pedidos_marketplace_orders_${targetId}`)
+        if (cachedOrders && cachedOrders.length > 0) {
+            ordersRef.current = cachedOrders
+            setMarketplaceOrders(cachedOrders)
+            setOrdersError(null)
+            setOrdersLoading(false)
+        } else if (ordersRef.current.length === 0) {
+            setOrdersLoading(true)
+        }
 
         // 1. Fetch custom jobs
         async function fetchJobs() {
             try {
-                const queryPromise = supabase
-                    .from('jobs')
-                    .select('*, proposals(status), target_programmer:target_programmer_id(name, avatar_url)')
-                    .eq('cliente_id', targetId)
-                    .order('created_at', { ascending: false })
+                let jobsResult: any[] | null = null
+                let lastError: any = null
 
-                const timeoutPromise = new Promise<{ data: any; error: any }>((resolve) =>
-                    setTimeout(() => resolve({ data: null, error: new Error('Pedidos query timeout') }), 2500)
-                )
+                for (let attempt = 0; attempt < 2; attempt++) {
+                    if (!isMounted) return
+                    const queryPromise = supabase
+                        .from('jobs')
+                        .select('*, proposals(status), target_programmer:target_programmer_id(name, avatar_url)')
+                        .eq('cliente_id', targetId)
+                        .order('created_at', { ascending: false })
 
-                const { data: jobsData } = await Promise.race([queryPromise, timeoutPromise])
+                    const timeoutPromise = new Promise<{ data: any; error: any }>((resolve) =>
+                        setTimeout(() => resolve({ data: null, error: new Error('Pedidos query timeout') }), 7500)
+                    )
 
-                if (jobsData && isMounted) {
-                    const enriched = jobsData.map((job: any) => {
+                    const { data: jobsData, error: fetchErr } = await Promise.race([queryPromise, timeoutPromise])
+                    if (!isMounted) return
+
+                    if (!fetchErr && Array.isArray(jobsData)) {
+                        jobsResult = jobsData
+                        lastError = null
+                        break
+                    }
+
+                    lastError = fetchErr || new Error('Falha ao buscar pedidos sob medida')
+                    if (attempt === 0) {
+                        await new Promise((resolve) => setTimeout(resolve, 350))
+                    }
+                }
+
+                if (!isMounted) return
+
+                if (Array.isArray(jobsResult)) {
+                    const enriched = jobsResult.map((job: any) => {
                         const enrichedJob = { ...job }
                         if (enrichedJob.status === 'aberto') {
                             const proposals = enrichedJob.proposals || []
@@ -285,11 +340,23 @@ export default function PedidosPage() {
                         }
                         return enrichedJob
                     })
+                    jobsRef.current = enriched
                     setJobs(enriched)
+                    setJobsError(null)
+                    setScopedCached('pedidos_jobs', targetId, enriched, 120000)
+                    setCached(`pedidos_jobs_${targetId}`, enriched, 120000)
                     setCached('pedidos_jobs', enriched, 120000)
+                } else {
+                    if (lastError) console.warn('Erro ao buscar pedidos sob medida:', lastError)
+                    if (jobsRef.current.length === 0) {
+                        setJobsError('Não foi possível carregar seus pedidos sob medida. Tente novamente.')
+                    }
                 }
             } catch (err) {
                 console.error('Erro ao buscar pedidos sob medida:', err)
+                if (isMounted && jobsRef.current.length === 0) {
+                    setJobsError('Não foi possível carregar seus pedidos sob medida. Tente novamente.')
+                }
             } finally {
                 if (isMounted) setLoading(false)
             }
@@ -298,68 +365,101 @@ export default function PedidosPage() {
         // 2. Fetch marketplace orders
         async function fetchMarketplaceOrders() {
             try {
-                const queryPromise = supabase
-                    .from('marketplace_orders')
-                    .select(`
-                        id,
-                        product_id,
-                        buyer_id,
-                        seller_id,
-                        amount,
-                        platform_fee,
-                        seller_net,
-                        status,
-                        payment_method,
-                        created_at,
-                        product:product_id (
+                let ordersResult: MarketplaceOrderItem[] | null = null
+                let lastError: any = null
+
+                for (let attempt = 0; attempt < 2; attempt++) {
+                    if (!isMounted) return
+                    const queryPromise = supabase
+                        .from('marketplace_orders')
+                        .select(`
                             id,
-                            title,
-                            description,
-                            price,
-                            image_url,
-                            file_url,
-                            storage_path,
-                            formats,
-                            category,
-                            is_bundle,
-                            items_count,
-                            is_active
-                        ),
-                        seller:seller_id (
-                            id,
-                            name,
-                            avatar_url
-                        )
-                    `)
-                    .eq('buyer_id', targetId)
-                    .eq('status', 'paid')
-                    .order('created_at', { ascending: false })
+                            product_id,
+                            buyer_id,
+                            seller_id,
+                            amount,
+                            platform_fee,
+                            seller_net,
+                            status,
+                            payment_method,
+                            created_at,
+                            product:product_id (
+                                id,
+                                title,
+                                description,
+                                price,
+                                image_url,
+                                file_url,
+                                storage_path,
+                                formats,
+                                category,
+                                is_bundle,
+                                items_count,
+                                is_active
+                            ),
+                            seller:seller_id (
+                                id,
+                                name,
+                                avatar_url
+                            )
+                        `)
+                        .eq('buyer_id', targetId)
+                        .eq('status', 'paid')
+                        .order('created_at', { ascending: false })
 
-                const timeoutPromise = new Promise<{ data: any; error: any }>((resolve) =>
-                    setTimeout(() => resolve({ data: null, error: new Error('Marketplace orders query timeout') }), 2500)
-                )
+                    const timeoutPromise = new Promise<{ data: any; error: any }>((resolve) =>
+                        setTimeout(() => resolve({ data: null, error: new Error('Marketplace orders query timeout') }), 7500)
+                    )
 
-                const { data: ordersData } = await Promise.race([queryPromise, timeoutPromise])
+                    const { data: ordersData, error: fetchErr } = await Promise.race([queryPromise, timeoutPromise])
+                    if (!isMounted) return
 
-                if (ordersData && isMounted) {
-                    setMarketplaceOrders(ordersData as MarketplaceOrderItem[])
-                    setCached('pedidos_marketplace_orders', ordersData, 120000)
+                    if (!fetchErr && Array.isArray(ordersData)) {
+                        ordersResult = ordersData as MarketplaceOrderItem[]
+                        lastError = null
+                        break
+                    }
+
+                    lastError = fetchErr || new Error('Falha ao buscar compras do marketplace')
+                    if (attempt === 0) {
+                        await new Promise((resolve) => setTimeout(resolve, 350))
+                    }
+                }
+
+                if (!isMounted) return
+
+                if (Array.isArray(ordersResult)) {
+                    ordersRef.current = ordersResult
+                    setMarketplaceOrders(ordersResult)
+                    setOrdersError(null)
+                    setScopedCached('pedidos_marketplace_orders', targetId, ordersResult, 120000)
+                    setCached(`pedidos_marketplace_orders_${targetId}`, ordersResult, 120000)
+                    setCached('pedidos_marketplace_orders', ordersResult, 120000)
+                } else {
+                    if (lastError) console.warn('Erro ao buscar compras do marketplace:', lastError)
+                    if (ordersRef.current.length === 0) {
+                        setOrdersError('Não foi possível carregar suas compras do marketplace. Tente novamente.')
+                    }
                 }
             } catch (err) {
                 console.error('Erro ao buscar compras do marketplace:', err)
+                if (isMounted && ordersRef.current.length === 0) {
+                    setOrdersError('Não foi possível carregar suas compras do marketplace. Tente novamente.')
+                }
             } finally {
                 if (isMounted) setOrdersLoading(false)
             }
         }
 
-        fetchJobs()
-        fetchMarketplaceOrders()
+        Promise.all([fetchJobs(), fetchMarketplaceOrders()]).finally(() => {
+            clearTimeout(authSafetyTimer)
+        })
 
         return () => {
             isMounted = false
             clearTimeout(authSafetyTimer)
         }
-    }, [profileId, authLoading])
+    }, [profileId, authLoading, profileLoading, authUserId, retryTick])
 
     return (
         <div className="min-h-[70vh]">
@@ -479,6 +579,19 @@ export default function PedidosPage() {
                             <PedidoCardSkeleton />
                             <PedidoCardSkeleton />
                         </div>
+                    ) : jobsError && jobs.length === 0 ? (
+                        <div className="bg-[#12151C] border border-red-500/20 rounded-2xl p-10 text-center">
+                            <AlertCircle className="w-10 h-10 text-red-400 mx-auto mb-3 opacity-80" />
+                            <p className="text-gray-200 font-bold text-base">{jobsError}</p>
+                            <button
+                                type="button"
+                                onClick={() => setRetryTick((t) => t + 1)}
+                                className="mt-4 inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[#FFB703] to-[#FB8500] hover:brightness-110 text-black font-extrabold text-sm rounded-xl transition-all shadow-md"
+                            >
+                                <RefreshCw className="w-4 h-4" />
+                                Tentar novamente
+                            </button>
+                        </div>
                     ) : jobs.length === 0 ? (
                         <div className="bg-[#12151C] border border-white/[0.07] rounded-2xl p-12 text-center">
                             <div className="bg-[#F5A623]/10 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 border border-[#F5A623]/20">
@@ -544,6 +657,19 @@ export default function PedidosPage() {
                             <MarketplacePurchaseSkeleton />
                             <MarketplacePurchaseSkeleton />
                             <MarketplacePurchaseSkeleton />
+                        </div>
+                    ) : ordersError && marketplaceOrders.length === 0 ? (
+                        <div className="bg-[#12151C] border border-red-500/20 rounded-2xl p-10 text-center">
+                            <AlertCircle className="w-10 h-10 text-red-400 mx-auto mb-3 opacity-80" />
+                            <p className="text-gray-200 font-bold text-base">{ordersError}</p>
+                            <button
+                                type="button"
+                                onClick={() => setRetryTick((t) => t + 1)}
+                                className="mt-4 inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[#FFB703] to-[#FB8500] hover:brightness-110 text-black font-extrabold text-sm rounded-xl transition-all shadow-md"
+                            >
+                                <RefreshCw className="w-4 h-4" />
+                                Tentar novamente
+                            </button>
                         </div>
                     ) : marketplaceOrders.length === 0 ? (
                         /* Empty State matching T2-F04-03 requirements */

@@ -34,7 +34,6 @@ export default function Sidebar({ initialUser, initialProfile }: { initialUser?:
         const cached = getCached<number>(`revisions_count_${targetId}`)
         if (cached !== null) {
             setRevisionsCount(cached)
-            return
         }
         try {
             const { data } = await supabase

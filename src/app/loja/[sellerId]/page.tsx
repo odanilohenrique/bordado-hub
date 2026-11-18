@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabaseClient'
@@ -21,7 +21,9 @@ import {
     Play,
     Trash2,
     ExternalLink,
-    ShieldCheck
+    ShieldCheck,
+    Pencil,
+    RefreshCw
 } from 'lucide-react'
 
 const formatPrice = (price: number) => {
@@ -34,11 +36,15 @@ const formatPrice = (price: number) => {
 export default function SellerStorePage() {
     const params = useParams()
     const sellerId = params?.sellerId as string
-    const { user, profile, profileId, loading: authLoading } = useAuth()
+    const { user, profile, profileId } = useAuth()
 
     const [seller, setSeller] = useState<any>(null)
     const [products, setProducts] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
+    const [fetchError, setFetchError] = useState<string | null>(null)
+    const [productsError, setProductsError] = useState<string | null>(null)
+    const [retryCount, setRetryCount] = useState(0)
+    const fetchedScopeRef = useRef<{ sellerId: string; owner: boolean; retry: number } | null>(null)
     
     // Store owner management states
     const [filter, setFilter] = useState<'todas' | 'ativas' | 'pausadas'>('todas')
@@ -48,30 +54,32 @@ export default function SellerStorePage() {
 
     // Resolved owner status
     const isOwner = useMemo(() => {
-        if (authLoading || !seller) return false
+        if (!seller) return false
         return Boolean(
             (profile?.id && (profile.id === seller.id || profile.id === sellerId)) ||
             (profileId && (profileId === seller.id || profileId === sellerId)) ||
             (user?.id && (user.id === seller.supabase_user_id || user.id === sellerId))
         )
-    }, [authLoading, seller, sellerId, profile?.id, profileId, user?.id])
+    }, [seller, sellerId, profile?.id, profileId, user?.id])
 
+    // Effect 1: Fetch seller profile immediately (non-blocking public fetch)
     useEffect(() => {
         if (!sellerId) return
 
         let isMounted = true
+        setLoading(true)
+        setFetchError(null)
+        fetchedScopeRef.current = null
 
         const safetyTimer = setTimeout(() => {
             if (isMounted) setLoading(false)
-        }, 4000)
+        }, 8500)
 
-        async function loadStore() {
-            if (!seller) setLoading(true)
+        async function loadSeller() {
             try {
                 const cleanSellerId = sellerId.trim()
                 const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cleanSellerId)
 
-                // 1. Fetch seller profile
                 let sellerQuery = supabase
                     .from('users')
                     .select('id, name, avatar_url, bio, rating, reviews_count, supabase_user_id')
@@ -82,57 +90,130 @@ export default function SellerStorePage() {
                     sellerQuery = sellerQuery.eq('id', cleanSellerId)
                 }
 
-                const { data: sellerData } = await sellerQuery.maybeSingle()
+                const timeoutPromise = new Promise<{ data: any; error: any }>((resolve) =>
+                    setTimeout(() => resolve({ data: null, error: new Error('Seller query timeout') }), 8000)
+                )
 
-                if (!sellerData) {
-                    if (isMounted) {
-                        setSeller(null)
-                        setLoading(false)
-                    }
+                const { data: sellerData, error: sellerErr } = await Promise.race([
+                    sellerQuery.maybeSingle(),
+                    timeoutPromise,
+                ])
+
+                if (!isMounted) return
+
+                if (sellerErr) {
+                    console.error('Erro ao carregar vendedor:', sellerErr)
+                    setFetchError('Não foi possível carregar os dados desta loja. Verifique sua conexão e tente novamente.')
+                    setSeller(null)
+                    setLoading(false)
                     return
                 }
 
-                if (isMounted) {
-                    setSeller(sellerData)
+                if (!sellerData) {
+                    setSeller(null)
+                    setLoading(false)
+                    return
                 }
 
-                // Check ownership for query scoping
-                const resolvedOwner = Boolean(
-                    (profile?.id && (profile.id === sellerData.id || profile.id === cleanSellerId)) ||
-                    (profileId && (profileId === sellerData.id || profileId === cleanSellerId)) ||
-                    (user?.id && (user.id === sellerData.supabase_user_id || user.id === cleanSellerId))
-                )
+                setSeller(sellerData)
+            } catch (err) {
+                console.error('Erro ao carregar loja do vendedor:', err)
+                if (isMounted) {
+                    setFetchError('Não foi possível carregar os dados desta loja. Verifique sua conexão e tente novamente.')
+                    setLoading(false)
+                }
+            } finally {
+                clearTimeout(safetyTimer)
+            }
+        }
 
-                // 2. Fetch products from this seller
+        loadSeller()
+
+        return () => {
+            isMounted = false
+            clearTimeout(safetyTimer)
+        }
+    }, [sellerId, retryCount])
+
+    // Effect 2: Fetch seller products (avoids double-fetch for visitors when auth hydrates)
+    useEffect(() => {
+        if (!seller?.id) return
+
+        const cleanSellerId = sellerId.trim()
+        const resolvedOwner = Boolean(
+            (profile?.id && (profile.id === seller.id || profile.id === cleanSellerId)) ||
+            (profileId && (profileId === seller.id || profileId === cleanSellerId)) ||
+            (user?.id && (user.id === seller.supabase_user_id || user.id === cleanSellerId))
+        )
+
+        if (
+            fetchedScopeRef.current &&
+            fetchedScopeRef.current.sellerId === seller.id &&
+            fetchedScopeRef.current.owner === resolvedOwner &&
+            fetchedScopeRef.current.retry === retryCount
+        ) {
+            return
+        }
+
+        let isMounted = true
+        setProductsError(null)
+
+        const safetyTimer = setTimeout(() => {
+            if (isMounted) setLoading(false)
+        }, 8500)
+
+        async function loadProducts() {
+            try {
                 let prodQuery = supabase
                     .from('marketplace_products')
                     .select('*, seller:seller_id(name, avatar_url, rating)')
-                    .eq('seller_id', sellerData.id)
+                    .eq('seller_id', seller.id)
 
                 if (!resolvedOwner) {
                     prodQuery = prodQuery.eq('is_active', true)
                 }
 
-                const { data: prods } = await prodQuery.order('created_at', { ascending: false })
+                const timeoutPromise = new Promise<{ data: any; error: any }>((resolve) =>
+                    setTimeout(() => resolve({ data: null, error: new Error('Store products query timeout') }), 8000)
+                )
 
-                if (isMounted && prods) {
-                    setProducts(prods)
+                const { data: prods, error: prodErr } = await Promise.race([
+                    prodQuery.order('created_at', { ascending: false }),
+                    timeoutPromise,
+                ])
+
+                if (!isMounted) return
+
+                if (prodErr) {
+                    console.error('Erro ao carregar matrizes da loja:', prodErr)
+                    setProductsError('Não foi possível carregar as matrizes desta loja. Tente novamente.')
+                } else {
+                    setProductsError(null)
+                    setProducts(prods || [])
+                    fetchedScopeRef.current = {
+                        sellerId: seller.id,
+                        owner: resolvedOwner,
+                        retry: retryCount,
+                    }
                 }
             } catch (err) {
-                console.error('Erro ao carregar loja do vendedor:', err)
+                console.error('Erro inesperado ao carregar matrizes da loja:', err)
+                if (isMounted) {
+                    setProductsError('Não foi possível carregar as matrizes desta loja. Tente novamente.')
+                }
             } finally {
                 clearTimeout(safetyTimer)
                 if (isMounted) setLoading(false)
             }
         }
 
-        loadStore()
+        loadProducts()
 
         return () => {
             isMounted = false
             clearTimeout(safetyTimer)
         }
-    }, [sellerId, profile?.id, profileId, user?.id])
+    }, [seller?.id, seller?.supabase_user_id, sellerId, profile?.id, profileId, user?.id, retryCount])
 
     // Toggle Pause / Resume
     const handleTogglePause = async (product: any) => {
@@ -167,6 +248,7 @@ export default function SellerStorePage() {
             }
 
             clearCache('marketplace_products')
+            clearCache(`marketplace_product_${product.id}`)
             toast.success(nextActiveState ? 'Matriz reativada com sucesso!' : 'Matriz pausada com sucesso!')
         } catch (err: any) {
             console.error('Erro ao alternar status da matriz:', err)
@@ -202,6 +284,7 @@ export default function SellerStorePage() {
             // Remove from current local state
             setProducts(prev => prev.filter(p => p.id !== productToDelete.id))
             clearCache('marketplace_products')
+            clearCache(`marketplace_product_${productToDelete.id}`)
             toast.success('Matriz desativada com sucesso!')
             setProductToDelete(null)
         } catch (err: any) {
@@ -227,6 +310,35 @@ export default function SellerStorePage() {
         return (
             <div className="min-h-screen bg-[#0B0D11] flex items-center justify-center">
                 <Loader2 className="w-8 h-8 text-[#FFAE00] animate-spin" />
+            </div>
+        )
+    }
+
+    if (fetchError && !seller) {
+        return (
+            <div className="min-h-screen bg-[#0B0D11] text-white flex flex-col items-center justify-center p-4 text-center space-y-4">
+                <AlertCircle className="w-12 h-12 text-red-400" />
+                <h1 className="text-xl font-bold">Erro ao carregar loja</h1>
+                <p className="text-sm text-gray-400 max-w-md">{fetchError}</p>
+                <div className="flex flex-wrap items-center justify-center gap-3">
+                    <button
+                        type="button"
+                        onClick={() => {
+                            setFetchError(null)
+                            setLoading(true)
+                            setRetryCount((c) => c + 1)
+                        }}
+                        className="min-h-[48px] inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-[#FFAE00] text-[#0F1115] font-bold text-sm hover:brightness-110 transition-all"
+                    >
+                        <RefreshCw className="w-4 h-4" /> Tentar novamente
+                    </button>
+                    <Link
+                        href="/marketplace"
+                        className="min-h-[48px] inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-white/5 border border-white/10 text-gray-200 font-bold text-sm hover:bg-white/10 transition-colors"
+                    >
+                        <ArrowLeft className="w-4 h-4" /> Voltar ao Marketplace
+                    </Link>
+                </div>
             </div>
         )
     }
@@ -379,7 +491,23 @@ export default function SellerStorePage() {
                         )}
                     </div>
 
-                    {filteredProducts.length === 0 ? (
+                    {productsError && products.length === 0 ? (
+                        <div className="text-center py-12 bg-[#12151C] border border-red-500/20 rounded-2xl p-6 space-y-4">
+                            <AlertCircle className="w-10 h-10 text-red-400 mx-auto" />
+                            <p className="text-white font-bold text-base">Falha ao carregar matrizes da loja</p>
+                            <p className="text-gray-400 text-sm max-w-md mx-auto">{productsError}</p>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setProductsError(null)
+                                    setRetryCount((c) => c + 1)
+                                }}
+                                className="min-h-[48px] inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-[#FFAE00] hover:brightness-110 text-[#0F1115] font-extrabold text-sm rounded-xl transition-all"
+                            >
+                                <RefreshCw className="w-4 h-4" /> Tentar novamente
+                            </button>
+                        </div>
+                    ) : filteredProducts.length === 0 ? (
                         <div className="text-center py-16 bg-[#12151C] border border-white/5 rounded-2xl p-6">
                             <ShoppingBag className="w-12 h-12 text-gray-600 mx-auto mb-3" />
                             {isOwner ? (
@@ -406,8 +534,15 @@ export default function SellerStorePage() {
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                            {filteredProducts.map((product) => (
-                                isOwner ? (
+                            {filteredProducts.map((product) => {
+                                const normalizedFormats: string[] = Array.from(
+                                    new Set<string>(
+                                        (Array.isArray(product?.formats) ? product.formats : [])
+                                            .map((f: unknown) => String(f ?? '').trim().replace(/^\.+/, '').toUpperCase())
+                                            .filter(Boolean)
+                                    )
+                                )
+                                return isOwner ? (
                                     /* Owner Management Card */
                                     <div 
                                         key={product.id}
@@ -421,9 +556,9 @@ export default function SellerStorePage() {
                                         <div className="relative w-full h-48 bg-[#0F1115] overflow-hidden group">
                                             <Link href={`/marketplace/${product.id}`} className="block w-full h-full">
                                                 <img
-                                                    src={product.image_url}
+                                                    src={product.image_url || '/brand/icon-dark.png'}
                                                     alt={product.title}
-                                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                                    className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
                                                 />
                                                 <div className="absolute inset-0 bg-gradient-to-t from-[#161920] via-transparent to-transparent opacity-80" />
                                             </Link>
@@ -450,12 +585,17 @@ export default function SellerStorePage() {
                                             </div>
 
                                             {/* Formats badges */}
-                                            <div className="absolute bottom-3 left-3 flex gap-1">
-                                                {product.formats?.slice(0, 3).map((fmt: string) => (
+                                            <div className="absolute bottom-3 left-3 flex flex-wrap gap-1">
+                                                {normalizedFormats.slice(0, 3).map((fmt) => (
                                                     <span key={fmt} className="bg-[#0F1115]/90 backdrop-blur-sm border border-white/10 text-[10px] font-bold px-2 py-0.5 rounded text-gray-300">
                                                         .{fmt}
                                                     </span>
                                                 ))}
+                                                {normalizedFormats.length > 3 && (
+                                                    <span className="bg-[#0F1115]/90 backdrop-blur-sm border border-white/10 text-[10px] font-bold px-2 py-0.5 rounded text-[#FFAE00]">
+                                                        +{normalizedFormats.length - 3}
+                                                    </span>
+                                                )}
                                             </div>
                                         </div>
 
@@ -476,13 +616,23 @@ export default function SellerStorePage() {
                                             </div>
 
                                             {/* Owner Controls Action Row */}
-                                            <div className="mt-auto pt-3 border-t border-white/5 flex items-center gap-2">
+                                            <div className="mt-auto pt-3 border-t border-white/5 flex flex-wrap items-center gap-2">
+                                                {/* Edit Button */}
+                                                <Link
+                                                    href={`/marketplace/vender?edit=${product.id}`}
+                                                    className="min-h-[40px] py-2 px-3 rounded-xl text-xs font-bold bg-[#FFAE00]/10 hover:bg-[#FFAE00]/20 text-[#FFAE00] border border-[#FFAE00]/25 transition-all flex items-center justify-center gap-1.5"
+                                                    title="Editar matriz"
+                                                >
+                                                    <Pencil className="w-3.5 h-3.5" />
+                                                    <span>Editar</span>
+                                                </Link>
+
                                                 {/* Pause / Resume Button */}
                                                 <button
                                                     type="button"
                                                     disabled={actionLoading === product.id}
                                                     onClick={() => handleTogglePause(product)}
-                                                    className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold transition-all border disabled:opacity-50 ${
+                                                    className={`flex-1 min-h-[40px] flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold transition-all border disabled:opacity-50 ${
                                                         product.is_active
                                                             ? 'bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border-amber-500/20'
                                                             : 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border-emerald-500/20'
@@ -509,7 +659,7 @@ export default function SellerStorePage() {
                                                     type="button"
                                                     disabled={actionLoading === product.id}
                                                     onClick={() => setProductToDelete(product)}
-                                                    className="py-2 px-3 rounded-xl text-xs font-bold bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 transition-all flex items-center justify-center gap-1 disabled:opacity-50"
+                                                    className="min-h-[40px] py-2 px-3 rounded-xl text-xs font-bold bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 transition-all flex items-center justify-center gap-1 disabled:opacity-50"
                                                     title="Excluir matriz da loja"
                                                 >
                                                     <Trash2 className="w-3.5 h-3.5" />
@@ -518,7 +668,7 @@ export default function SellerStorePage() {
                                                 {/* View Product Link */}
                                                 <Link
                                                     href={`/marketplace/${product.id}`}
-                                                    className="py-2 px-3 rounded-xl text-xs font-bold bg-white/5 hover:bg-white/10 text-gray-300 border border-white/10 transition-all flex items-center justify-center"
+                                                    className="min-h-[40px] py-2 px-3 rounded-xl text-xs font-bold bg-white/5 hover:bg-white/10 text-gray-300 border border-white/10 transition-all flex items-center justify-center"
                                                     title="Ver página da matriz no marketplace"
                                                 >
                                                     <ExternalLink className="w-3.5 h-3.5" />
@@ -530,7 +680,7 @@ export default function SellerStorePage() {
                                     /* Non-owner Standard Product Card */
                                     <ProductCard key={product.id} product={product} />
                                 )
-                            ))}
+                            })}
                         </div>
                     )}
                 </div>

@@ -27,6 +27,8 @@ const eslintConfig = defineConfig([
     "modelo_referencia/**",
     "scripts/**",
     "Colagem/**",
+    "videos/**",
+    ".agents/**",
     "*.js",
     "*.mjs",
   ]),

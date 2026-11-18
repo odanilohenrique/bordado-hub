@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import Link from 'next/link'
-import { Search, Store, UploadCloud, TrendingUp, Tag, Plus } from 'lucide-react'
+import { Search, Store, UploadCloud, TrendingUp, Tag, AlertCircle, RefreshCw } from 'lucide-react'
 import ProductCard from '@/components/ProductCard'
 import { getCached, setCached } from '@/lib/clientCache'
 
@@ -26,6 +26,8 @@ function ProductCardSkeleton() {
 export default function MarketplacePage() {
     const [products, setProducts] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
+    const [fetchError, setFetchError] = useState<string | null>(null)
+    const [retryCount, setRetryCount] = useState(0)
     const [searchTerm, setSearchTerm] = useState('')
     const [activeFilter, setActiveFilter] = useState<string>('all')
 
@@ -41,7 +43,7 @@ export default function MarketplacePage() {
 
         const safetyTimer = setTimeout(() => {
             if (isMounted) setLoading(false)
-        }, 4000)
+        }, 8500)
 
         async function fetchProducts() {
             try {
@@ -52,7 +54,7 @@ export default function MarketplacePage() {
                     .order('created_at', { ascending: false })
 
                 const timeoutPromise = new Promise<{ data: any; error: any }>((resolve) =>
-                    setTimeout(() => resolve({ data: null, error: new Error('Marketplace query timeout') }), 4500)
+                    setTimeout(() => resolve({ data: null, error: new Error('Marketplace query timeout') }), 8000)
                 )
 
                 const { data, error } = await Promise.race([queryPromise, timeoutPromise])
@@ -60,13 +62,20 @@ export default function MarketplacePage() {
                 if (!isMounted) return
 
                 if (data) {
+                    setFetchError(null)
                     setProducts(data)
                     setCached('marketplace_products', data, 60000)
                 } else if (error) {
                     console.error("Erro ao buscar produtos do marketplace:", error)
+                    if (!cached || cached.length === 0) {
+                        setFetchError('Não foi possível carregar as matrizes. Verifique sua conexão e tente novamente.')
+                    }
                 }
             } catch (err) {
                 console.error('Erro ao buscar marketplace:', err)
+                if (isMounted && (!cached || cached.length === 0)) {
+                    setFetchError('Não foi possível carregar as matrizes. Verifique sua conexão e tente novamente.')
+                }
             } finally {
                 clearTimeout(safetyTimer)
                 if (isMounted) setLoading(false)
@@ -79,7 +88,7 @@ export default function MarketplacePage() {
             isMounted = false
             clearTimeout(safetyTimer)
         }
-    }, [])
+    }, [retryCount])
 
     const filteredProducts = products
         .filter(p => {
@@ -235,6 +244,28 @@ export default function MarketplacePage() {
                     <ProductCardSkeleton />
                     <ProductCardSkeleton />
                     <ProductCardSkeleton />
+                </div>
+            ) : fetchError && products.length === 0 ? (
+                <div className="bg-[#1A1D23] border border-red-500/20 rounded-3xl p-12 sm:p-16 text-center max-w-3xl mx-auto mt-10 space-y-4">
+                    <div className="bg-red-500/10 w-20 h-20 rounded-full flex items-center justify-center mx-auto">
+                        <AlertCircle className="w-10 h-10 text-red-400" />
+                    </div>
+                    <h3 className="text-xl sm:text-2xl font-bold text-white">Falha ao carregar o Marketplace</h3>
+                    <p className="text-gray-400 text-sm max-w-md mx-auto">
+                        {fetchError}
+                    </p>
+                    <button
+                        type="button"
+                        onClick={() => {
+                            setFetchError(null)
+                            setLoading(true)
+                            setRetryCount((c) => c + 1)
+                        }}
+                        className="min-h-[48px] inline-flex items-center justify-center gap-2 bg-[#FFAE00] hover:bg-[#D97706] text-[#0F1115] font-bold px-6 py-3 rounded-xl transition-all shadow-lg shadow-[#FFAE00]/20"
+                    >
+                        <RefreshCw className="w-4 h-4" />
+                        Tentar novamente
+                    </button>
                 </div>
             ) : filteredProducts.length === 0 ? (
                 <div className="bg-[#1A1D23] border border-gray-800 border-dashed rounded-3xl p-16 text-center max-w-3xl mx-auto mt-10">

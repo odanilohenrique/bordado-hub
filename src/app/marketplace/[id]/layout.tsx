@@ -89,8 +89,18 @@ export async function generateMetadata(
         const statusSuffix = product.is_active === false ? ' (Indisponível)' : ''
         const title = `${product.title} - ${formattedPrice}${statusSuffix} | BordadoHub`
 
-        const formatsList = Array.isArray(product.formats) && product.formats.length > 0
-            ? product.formats.map((f: string) => `.${String(f).replace(/^\./, '').toUpperCase()}`).join(', ')
+        const normalizedFormats = Array.isArray(product.formats)
+            ? Array.from(
+                new Set(
+                    product.formats
+                        .map((f: string) => String(f ?? '').trim().replace(/^\.+/, '').toUpperCase())
+                        .filter(Boolean)
+                )
+            )
+            : []
+
+        const formatsList = normalizedFormats.length > 0
+            ? normalizedFormats.map((f) => `.${f}`).join(', ')
             : '.PES, .DST, .JEF'
 
         const sellerName = (product.seller as any)?.name || 'Programador BordadoHub'

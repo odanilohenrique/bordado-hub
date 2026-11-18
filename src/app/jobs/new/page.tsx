@@ -40,7 +40,7 @@ export interface ExtraImageItem {
 function NewJobContent() {
     const router = useRouter()
     const searchParams = useSearchParams()
-    const { user: authUser, profileId: authProfileId, loading: authLoading } = useAuth()
+    const { user: authUser, profileId: authProfileId, loading: authLoading, profileLoading } = useAuth()
 
     const [title, setTitle] = useState('')
     const [description, setDescription] = useState('')
@@ -50,8 +50,8 @@ function NewJobContent() {
     const [extraImages, setExtraImages] = useState<ExtraImageItem[]>([])
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
-    const [checkingAuth, setCheckingAuth] = useState(() => !(authProfileId || authUser?.id))
-    const [currentUserProfileId, setCurrentUserProfileId] = useState<string | null>(() => authProfileId || authUser?.id || null)
+    const [checkingAuth, setCheckingAuth] = useState<boolean>(true)
+    const [currentUserProfileId, setCurrentUserProfileId] = useState<string | null>(null)
     const [directProgrammerId, setDirectProgrammerId] = useState<string | null>(null)
     const [directProgrammerName, setDirectProgrammerName] = useState<string | null>(null)
 
@@ -72,29 +72,32 @@ function NewJobContent() {
 
         const safetyTimer = setTimeout(() => {
             if (isMounted) setCheckingAuth(false)
-        }, 3000)
+        }, 8500)
 
         const checkAuth = async () => {
+            let keepChecking = false
             try {
                 let authUserId = authUser?.id
                 if (!authUserId) {
                     const { data: { session } } = await Promise.race([
                         supabase.auth.getSession(),
-                        new Promise<any>((resolve) => setTimeout(() => resolve({ data: { session: null } }), 2500))
+                        new Promise<any>((resolve) => setTimeout(() => resolve({ data: { session: null } }), 4500))
                     ])
                     authUserId = session?.user?.id
                 }
 
                 if (!authUserId) {
-                    if (!authLoading) {
-                        router.push('/login?redirect=/jobs/new')
+                    if (authLoading || profileLoading) {
+                        keepChecking = true
+                        return
                     }
+                    router.push('/login?redirect=/jobs/new')
                     return
                 }
 
                 let profileId = authUserId
 
-                // Busca o ID em public.users com timeout de 3s
+                // Busca o ID em public.users com timeout de 4.5s
                 try {
                     const profilePromise = supabase
                         .from('users')
@@ -103,7 +106,7 @@ function NewJobContent() {
                         .maybeSingle()
 
                     const timeoutPromise = new Promise((_, reject) =>
-                        setTimeout(() => reject(new Error('timeout')), 3000)
+                        setTimeout(() => reject(new Error('timeout')), 4500)
                     )
 
                     const { data: userProfile } = await Promise.race([profilePromise, timeoutPromise]) as any
@@ -117,13 +120,14 @@ function NewJobContent() {
 
                 if (isMounted) {
                     setCurrentUserProfileId(profileId)
-                    setCheckingAuth(false)
                 }
             } catch (err) {
                 console.error('Erro na checagem de autenticação:', err)
-                if (isMounted) setCheckingAuth(false)
             } finally {
-                clearTimeout(safetyTimer)
+                if (!keepChecking) {
+                    clearTimeout(safetyTimer)
+                    if (isMounted) setCheckingAuth(false)
+                }
             }
         }
         checkAuth()
@@ -131,7 +135,7 @@ function NewJobContent() {
             isMounted = false
             clearTimeout(safetyTimer)
         }
-    }, [router, authProfileId, authUser?.id, authLoading])
+    }, [router, authProfileId, authUser?.id, authLoading, profileLoading])
 
     // Check for direct programmer ID from URL
     useEffect(() => {

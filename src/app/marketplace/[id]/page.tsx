@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -20,25 +20,23 @@ import {
     Loader2, 
     AlertCircle,
     Package,
-    Tag,
-    Clock
+    Clock,
+    Pencil,
+    RefreshCw
 } from 'lucide-react'
 import { toast } from 'sonner'
 
 export default function MarketplaceProductPage() {
     const params = useParams()
     const router = useRouter()
-    const { user, profile } = useAuth()
+    const { user, profile, profileId } = useAuth()
     const productId = params?.id as string
 
-    const [product, setProduct] = useState<any>(() => {
-        if (typeof window === 'undefined' || !productId) return null
-        return getCached<any>(`marketplace_product_${productId}`)
-    })
-    const [loading, setLoading] = useState(() => {
-        if (typeof window === 'undefined' || !productId) return true
-        return !getCached<any>(`marketplace_product_${productId}`)
-    })
+    const [product, setProduct] = useState<any>(null)
+    const [loading, setLoading] = useState<boolean>(true)
+    const [fetchError, setFetchError] = useState<string | null>(null)
+    const [retryCount, setRetryCount] = useState(0)
+    const [activeImage, setActiveImage] = useState<string | null>(null)
     const [cpfCnpj, setCpfCnpj] = useState('')
     
     // Checkout states
@@ -51,7 +49,7 @@ export default function MarketplaceProductPage() {
     const [isDownloading, setIsDownloading] = useState(false)
 
     const handleDownloadSecure = async () => {
-        const currentUserId = profile?.id || user?.id
+        const currentUserId = profileId || profile?.id || user?.id
         if (!currentUserId) {
             toast.error('Faça login para baixar seus arquivos.')
             return
@@ -77,7 +75,7 @@ export default function MarketplaceProductPage() {
     }
     const pollingRef = useRef<NodeJS.Timeout | null>(null)
 
-    // 1. Fetch Product
+    // 1. Fetch Product (SSR-safe cache mount + aligned timeouts)
     useEffect(() => {
         if (!productId) return
         let isMounted = true
@@ -85,37 +83,50 @@ export default function MarketplaceProductPage() {
         const cached = getCached<any>(`marketplace_product_${productId}`)
         if (cached) {
             setProduct(cached)
+            setFetchError(null)
             setLoading(false)
         }
 
         const safetyTimer = setTimeout(() => {
             if (isMounted) setLoading(false)
-        }, 4000)
+        }, 8500)
 
         async function loadProduct() {
             try {
                 const queryPromise = supabase
                     .from('marketplace_products')
-                    .select('*, seller:seller_id(id, name, avatar_url, rating, reviews_count)')
+                    .select('*, seller:seller_id(id, name, avatar_url, rating, reviews_count, supabase_user_id)')
                     .eq('id', productId)
                     .single()
 
                 const timeoutPromise = new Promise<{ data: any; error: any }>((resolve) =>
-                    setTimeout(() => resolve({ data: null, error: new Error('Product query timeout') }), 4500)
+                    setTimeout(() => resolve({ data: null, error: new Error('Product query timeout') }), 8000)
                 )
 
                 const { data, error } = await Promise.race([queryPromise, timeoutPromise])
                 if (!isMounted) return
 
-                if (error || !data) {
-                    console.error('Produto não encontrado:', error)
-                    if (!cached) toast.error('Produto não encontrado.')
+                if (error) {
+                    console.error('Erro ao buscar produto:', error)
+                    if ((error as any).code === 'PGRST116') {
+                        setProduct(null)
+                        setFetchError(null)
+                    } else if (!cached) {
+                        setFetchError('Não foi possível carregar os detalhes desta matriz. Verifique sua conexão e tente novamente.')
+                    }
+                } else if (!data) {
+                    setProduct(null)
+                    setFetchError(null)
                 } else {
+                    setFetchError(null)
                     setProduct(data)
                     setCached(`marketplace_product_${productId}`, data, 60000)
                 }
             } catch (err) {
                 console.error('Erro ao carregar produto:', err)
+                if (isMounted && !cached) {
+                    setFetchError('Não foi possível carregar os detalhes desta matriz. Verifique sua conexão e tente novamente.')
+                }
             } finally {
                 clearTimeout(safetyTimer)
                 if (isMounted) setLoading(false)
@@ -128,33 +139,61 @@ export default function MarketplaceProductPage() {
             isMounted = false
             clearTimeout(safetyTimer)
         }
-    }, [productId])
+    }, [productId, retryCount])
+
+    // Reset active gallery photo when product or cover changes
+    useEffect(() => {
+        setActiveImage(product?.image_url || null)
+    }, [product?.id, product?.image_url])
 
     // 2. Verifica se o usuário logado já comprou este produto
     useEffect(() => {
-        if (!user || !productId) return
+        if (!productId) return
+        if (!user) {
+            if (!orderData) {
+                setPaymentStatus('idle')
+                setDownloadUrl(null)
+            }
+            return
+        }
+
+        const buyerIds = Array.from(new Set([profileId, profile?.id, user.id].filter(Boolean))) as string[]
+        if (buyerIds.length === 0) return
+
+        let isMounted = true
 
         async function checkAlreadyPurchased() {
-            const currentId = profile?.id || user?.id
-            if (!currentId) return
+            try {
+                const { data, error } = await supabase
+                    .from('marketplace_orders')
+                    .select('id, status, product:product_id(file_url)')
+                    .eq('product_id', productId)
+                    .in('buyer_id', buyerIds)
+                    .eq('status', 'paid')
+                    .limit(1)
+                    .maybeSingle()
 
-            const { data } = await supabase
-                .from('marketplace_orders')
-                .select('id, status, product:product_id(file_url)')
-                .eq('product_id', productId)
-                .eq('buyer_id', currentId)
-                .eq('status', 'paid')
-                .maybeSingle()
+                if (!isMounted || error) {
+                    if (error) console.warn('Erro ao verificar compra anterior:', error)
+                    return
+                }
 
-            if (data) {
-                setPaymentStatus('paid')
-                const fileUrl = (data as any).product?.file_url
-                if (fileUrl) setDownloadUrl(fileUrl)
+                if (data) {
+                    setPaymentStatus('paid')
+                    const fileUrl = (data as any).product?.file_url
+                    if (fileUrl) setDownloadUrl(fileUrl)
+                }
+            } catch (err) {
+                console.warn('Erro inesperado ao verificar compra anterior:', err)
             }
         }
 
         checkAlreadyPurchased()
-    }, [user, profile, productId])
+
+        return () => {
+            isMounted = false
+        }
+    }, [user, profile?.id, profileId, productId, orderData])
 
     // 3. Polling de status quando PIX estiver aberto
     useEffect(() => {
@@ -239,10 +278,60 @@ export default function MarketplaceProductPage() {
         setTimeout(() => setCopied(false), 3000)
     }
 
+    const gallery = useMemo<string[]>(() => {
+        if (!product) return ['/brand/icon-dark.png']
+        const cover = typeof product.image_url === 'string' ? product.image_url.trim() : ''
+        const extras = Array.isArray(product.image_urls)
+            ? product.image_urls.map((u: unknown) => (typeof u === 'string' ? u.trim() : '')).filter(Boolean)
+            : []
+        const deduped = Array.from(new Set([cover, ...extras].filter(Boolean)))
+        return deduped.length > 0 ? deduped : ['/brand/icon-dark.png']
+    }, [product])
+
+    const normalizedFormats = useMemo<string[]>(() => {
+        if (!Array.isArray(product?.formats)) return []
+        return Array.from(
+            new Set(
+                product.formats
+                    .map((f: unknown) => String(f ?? '').trim().replace(/^\.+/, '').toUpperCase())
+                    .filter(Boolean)
+            )
+        )
+    }, [product?.formats])
+
     if (loading) {
         return (
             <div className="min-h-screen bg-[#0B0D11] flex items-center justify-center">
                 <Loader2 className="w-8 h-8 text-[#FFAE00] animate-spin" />
+            </div>
+        )
+    }
+
+    if (fetchError && !product) {
+        return (
+            <div className="min-h-screen bg-[#0B0D11] text-white flex flex-col items-center justify-center p-4 text-center space-y-4">
+                <AlertCircle className="w-12 h-12 text-red-400" />
+                <h1 className="text-xl font-bold">Erro ao carregar matriz</h1>
+                <p className="text-sm text-gray-400 max-w-md">{fetchError}</p>
+                <div className="flex flex-wrap items-center justify-center gap-3">
+                    <button
+                        type="button"
+                        onClick={() => {
+                            setFetchError(null)
+                            setLoading(true)
+                            setRetryCount((c) => c + 1)
+                        }}
+                        className="min-h-[48px] inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-[#FFAE00] text-[#0F1115] font-bold text-sm hover:brightness-110 transition-all"
+                    >
+                        <RefreshCw className="w-4 h-4" /> Tentar novamente
+                    </button>
+                    <Link
+                        href="/marketplace"
+                        className="min-h-[48px] inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-white/5 border border-white/10 text-gray-200 font-bold text-sm hover:bg-white/10 transition-colors"
+                    >
+                        <ArrowLeft className="w-4 h-4" /> Voltar ao Marketplace
+                    </Link>
+                </div>
             </div>
         )
     }
@@ -259,7 +348,18 @@ export default function MarketplaceProductPage() {
         )
     }
 
-    const isOwnProduct = user && product.seller_id === (profile?.id || user.id)
+    const displayedImage = activeImage && gallery.includes(activeImage)
+        ? activeImage
+        : (gallery[0] || '/brand/icon-dark.png')
+    const activePhotoIndex = Math.max(0, gallery.indexOf(displayedImage))
+
+    const isOwnProduct = Boolean(
+        product && (
+            (profile?.id && product.seller_id === profile.id) ||
+            (profileId && product.seller_id === profileId) ||
+            (user?.id && (product.seller_id === user.id || product.seller?.supabase_user_id === user.id))
+        )
+    )
 
     return (
         <div className="min-h-screen bg-[#0B0D11] text-white py-8 px-4 sm:px-6 lg:px-8">
@@ -273,16 +373,16 @@ export default function MarketplaceProductPage() {
                 </Link>
 
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-                    {/* Coluna Esquerda: Preview da Imagem */}
+                    {/* Coluna Esquerda: Preview da Imagem e Galeria */}
                     <div className="lg:col-span-7 space-y-4">
                         <div className="relative aspect-square w-full rounded-2xl overflow-hidden bg-[#161920] border border-white/10 shadow-2xl">
                             <Image 
-                                src={product.image_url} 
+                                src={displayedImage} 
                                 alt={product.title} 
                                 fill 
                                 sizes="(max-width: 1024px) 100vw, 60vw"
                                 priority
-                                className="object-cover"
+                                className="object-cover object-center"
                             />
                             {product.is_bundle && (
                                 <div className="absolute top-4 left-4 bg-gradient-to-r from-[#FFAE00] to-amber-500 text-black font-extrabold text-xs uppercase tracking-wider px-3 py-1.5 rounded-lg shadow-lg flex items-center gap-1.5">
@@ -290,20 +390,54 @@ export default function MarketplaceProductPage() {
                                     Pacote ({product.items_count} Matrizes)
                                 </div>
                             )}
+                            {gallery.length > 1 && (
+                                <div className="absolute bottom-4 right-4 bg-black/75 backdrop-blur-sm border border-white/15 text-white text-xs font-bold px-3 py-1 rounded-full">
+                                    {activePhotoIndex + 1}/{gallery.length}
+                                </div>
+                            )}
                         </div>
+
+                        {gallery.length > 1 && (
+                            <div className="grid grid-cols-5 sm:grid-cols-6 gap-2.5">
+                                {gallery.map((url, idx) => {
+                                    const isActive = displayedImage === url
+                                    return (
+                                        <button
+                                            key={`${url}_${idx}`}
+                                            type="button"
+                                            onClick={() => setActiveImage(url)}
+                                            aria-label={`Ver foto ${idx + 1} de ${gallery.length}`}
+                                            className={`relative aspect-square min-h-[48px] rounded-xl overflow-hidden border transition-all bg-[#161920] ${
+                                                isActive
+                                                    ? 'border-[#FFAE00] ring-2 ring-[#FFAE00]/30 opacity-100'
+                                                    : 'border-white/10 opacity-70 hover:opacity-100'
+                                            }`}
+                                        >
+                                            <Image
+                                                src={url}
+                                                alt={`${product.title} - foto ${idx + 1}`}
+                                                fill
+                                                sizes="96px"
+                                                className="object-cover object-center"
+                                            />
+                                        </button>
+                                    )
+                                })}
+                            </div>
+                        )}
 
                         {/* Formatos incluídos */}
                         <div className="bg-[#12151C] border border-white/5 rounded-xl p-4">
                             <p className="text-xs uppercase tracking-wider text-gray-400 font-semibold mb-2">Formatos Disponíveis no Download:</p>
                             <div className="flex flex-wrap gap-2">
-                                {product.formats && product.formats.length > 0 ? (
-                                    product.formats.map((fmt: string) => (
+                                {normalizedFormats.length > 0 ? (
+                                    normalizedFormats.map((fmt) => (
                                         <span key={fmt} className="bg-white/5 border border-white/10 px-3 py-1 rounded-lg text-sm font-bold text-[#FFAE00]">
-                                            .{fmt.toUpperCase()}
+                                            .{fmt}
                                         </span>
                                     ))
                                 ) : (
-                                    <span className="text-sm text-gray-400">PES, DST, JEF</span>
+                                    <span className="text-sm text-gray-400">.PES, .DST, .JEF</span>
                                 )}
                             </div>
                         </div>
@@ -419,16 +553,24 @@ export default function MarketplaceProductPage() {
                                     </div>
                                 </div>
                             ) : isOwnProduct ? (
-                                <div className="bg-white/5 border border-white/10 rounded-xl p-4 text-center">
+                                <div className="bg-white/5 border border-white/10 rounded-xl p-4 text-center space-y-3">
                                     <p className="text-xs text-gray-400">Esta matriz pertence à sua loja.</p>
-                                    <a
-                                        href={product.file_url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="mt-3 inline-flex items-center gap-2 text-xs font-bold text-[#FFAE00] hover:underline"
-                                    >
-                                        <Download className="w-4 h-4" /> Baixar seu arquivo original
-                                    </a>
+                                    <div className="flex flex-col sm:flex-row items-center justify-center gap-2.5">
+                                        <Link
+                                            href={`/marketplace/vender?edit=${product.id}`}
+                                            className="w-full sm:w-auto min-h-[48px] px-4 py-2.5 rounded-xl bg-[#FFAE00] hover:brightness-110 text-[#0F1115] text-xs font-extrabold inline-flex items-center justify-center gap-2 transition-all"
+                                        >
+                                            <Pencil className="w-4 h-4" /> Editar Matriz
+                                        </Link>
+                                        <a
+                                            href={product.file_url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="w-full sm:w-auto min-h-[48px] px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-[#FFAE00] inline-flex items-center justify-center gap-2 transition-colors"
+                                        >
+                                            <Download className="w-4 h-4" /> Baixar arquivo original
+                                        </a>
+                                    </div>
                                 </div>
                             ) : (
                                 <div className="space-y-4">

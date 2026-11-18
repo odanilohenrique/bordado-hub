@@ -11,6 +11,7 @@ import { toast } from 'sonner'
 import JSZip from 'jszip'
 import { saveAs } from 'file-saver'
 import { clearCache, getCached, setCached } from '@/lib/clientCache'
+import { useAuth } from '@/contexts/AuthContext'
 
 interface ParsedMatrix {
     name: string
@@ -192,34 +193,17 @@ export default function JobDetail() {
 }
 
 function JobDetailClient({ jobId }: { jobId: string }) {
-    // Instant cache read for 0ms transition without white/black flicker
-    const [job, setJob] = useState<Job | null>(() => {
-        const cached = getCached<any>(`job_detail_${jobId}`)
-        if (cached?.job) return cached.job
-        const fromPedidos = getCached<any[]>('pedidos_jobs')?.find((j: any) => j.id === jobId)
-        if (fromPedidos) return fromPedidos
-        const fromFeed = getCached<any[]>('jobs_all')?.find((j: any) => j.id === jobId) ||
-            getCached<any[]>('jobs_aberto')?.find((j: any) => j.id === jobId)
-        if (fromFeed) return fromFeed
-        return null
-    })
+    const { user: authUser, profile: authProfile, profileId: authProfileId } = useAuth()
+    const authProfileRef = useRef(authProfile)
+    authProfileRef.current = authProfile
+
+    // SSR-safe initial state; cache hydrated inside useEffect for 0ms flicker-free transitions
+    const [job, setJob] = useState<Job | null>(null)
     const [selectedMatrixIdx, setSelectedMatrixIdx] = useState(0)
-    const [proposals, setProposals] = useState<Proposal[]>(() => {
-        const cached = getCached<any>(`job_detail_${jobId}`)
-        return cached?.proposals || []
-    })
+    const [proposals, setProposals] = useState<Proposal[]>([])
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [currentUser, setCurrentUser] = useState<any>(null)
-    const [loading, setLoading] = useState<boolean>(() => {
-        const cached = getCached<any>(`job_detail_${jobId}`)
-        if (cached?.job) return false
-        const fromPedidos = getCached<any[]>('pedidos_jobs')?.find((j: any) => j.id === jobId)
-        if (fromPedidos) return false
-        const fromFeed = getCached<any[]>('jobs_all')?.find((j: any) => j.id === jobId) ||
-            getCached<any[]>('jobs_aberto')?.find((j: any) => j.id === jobId)
-        if (fromFeed) return false
-        return true
-    })
+    const [loading, setLoading] = useState<boolean>(true)
 
     // Proposal form
     const [amount, setAmount] = useState('')
@@ -271,31 +255,77 @@ function JobDetailClient({ jobId }: { jobId: string }) {
 
     const router = useRouter()
     const isFetchingRef = useRef(false)
+    const pendingReloadRef = useRef(false)
+
+    useEffect(() => {
+        const cached = getCached<any>(`job_detail_${jobId}`)
+        if (cached?.job) {
+            setJob(cached.job)
+            setProposals(cached.proposals || [])
+            if (cached.review) setJobReview(cached.review)
+            if (cached.transaction) setJobTransaction(cached.transaction)
+            if (cached.unreadCounts) setUnreadCounts(cached.unreadCounts)
+            setLoading(false)
+            return
+        }
+
+        const fromPedidos = getCached<any[]>('pedidos_jobs')?.find((j: any) => j.id === jobId)
+        if (fromPedidos) {
+            setJob(fromPedidos)
+            return
+        }
+
+        const fromFeed =
+            getCached<any[]>('jobs_all')?.find((j: any) => j.id === jobId) ||
+            getCached<any[]>('jobs_aberto')?.find((j: any) => j.id === jobId)
+        if (fromFeed) {
+            setJob(fromFeed)
+        }
+    }, [jobId])
+
+    useEffect(() => {
+        if (authProfile) {
+            setCurrentUser(authProfile)
+        }
+    }, [authProfile])
 
     const loadData = useCallback(async () => {
-        if (isFetchingRef.current) return
+        if (isFetchingRef.current) {
+            pendingReloadRef.current = true
+            return
+        }
         isFetchingRef.current = true
         try {
-            // 1. Fetch current user session in parallel without blocking
-            const { data: { session } } = await supabase.auth.getSession().catch(() => ({ data: { session: null } }))
-            const authUserId = session?.user?.id
+            // 1. Resolve current user session via AuthContext or serialized getSession()
+            let authUserId = authUser?.id || null
+            if (!authUserId) {
+                const { data: { session } } = await supabase.auth.getSession().catch(() => ({ data: { session: null } }))
+                authUserId = session?.user?.id || null
+            }
 
-            const authPromise = authUserId ? (async () => {
-                const { data: profile } = await supabase
-                    .from('users')
-                    .select('*')
-                    .eq('supabase_user_id', authUserId)
-                    .maybeSingle()
-                return profile
-            })().catch(err => {
-                console.warn('Auth session check error:', err)
-                return null
-            }) : Promise.resolve(null)
+            const existingProfile = authProfileRef.current
+            const authPromise = existingProfile?.id
+                ? Promise.resolve(existingProfile)
+                : authUserId
+                  ? (async () => {
+                        const { data: profile } = await supabase
+                            .from('users')
+                            .select('*')
+                            .eq('supabase_user_id', authUserId)
+                            .maybeSingle()
+                        return profile
+                    })().catch(err => {
+                        console.warn('Auth session check error:', err)
+                        return null
+                    })
+                  : Promise.resolve(null)
+
+            const resolvedUserIdForApi = authUserId || authProfileId || existingProfile?.id || null
 
             // 2. Fetch full job details from fast server API route (passing userId for privacy check)
-            const apiPromise = fetch(`/api/jobs/${jobId}${authUserId ? `?userId=${encodeURIComponent(authUserId)}` : ''}`, {
+            const apiPromise = fetch(`/api/jobs/${jobId}${resolvedUserIdForApi ? `?userId=${encodeURIComponent(resolvedUserIdForApi)}` : ''}`, {
                 cache: 'no-store',
-                signal: AbortSignal.timeout(6000)
+                signal: AbortSignal.timeout(7500)
             }).then(r => r.json()).catch(err => {
                 console.warn('API error fetching job detail:', err)
                 return null
@@ -316,11 +346,12 @@ function JobDetailClient({ jobId }: { jobId: string }) {
             }
 
             // Auto-mark notifications for this job as read
-            if (profile?.id) {
+            const resolvedProfileId = profile?.id || authProfileId
+            if (resolvedProfileId) {
                 supabase
                     .from('notifications')
                     .update({ is_read: true })
-                    .eq('user_id', profile.id)
+                    .eq('user_id', resolvedProfileId)
                     .eq('is_read', false)
                     .like('link_url', `%${jobId}%`)
                     .then(() => {
@@ -333,8 +364,12 @@ function JobDetailClient({ jobId }: { jobId: string }) {
         } finally {
             isFetchingRef.current = false
             setLoading(false)
+            if (pendingReloadRef.current) {
+                pendingReloadRef.current = false
+                void loadData()
+            }
         }
-    }, [jobId])
+    }, [jobId, authUser?.id, authProfileId])
 
     // Ref to track currentUser id for realtime callbacks without causing re-renders
     const currentUserIdRef = useRef<string | null>(null)

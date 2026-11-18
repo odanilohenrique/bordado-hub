@@ -1,6 +1,6 @@
 import Image from 'next/image'
 import Link from 'next/link'
-import { Download, ShoppingCart, Star, Tag } from 'lucide-react'
+import { Download, ShoppingCart, Star } from 'lucide-react'
 
 // Using format price helper or simple inline format
 const formatPrice = (price: number) => {
@@ -11,6 +11,14 @@ const formatPrice = (price: number) => {
 }
 
 export default function ProductCard({ product }: { product: any }) {
+    const normalizedFormats: string[] = Array.from(
+        new Set<string>(
+            (Array.isArray(product?.formats) ? product.formats : [])
+                .map((f: unknown) => String(f ?? '').trim().replace(/^\.+/, '').toUpperCase())
+                .filter(Boolean)
+        )
+    )
+
     return (
         <Link
             href={`/marketplace/${product.id}`}
@@ -19,11 +27,11 @@ export default function ProductCard({ product }: { product: any }) {
             {/* Image Container */}
             <div className="relative w-full h-48 bg-[#0F1115] overflow-hidden">
                 <Image
-                    src={product.image_url}
+                    src={product.image_url || '/brand/icon-dark.png'}
                     alt={product.title}
                     fill
                     sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 300px"
-                    className="object-cover group-hover:scale-110 transition-transform duration-500"
+                    className="object-cover object-center group-hover:scale-110 transition-transform duration-500"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-[#1A1D23] via-transparent to-transparent opacity-80" />
 
@@ -34,12 +42,17 @@ export default function ProductCard({ product }: { product: any }) {
                     </div>
                 )}
 
-                <div className="absolute bottom-3 left-3 flex gap-1">
-                    {product.formats?.slice(0, 3).map((fmt: string) => (
+                <div className="absolute bottom-3 left-3 flex flex-wrap gap-1">
+                    {normalizedFormats.slice(0, 3).map((fmt) => (
                         <span key={fmt} className="bg-[#0F1115]/80 backdrop-blur-sm border border-white/10 text-xs font-bold px-2 py-0.5 rounded text-gray-300">
                             .{fmt}
                         </span>
                     ))}
+                    {normalizedFormats.length > 3 && (
+                        <span className="bg-[#0F1115]/80 backdrop-blur-sm border border-white/10 text-xs font-bold px-2 py-0.5 rounded text-[#FFAE00]">
+                            +{normalizedFormats.length - 3}
+                        </span>
+                    )}
                 </div>
             </div>
 

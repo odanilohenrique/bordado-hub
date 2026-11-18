@@ -1,9 +1,9 @@
 'use client'
 
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useRef } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { useAuth } from '@/contexts/AuthContext'
-import { getCached, setCached } from '@/lib/clientCache'
+import { getCached, setCached, getScopedCached, setScopedCached } from '@/lib/clientCache'
 import Link from 'next/link'
 import { 
     Wallet, 
@@ -26,7 +26,8 @@ import {
     Package,
     ArrowDownRight,
     ShoppingBag,
-    Layers
+    Layers,
+    RefreshCw
 } from 'lucide-react'
 import { formatDate } from '@/lib/helpers'
 import { toast } from 'sonner'
@@ -86,13 +87,15 @@ function getFinancialActionLink(record: FinancialRecord): ActionLinkInfo {
 }
 
 export default function FinancialDashboard() {
-    const { user: authUser, profile: authProfile, profileId, loading: authLoading } = useAuth()
+    const { user: authUser, profile: authProfile, profileId, loading: authLoading, profileLoading } = useAuth()
+    const authUserId = authUser?.id || null
     const [loading, setLoading] = useState(true)
-    const [profile, setProfile] = useState<{ id: string; name: string; pix_key?: string; pix_key_type?: string } | null>(
-        authProfile ? { id: authProfile.id, name: authProfile.name || '' } : null
-    )
+    const [fetchError, setFetchError] = useState<string | null>(null)
+    const [retryTick, setRetryTick] = useState(0)
+    const [profile, setProfile] = useState<{ id: string; name: string; pix_key?: string; pix_key_type?: string } | null>(null)
     const [records, setRecords] = useState<FinancialRecord[]>([])
-    
+    const recordsRef = useRef<FinancialRecord[]>([])
+
     // Filtros
     const [statusFilter, setStatusFilter] = useState<'todos' | 'liberado' | 'custodia'>('todos')
     const [searchTerm, setSearchTerm] = useState('')
@@ -103,120 +106,211 @@ export default function FinancialDashboard() {
     const [pixKeyType, setPixKeyType] = useState('cpf')
     const [savingPix, setSavingPix] = useState(false)
 
+    // Sync profile summary from AuthContext as soon as hydrated
+    useEffect(() => {
+        if (authProfile?.id) {
+            setProfile((prev) =>
+                prev && prev.id === authProfile.id
+                    ? { ...prev, name: authProfile.name || prev.name }
+                    : {
+                        id: authProfile.id,
+                        name: authProfile.name || '',
+                        pix_key: authProfile.pix_key ?? undefined,
+                        pix_key_type: authProfile.pix_key_type ?? undefined,
+                    }
+            )
+            if (authProfile.pix_key) {
+                setPixKey((prev) => prev || authProfile.pix_key || '')
+            }
+            if (authProfile.pix_key_type) {
+                setPixKeyType(authProfile.pix_key_type)
+            }
+        }
+    }, [authProfile])
+
+    useEffect(() => {
+        if (typeof window === 'undefined') return
+        const handleReload = () => setRetryTick((t) => t + 1)
+        window.addEventListener('bordadohub_reload_job', handleReload)
+        return () => {
+            window.removeEventListener('bordadohub_reload_job', handleReload)
+        }
+    }, [])
+
     useEffect(() => {
         let isMounted = true
 
-        // Fast client-side cache mount (0ms latency without breaking SSR hydration)
-        const cached = getCached<FinancialRecord[]>('financeiro_records')
-        if (cached && cached.length > 0) {
-            setRecords(cached)
-            setLoading(false)
-        }
-        // Guaranteed safety timer: never spin longer than 3s under any circumstance
+        // Guaranteed safety timer: never spin forever
         const safetyTimer = setTimeout(() => {
             if (isMounted) setLoading(false)
-        }, 3000)
+        }, 8500)
 
         const targetId = profileId || getCached<string>('current_user_profile_id')
-        if (!targetId && !authLoading) {
-            setLoading(false)
-            return () => clearTimeout(safetyTimer)
+        const isIdentityPending = !targetId && (authLoading || profileLoading || Boolean(authUserId))
+
+        if (isIdentityPending) {
+            setLoading(true)
+            return () => {
+                isMounted = false
+                clearTimeout(safetyTimer)
+            }
         }
-        if (!targetId) return () => clearTimeout(safetyTimer)
+
+        if (!targetId) {
+            if (authUserId) {
+                setFetchError('Não foi possível confirmar seu perfil no momento. Tente novamente.')
+            }
+            setLoading(false)
+            return () => {
+                isMounted = false
+                clearTimeout(safetyTimer)
+            }
+        }
+
+        // Fast user-scoped client-side cache mount (0ms latency without breaking SSR hydration)
+        const cached =
+            getScopedCached<FinancialRecord[]>('financeiro_records', targetId, { requireNonEmpty: true }) ||
+            getCached<FinancialRecord[]>(`financeiro_records_${targetId}`)
+        if (cached && cached.length > 0) {
+            recordsRef.current = cached
+            setRecords(cached)
+            setFetchError(null)
+            setLoading(false)
+        } else if (recordsRef.current.length === 0) {
+            setLoading(true)
+        }
 
         async function fetchFinancialData() {
             try {
-                // Run all 4 queries in PARALLEL with 2.5s timeout safety net
-                const fetchPromise = Promise.all([
-                    supabase
-                        .from('users')
-                        .select('id, name, pix_key, pix_key_type')
-                        .eq('id', targetId)
-                        .maybeSingle(),
-                    supabase
-                        .from('proposals')
-                        .select(`
-                            id,
-                            amount,
-                            status,
-                            created_at,
-                            jobs (
+                let fetchedTuple: [any, any, any, any] | null = null
+                let lastError: any = null
+
+                for (let attempt = 0; attempt < 2; attempt++) {
+                    if (!isMounted) return
+
+                    // Run all 4 queries in PARALLEL with 7.5s timeout safety net
+                    const fetchPromise = Promise.all([
+                        supabase
+                            .from('users')
+                            .select('id, name, pix_key, pix_key_type')
+                            .eq('id', targetId)
+                            .maybeSingle(),
+                        supabase
+                            .from('proposals')
+                            .select(`
                                 id,
-                                title,
+                                amount,
                                 status,
-                                dimensions,
-                                items_count,
                                 created_at,
-                                cliente:cliente_id (
+                                jobs (
+                                    id,
+                                    title,
+                                    status,
+                                    dimensions,
+                                    items_count,
+                                    created_at,
+                                    cliente:cliente_id (
+                                        id,
+                                        name,
+                                        email,
+                                        avatar_url
+                                    )
+                                )
+                            `)
+                            .eq('criador_id', targetId)
+                            .eq('status', 'aceita')
+                            .order('created_at', { ascending: false }),
+                        supabase
+                            .from('transactions')
+                            .select('*, cliente:cliente_id(name, email, avatar_url)')
+                            .eq('criador_id', targetId)
+                            .order('created_at', { ascending: false }),
+                        supabase
+                            .from('marketplace_orders')
+                            .select(`
+                                id,
+                                amount,
+                                platform_fee,
+                                seller_net,
+                                status,
+                                payment_method,
+                                created_at,
+                                asaas_payment_id,
+                                product:product_id (
+                                    id,
+                                    title,
+                                    items_count,
+                                    image_url
+                                ),
+                                buyer:buyer_id (
                                     id,
                                     name,
                                     email,
                                     avatar_url
                                 )
-                            )
-                        `)
-                        .eq('criador_id', targetId)
-                        .eq('status', 'aceita')
-                        .order('created_at', { ascending: false }),
-                    supabase
-                        .from('transactions')
-                        .select('*, cliente:cliente_id(name, email, avatar_url)')
-                        .eq('criador_id', targetId)
-                        .order('created_at', { ascending: false }),
-                    supabase
-                        .from('marketplace_orders')
-                        .select(`
-                            id,
-                            amount,
-                            platform_fee,
-                            seller_net,
-                            status,
-                            payment_method,
-                            created_at,
-                            asaas_payment_id,
-                            product:product_id (
-                                id,
-                                title,
-                                items_count,
-                                image_url
-                            ),
-                            buyer:buyer_id (
-                                id,
-                                name,
-                                email,
-                                avatar_url
-                            )
-                        `)
-                        .eq('seller_id', targetId)
-                        .eq('status', 'paid')
-                        .order('created_at', { ascending: false })
-                ])
+                            `)
+                            .eq('seller_id', targetId)
+                            .eq('status', 'paid')
+                            .order('created_at', { ascending: false })
+                    ])
 
-                const timeoutPromise = new Promise<any>((resolve) =>
-                    setTimeout(() => resolve([{ data: null }, { data: null }, { data: null }, { data: null }]), 2500)
-                )
+                    const timeoutPromise = new Promise<any>((resolve) =>
+                        setTimeout(
+                            () =>
+                                resolve([
+                                    { data: null, error: new Error('User profile timeout') },
+                                    { data: null, error: new Error('Proposals timeout') },
+                                    { data: null, error: new Error('Transactions timeout') },
+                                    { data: null, error: new Error('Marketplace orders timeout') },
+                                ]),
+                            7500
+                        )
+                    )
 
-                const [
-                    { data: userProfile },
-                    { data: myProposals },
-                    { data: myTransactions },
-                    { data: marketplaceOrders }
-                ] = await Promise.race([
-                    fetchPromise,
-                    timeoutPromise
-                ])
+                    const results = await Promise.race([fetchPromise, timeoutPromise])
+                    if (!isMounted) return
+
+                    const [profileRes, proposalsRes, txRes, ordersRes] = results
+                    const hasAnyError = Boolean(
+                        profileRes?.error || proposalsRes?.error || txRes?.error || ordersRes?.error
+                    )
+                    const isAllNull =
+                        !profileRes?.data && !proposalsRes?.data && !txRes?.data && !ordersRes?.data
+
+                    if (!hasAnyError && !isAllNull) {
+                        fetchedTuple = [profileRes?.data, proposalsRes?.data, txRes?.data, ordersRes?.data]
+                        lastError = null
+                        break
+                    }
+
+                    lastError =
+                        profileRes?.error ||
+                        proposalsRes?.error ||
+                        txRes?.error ||
+                        ordersRes?.error ||
+                        new Error('Falha ao carregar dados financeiros')
+
+                    if (attempt === 0) {
+                        await new Promise((resolve) => setTimeout(resolve, 350))
+                    }
+                }
+
+                if (!isMounted) return
+
+                if (!fetchedTuple) {
+                    if (lastError) console.warn('Erro ao carregar dados financeiros:', lastError)
+                    if (recordsRef.current.length === 0) {
+                        setFetchError('Não foi possível carregar seus dados financeiros. Tente novamente.')
+                    }
+                    return
+                }
+
+                const [userProfile, myProposals, myTransactions, marketplaceOrders] = fetchedTuple
 
                 if (userProfile && isMounted) {
                     setProfile(userProfile)
                     setPixKey(userProfile.pix_key || '')
                     setPixKeyType(userProfile.pix_key_type || 'cpf')
-                }
-
-                // Se todas as fontes retornaram null (timeout de rede) e já temos registros, não sobrescrever com vazio
-                const isAllNull = !userProfile && !myProposals && !myTransactions && !marketplaceOrders
-                const cachedRecords = getCached<FinancialRecord[]>('financeiro_records')
-                if (isAllNull && (records.length > 0 || (cachedRecords && cachedRecords.length > 0))) {
-                    return
                 }
 
                 const txMap = new Map<string, any>()
@@ -348,11 +442,18 @@ export default function FinancialDashboard() {
                 })
 
                 if (isMounted) {
+                    recordsRef.current = consolidated
                     setRecords(consolidated)
+                    setFetchError(null)
+                    setScopedCached('financeiro_records', targetId, consolidated, 120000)
+                    setCached(`financeiro_records_${targetId}`, consolidated, 120000)
                     setCached('financeiro_records', consolidated, 120000)
                 }
             } catch (err) {
                 console.error('Erro ao carregar dados financeiros:', err)
+                if (isMounted && recordsRef.current.length === 0) {
+                    setFetchError('Não foi possível carregar seus dados financeiros. Tente novamente.')
+                }
             } finally {
                 clearTimeout(safetyTimer)
                 if (isMounted) setLoading(false)
@@ -365,7 +466,7 @@ export default function FinancialDashboard() {
             isMounted = false
             clearTimeout(safetyTimer)
         }
-    }, [profileId, authLoading, authUser?.id])
+    }, [profileId, authLoading, profileLoading, authUserId, retryTick])
 
     // Salvar Chave PIX
     const handleSavePix = async (e: React.FormEvent) => {
@@ -686,6 +787,19 @@ export default function FinancialDashboard() {
                         <div className="h-10 bg-white/5 rounded-lg animate-pulse" />
                         <div className="h-10 bg-white/5 rounded-lg animate-pulse" />
                         <div className="h-10 bg-white/5 rounded-lg animate-pulse" />
+                    </div>
+                ) : fetchError && records.length === 0 ? (
+                    <div className="py-14 text-center px-4">
+                        <AlertCircle className="w-10 h-10 mx-auto mb-3 text-red-400 opacity-80" />
+                        <p className="text-sm font-bold text-gray-200">{fetchError}</p>
+                        <button
+                            type="button"
+                            onClick={() => setRetryTick((t) => t + 1)}
+                            className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-[#FFAE00] hover:bg-yellow-400 text-black text-xs font-bold rounded-lg transition-colors shadow"
+                        >
+                            <RefreshCw className="w-3.5 h-3.5" />
+                            Tentar novamente
+                        </button>
                     </div>
                 ) : filteredRecords.length > 0 ? (
                     <div>

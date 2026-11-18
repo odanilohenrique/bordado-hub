@@ -27,15 +27,21 @@ export default function NotificationBell({ profileId: propProfileId }: Notificat
     const { profileId: authProfileId } = useAuth()
     const activeProfileId = propProfileId || authProfileId || null
 
-    const [unreadCount, setUnreadCount] = useState<number>(() => {
-        const cached = getCached<number>('unread_notification_count')
-        return cached !== null ? cached : 0
-    })
+    const [unreadCount, setUnreadCount] = useState<number>(0)
     const [notifications, setNotifications] = useState<NotificationItem[]>([])
     const [isOpen, setIsOpen] = useState(false)
     const [loading, setLoading] = useState(false)
     const [userId, setUserId] = useState<string | null>(activeProfileId)
+    const userIdRef = useRef<string | null>(activeProfileId)
+    userIdRef.current = activeProfileId || userId
     const dropdownRef = useRef<HTMLDivElement>(null)
+
+    useEffect(() => {
+        const cached = getCached<number>('unread_notification_count')
+        if (cached !== null) {
+            setUnreadCount(cached)
+        }
+    }, [])
 
     useEffect(() => {
         if (activeProfileId) {
@@ -44,6 +50,8 @@ export default function NotificationBell({ profileId: propProfileId }: Notificat
     }, [activeProfileId])
 
     useEffect(() => {
+        let isMounted = true
+
         const handleUnreadCount = (e: any) => {
             if (typeof e.detail === 'number') {
                 setUnreadCount(e.detail)
@@ -67,13 +75,14 @@ export default function NotificationBell({ profileId: propProfileId }: Notificat
         }
 
         const handleNotificationRead = async () => {
-            if (!userId) return
+            const targetUserId = activeProfileId || userIdRef.current
+            if (!targetUserId) return
             const { count } = await supabase
                 .from('notifications')
                 .select('*', { count: 'exact', head: true })
-                .eq('user_id', userId)
+                .eq('user_id', targetUserId)
                 .eq('is_read', false)
-            if (count !== null) {
+            if (count !== null && isMounted) {
                 setUnreadCount(count)
                 setCached('unread_notification_count', count, 60000)
             }
@@ -92,7 +101,7 @@ export default function NotificationBell({ profileId: propProfileId }: Notificat
                     .select('*', { count: 'exact', head: true })
                     .eq('user_id', activeProfileId)
                     .eq('is_read', false)
-                if (count !== null) {
+                if (count !== null && isMounted) {
                     setUnreadCount(count)
                     setCached('unread_notification_count', count, 60000)
                 }
@@ -102,6 +111,7 @@ export default function NotificationBell({ profileId: propProfileId }: Notificat
         resolveUser()
 
         return () => {
+            isMounted = false
             window.removeEventListener('bordadohub_unread_count', handleUnreadCount)
             window.removeEventListener('bordadohub_notification', handleNewNotification)
             window.removeEventListener('bordadohub_notification_update', handleNotificationUpdate)

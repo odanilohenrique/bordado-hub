@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { Bell, X, ExternalLink, Zap } from 'lucide-react'
 import { setCached } from '@/lib/clientCache'
@@ -22,8 +22,14 @@ export default function GlobalNotificationAlert() {
     const [notifications, setNotifications] = useState<Notification[]>([])
     const [currentAlert, setCurrentAlert] = useState<Notification | null>(null)
     const [userId, setUserId] = useState<string | null>(profileId || null)
+    const currentAlertIdRef = useRef<string | null>(null)
 
     useEffect(() => {
+        currentAlertIdRef.current = currentAlert?.id ?? null
+    }, [currentAlert?.id])
+
+    useEffect(() => {
+        let isMounted = true
         let channel: any = null
 
         const setup = async () => {
@@ -38,6 +44,8 @@ export default function GlobalNotificationAlert() {
                 .eq('user_id', myProfileId)
                 .eq('is_read', false)
                 .order('created_at', { ascending: false })
+
+            if (!isMounted) return
 
             // Helper to check if chat popup should be suppressed (only show on first message of conversation)
             const shouldShowPopup = (notif: Notification) => {
@@ -71,6 +79,7 @@ export default function GlobalNotificationAlert() {
             if (unreads && unreads.length > 0) {
                 setNotifications(unreads)
                 const firstToShow = unreads.find(n => shouldShowPopup(n)) || null
+                currentAlertIdRef.current = firstToShow?.id ?? null
                 setCurrentAlert(firstToShow)
             }
             const count = unreads?.length || 0
@@ -91,11 +100,13 @@ export default function GlobalNotificationAlert() {
                         filter: `user_id=eq.${myProfileId}`
                     },
                     (payload) => {
+                        if (!isMounted) return
                         const newNotification = payload.new as Notification
                         setNotifications(prev => [newNotification, ...prev])
                         
                         // Only show popup alert if allowed (e.g. first chat message or system alert)
                         if (shouldShowPopup(newNotification)) {
+                            currentAlertIdRef.current = newNotification.id
                             setCurrentAlert(newNotification)
                         }
 
@@ -114,10 +125,12 @@ export default function GlobalNotificationAlert() {
                         filter: `user_id=eq.${myProfileId}`
                     },
                     (payload) => {
+                        if (!isMounted) return
                         const updated = payload.new as Notification
                         if (updated.is_read) {
                             setNotifications(prev => prev.filter(n => n.id !== updated.id))
-                            if (currentAlert?.id === updated.id) {
+                            if (currentAlertIdRef.current === updated.id) {
+                                currentAlertIdRef.current = null
                                 setCurrentAlert(null)
                             }
                         }
@@ -132,6 +145,7 @@ export default function GlobalNotificationAlert() {
         setup()
 
         return () => {
+            isMounted = false
             if (channel) supabase.removeChannel(channel)
         }
     }, [profileId])
@@ -139,7 +153,8 @@ export default function GlobalNotificationAlert() {
     const markAsRead = async (id: string) => {
         try {
             setNotifications(prev => prev.filter(n => n.id !== id))
-            if (currentAlert?.id === id) {
+            if (currentAlertIdRef.current === id) {
+                currentAlertIdRef.current = null
                 setCurrentAlert(null)
             }
 
@@ -167,6 +182,7 @@ export default function GlobalNotificationAlert() {
         const targetAlertId = currentAlert?.id
 
         // 1. Fecha o popup imediatamente para dar feedback instantâneo ao usuário no celular
+        currentAlertIdRef.current = null
         setCurrentAlert(null)
         if (targetAlertId) {
             setNotifications(prev => prev.filter(n => n.id !== targetAlertId))
