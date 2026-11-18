@@ -107,6 +107,30 @@ function getSafeImageExtension(file: File): string {
     return 'jpg'
 }
 
+function toSafeStorageFileName(originalName: string): string {
+    const rawName = (originalName.split(/[/\\]/).pop() || 'matriz.zip').trim()
+    const lastDot = rawName.lastIndexOf('.')
+    const rawBase = lastDot > 0 ? rawName.slice(0, lastDot) : rawName
+    const rawExt = lastDot > 0 ? rawName.slice(lastDot + 1) : ''
+
+    const cleanBase = rawBase
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/\s+/g, '_')
+        .replace(/[^a-zA-Z0-9._-]/g, '_')
+        .replace(/\.{2,}/g, '.')
+        .replace(/^[._]+|[._]+$/g, '')
+        .slice(0, 120) || 'matriz'
+
+    const cleanExt = rawExt
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-zA-Z0-9]/g, '')
+        .slice(0, 16)
+
+    return cleanExt ? `${cleanBase}.${cleanExt}` : cleanBase
+}
+
 function isValidUuid(id: string | null): id is string {
     if (!id) return false
     return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)
@@ -142,10 +166,10 @@ function VenderMatrizContent() {
     const [customFormatInput, setCustomFormatInput] = useState('')
     const [formatError, setFormatError] = useState<string | null>(null)
 
-    // R3: Multi-photo upload (up to 10: 1 cover + max 9 additional) & matrix file
+    // R3: Multi-photo upload (up to 10: 1 cover + max 9 additional) & matrix files
     const [photos, setPhotos] = useState<PhotoItem[]>([])
     const [coverId, setCoverId] = useState<string | null>(null)
-    const [matrixFile, setMatrixFile] = useState<File | null>(null)
+    const [matrixFiles, setMatrixFiles] = useState<File[]>([])
 
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
     const [successMessage, setSuccessMessage] = useState<string | null>(null)
@@ -451,73 +475,115 @@ function VenderMatrizContent() {
     const MAX_SINGLE_FILE_MB = 2
     const MAX_BUNDLE_ITEMS = 20
 
-    const handleMatrixFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0]
-        if (!file) return
+    const handleMatrixFileChange = async (
+        e: React.ChangeEvent<HTMLInputElement>,
+        mode: 'append' | 'replace' = 'append'
+    ) => {
+        const incomingFiles = Array.from(e.target.files || [])
+        if (incomingFiles.length === 0) return
 
-        const fileExt = (file.name.split('.').pop() || '').toLowerCase()
-        if (BLOCKED_MATRIX_EXTS.has(fileExt)) {
-            setErrorMessage(`Tipo de arquivo ".${fileExt}" bloqueado por segurança.`)
-            e.target.value = ''
-            return
-        }
+        let incomingZipEntriesTotal = 0
 
-        const sizeInMb = file.size / (1024 * 1024)
-        const isZip = file.name.toLowerCase().endsWith('.zip')
-
-        // 1. Validação de arquivo único direto (fora de ZIP)
-        if (!isZip) {
-            if (sizeInMb > MAX_SINGLE_FILE_MB) {
-                setErrorMessage(`Matriz individual excede o limite máximo de ${MAX_SINGLE_FILE_MB} MB. Seu arquivo tem ${sizeInMb.toFixed(2)} MB.`)
-                e.target.value = ''
-                return
-            }
-            setErrorMessage(null)
-            setMatrixFile(file)
-            return
-        }
-
-        // 2. Validação do tamanho total do ZIP (anúncio total)
-        if (sizeInMb > MAX_TOTAL_SIZE_MB) {
-            setErrorMessage(`O pacote (.ZIP) excede o limite total de ${MAX_TOTAL_SIZE_MB} MB. Seu arquivo tem ${sizeInMb.toFixed(1)} MB.`)
-            e.target.value = ''
-            return
-        }
-
-        // 3. Inspeção interna do ZIP: cada arquivo interno <= 2 MB e total de arquivos <= 20
-        try {
-            const zip = await JSZip.loadAsync(file)
-            const entries = Object.values(zip.files).filter((f) => !f.dir && !f.name.startsWith('__MACOSX/'))
-
-            if (entries.length > MAX_BUNDLE_ITEMS) {
-                setErrorMessage(`O pacote .ZIP contém ${entries.length} arquivos. O limite máximo permitido é de ${MAX_BUNDLE_ITEMS} arquivos por anúncio.`)
+        for (const file of incomingFiles) {
+            const fileExt = (file.name.split('.').pop() || '').toLowerCase()
+            if (BLOCKED_MATRIX_EXTS.has(fileExt)) {
+                setErrorMessage(`Tipo de arquivo ".${fileExt}" bloqueado por segurança (${file.name}).`)
                 e.target.value = ''
                 return
             }
 
-            for (const entry of entries) {
-                const entryExt = (entry.name.split('.').pop() || '').toLowerCase()
-                if (BLOCKED_MATRIX_EXTS.has(entryExt)) {
-                    setErrorMessage(`O arquivo "${entry.name}" dentro do ZIP possui extensão bloqueada por segurança.`)
+            const sizeInMb = file.size / (1024 * 1024)
+            const isZip = file.name.toLowerCase().endsWith('.zip')
+
+            // 1. Validação de arquivo individual (fora de ZIP)
+            if (!isZip) {
+                if (sizeInMb > MAX_SINGLE_FILE_MB) {
+                    setErrorMessage(`A matriz "${file.name}" excede o limite máximo de ${MAX_SINGLE_FILE_MB} MB (${sizeInMb.toFixed(2)} MB).`)
                     e.target.value = ''
                     return
                 }
-                const uncompressedBytes = (entry as any)._data?.uncompressedSize || 0
-                const entryMb = uncompressedBytes / (1024 * 1024)
-                if (entryMb > MAX_SINGLE_FILE_MB) {
-                    setErrorMessage(`O arquivo "${entry.name}" dentro do ZIP tem ${entryMb.toFixed(2)} MB. O limite máximo por arquivo individual é de ${MAX_SINGLE_FILE_MB} MB.`)
-                    e.target.value = ''
-                    return
-                }
+                continue
             }
 
-            setErrorMessage(null)
-            setMatrixFile(file)
-        } catch (err) {
-            console.warn('Erro ao ler zip para validacao:', err)
-            setErrorMessage(null)
-            setMatrixFile(file)
+            // 2. Validação do tamanho do ZIP individual
+            if (sizeInMb > MAX_TOTAL_SIZE_MB) {
+                setErrorMessage(`O pacote "${file.name}" excede o limite total de ${MAX_TOTAL_SIZE_MB} MB (${sizeInMb.toFixed(1)} MB).`)
+                e.target.value = ''
+                return
+            }
+
+            // 3. Inspeção interna do ZIP: cada arquivo interno <= 2 MB e total de arquivos <= 20
+            try {
+                const zip = await JSZip.loadAsync(file)
+                const entries = Object.values(zip.files).filter((f) => !f.dir && !f.name.startsWith('__MACOSX/'))
+                incomingZipEntriesTotal += entries.length
+
+                if (entries.length > MAX_BUNDLE_ITEMS) {
+                    setErrorMessage(`O pacote "${file.name}" contém ${entries.length} arquivos. O limite máximo permitido é de ${MAX_BUNDLE_ITEMS} arquivos por anúncio.`)
+                    e.target.value = ''
+                    return
+                }
+
+                for (const entry of entries) {
+                    const entryExt = (entry.name.split('.').pop() || '').toLowerCase()
+                    if (BLOCKED_MATRIX_EXTS.has(entryExt)) {
+                        setErrorMessage(`O arquivo "${entry.name}" dentro do ZIP possui extensão bloqueada por segurança.`)
+                        e.target.value = ''
+                        return
+                    }
+                    const uncompressedBytes = (entry as unknown as { _data?: { uncompressedSize?: number } })._data?.uncompressedSize || 0
+                    const entryMb = uncompressedBytes / (1024 * 1024)
+                    if (entryMb > MAX_SINGLE_FILE_MB) {
+                        setErrorMessage(`O arquivo "${entry.name}" dentro do ZIP tem ${entryMb.toFixed(2)} MB. O limite máximo por arquivo individual é de ${MAX_SINGLE_FILE_MB} MB.`)
+                        e.target.value = ''
+                        return
+                    }
+                }
+            } catch (err) {
+                console.warn('Erro ao ler zip para validacao:', err)
+            }
         }
+
+        const mergedMap = new Map<string, File>()
+        if (mode === 'append') {
+            for (const existing of matrixFiles) {
+                mergedMap.set(existing.name, existing)
+            }
+        }
+        for (const incoming of incomingFiles) {
+            mergedMap.set(incoming.name, incoming)
+        }
+        const candidateFiles = Array.from(mergedMap.values())
+
+        if (candidateFiles.length > MAX_BUNDLE_ITEMS) {
+            setErrorMessage(`Você selecionou ${candidateFiles.length} arquivos. O limite máximo permitido é de ${MAX_BUNDLE_ITEMS} arquivos por anúncio.`)
+            e.target.value = ''
+            return
+        }
+
+        const nonZipCount = candidateFiles.filter((f) => !f.name.toLowerCase().endsWith('.zip')).length
+        if (incomingZipEntriesTotal > 0 && nonZipCount + incomingZipEntriesTotal > MAX_BUNDLE_ITEMS) {
+            setErrorMessage(`Somando os itens dos arquivos ZIP, o pacote ultrapassa o limite máximo de ${MAX_BUNDLE_ITEMS} arquivos por anúncio.`)
+            e.target.value = ''
+            return
+        }
+
+        const totalBytes = candidateFiles.reduce((sum, f) => sum + f.size, 0)
+        const totalMb = totalBytes / (1024 * 1024)
+        if (totalMb > MAX_TOTAL_SIZE_MB) {
+            setErrorMessage(`Os arquivos selecionados somam ${totalMb.toFixed(1)} MB, excedendo o limite total de ${MAX_TOTAL_SIZE_MB} MB.`)
+            e.target.value = ''
+            return
+        }
+
+        setErrorMessage(null)
+        setMatrixFiles(candidateFiles)
+        e.target.value = ''
+    }
+
+    const handleRemoveMatrixFile = (indexToRemove: number) => {
+        setMatrixFiles((prev) => prev.filter((_, idx) => idx !== indexToRemove))
+        setErrorMessage(null)
     }
 
     const toggleFormat = (format: string) => {
@@ -615,23 +681,32 @@ function VenderMatrizContent() {
             return
         }
 
-        if (!isEditMode && !matrixFile) {
-            setErrorMessage('Envie o arquivo digital (.ZIP ou matriz) para entrega aos compradores.')
+        if (!isEditMode && matrixFiles.length === 0) {
+            setErrorMessage('Envie o(s) arquivo(s) digital(is) (.ZIP ou matrizes) para entrega aos compradores.')
             return
         }
 
-        if (matrixFile) {
-            const totalMb = matrixFile.size / (1024 * 1024)
-            const isZip = matrixFile.name.toLowerCase().endsWith('.zip')
+        if (matrixFiles.length > MAX_BUNDLE_ITEMS) {
+            setErrorMessage(`O limite máximo permitido é de ${MAX_BUNDLE_ITEMS} arquivos por anúncio.`)
+            return
+        }
 
-            if (!isZip && totalMb > MAX_SINGLE_FILE_MB) {
-                setErrorMessage(`Arquivo único não pode exceder ${MAX_SINGLE_FILE_MB} MB.`)
-                return
-            }
+        if (matrixFiles.length > 0) {
+            const totalBytes = matrixFiles.reduce((sum, f) => sum + f.size, 0)
+            const totalMb = totalBytes / (1024 * 1024)
 
             if (totalMb > MAX_TOTAL_SIZE_MB) {
                 setErrorMessage(`O pacote excede o limite total de ${MAX_TOTAL_SIZE_MB} MB.`)
                 return
+            }
+
+            for (const f of matrixFiles) {
+                const fileMb = f.size / (1024 * 1024)
+                const isZip = f.name.toLowerCase().endsWith('.zip')
+                if (!isZip && fileMb > MAX_SINGLE_FILE_MB) {
+                    setErrorMessage(`O arquivo "${f.name}" excede o limite de ${MAX_SINGLE_FILE_MB} MB por arquivo único.`)
+                    return
+                }
             }
         }
 
@@ -686,20 +761,47 @@ function VenderMatrizContent() {
 
             const coverImageUrl = uploadedUrls[0]
 
-            // 2. Upload matrix file if provided (required on create, optional on edit)
+            // 2. Upload matrix file(s) if provided (required on create, optional on edit)
             let finalFileUrl = existingFileUrl
             let finalStoragePath = existingStoragePath
 
-            if (matrixFile) {
-                const rawExt = (matrixFile.name.split('.').pop() || 'zip').toLowerCase().replace(/[^a-z0-9]/g, '') || 'zip'
-                if (BLOCKED_MATRIX_EXTS.has(rawExt)) {
-                    throw new Error(`Tipo de arquivo ".${rawExt}" bloqueado por segurança.`)
+            if (matrixFiles.length > 0) {
+                for (const f of matrixFiles) {
+                    const rawExt = (f.name.split('.').pop() || '').toLowerCase().replace(/[^a-z0-9]/g, '')
+                    if (BLOCKED_MATRIX_EXTS.has(rawExt)) {
+                        throw new Error(`Tipo de arquivo ".${rawExt}" bloqueado por segurança.`)
+                    }
                 }
+
                 const rand = Math.random().toString(36).slice(2, 8)
-                const filePath = `${profile.id}/${Date.now()}_${rand}_file.${rawExt}`
+                const folderPrefix = `${profile.id}/${Date.now()}_${rand}`
+                let filePath = ''
+                let uploadPayload: File | Blob
+                let uploadOptions: { upsert: false; contentType?: string } = { upsert: false }
+
+                if (matrixFiles.length === 1) {
+                    const singleFile = matrixFiles[0]
+                    const safeFileName = toSafeStorageFileName(singleFile.name)
+                    filePath = `${folderPrefix}/${safeFileName}`
+                    uploadPayload = singleFile
+                } else {
+                    const bundleZip = new JSZip()
+                    for (const f of matrixFiles) {
+                        bundleZip.file(f.name, f)
+                    }
+                    const zipBlob = await bundleZip.generateAsync({ type: 'blob' })
+                    const firstRawName = (matrixFiles[0].name.split(/[/\\]/).pop() || 'matrizes').trim()
+                    const lastDot = firstRawName.lastIndexOf('.')
+                    const firstBase = lastDot > 0 ? firstRawName.slice(0, lastDot) : firstRawName
+                    const safeZipName = toSafeStorageFileName(`${firstBase || 'matrizes'}.zip`)
+                    filePath = `${folderPrefix}/${safeZipName}`
+                    uploadPayload = zipBlob
+                    uploadOptions = { upsert: false, contentType: 'application/zip' }
+                }
+
                 const { error: uploadFileErr } = await supabase.storage
                     .from('marketplace-files')
-                    .upload(filePath, matrixFile, { upsert: false })
+                    .upload(filePath, uploadPayload, uploadOptions)
 
                 if (uploadFileErr) {
                     throw new Error(`Falha no upload do arquivo da matriz: ${uploadFileErr.message}`)
@@ -735,7 +837,7 @@ function VenderMatrizContent() {
                     items_count: finalItemsCount,
                 }
 
-                if (matrixFile && finalFileUrl && finalStoragePath) {
+                if (matrixFiles.length > 0 && finalFileUrl && finalStoragePath) {
                     patchPayload.file_url = finalFileUrl
                     patchPayload.storage_path = finalStoragePath
                 }
@@ -1174,32 +1276,81 @@ function VenderMatrizContent() {
                         )}
                     </div>
 
-                    {/* Matrix File (.ZIP) Upload */}
+                    {/* Matrix File(s) (.ZIP or multiple matrices) Upload */}
                     <div>
                         <label className="block text-xs font-bold uppercase tracking-wider text-gray-300 mb-2">
                             {isEditMode
-                                ? 'Arquivo para Download (.ZIP ou Matriz) — Opcional na edição'
-                                : 'Arquivo para Download (.ZIP ou Matriz) *'}
+                                ? 'Arquivo para Download (.ZIP ou Matrizes) — Opcional na edição'
+                                : 'Arquivo para Download (.ZIP ou Matrizes) *'}
                         </label>
                         <div className="border-2 border-dashed border-white/10 hover:border-[#FFAE00]/40 rounded-2xl p-6 text-center transition-colors bg-[#0F1115] relative group">
-                            {matrixFile ? (
-                                <div className="space-y-2">
-                                    <div className="w-12 h-12 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center mx-auto mb-2 border border-emerald-500/20">
-                                        <FileArchive className="w-6 h-6" />
+                            {matrixFiles.length > 0 ? (
+                                <div className="space-y-4">
+                                    <div className="flex flex-col items-center">
+                                        <div className="w-12 h-12 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center mb-2 border border-emerald-500/20">
+                                            <FileArchive className="w-6 h-6" />
+                                        </div>
+                                        <p className="text-sm font-bold text-white">
+                                            {matrixFiles.length === 1
+                                                ? '1 arquivo selecionado (nome original preservado)'
+                                                : `${matrixFiles.length} arquivos selecionados — serão compactados em .ZIP mantendo os nomes originais`}
+                                        </p>
+                                        <p className="text-xs text-gray-400">
+                                            Tamanho total: {(matrixFiles.reduce((sum, f) => sum + f.size, 0) / 1024 / 1024).toFixed(2)} MB
+                                        </p>
                                     </div>
-                                    <p className="text-sm font-bold text-white">{matrixFile.name}</p>
-                                    <p className="text-xs text-gray-400">
-                                        {(matrixFile.size / 1024 / 1024).toFixed(2)} MB
-                                    </p>
-                                    <label className="inline-flex items-center gap-2 text-xs font-bold text-[#FFAE00] cursor-pointer hover:underline pt-2">
-                                        Substituir arquivo
-                                        <input
-                                            type="file"
-                                            accept=".pes,.dst,.jef,.exp,.xxx,.hus,.vp3,.emb,.pxf,.eof,.art,.vip,.pec,.zip"
-                                            className="hidden"
-                                            onChange={handleMatrixFileChange}
-                                        />
-                                    </label>
+
+                                    <div className="max-h-52 overflow-y-auto space-y-2 text-left max-w-xl mx-auto">
+                                        {matrixFiles.map((file, index) => (
+                                            <div
+                                                key={`${file.name}-${file.size}-${index}`}
+                                                className="flex items-center justify-between gap-3 px-3 py-2 rounded-xl bg-white/[0.04] border border-white/10"
+                                            >
+                                                <div className="min-w-0 flex-1">
+                                                    <p className="text-xs font-semibold text-white truncate">{file.name}</p>
+                                                    <p className="text-[11px] text-gray-400">
+                                                        {file.size < 1024 * 100
+                                                            ? `${Math.max(1, Math.round(file.size / 1024))} KB`
+                                                            : `${(file.size / 1024 / 1024).toFixed(2)} MB`}
+                                                    </p>
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleRemoveMatrixFile(index)}
+                                                    aria-label={`Remover ${file.name}`}
+                                                    className="p-1.5 rounded-lg text-gray-400 hover:text-red-400 hover:bg-red-500/10 transition-colors shrink-0"
+                                                >
+                                                    <X className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    <div className="flex flex-wrap items-center justify-center gap-4 pt-1">
+                                        {matrixFiles.length < MAX_BUNDLE_ITEMS && (
+                                            <label className="inline-flex items-center gap-1.5 text-xs font-bold text-[#FFAE00] cursor-pointer hover:underline">
+                                                <Plus className="w-3.5 h-3.5" />
+                                                Adicionar mais arquivos
+                                                <input
+                                                    type="file"
+                                                    multiple
+                                                    accept=".pes,.dst,.jef,.exp,.xxx,.hus,.vp3,.emb,.pxf,.eof,.art,.vip,.pec,.zip"
+                                                    className="hidden"
+                                                    onChange={(e) => handleMatrixFileChange(e, 'append')}
+                                                />
+                                            </label>
+                                        )}
+                                        <label className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-300 hover:text-white cursor-pointer hover:underline">
+                                            Substituir todos
+                                            <input
+                                                type="file"
+                                                multiple
+                                                accept=".pes,.dst,.jef,.exp,.xxx,.hus,.vp3,.emb,.pxf,.eof,.art,.vip,.pec,.zip"
+                                                className="hidden"
+                                                onChange={(e) => handleMatrixFileChange(e, 'replace')}
+                                            />
+                                        </label>
+                                    </div>
                                 </div>
                             ) : isEditMode && (existingStoragePath || existingFileUrl) ? (
                                 <div className="space-y-2">
@@ -1211,12 +1362,13 @@ function VenderMatrizContent() {
                                         {existingStoragePath ? existingStoragePath.split('/').pop() : 'Matriz vinculada ao anúncio'}
                                     </p>
                                     <label className="inline-flex items-center gap-2 text-xs font-bold text-[#FFAE00] cursor-pointer hover:underline pt-2">
-                                        Enviar novo arquivo para substituir (opcional)
+                                        Enviar novos arquivos para substituir (opcional)
                                         <input
                                             type="file"
+                                            multiple
                                             accept=".pes,.dst,.jef,.exp,.xxx,.hus,.vp3,.emb,.pxf,.eof,.art,.vip,.pec,.zip"
                                             className="hidden"
-                                            onChange={handleMatrixFileChange}
+                                            onChange={(e) => handleMatrixFileChange(e, 'replace')}
                                         />
                                     </label>
                                 </div>
@@ -1226,17 +1378,18 @@ function VenderMatrizContent() {
                                         <UploadCloud className="w-7 h-7" />
                                     </div>
                                     <span className="text-sm font-bold text-white block mb-1">
-                                        Clique para anexar o arquivo digital
+                                        Clique para anexar os arquivos digitais (1 ou vários)
                                     </span>
                                     <span className="text-xs text-gray-500 block">
-                                        Arquivo único: <strong>máx. 2 MB</strong> | Pacote (.ZIP): <strong>máx. 30 MB e até 20 arquivos</strong> (cada um máx. 2 MB)
+                                        Arquivo único: <strong>máx. 2 MB</strong> | Vários arquivos ou (.ZIP): <strong>máx. 30 MB e até 20 arquivos</strong> • Nomes originais preservados
                                     </span>
                                     <input
                                         type="file"
+                                        multiple
                                         required={!isEditMode}
                                         accept=".pes,.dst,.jef,.exp,.xxx,.hus,.vp3,.emb,.pxf,.eof,.art,.vip,.pec,.zip"
                                         className="hidden"
-                                        onChange={handleMatrixFileChange}
+                                        onChange={(e) => handleMatrixFileChange(e, 'append')}
                                     />
                                 </label>
                             )}

@@ -285,6 +285,10 @@ test('Edit Flow & Regression Preservation: Suspense around useSearchParams, PATC
             'Participação da plataforma',
             'Custo da transação',
             'transactionCost',
+            'toSafeStorageFileName',
+            'matrixFiles',
+            'bundleZip.file(f.name, f)',
+            'handleRemoveMatrixFile',
         ],
         excludes: [
             'Taxa Plataforma (15%)',
