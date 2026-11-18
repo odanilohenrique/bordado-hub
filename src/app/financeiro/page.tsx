@@ -921,20 +921,10 @@ export default function FinancialDashboard() {
                                                     )}
                                                 </td>
 
-                                                {/* Valor Líquido e Bruto */}
+                                                {/* Valor Líquido */}
                                                 <td className="py-3.5 px-4 text-right whitespace-nowrap font-mono">
                                                     <div className={`text-sm font-extrabold ${rec.status === 'liberado' ? 'text-emerald-400' : 'text-gray-200'}`}>
                                                         R$ {rec.net_amount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                                    </div>
-                                                    <div className="text-[10px] text-gray-400 mt-0.5 flex items-center justify-end gap-1.5 font-sans">
-                                                        <span>Bruto: R$ {rec.gross_amount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                                                        <span className={`px-1 py-0.2 rounded text-[9px] font-bold ${
-                                                            rec.type === 'marketplace' 
-                                                                ? 'bg-[#FFAE00]/10 text-[#FFAE00] border border-[#FFAE00]/20' 
-                                                                : 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20'
-                                                        }`}>
-                                                            {rec.type === 'marketplace' ? '85%' : '90%'} líq
-                                                        </span>
                                                     </div>
                                                 </td>
 
@@ -1027,19 +1017,11 @@ export default function FinancialDashboard() {
                                             </div>
                                         </div>
 
-                                        {/* Linha Inferior: Valores e Botão de Ação (Área de toque 44px) */}
+                                        {/* Linha Inferior: Valor Líquido e Botão de Ação (Área de toque 44px) */}
                                         <div className="flex items-center justify-between gap-3 pt-2">
                                             <div>
                                                 <div className={`text-base font-black font-mono ${rec.status === 'liberado' ? 'text-emerald-400' : 'text-gray-200'}`}>
                                                     R$ {rec.net_amount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                                </div>
-                                                <div className="text-[10px] text-gray-400 flex items-center gap-1.5 font-sans">
-                                                    <span>Bruto: R$ {rec.gross_amount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                                                    <span className={`px-1 py-0.2 rounded text-[9px] font-bold ${
-                                                        rec.type === 'marketplace' ? 'text-[#FFAE00]' : 'text-cyan-400'
-                                                    }`}>
-                                                        ({rec.type === 'marketplace' ? '85%' : '90%'} líq)
-                                                    </span>
                                                 </div>
                                             </div>
 
