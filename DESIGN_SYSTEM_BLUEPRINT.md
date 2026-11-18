@@ -17,7 +17,18 @@ Para qualidade perfeita em telas Retina (4K, iPhone, Mac) sem pixelar nem pesar 
 | **1. Logo Principal Dark Mode** | Navbar / Sidebar / Rodapé no **Tema Escuro** (`#0A0F1D`, `#111827`) | Símbolo ziguezague: `#3B82F6` → `#14B8A6` (ou `#3B82F6` sólido) · Texto `"Bordado"`: `#FFFFFF` · Texto `"Hub"`: `#3B82F6` | **SVG vetorial** (preferencial, ~3 KB) + **PNG transparente** `600x260px` (`@2x`) | `public/brand/logo-v2-dark.svg` (e `.png`) |
 | **2. Logo Principal Light Mode** | Navbar / Sidebar / Rodapé no **Tema Claro** (`#F8FAFC`, `#FFFFFF`) | Símbolo ziguezague: `#2563EB` · Texto `"Bordado"`: `#0F172A` · Texto `"Hub"`: `#2563EB` | **SVG vetorial** + **PNG transparente** `600x260px` (`@2x`) | `public/brand/logo-v2-light.svg` (e `.png`) |
 | **3. Logo Horizontal Compacta** *(opcional para Navbar Mobile/Desktop)* | Barra superior de `64px` de altura (símbolo à esquerda do texto) | Mesmas cores das versões Dark e Light | **SVG** `200x48px` (altura máx. visual `32px–40px`) | `public/brand/logo-v2-horizontal-dark.svg` e `-light.svg` |
-| **4. Ícone / App Icon (PWA + Favicon)** | Aba do navegador, iPhone/Android (Tela Inicial PWA), WhatsApp Link Fallback | Símbolo ziguezague branco `#FFFFFF` ou degradê `#3B82F6 → #14B8A6` centralizado com respiro de 20% sobre fundo sólido `#0A0F1D` | **PNG** `512x512px` (PWA) + `192x192px` (Android) + `180x180px` (Apple Touch) + `favicon.ico` (`48x48`) | `public/icon.png`, `public/apple-icon.png`, `public/brand/icon-v2-512.png` |
+| **4. Ícone / App Icon (PWA + Favicon)** | Aba do navegador, iPhone/Android (Tela Inicial PWA), WhatsApp Link Fallback | Símbolo ziguezague `#2563EB` centralizado sobre fundo sólido `#0A0F1D` | **SVG Mestre (`icons.svg` `512×512`)** → gerar PNGs `512×512px`, `180×180px` e `favicon.ico` | `public/brand/Rebrand/icons.svg` |
+
+### ✅ Arquivos Oficiais Já Adicionados em `public/brand/Rebrand/`
+| Arquivo Salvo | Tipo / Fundo | Cores Detectadas | Onde & Quando Usar no Rebrand |
+| :--- | :--- | :--- | :--- |
+| `Logo Horizontal Dark Mode.svg` | Horizontal · Transparente | `#F8FAFC` + `#3B82F6` | Navbar e Sidebar no **Tema Escuro** *(ajustar `viewBox` na aplicação)* |
+| `Logo Horizontal Light Mode.svg` | Horizontal · Transparente | `#0A0F1D` + `#3B82F6` | Navbar e Sidebar no **Tema Claro** *(ajustar `viewBox` na aplicação)* |
+| `Logo Dark Mode.svg` | Empilhada · Transparente | `#F8FAFC` + `#3B82F6` | Login, Cadastro, Footer e destaques no **Tema Escuro** |
+| `Logo Light Mode.svg` | Empilhada · Transparente | `#0A0F1D` + `#3B82F6` | Login, Cadastro, Footer e destaques no **Tema Claro** |
+| `logo fundo escuro.svg` | Card sólido `#0F172A` | `#F8FAFC` + `#3B82F6` | Preview OpenGraph/WhatsApp e avatares institucionais escuros |
+| `Logo fundo claro.svg` | Card sólido `#F8FAFC` | `#0A0F1D` + `#3B82F6` | Preview OpenGraph/WhatsApp e avatares institucionais claros |
+| `icons.svg` | Ícone `512×512` `#0A0F1D` | `#0A0F1D` + `#2563EB` | Fonte para `favicon.ico`, `icon.png` (`512×512`) e `apple-icon.png` (`180×180` sem arredondamento) |
 
 > 💡 **Dica técnica de ouro:** Se você tiver apenas o símbolo em **SVG** (ou PNG em alta resolução), nós mesmos conseguimos gerar todas as versões Light/Dark e todos os tamanhos (`180x180`, `192x192`, `512x512`, horizontal e empilhada) direto no código sem perda de nitidez!
 
