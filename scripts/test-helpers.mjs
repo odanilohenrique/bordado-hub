@@ -303,7 +303,7 @@ export function simulateFinancialConsolidation({
         const rawFee = order.platform_fee !== undefined ? Number(order.platform_fee) : null
         const platformFee = (rawFee !== null && !Number.isNaN(rawFee) && rawFee >= 0)
             ? Number(rawFee.toFixed(2))
-            : Number((gross * 0.15).toFixed(2))
+            : Number((gross * 0.15 + (gross > 0 ? 1.00 : 0)).toFixed(2))
 
         const rawNet = order.seller_net !== undefined ? Number(order.seller_net) : null
         const sellerNet = (rawNet !== null && !Number.isNaN(rawNet) && rawNet >= 0)
@@ -370,7 +370,9 @@ export function simulateFinancialConsolidation({
         const rawNet = tx.valor_liquido !== undefined ? Number(tx.valor_liquido) : null
         const net = (rawNet !== null && !Number.isNaN(rawNet) && rawNet >= 0)
             ? Number(rawNet.toFixed(2))
-            : (isCustomJob ? Number((gross * 0.90).toFixed(2)) : Number((gross * 0.85).toFixed(2)))
+            : (isCustomJob
+                ? Number((gross * 0.90).toFixed(2))
+                : Number(Math.max(0, gross - Number((gross * 0.15 + (gross > 0 ? 1.00 : 0)).toFixed(2))).toFixed(2)))
 
         const fee = Number(Math.max(0, gross - net).toFixed(2))
 
@@ -419,20 +421,22 @@ export function simulateFinancialConsolidation({
 }
 
 /**
- * Helper to compute exact 85% marketplace split with 2 decimal precision without drift.
- * In accordance with baseline test 6:
- * platformFee = Number((price * 0.15).toFixed(2))
- * sellerNet = Number((price - platformFee).toFixed(2))
+ * Helper to compute exact marketplace split (15% platform share + R$ 1.00 fixed Asaas transaction cost)
+ * with 2 decimal precision without drift.
  *
  * Hardened against negative / NaN inputs.
  */
 export function calculateMarketplaceSplit(price) {
     const raw = Number(price)
     const gross = (!Number.isNaN(raw) && raw >= 0) ? Number(raw.toFixed(2)) : 0
-    const platformFee = Number((gross * 0.15).toFixed(2))
-    const sellerNet = Number((gross - platformFee).toFixed(2))
+    const platformShare = Number((gross * 0.15).toFixed(2))
+    const transactionCost = gross > 0 ? 1.00 : 0
+    const platformFee = Number((platformShare + transactionCost).toFixed(2))
+    const sellerNet = Number(Math.max(0, gross - platformFee).toFixed(2))
     return {
         price: gross,
+        platformShare,
+        transactionCost,
         platformFee,
         sellerNet,
         isExactSum: Number((platformFee + sellerNet).toFixed(2)) === gross

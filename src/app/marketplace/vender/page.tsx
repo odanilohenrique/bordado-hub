@@ -568,10 +568,11 @@ function VenderMatrizContent() {
 
     const customFormats = selectedFormats.filter((fmt) => !PRESET_FORMAT_CODES.includes(fmt))
 
-    // Calculations
+    // Calculations (Marketplace: 15% Participação da plataforma + R$ 1,00 Custo da transação)
     const numPrice = parseFloat(price.replace(',', '.')) || 0
-    const platformFee = numPrice * 0.15 // 15%
-    const sellerNet = numPrice - platformFee // 85%
+    const platformShare = Number((numPrice * 0.15).toFixed(2))
+    const transactionCost = numPrice > 0 ? 1.0 : 0.0
+    const sellerNet = Math.max(0, Number((numPrice - platformShare - transactionCost).toFixed(2)))
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -1261,7 +1262,7 @@ function VenderMatrizContent() {
                         </div>
 
                         {/* Financial Simulator */}
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-4 border-t border-white/5 text-xs">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-4 border-t border-white/5 text-xs">
                             <div className="bg-[#16191F] p-3 rounded-xl border border-white/5">
                                 <span className="text-gray-400 block mb-0.5">Preço Total:</span>
                                 <span className="text-base font-bold text-white">
@@ -1269,13 +1270,19 @@ function VenderMatrizContent() {
                                 </span>
                             </div>
                             <div className="bg-[#16191F] p-3 rounded-xl border border-white/5">
-                                <span className="text-gray-400 block mb-0.5">Taxa Plataforma (15%):</span>
+                                <span className="text-gray-400 block mb-0.5">Participação da plataforma (15%):</span>
                                 <span className="text-base font-bold text-gray-400">
-                                    - R$ {platformFee.toFixed(2)}
+                                    - R$ {platformShare.toFixed(2)}
+                                </span>
+                            </div>
+                            <div className="bg-[#16191F] p-3 rounded-xl border border-white/5">
+                                <span className="text-gray-400 block mb-0.5">Custo da transação:</span>
+                                <span className="text-base font-bold text-gray-400">
+                                    - R$ {transactionCost.toFixed(2)}
                                 </span>
                             </div>
                             <div className="bg-[#FFAE00]/10 p-3 rounded-xl border border-[#FFAE00]/20">
-                                <span className="text-[#FFAE00] block mb-0.5 font-bold">Seu Lucro Líquido (85%):</span>
+                                <span className="text-[#FFAE00] block mb-0.5 font-bold">Seu Lucro Líquido:</span>
                                 <span className="text-base font-black text-[#FFAE00]">
                                     R$ {sellerNet.toFixed(2)}
                                 </span>

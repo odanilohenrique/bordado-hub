@@ -11,6 +11,7 @@ import path from 'node:path'
 import { 
     calculateTotals, 
     calculateCardFee, 
+    calculateMarketplaceTotals,
     ASAAS_INSTALLMENT_RATES, 
     ASAAS_CARD_FIXED_FEE 
 } from '../src/lib/payments.js'
@@ -90,20 +91,33 @@ test('calculateTotals: Proteção contra inputs inválidos (NaN, negativo, zero)
     assert.equal(nan.valorLiquido, 0)
 })
 
-test('Marketplace: Matriz individual ou pacote retém 15% e repassa 85% líquido', () => {
-    const precos = [19.90, 35.00, 50.00, 120.00]
+test('Marketplace: Matriz individual ou pacote retém 15% + R$ 1,00 (custo transação Asaas)', () => {
+    const precos = [10.00, 19.90, 35.00, 50.00, 120.00]
     
     for (const preco of precos) {
-        const platformFee = Number((preco * 0.15).toFixed(2))
+        const res = calculateMarketplaceTotals(preco)
+        const platformShare = Number((preco * 0.15).toFixed(2))
+        const transactionCost = 1.00
+        const platformFee = Number((platformShare + transactionCost).toFixed(2))
         const sellerNet = Number((preco - platformFee).toFixed(2))
         
+        assert.equal(res.platformShare, platformShare)
+        assert.equal(res.transactionCost, transactionCost)
+        assert.equal(res.platformFee, platformFee)
+        assert.equal(res.sellerNet, sellerNet)
         assert.equal(
             Number((platformFee + sellerNet).toFixed(2)), 
             preco, 
-            'A soma da taxa da plataforma + líquido do vendedor deve ser exatamente igual ao preço'
+            'A soma da participação + custo da transação + líquido do vendedor deve ser exatamente igual ao preço'
         )
-        assert(sellerNet > platformFee, 'Líquido do vendedor deve ser maior que a taxa da plataforma')
+        assert(sellerNet > platformFee, 'Líquido do vendedor deve ser maior que o total retido')
     }
+
+    const dez = calculateMarketplaceTotals(10.00)
+    assert.equal(dez.platformShare, 1.50)
+    assert.equal(dez.transactionCost, 1.00)
+    assert.equal(dez.platformFee, 2.50)
+    assert.equal(dez.sellerNet, 7.50)
 })
 
 test('Marketplace Upload: Limite triplo (2MB arquivo único, 20 arquivos, 30MB total) ativo', () => {
@@ -174,28 +188,32 @@ test('T1-F01-01: Exibição padrão de venda de matriz com título, comprador e 
     assert.equal(rec.badge, 'Loja')
 })
 
-test('T1-F01-02: Venda de matriz individual de alto valor (R$ 100 -> R$ 85 líquido)', () => {
+test('T1-F01-02: Venda de matriz individual de alto valor (R$ 100 -> R$ 84 líquido após 15% + R$ 1)', () => {
     const split = calculateMarketplaceSplit(100.00)
-    assert.equal(split.sellerNet, 85.00)
-    assert.equal(split.platformFee, 15.00)
+    assert.equal(split.platformShare, 15.00)
+    assert.equal(split.transactionCost, 1.00)
+    assert.equal(split.platformFee, 16.00)
+    assert.equal(split.sellerNet, 84.00)
     assert(split.isExactSum)
 })
 
-test('T1-F01-03: Venda de pacote (bundle) de matrizes (R$ 150 -> R$ 127.50 líquido)', () => {
+test('T1-F01-03: Venda de pacote (bundle) de matrizes (R$ 150 -> R$ 126.50 líquido após 15% + R$ 1)', () => {
     const split = calculateMarketplaceSplit(150.00)
-    assert.equal(split.sellerNet, 127.50)
-    assert.equal(split.platformFee, 22.50)
+    assert.equal(split.platformShare, 22.50)
+    assert.equal(split.transactionCost, 1.00)
+    assert.equal(split.platformFee, 23.50)
+    assert.equal(split.sellerNet, 126.50)
     assert(split.isExactSum)
 })
 
-test('T1-F01-04: Agregação correta dos cards de saldo (34 + 85 + 127.50 = R$ 246.50)', () => {
+test('T1-F01-04: Agregação correta dos cards de saldo (33 + 84 + 126.50 = R$ 243.50)', () => {
     const orders = [
         { id: '1', amount: 40.00, status: 'paid' },
         { id: '2', amount: 100.00, status: 'paid' },
         { id: '3', amount: 150.00, status: 'paid' }
     ]
     const res = simulateFinancialConsolidation({ marketplaceOrders: orders })
-    assert.equal(res.totalNet, 246.50)
+    assert.equal(res.totalNet, 243.50)
     assert.equal(res.totalGross, 290.00)
     assert.equal(res.totalOrders, 3)
 })
@@ -221,7 +239,7 @@ test('T1-F02-02: Integridade da soma de saldo sem duplicidade de receita', () =>
     const order = { id: 'o1', asaas_payment_id: 'pay_dup2', amount: 100.00, status: 'paid' }
     const tx = { id: 't1', asaas_payment_id: 'pay_dup2', amount: 100.00, job_id: null }
     const res = simulateFinancialConsolidation({ marketplaceOrders: [order], transactions: [tx] })
-    assert.equal(res.totalNet, 85.00, 'Não pode somar 170.00')
+    assert.equal(res.totalNet, 84.00, 'Não pode somar 168.00')
 })
 
 test('T1-F02-03: Associação de metadados da transação órfã com título do pedido', () => {
@@ -238,7 +256,7 @@ test('T1-F02-04: Coexistência harmoniosa com transações de encomendas sob med
     const mkt = res.records.find(r => r.type === 'marketplace')
     const job = res.records.find(r => r.type === 'job')
     assert(mkt && job)
-    assert.equal(mkt.net_amount, 17.00) // 85%
+    assert.equal(mkt.net_amount, 16.00) // 20 - 15% (3) - 1.00 = 16.00
     assert.equal(job.net_amount, 90.00) // 90%
 })
 
@@ -258,7 +276,7 @@ test('T1-F02-05: Deduplicação em lote com múltiplos pedidos concorrentes', ()
     const res = simulateFinancialConsolidation({ marketplaceOrders: orders, transactions: txs })
     assert.equal(res.records.length, 5)
     assert.equal(res.deduplicatedCount, 5)
-    assert.equal(res.totalNet, 5 * 42.50)
+    assert.equal(res.totalNet, 5 * 41.50)
 })
 
 // FEATURE 3: Financial Action Routing & Badge
@@ -289,11 +307,11 @@ test('T1-F03-04: Roteamento dinâmico do link de ação de Encomendas para /jobs
 })
 
 test('T1-F03-05: Subtotais duplos discriminados por tipo de receita', () => {
-    const orders = [{ id: 'o1', amount: 100.00, status: 'paid' }] // net 85
+    const orders = [{ id: 'o1', amount: 100.00, status: 'paid' }] // net 84 (15% + R$ 1)
     const txs = [{ id: 't1', job_id: 'j1', amount: 200.00, valor_liquido: 180.00 }] // net 180
     const res = simulateFinancialConsolidation({ marketplaceOrders: orders, transactions: txs })
     assert.equal(res.totalGross, 300.00)
-    assert.equal(res.totalNet, 265.00) // 85 + 180
+    assert.equal(res.totalNet, 264.00) // 84 + 180
 })
 
 // FEATURE 4: Client Marketplace Purchases Tab
@@ -703,11 +721,13 @@ test('T1-F11-05: Sanitização de parâmetros da rota da loja contra injeções'
 })
 
 // FEATURE 12: Anti-Regression Suite Expansion
-test('T1-F12-01: Verificação de suíte anti-regressão matemática para splits de 85%', () => {
+test('T1-F12-01: Verificação de suíte anti-regressão matemática para splits do Marketplace (15% + R$ 1)', () => {
     const split = calculateMarketplaceSplit(49.90)
     assert.equal(split.price, 49.90)
-    assert.equal(split.platformFee, 7.48)
-    assert.equal(split.sellerNet, 42.42)
+    assert.equal(split.platformShare, 7.48)
+    assert.equal(split.transactionCost, 1.00)
+    assert.equal(split.platformFee, 8.48)
+    assert.equal(split.sellerNet, 41.42)
     assert(split.isExactSum)
 })
 
@@ -784,10 +804,12 @@ test('T2-F01-01: Exclusão de pedidos não-pagos (pending, cancelled) do painel 
     assert.equal(res.totalNet, 0)
 })
 
-test('T2-F01-02: Precisão de centavos fracionários sem desvio monetário (R$ 19,90 -> 2,98 / 16,92)', () => {
+test('T2-F01-02: Precisão de centavos fracionários sem desvio monetário (R$ 19,90 -> 3,98 / 15,92)', () => {
     const split = calculateMarketplaceSplit(19.90)
-    assert.equal(split.platformFee, 2.98)
-    assert.equal(split.sellerNet, 16.92)
+    assert.equal(split.platformShare, 2.98)
+    assert.equal(split.transactionCost, 1.00)
+    assert.equal(split.platformFee, 3.98)
+    assert.equal(split.sellerNet, 15.92)
     assert.equal(Number((split.platformFee + split.sellerNet).toFixed(2)), 19.90)
 })
 
@@ -1564,10 +1586,12 @@ test('Cenário 1: A Experiência da Compradora de Primeira Viagem (Descoberta, P
     // 1. Descoberta & produto
     const product = { id: 'p_floral', title: 'Monograma Floral Rococó', price: 29.90, seller_id: 's_claudia', storage_path: 'matrizes/floral.pes' }
     
-    // 2. Checkout PIX: cálculo de split
+    // 2. Checkout PIX: cálculo de split (15% + R$ 1,00)
     const split = calculateMarketplaceSplit(product.price)
-    assert.equal(split.platformFee, 4.48)
-    assert.equal(split.sellerNet, 25.42)
+    assert.equal(split.platformShare, 4.48)
+    assert.equal(split.transactionCost, 1.00)
+    assert.equal(split.platformFee, 5.48)
+    assert.equal(split.sellerNet, 24.42)
     
     // 3. Pagamento recebido
     const mockDb = createMockSupabase({
@@ -1584,8 +1608,8 @@ test('Cenário 1: A Experiência da Compradora de Primeira Viagem (Descoberta, P
     assert(signed.signedUrl.includes('expires=60'))
 })
 
-test('Cenário 2: Rotina Diária do Programador Pro (Publicação, Vendas Múltiplas e Reconciliação a 85%)', () => {
-    // 1. Marcos vende 3 pacotes de matrizes por R$ 80,00 cada
+test('Cenário 2: Rotina Diária do Programador Pro (Publicação, Vendas Múltiplas e Reconciliação 15% + R$ 1)', () => {
+    // 1. Marcos vende 3 pacotes de matrizes por R$ 80,00 cada (15% = 12,00 + R$ 1,00 = 13,00 -> R$ 67,00 líq cada)
     const orders = [
         { id: 'o1', asaas_payment_id: 'pay_m1', amount: 80.00, status: 'paid', title: 'Brasões Automotivos' },
         { id: 'o2', asaas_payment_id: 'pay_m2', amount: 80.00, status: 'paid', title: 'Brasões Automotivos' },
@@ -1601,7 +1625,7 @@ test('Cenário 2: Rotina Diária do Programador Pro (Publicação, Vendas Múlti
     const res = simulateFinancialConsolidation({ marketplaceOrders: orders, transactions: txs })
     assert.equal(res.records.length, 3, 'Deduplicação garante exatamente 3 linhas')
     assert.equal(res.deduplicatedCount, 3)
-    assert.equal(res.totalNet, 204.00, '3 x R$ 68,00 = R$ 204,00')
+    assert.equal(res.totalNet, 201.00, '3 x R$ 67,00 = R$ 201,00')
     assert.equal(res.totalGross, 240.00)
 })
 
@@ -1646,11 +1670,11 @@ test('Cenário 5: Experiência Mobile-First no iOS (Instalação PWA, Modo Stand
     assert(fs.existsSync('src/app/icon.png') || fs.existsSync('public/icon.png'))
 })
 
-test('Cenário 6: Persona Mista com Múltiplas Fontes de Receita (Sob Medida 90% + Loja 85%)', () => {
+test('Cenário 6: Persona Mista com Múltiplas Fontes de Receita (Sob Medida 90% + Loja 15% + R$ 1)', () => {
     // Carlos conclui encomenda sob medida de R$ 150,00 (10% taxa, R$ 135 líq)
     const txJob = { id: 't_job', job_id: 'job_882', amount: 150.00, valor_liquido: 135.00, status: 'liberado' }
     
-    // E vende 4 matrizes no Marketplace por R$ 25,00 cada (15% taxa, R$ 21,25 líq cada = R$ 85,00)
+    // E vende 4 matrizes no Marketplace por R$ 25,00 cada (15% = 3,75 + R$ 1,00 = 4,75 -> R$ 20,25 líq cada = R$ 81,00)
     const orders = Array.from({ length: 4 }, (_, i) => ({
         id: `mkt_${i}`,
         amount: 25.00,
@@ -1660,7 +1684,7 @@ test('Cenário 6: Persona Mista com Múltiplas Fontes de Receita (Sob Medida 90%
     const res = simulateFinancialConsolidation({ marketplaceOrders: orders, transactions: [txJob] })
     assert.equal(res.records.length, 5)
     assert.equal(res.totalGross, 250.00) // 150 + 100
-    assert.equal(res.totalNet, 220.00) // 135 + 85
+    assert.equal(res.totalNet, 216.00) // 135 + 81
     const jobRec = res.records.find(r => r.type === 'job')
     const mktRec = res.records.find(r => r.type === 'marketplace')
     assert.equal(jobRec.badge, 'Sob Medida')

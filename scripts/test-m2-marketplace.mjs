@@ -282,6 +282,12 @@ test('Edit Flow & Regression Preservation: Suspense around useSearchParams, PATC
             'safetyTimer',
             "clearCache('marketplace_products')",
             'clearCache(`marketplace_product_${editIdParam}`)',
+            'Participação da plataforma',
+            'Custo da transação',
+            'transactionCost',
+        ],
+        excludes: [
+            'Taxa Plataforma (15%)',
         ],
     })
 })

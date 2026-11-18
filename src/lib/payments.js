@@ -1,6 +1,10 @@
 export const TAXA_CLIENTE_PERCENTUAL = 0.0; // 0% de taxa cobrada do comprador (taxa zero para plataforma)
 export const TAXA_CRIADOR_PERCENTUAL = 0.10; // 10% de taxa descontada do produtor
 
+// Marketplace: 15% participação da plataforma + R$ 1,00 custo fixo da transação (taxa Asaas)
+export const MARKETPLACE_PLATFORM_RATE = 0.15;
+export const MARKETPLACE_TRANSACTION_COST = 1.00;
+
 // Compatibilidade
 export const TAXA_CLIENTE = 0.0;
 export const TAXA_CRIADOR = 0.10;
@@ -94,6 +98,42 @@ export function calculateCardFee(baseAmount, installments = 1) {
         totalComTaxa,
         valorParcela,
         rate
+    };
+}
+
+/**
+ * Calcula os valores de repasse de uma venda no Marketplace:
+ * - Participação da plataforma: 15% sobre o preço
+ * - Custo da transação (taxa Asaas): R$ 1,00 fixo por venda
+ * - Lucro líquido do vendedor: preço - (participação + custo da transação)
+ *
+ * @param {number|string} productPrice - Preço de venda da matriz
+ * @returns {{ price: number, platformShare: number, transactionCost: number, platformFee: number, sellerNet: number }}
+ */
+export function calculateMarketplaceTotals(productPrice) {
+    const amount = parseFloat(productPrice);
+    if (isNaN(amount) || amount <= 0) {
+        return {
+            price: 0,
+            platformShare: 0,
+            transactionCost: 0,
+            platformFee: 0,
+            sellerNet: 0
+        };
+    }
+
+    const price = Math.round(amount * 100) / 100;
+    const platformShare = Number((price * MARKETPLACE_PLATFORM_RATE).toFixed(2));
+    const transactionCost = MARKETPLACE_TRANSACTION_COST;
+    const platformFee = Number((platformShare + transactionCost).toFixed(2));
+    const sellerNet = Number(Math.max(0, price - platformFee).toFixed(2));
+
+    return {
+        price,
+        platformShare,
+        transactionCost,
+        platformFee,
+        sellerNet
     };
 }
 

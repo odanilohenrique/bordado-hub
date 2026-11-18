@@ -43,8 +43,10 @@ export async function POST(request: Request) {
         }
 
         const amount = Number(product.price)
-        const platformFee = Number((amount * 0.15).toFixed(2)) // 15%
-        const sellerNet = Number((amount - platformFee).toFixed(2)) // 85%
+        const platformShare = Number((amount * 0.15).toFixed(2)) // 15% Participação da plataforma
+        const transactionCost = amount > 0 ? 1.00 : 0.00 // R$ 1,00 Custo da transação (taxa Asaas)
+        const platformFee = Number((platformShare + transactionCost).toFixed(2))
+        const sellerNet = Number(Math.max(0, amount - platformFee).toFixed(2))
 
         // 3. Create or reuse pending order
         const { data: order, error: orderErr } = await supabase

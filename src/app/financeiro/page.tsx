@@ -334,7 +334,9 @@ export default function FinancialDashboard() {
                         const buyerObj = Array.isArray(order.buyer) ? order.buyer[0] : order.buyer
 
                         const gross = Number(order.amount || 0)
-                        const net = order.seller_net != null ? Number(order.seller_net) : Number((gross * 0.85).toFixed(2))
+                        const net = order.seller_net != null
+                            ? Number(order.seller_net)
+                            : Number(Math.max(0, gross - Number((gross * 0.15 + (gross > 0 ? 1.00 : 0)).toFixed(2))).toFixed(2))
 
                         consolidated.push({
                             id: order.id,
@@ -412,7 +414,9 @@ export default function FinancialDashboard() {
                             }
                             const clientObj = Array.isArray(tx.cliente) ? tx.cliente[0] : tx.cliente
                             const gross = Number(tx.amount || 0)
-                            const net = tx.valor_liquido != null ? Number(tx.valor_liquido) : Number((gross * 0.85).toFixed(2))
+                            const net = tx.valor_liquido != null
+                                ? Number(tx.valor_liquido)
+                                : Number(Math.max(0, gross - Number((gross * 0.15 + (gross > 0 ? 1.00 : 0)).toFixed(2))).toFixed(2))
 
                             consolidated.push({
                                 id: tx.id,
