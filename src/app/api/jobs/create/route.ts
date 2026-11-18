@@ -2,6 +2,118 @@ import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabaseClient'
 import { sendPushToProgrammers } from '@/lib/pushNotifications'
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+interface UserLookupRow {
+    id: string
+    supabase_user_id?: string | null
+}
+
+function normalizeId(value: unknown): string {
+    return typeof value === 'string' ? value.trim() : ''
+}
+
+async function resolveClientUserId(
+    supabase: ReturnType<typeof createServiceClient>,
+    rawClienteId: unknown,
+    rawAuthUserId: unknown
+): Promise<string | undefined> {
+    const clienteId = normalizeId(rawClienteId)
+    const authUserId = normalizeId(rawAuthUserId)
+
+    const clienteIsUuid = Boolean(clienteId && UUID_REGEX.test(clienteId))
+    const authIsUuid = Boolean(authUserId && UUID_REGEX.test(authUserId))
+
+    const orFilters: string[] = []
+    if (clienteIsUuid) {
+        orFilters.push(`id.eq.${clienteId}`, `supabase_user_id.eq.${clienteId}`)
+    }
+    if (authIsUuid && authUserId.toLowerCase() !== clienteId.toLowerCase()) {
+        orFilters.push(`supabase_user_id.eq.${authUserId}`)
+    }
+
+    let resolvedByClienteId: string | undefined
+    let resolvedByAuthId: string | undefined
+
+    if (orFilters.length > 0) {
+        const { data: candidates } = await supabase
+            .from('users')
+            .select('id, supabase_user_id')
+            .or(orFilters.join(','))
+
+        if (candidates && candidates.length > 0) {
+            const clienteLower = clienteId.toLowerCase()
+            const authLower = authUserId.toLowerCase()
+
+            if (clienteIsUuid) {
+                const byId = candidates.find(
+                    (u: UserLookupRow) => typeof u.id === 'string' && u.id.toLowerCase() === clienteLower
+                )
+                const byClienteAuth = candidates.find(
+                    (u: UserLookupRow) =>
+                        typeof u.supabase_user_id === 'string' &&
+                        u.supabase_user_id.toLowerCase() === clienteLower
+                )
+                resolvedByClienteId = byId?.id || byClienteAuth?.id
+            }
+
+            if (authIsUuid) {
+                const byAuth = candidates.find(
+                    (u: UserLookupRow) =>
+                        typeof u.supabase_user_id === 'string' &&
+                        u.supabase_user_id.toLowerCase() === authLower
+                )
+                resolvedByAuthId = byAuth?.id
+            }
+        }
+    }
+
+    if (resolvedByClienteId) {
+        return resolvedByClienteId
+    }
+
+    // Fallback seguro para identificadores não-UUID (evita erro de cast UUID no filtro .or)
+    if (clienteId && !clienteIsUuid) {
+        const { data: userDirect } = await supabase
+            .from('users')
+            .select('id')
+            .eq('id', clienteId)
+            .maybeSingle()
+
+        if (userDirect) {
+            return userDirect.id
+        }
+
+        const { data: userByAuth } = await supabase
+            .from('users')
+            .select('id')
+            .eq('supabase_user_id', clienteId)
+            .maybeSingle()
+
+        if (userByAuth) {
+            return userByAuth.id
+        }
+    }
+
+    if (resolvedByAuthId) {
+        return resolvedByAuthId
+    }
+
+    if (authUserId && !authIsUuid) {
+        const { data: userByAuth } = await supabase
+            .from('users')
+            .select('id')
+            .eq('supabase_user_id', authUserId)
+            .maybeSingle()
+
+        if (userByAuth) {
+            return userByAuth.id
+        }
+    }
+
+    return clienteId || undefined
+}
+
 export async function POST(request: Request) {
     try {
         const body = await request.json()
@@ -31,40 +143,7 @@ export async function POST(request: Request) {
         const supabase = createServiceClient()
 
         // 1. Resolve o ID do usuário na tabela pública users
-        let resolvedUserId = cliente_id
-
-        if (resolvedUserId) {
-            const { data: userDirect } = await supabase
-                .from('users')
-                .select('id')
-                .eq('id', resolvedUserId)
-                .maybeSingle()
-
-            if (!userDirect) {
-                // Pode ser o supabase_user_id passado como cliente_id
-                const { data: userByAuth } = await supabase
-                    .from('users')
-                    .select('id')
-                    .eq('supabase_user_id', resolvedUserId)
-                    .maybeSingle()
-
-                if (userByAuth) {
-                    resolvedUserId = userByAuth.id
-                }
-            }
-        }
-
-        if (!resolvedUserId && auth_user_id) {
-            const { data: userByAuth } = await supabase
-                .from('users')
-                .select('id')
-                .eq('supabase_user_id', auth_user_id)
-                .maybeSingle()
-
-            if (userByAuth) {
-                resolvedUserId = userByAuth.id
-            }
-        }
+        const resolvedUserId = await resolveClientUserId(supabase, cliente_id, auth_user_id)
 
         if (!resolvedUserId) {
             return NextResponse.json({ error: 'Usuário não identificado. Por favor, refaça o login.' }, { status: 401 })

@@ -1385,6 +1385,27 @@ test('T2-SEC-02: Idempotência de ledger e ocultação de file_url em /api/marke
     })
 })
 
+test('T2-SEC-03: Blindagem de retry-payout, propostas concorrentes, marketplace e canonicalização SEO', () => {
+    verifyFileContent('src/app/api/jobs/retry-payout/route.ts', {
+        includes: ['processando_liberacao', 'timingSafeEqual', 'maskPixKey'],
+        excludes: ['err.stack']
+    })
+    verifyFileContent('src/app/api/jobs/proposals/create/route.ts', {
+        includes: ['Promise.all', "job.status !== 'aberto'"]
+    })
+    verifyFileContent('src/app/marketplace/page.tsx', {
+        excludes: ['Marketplace • Em Breve']
+    })
+    verifyFileContent('src/app/sitemap.ts', {
+        includes: ['https://bordadohub.com'],
+        excludes: ['bordadohub.com.br']
+    })
+    verifyFileContent('src/app/robots.ts', {
+        includes: ['https://bordadohub.com'],
+        excludes: ['bordadohub.com.br']
+    })
+})
+
 // FEATURE 13 (Boundary)
 test('T2-F13-01: Verificação de que a branch atual não é a main (isolamento rigoroso)', () => {
     const head = fs.readFileSync('.git/HEAD', 'utf8')

@@ -96,8 +96,32 @@ export default function MarketplacePage() {
 
     const filteredProducts = products
         .filter(p => {
-            const matchesSearch = p.title.toLowerCase().includes(searchTerm.toLowerCase())
-            if (!matchesSearch) return false
+            const term = searchTerm.trim().toLowerCase()
+            if (term) {
+                const cleanTerm = term.replace(/^\.+/, '')
+                const formats = Array.isArray(p.formats)
+                    ? p.formats
+                    : typeof p.formats === 'string'
+                        ? p.formats.split(/[,;/\s]+/)
+                        : []
+
+                const matchesTitle = (p.title || '').toLowerCase().includes(term)
+                const matchesDescription = (p.description || '').toLowerCase().includes(term)
+                const matchesCategory = (p.category || '').toLowerCase().includes(term)
+                const matchesSeller = (p.seller?.name || '').toLowerCase().includes(term)
+                const matchesFormats = formats.some((fmt: unknown) => {
+                    if (typeof fmt !== 'string') return false
+                    const normalizedFmt = fmt.trim().toLowerCase().replace(/^\.+/, '')
+                    return (
+                        fmt.toLowerCase().includes(term) ||
+                        (cleanTerm.length > 0 && normalizedFmt.includes(cleanTerm))
+                    )
+                })
+
+                if (!matchesTitle && !matchesDescription && !matchesCategory && !matchesSeller && !matchesFormats) {
+                    return false
+                }
+            }
 
             if (activeFilter === 'bundle') return p.is_bundle
             if (activeFilter === 'single') return !p.is_bundle
@@ -122,13 +146,13 @@ export default function MarketplacePage() {
                 <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative z-10">
                     <div>
                         <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-[#FFAE00]/10 border border-[#FFAE00]/20 text-[#FFAE00] text-[10px] font-bold mb-3 uppercase tracking-[0.2em]">
-                            <Store className="w-3 h-3" /> Marketplace • Em Breve
+                            <Store className="w-3 h-3" /> Marketplace Oficial • Download Imediato
                         </div>
                         <h1 className="text-3xl md:text-3xl font-black text-[#F3F4F6] mb-2">
-                             Minhas <span className="text-[#FFAE00]">Matrizes</span>
+                            Catálogo de <span className="text-[#FFAE00]">Matrizes</span>
                         </h1>
                         <p className="text-gray-400 text-sm max-w-xl">
-                            Nosso catálogo de matrizes prontas e coleções estará disponível em breve! Estamos preparando tudo com muito carinho.
+                            Compre matrizes prontas e coleções testadas com liberação instantânea via PIX ou publique suas criações.
                         </p>
                     </div>
                     

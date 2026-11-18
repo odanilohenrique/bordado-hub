@@ -3,13 +3,21 @@ import crypto from 'crypto'
 import { getWaitlist, insertWaitlistRecord, WaitlistRecord } from '@/lib/waitlistStore'
 
 function isAuthorizedAdmin(request: Request): boolean {
-    const adminSecret = process.env.ADMIN_SECRET || 'bordadohub_admin_secret_2026'
+    const adminSecret = (process.env.ADMIN_SECRET || 'bordadohub_admin_secret_2026').trim()
     const authHeader = request.headers.get('authorization')
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
         return false
     }
     const token = authHeader.substring(7).trim()
-    return token === adminSecret.trim()
+    if (!token || !adminSecret) {
+        return false
+    }
+    const tokenBuf = Buffer.from(token, 'utf8')
+    const secretBuf = Buffer.from(adminSecret, 'utf8')
+    if (tokenBuf.length !== secretBuf.length) {
+        return false
+    }
+    return crypto.timingSafeEqual(tokenBuf, secretBuf)
 }
 
 /**
