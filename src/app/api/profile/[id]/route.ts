@@ -43,6 +43,7 @@ export async function GET(
         }
 
         // Strip sensitive fields before returning public profile
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { cpf_cnpj, pix_key, pix_key_type, ...safeUser } = user
 
         // 2. Fetch reviews

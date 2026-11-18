@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabaseClient'
-import { User, Star, MapPin, Calendar, Award, Package, Code, Edit2, Eye, FileJson, Layers, Upload, Camera, Sparkles, ArrowRight, CheckCircle2, Trash2, Loader2, FileText } from 'lucide-react'
+import { User, Star, Calendar, Award, Package, Code, Edit2, Eye, FileJson, Layers, Upload, Camera, Sparkles, ArrowRight, Trash2, Loader2, FileText } from 'lucide-react'
 import Image from 'next/image'
 import ProfileEditor from '@/components/ProfileEditor'
 import ProgrammerAccessModal from '@/components/ProgrammerAccessModal'
@@ -117,7 +117,6 @@ export default function ProfilePage() {
     const [reviews, setReviews] = useState<any[]>([])
     const [loading, setLoading] = useState<boolean>(() => !getValidatedInitialProfile())
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [currentUser, setCurrentUser] = useState<any>(() => authUser || null)
     const [isCreating, setIsCreating] = useState(false)
     const [newRole, setNewRole] = useState('cliente')
@@ -190,6 +189,7 @@ export default function ProfilePage() {
             }
         })
         return () => subscription.unsubscribe()
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [id])
 
     async function loadData(showSpinner = true) {
@@ -347,7 +347,6 @@ export default function ProfilePage() {
             if (!res.ok) throw new Error(data.error || 'Falha ao criar perfil')
 
             window.location.reload()
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (error: any) {
             alert('Falha: ' + error.message)
         } finally {
@@ -380,30 +379,8 @@ export default function ProfilePage() {
 
             // Reload data to show new avatar
             await loadData()
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (error: any) {
             alert('Erro ao alterar foto: ' + error.message)
-        } finally {
-            setAvatarUploading(false)
-        }
-    }
-
-    // Use Google Avatar
-    const handleUseGoogleAvatar = async () => {
-        const googleAvatar = currentUser?.user_metadata?.avatar_url || currentUser?.user_metadata?.picture
-        if (!googleAvatar || !profile) return
-
-        setAvatarUploading(true)
-        try {
-            const { error: updateError } = await supabase
-                .from('users')
-                .update({ avatar_url: googleAvatar })
-                .eq('id', profile.id)
-
-            if (updateError) throw updateError
-            await loadData()
-        } catch (error: any) {
-            alert('Erro ao atualizar foto: ' + error.message)
         } finally {
             setAvatarUploading(false)
         }
@@ -492,7 +469,6 @@ export default function ProfilePage() {
 
             toast.success(`${newUrls.length} foto(s) adicionada(s) com sucesso ao portfólio!`)
             await loadData()
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (error: any) {
             console.error('Erro no upload rápido do portfólio:', error)
             toast.error('Falha ao adicionar fotos: ' + (error.message || 'Tente novamente'))
@@ -522,7 +498,6 @@ export default function ProfilePage() {
             setProfile(updated)
             syncProfileCache(updated)
             toast.success('Item removido do portfólio com sucesso.')
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (err: any) {
             console.error('Erro ao remover item do portfólio:', err)
             toast.error('Erro ao remover item: ' + (err.message || 'Tente novamente'))
@@ -635,7 +610,6 @@ export default function ProfilePage() {
                                 router.replace(`/profile/${profile?.id || id}`)
                             }
                         }}
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         onSave={(updatedUser?: any) => {
                             setIsEditing(false)
                             if (updatedUser) {

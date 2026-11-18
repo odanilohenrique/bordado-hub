@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { ArrowLeft, Shield, Lock, Eye, Database, FileCheck } from 'lucide-react'
+import { ArrowLeft, Shield } from 'lucide-react'
 
 export const metadata = {
     title: 'Política de Privacidade | BordadoHUB',

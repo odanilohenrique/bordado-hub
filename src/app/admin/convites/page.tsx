@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { Key, Shield, Plus, Copy, Check, Users, Sparkles, AlertCircle, RefreshCw, Lock, Phone, Mail, MessageSquare, Code2, Link2, ExternalLink, Share2, CheckCircle2 } from 'lucide-react'
+import { Key, Shield, Plus, Copy, Check, Users, Sparkles, AlertCircle, RefreshCw, Lock, Phone, Mail, MessageSquare, Link2, ExternalLink, CheckCircle2 } from 'lucide-react'
 
 interface Invite {
     id: string
@@ -40,7 +40,6 @@ export default function AdminInvitesPage() {
     const [customCode, setCustomCode] = useState('')
     const [maxUses, setMaxUses] = useState(1)
     const [creating, setCreating] = useState(false)
-    const [createSuccess, setCreateSuccess] = useState<string | null>(null)
     const [lastGeneratedInvite, setLastGeneratedInvite] = useState<{ code: string; url: string } | null>(null)
     const [linkCodeInput, setLinkCodeInput] = useState('')
 
@@ -99,7 +98,6 @@ export default function AdminInvitesPage() {
         e.preventDefault()
         setCreating(true)
         setError(null)
-        setCreateSuccess(null)
 
         try {
             const res = await fetch('/api/invites', {
@@ -120,7 +118,6 @@ export default function AdminInvitesPage() {
 
             const newCode = data.invite.code
             const newUrl = getInviteUrl(newCode)
-            setCreateSuccess(`Convite ${newCode} gerado com sucesso!`)
             setLastGeneratedInvite({ code: newCode, url: newUrl })
             setLinkCodeInput(newCode)
             setCustomCode('')

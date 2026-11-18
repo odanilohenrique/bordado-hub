@@ -71,7 +71,6 @@ export async function POST(request: Request) {
         }
 
         // 2. Monta o payload do pedido
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const jobPayload: any = {
             cliente_id: resolvedUserId,
             title: title.trim(),

@@ -1,6 +1,49 @@
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabaseClient'
 
+function isSafeHttpUrl(value: unknown): boolean {
+    if (typeof value !== 'string') return false
+    const trimmed = value.trim()
+    if (!trimmed) return false
+    try {
+        const parsed = new URL(trimmed)
+        return parsed.protocol === 'https:' || parsed.protocol === 'http:'
+    } catch {
+        return false
+    }
+}
+
+function validateDeliveryUrls(raw: unknown): boolean {
+    if (!raw) return false
+
+    let entries: unknown[] = []
+    if (Array.isArray(raw)) {
+        entries = raw
+    } else if (typeof raw === 'string') {
+        const trimmed = raw.trim()
+        if (!trimmed) return false
+        if (trimmed.startsWith('[')) {
+            try {
+                const parsed = JSON.parse(trimmed)
+                if (!Array.isArray(parsed)) return false
+                entries = parsed
+            } catch {
+                return false
+            }
+        } else {
+            entries = trimmed
+                .split(/[\n,]+/)
+                .map(s => s.trim())
+                .filter(Boolean)
+        }
+    } else {
+        return false
+    }
+
+    if (entries.length === 0) return false
+    return entries.every(isSafeHttpUrl)
+}
+
 export async function POST(request: Request) {
     try {
         const { jobId, deliveryUrls, deliveryNotes } = await request.json()
@@ -21,6 +64,10 @@ export async function POST(request: Request) {
         const targetUrls = deliveryUrls || job.delivery_url
         if (!targetUrls) {
             return NextResponse.json({ error: 'Faltam dados da entrega.' }, { status: 400 })
+        }
+
+        if (!validateDeliveryUrls(targetUrls)) {
+            return NextResponse.json({ error: 'URLs de entrega inválidas. Use apenas links http:// ou https://.' }, { status: 400 })
         }
 
         const isRevision = job.status === 'em_revisao' || Boolean(job.revision_notes)

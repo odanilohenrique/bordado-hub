@@ -1,5 +1,3 @@
-import { useState } from 'react';
-
 export default function AuthToggle({ isLogin, setIsLogin }: { isLogin: boolean; setIsLogin: (v: boolean) => void }) {
     return (
         <div className="relative inline-flex w-48 h-10 bg-indigo-100 rounded-full p-1">

@@ -72,7 +72,6 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
             message: 'Trabalho aprovado e pagamento liberado para o PIX do criador!',
             transferInfo,
         })
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
         console.error(error)
         return NextResponse.json({ error: error.message }, { status: 500 })

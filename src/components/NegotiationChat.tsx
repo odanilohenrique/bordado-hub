@@ -3,7 +3,6 @@
 import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { Send, Paperclip, FileImage, RefreshCw, CheckCircle2, DollarSign, Package, Download, Handshake, X, Check, Clock, CheckCheck, Wrench, ArrowLeft } from 'lucide-react'
-import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 
 interface Message {
@@ -73,7 +72,6 @@ export default function NegotiationChat({
     const [deliveringRevision, setDeliveringRevision] = useState(false)
 
     const messagesEndRef = useRef<HTMLDivElement>(null)
-    const router = useRouter()
     const fileInputRef = useRef<HTMLInputElement>(null)
 
     useEffect(() => {
@@ -166,7 +164,7 @@ export default function NegotiationChat({
                 if (prop) {
                     setProposalData(prop)
                 }
-            } catch (err) {
+            } catch {
                 // silent
             }
         }, 2500)
@@ -175,6 +173,7 @@ export default function NegotiationChat({
             supabase.removeChannel(channel)
             clearInterval(syncInterval)
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [proposalId, currentUserId])
 
     const fetchOtherUser = async () => {
@@ -206,7 +205,7 @@ export default function NegotiationChat({
                     })
                 }
             }
-        } catch (e) {
+        } catch {
             // silent
         }
     }
@@ -222,7 +221,7 @@ export default function NegotiationChat({
                 setJobStatus(jobInfo.status)
                 setJobRevisionNotes(jobInfo.revision_notes)
             }
-        } catch (e) {
+        } catch {
             // silent
         }
     }
@@ -271,7 +270,7 @@ export default function NegotiationChat({
                 setProposalData(data)
                 if (data.amount) setAgreedValue(data.amount.toString())
             }
-        } catch (e) {
+        } catch {
             // silent
         }
     }

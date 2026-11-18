@@ -259,6 +259,7 @@ test('R3: Enforces 10-photo limit, cover selection, image_urls persistence, opti
             'image_urls: uploadedUrls',
             'upsert: false',
             'URL.revokeObjectURL',
+            'Promise.all(orderedPhotos.map',
         ],
         excludes: [
             'accept="image/*"',
@@ -326,6 +327,12 @@ test('Marketplace [id] page fixes SSR hydration, aligns timers, renders multi-ph
             '/marketplace/vender?edit=${product.id}',
             'Editar Matriz',
             'supabase_user_id',
+            '/api/marketplace/download/',
+        ],
+        excludes: [
+            'product.file_url',
+            ".select('*, ",
+            'storage_path',
         ],
     })
 })
@@ -343,7 +350,8 @@ test('Marketplace [id] layout preserves Server Component & OpenGraph invariants 
 
 test('Marketplace catalog & Loja seller store preserve T5-PERF-01, align timeouts, add error retry & owner Editar button', () => {
     verifyFileContent('src/app/marketplace/page.tsx', {
-        includes: ['safetyTimer', ".eq('is_active', true)", 'Tentar novamente', '8000', '8500'],
+        includes: ['safetyTimer', ".eq('is_active', true)", 'Tentar novamente', '8000', '8500', '.limit(60)'],
+        excludes: [".select('*, ", 'file_url', 'storage_path'],
     })
     verifyFileContent('src/app/loja/[sellerId]/page.tsx', {
         includes: [
@@ -354,8 +362,10 @@ test('Marketplace catalog & Loja seller store preserve T5-PERF-01, align timeout
             '/marketplace/vender?edit=${product.id}',
             "replace(/^\\.+/, '').toUpperCase()",
             'Tentar novamente',
+            'getCached',
+            'setCached',
         ],
-        excludes: ['if (authLoading) return'],
+        excludes: ['if (authLoading) return', ".select('*, ", 'file_url', 'storage_path'],
     })
 })
 

@@ -1,6 +1,22 @@
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabaseClient'
 
+const ALLOWED_AVATAR_EXTS = new Set(['jpg', 'jpeg', 'png', 'webp', 'gif'])
+const MAX_AVATAR_BYTES = 10 * 1024 * 1024 // 10 MB
+const MIME_TO_EXT: Record<string, string> = {
+    'image/jpeg': 'jpg',
+    'image/jpg': 'jpg',
+    'image/png': 'png',
+    'image/webp': 'webp',
+    'image/gif': 'gif',
+}
+const EXT_TO_MIME: Record<string, string> = {
+    jpg: 'image/jpeg',
+    png: 'image/png',
+    webp: 'image/webp',
+    gif: 'image/gif',
+}
+
 export async function POST(request: Request) {
     try {
         const formData = await request.formData()
@@ -17,40 +33,99 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Arquivo e ID do usuário são obrigatórios.' }, { status: 400 })
         }
 
+        if (userId.includes('..') || !/^[a-zA-Z0-9_-]+$/.test(userId)) {
+            return NextResponse.json({ error: 'ID de usuário inválido.' }, { status: 400 })
+        }
+
+        // Validate each file before any auth/upload work
+        const validatedFiles: Array<{ file: File; safeExt: string; contentType: string }> = []
+        for (const file of filesToProcess) {
+            if (file.size > MAX_AVATAR_BYTES) {
+                return NextResponse.json({ error: 'Imagem excede o limite máximo de 10 MB.' }, { status: 400 })
+            }
+
+            const mime = (file.type || '').toLowerCase().trim()
+            if (mime && (!mime.startsWith('image/') || mime === 'image/svg+xml')) {
+                return NextResponse.json({ error: 'Tipo de imagem não permitido. Use JPG, PNG, WebP ou GIF.' }, { status: 400 })
+            }
+
+            const hasDot = (file.name || '').includes('.')
+            const rawExt = hasDot ? (file.name.split('.').pop()?.toLowerCase() || '') : (MIME_TO_EXT[mime] || '')
+            if (!ALLOWED_AVATAR_EXTS.has(rawExt)) {
+                return NextResponse.json({ error: 'Formato de arquivo inválido. Use JPG, PNG, WebP ou GIF.' }, { status: 400 })
+            }
+
+            const safeExt = rawExt === 'jpeg' ? 'jpg' : rawExt
+            const contentType = MIME_TO_EXT[mime] ? mime : (EXT_TO_MIME[safeExt] || 'image/jpeg')
+            validatedFiles.push({ file, safeExt, contentType })
+        }
+
         const supabase = createServiceClient()
 
-        // 1. Ensure 'avatars' bucket exists
-        const { data: buckets } = await supabase.storage.listBuckets()
-        const avatarsBucketExists = buckets?.some(b => b.id === 'avatars')
+        // Optional Bearer auth verification: prevent uploading/overwriting another user's avatar
+        const authHeader = request.headers.get('authorization')
+        if (authHeader && authHeader.toLowerCase().startsWith('bearer ')) {
+            const token = authHeader.slice(7).trim()
+            if (!token) {
+                return NextResponse.json({ error: 'Sessão inválida ou expirada.' }, { status: 401 })
+            }
 
-        if (!avatarsBucketExists) {
-            const { error: bucketError } = await supabase.storage.createBucket('avatars', {
-                public: true,
-                fileSizeLimit: 10485760, // 10MB limit
-                allowedMimeTypes: ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/gif']
-            })
-            if (bucketError && !bucketError.message?.toLowerCase().includes('already exists')) {
-                console.error('Bucket creation error:', bucketError)
+            const { data: authData, error: authErr } = await supabase.auth.getUser(token)
+            if (authErr || !authData?.user) {
+                return NextResponse.json({ error: 'Sessão inválida ou expirada.' }, { status: 401 })
+            }
+
+            const authUser = authData.user
+            if (authUser.id !== userId) {
+                const { data: targetUser } = await supabase
+                    .from('users')
+                    .select('id, supabase_user_id')
+                    .or(`id.eq.${userId},supabase_user_id.eq.${userId}`)
+                    .maybeSingle()
+
+                if (!targetUser || (targetUser.id !== authUser.id && targetUser.supabase_user_id !== authUser.id)) {
+                    return NextResponse.json({ error: 'Acesso negado: você não pode alterar o avatar de outro usuário.' }, { status: 403 })
+                }
             }
         }
 
         const uploadedUrls: string[] = []
+        let bucketEnsured = false
 
-        // 2. Upload each file
-        for (let i = 0; i < filesToProcess.length; i++) {
-            const file = filesToProcess[i]
-            const fileExt = file.name.split('.').pop() || 'png'
-            const fileName = isPortfolio 
-                ? `portfolio-${userId}-${Date.now()}-${i}-${Math.random().toString(36).substring(2, 7)}.${fileExt}`
-                : `${userId}-${Date.now()}.${fileExt}`
+        // Upload each file directly to 'avatars' (create bucket lazily only on 'not found')
+        for (let i = 0; i < validatedFiles.length; i++) {
+            const { file, safeExt, contentType } = validatedFiles[i]
+            const fileName = isPortfolio
+                ? `portfolio-${userId}-${Date.now()}-${i}-${Math.random().toString(36).substring(2, 7)}.${safeExt}`
+                : `${userId}-${Date.now()}.${safeExt}`
             const fileBuffer = Buffer.from(await file.arrayBuffer())
 
-            const { error: uploadError } = await supabase.storage
+            let { error: uploadError } = await supabase.storage
                 .from('avatars')
                 .upload(fileName, fileBuffer, {
-                    contentType: file.type || 'image/jpeg',
+                    contentType,
                     upsert: true
                 })
+
+            if (uploadError && !bucketEnsured && uploadError.message?.toLowerCase().includes('not found')) {
+                bucketEnsured = true
+                const { error: bucketError } = await supabase.storage.createBucket('avatars', {
+                    public: true,
+                    fileSizeLimit: 10485760, // 10MB limit
+                    allowedMimeTypes: ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/gif']
+                })
+                if (bucketError && !bucketError.message?.toLowerCase().includes('already exists')) {
+                    console.error('Bucket creation error:', bucketError)
+                } else {
+                    const retryRes = await supabase.storage
+                        .from('avatars')
+                        .upload(fileName, fileBuffer, {
+                            contentType,
+                            upsert: true
+                        })
+                    uploadError = retryRes.error
+                }
+            }
 
             if (uploadError) {
                 console.error('Upload error:', uploadError)
@@ -67,7 +142,7 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Falha ao processar imagens.' }, { status: 500 })
         }
 
-        // 3. Update user record in database ONLY if it's an avatar upload
+        // Update user record in database ONLY if it's an avatar upload
         if (!isPortfolio && uploadedUrls.length > 0) {
             await supabase
                 .from('users')
@@ -80,7 +155,6 @@ export async function POST(request: Request) {
             avatarUrl: uploadedUrls[0],
             urls: uploadedUrls
         }, { status: 200 })
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
         console.error('Server error on upload-avatar:', error)
         return NextResponse.json({ error: `Erro interno: ${error.message}` }, { status: 500 })

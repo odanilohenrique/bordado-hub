@@ -25,7 +25,6 @@ export async function POST(request: Request) {
         }
 
         const supabase = createServiceClient()
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         let targetTx: any = null
 
         if (proposalId) {
@@ -46,9 +45,7 @@ export async function POST(request: Request) {
             }
 
             const { taxaCliente, taxaCriador, totalPago, valorLiquido, amount } = calculateTotals(baseAmount)
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const jobData: any = Array.isArray(prop.jobs) ? prop.jobs[0] : prop.jobs
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const clientUser: any = Array.isArray(jobData?.users) ? jobData?.users[0] : jobData?.users
 
             // 2. Check for existing pending transaction for this job
@@ -220,7 +217,6 @@ export async function POST(request: Request) {
             totalAmount,
             transactionId: targetTx.id,
         })
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
         console.error('Error processing credit card:', error)
         return NextResponse.json({ error: error.message || 'Erro ao processar cartão' }, { status: 500 })

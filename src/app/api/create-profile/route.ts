@@ -86,7 +86,6 @@ export async function POST(request: Request) {
         }
 
         return NextResponse.json({ data }, { status: 200 })
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
         console.error('Server error:', error)
         return NextResponse.json({ error: `Erro interno: ${error.message}` }, { status: 500 })

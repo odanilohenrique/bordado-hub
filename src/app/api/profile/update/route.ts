@@ -146,7 +146,6 @@ export async function POST(request: Request) {
             success: true,
             user: data && data.length > 0 ? data[0] : null
         }, { status: 200 })
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
         console.error('Server error updating profile:', err)
         return NextResponse.json({ error: `Erro interno: ${err.message}` }, { status: 500 })

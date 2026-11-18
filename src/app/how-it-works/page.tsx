@@ -21,11 +21,7 @@ import {
     Star,
     HelpCircle,
     ChevronDown,
-    Zap,
-    ThumbsUp,
-    Smartphone,
     HardDrive,
-    AlertCircle,
     CreditCard
 } from 'lucide-react'
 import Footer from '@/components/Footer'

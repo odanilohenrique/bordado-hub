@@ -21,9 +21,7 @@ export default function Checkout() {
 }
 
 function CheckoutClient({ proposalId }: { proposalId: string }) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [proposal, setProposal] = useState<any>(null)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [job, setJob] = useState<any>(null)
     const [loading, setLoading] = useState(true)
     const [processing, setProcessing] = useState(false)
@@ -150,43 +148,6 @@ function CheckoutClient({ proposalId }: { proposalId: string }) {
         return () => clearInterval(interval)
     }, [pixData, isPaid, checkStatus])
 
-    // Create Transaction helper
-    const createTransaction = async (metodo: string) => {
-        const baseAmount = Number(proposal.amount)
-        const { taxaCliente, taxaCriador, totalPago, valorLiquido } = calculateTotals(baseAmount)
-
-        const { data: { session } } = await supabase.auth.getSession()
-        const user = session?.user
-        const { data: profile } = await supabase
-            .from('users')
-            .select('id')
-            .eq('supabase_user_id', user!.id)
-            .single()
-
-        const { data: tx, error: txError } = await supabase
-            .from('transactions')
-            .insert([{
-                job_id: job.id,
-                cliente_id: profile!.id,
-                criador_id: proposal.criador_id,
-                amount: baseAmount,
-                taxa_cliente: taxaCliente,
-                taxa_criador: taxaCriador,
-                total_pago: totalPago,
-                valor_liquido: valorLiquido,
-                metodo,
-                status: 'pendente'
-            }])
-            .select()
-            .single()
-
-        if (txError) throw txError
-
-        await supabase.from('proposals').update({ status: 'aceita' }).eq('id', proposal.id)
-
-        return tx
-    }
-
     // PIX Payment Handler
     const handleGeneratePix = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -227,7 +188,6 @@ function CheckoutClient({ proposalId }: { proposalId: string }) {
                     await supabase.from('users').update({ cpf_cnpj: cpfCnpj }).eq('id', profile.id)
                 }
             }
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (err: any) {
             toast.error('Erro: ' + err.message)
         } finally {
@@ -278,7 +238,6 @@ function CheckoutClient({ proposalId }: { proposalId: string }) {
                 toast('Pagamento em análise. Você será notificado quando for confirmado.')
                 router.push('/pedidos')
             }
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (err: any) {
             toast('Erro ao processar cartão: ' + err.message)
         } finally {
@@ -307,7 +266,7 @@ function CheckoutClient({ proposalId }: { proposalId: string }) {
     }
 
     const baseAmount = Number(proposal.amount)
-    const { taxaCliente: clientFee, totalPago: totalAmount } = calculateTotals(baseAmount)
+    const { totalPago: totalAmount } = calculateTotals(baseAmount)
 
     // Taxa do cartão de crédito (repassada ao comprador)
     const { taxaCartao: cardFee, totalComTaxa: cardTotalAmount, rate: cardRate } = calculateCardFee(baseAmount, cardData.installmentCount)

@@ -24,7 +24,6 @@ import {
     Check, 
     AlertCircle,
     Package,
-    ArrowDownRight,
     ShoppingBag,
     Layers,
     RefreshCw

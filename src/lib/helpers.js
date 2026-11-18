@@ -94,7 +94,7 @@ export async function optimizeImageFile(file, maxDimension = 1600, quality = 0.8
                         let finalResult = blob
                         try {
                             finalResult = new File([blob], newName, { type: 'image/jpeg' })
-                        } catch (fileConstErr) {
+                        } catch {
                             // Compatibilidade para WebKit / iOS Safari onde new File() pode falhar
                             blob.name = newName
                             finalResult = blob

@@ -55,7 +55,7 @@ async function asaasFetch(endpoint: string, options: RequestInit = {}) {
     let data: any = {}
     try {
         data = rawText ? JSON.parse(rawText) : {}
-    } catch (e) {
+    } catch {
         console.error('Failed to parse Asaas response:', rawText)
         throw new Error('Asaas retornou uma resposta inválida: ' + (rawText || 'vazio'))
     }

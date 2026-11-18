@@ -1,6 +1,13 @@
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabaseClient'
 
+const BLOCKED_UPLOAD_EXTS = new Set([
+    'exe', 'bat', 'cmd', 'com', 'scr', 'msi', 'sh', 'bash', 'ps1', 'vbs',
+    'js', 'mjs', 'cjs', 'php', 'py', 'rb', 'pl', 'jar', 'apk', 'dll', 'so', 'dylib',
+    'html', 'htm', 'svg'
+])
+const MAX_UPLOAD_BYTES = 30 * 1024 * 1024 // 30 MB
+
 export async function POST(request: Request) {
     try {
         const formData = await request.formData()
@@ -17,8 +24,18 @@ export async function POST(request: Request) {
         }
 
         const ALLOWED_BUCKETS = ['job-deliveries', 'chat-attachments', 'avatars', 'proposal_attachments']
-        if (!ALLOWED_BUCKETS.includes(bucket) || path.includes('..') || path.startsWith('/')) {
+        if (!ALLOWED_BUCKETS.includes(bucket) || path.includes('..') || path.startsWith('/') || !/^[a-zA-Z0-9._/-]+$/.test(path)) {
             return NextResponse.json({ error: 'Destino de upload inválido ou não autorizado.' }, { status: 400 })
+        }
+
+        if (file.size > MAX_UPLOAD_BYTES) {
+            return NextResponse.json({ error: 'Arquivo excede o limite máximo de 30 MB.' }, { status: 400 })
+        }
+
+        const fileExt = (file.name || '').split('.').pop()?.toLowerCase() || ''
+        const pathExt = path.split('.').pop()?.toLowerCase() || ''
+        if (BLOCKED_UPLOAD_EXTS.has(fileExt) || BLOCKED_UPLOAD_EXTS.has(pathExt)) {
+            return NextResponse.json({ error: 'Tipo de arquivo bloqueado por segurança.' }, { status: 400 })
         }
 
         const supabase = createServiceClient()
@@ -26,11 +43,6 @@ export async function POST(request: Request) {
         // Convert File to Buffer for server-side upload
         const arrayBuffer = await file.arrayBuffer()
         const buffer = Buffer.from(arrayBuffer)
-
-        // Encode filename for content-disposition header standard (RFC 5987)
-        const safeFallbackName = originalName.replace(/[^\x20-\x7E]/g, '_').replace(/["\\]/g, '')
-        const encodedUtf8Name = encodeURIComponent(originalName)
-        const contentDisposition = `attachment; filename="${safeFallbackName}"; filename*=UTF-8''${encodedUtf8Name}`
 
         const { error: uploadError } = await supabase.storage
             .from(bucket)

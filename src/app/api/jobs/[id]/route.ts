@@ -142,7 +142,6 @@ export async function GET(
             transaction,
             unreadCounts
         }, { status: 200 })
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
         console.error('Server error in /api/jobs/[id]:', err)
         return NextResponse.json({ error: err.message }, { status: 500 })
@@ -163,7 +162,7 @@ export async function DELETE(
         try {
             const body = await request.json()
             userId = body?.userId || ''
-        } catch (_) {
+        } catch {
             const url = new URL(request.url)
             userId = url.searchParams.get('userId') || ''
         }

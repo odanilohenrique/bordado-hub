@@ -34,7 +34,6 @@ export default function MobileDrawer({ isOpen, onClose, profile, userId }: Mobil
         router.refresh()
     }
 
-    const isCreator = profile?.role === 'criador'
     const profileHref = profile ? `/profile/${profile.id}` : userId ? `/profile/${userId}` : '/login'
 
     return (

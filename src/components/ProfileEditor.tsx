@@ -84,7 +84,6 @@ interface UserProfile {
 interface ProfileEditorProps {
     profile: UserProfile
     onCancel: () => void
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     onSave: (updatedUser?: any) => void
 }
 
@@ -126,6 +125,7 @@ export default function ProfileEditor({ profile, onCancel, onSave }: ProfileEdit
             }
         }
         fetchGoogleAvatar()
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
 
     const handleChange = (field: string, value: any) => {

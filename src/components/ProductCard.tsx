@@ -63,7 +63,7 @@ export default function ProductCard({ product }: { product: any }) {
                 {/* Seller Info */}
                 <div className="flex items-center gap-2 mb-3">
                     {product.seller?.avatar_url ? (
-                        <img src={product.seller.avatar_url} alt={product.seller.name} className="w-5 h-5 rounded-full object-cover" />
+                        <img src={product.seller.avatar_url} alt={product.seller.name} loading="lazy" decoding="async" className="w-5 h-5 rounded-full object-cover" />
                     ) : (
                         <div className="w-5 h-5 rounded-full bg-gray-700 flex items-center justify-center">
                             <Star className="w-3 h-3 text-gray-500" />

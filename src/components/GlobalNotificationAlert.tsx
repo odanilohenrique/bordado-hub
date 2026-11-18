@@ -19,9 +19,7 @@ interface Notification {
 
 export default function GlobalNotificationAlert() {
     const { profileId } = useAuth()
-    const [notifications, setNotifications] = useState<Notification[]>([])
     const [currentAlert, setCurrentAlert] = useState<Notification | null>(null)
-    const [userId, setUserId] = useState<string | null>(profileId || null)
     const currentAlertIdRef = useRef<string | null>(null)
 
     useEffect(() => {
@@ -35,7 +33,6 @@ export default function GlobalNotificationAlert() {
         const setup = async () => {
             const myProfileId = profileId
             if (!myProfileId) return
-            setUserId(myProfileId)
 
             // Fetch existing unread notifications
             const { data: unreads } = await supabase
@@ -77,7 +74,6 @@ export default function GlobalNotificationAlert() {
             }
 
             if (unreads && unreads.length > 0) {
-                setNotifications(unreads)
                 const firstToShow = unreads.find(n => shouldShowPopup(n)) || null
                 currentAlertIdRef.current = firstToShow?.id ?? null
                 setCurrentAlert(firstToShow)
@@ -102,7 +98,6 @@ export default function GlobalNotificationAlert() {
                     (payload) => {
                         if (!isMounted) return
                         const newNotification = payload.new as Notification
-                        setNotifications(prev => [newNotification, ...prev])
                         
                         // Only show popup alert if allowed (e.g. first chat message or system alert)
                         if (shouldShowPopup(newNotification)) {
@@ -128,7 +123,6 @@ export default function GlobalNotificationAlert() {
                         if (!isMounted) return
                         const updated = payload.new as Notification
                         if (updated.is_read) {
-                            setNotifications(prev => prev.filter(n => n.id !== updated.id))
                             if (currentAlertIdRef.current === updated.id) {
                                 currentAlertIdRef.current = null
                                 setCurrentAlert(null)
@@ -152,7 +146,6 @@ export default function GlobalNotificationAlert() {
 
     const markAsRead = async (id: string) => {
         try {
-            setNotifications(prev => prev.filter(n => n.id !== id))
             if (currentAlertIdRef.current === id) {
                 currentAlertIdRef.current = null
                 setCurrentAlert(null)
@@ -185,7 +178,6 @@ export default function GlobalNotificationAlert() {
         currentAlertIdRef.current = null
         setCurrentAlert(null)
         if (targetAlertId) {
-            setNotifications(prev => prev.filter(n => n.id !== targetAlertId))
             // Atualiza no banco em background
             void (async () => {
                 try {

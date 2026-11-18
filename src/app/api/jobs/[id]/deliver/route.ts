@@ -1,6 +1,13 @@
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabaseClient'
 
+const BLOCKED_UPLOAD_EXTS = new Set([
+    'exe', 'bat', 'cmd', 'com', 'scr', 'msi', 'sh', 'bash', 'ps1', 'vbs',
+    'js', 'mjs', 'cjs', 'php', 'py', 'rb', 'pl', 'jar', 'apk', 'dll', 'so', 'dylib',
+    'html', 'htm', 'svg'
+])
+const MAX_DELIVER_BYTES = 30 * 1024 * 1024 // 30 MB
+
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
     try {
         const { id } = await params
@@ -13,11 +20,21 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
             return NextResponse.json({ error: 'Missing file or creator ID' }, { status: 400 })
         }
 
+        if (file.size > MAX_DELIVER_BYTES) {
+            return NextResponse.json({ error: 'Arquivo excede o limite máximo de 30 MB.' }, { status: 400 })
+        }
+
+        const fileExt = (file.name || '').split('.').pop()?.toLowerCase() || ''
+        if (BLOCKED_UPLOAD_EXTS.has(fileExt)) {
+            return NextResponse.json({ error: 'Tipo de arquivo bloqueado por segurança.' }, { status: 400 })
+        }
+
+        const cleanFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_').replace(/\.{2,}/g, '_')
         const supabase = createServiceClient()
 
         // Upload file to Supabase Storage
-        const fileName = `${id}_${Date.now()}_${file.name}`
-        const { data: uploadData, error: uploadError } = await supabase.storage
+        const fileName = `${id}_${Date.now()}_${cleanFileName}`
+        const { error: uploadError } = await supabase.storage
             .from('deliveries')
             .upload(fileName, file)
 
@@ -55,7 +72,6 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
             .eq('id', id)
 
         return NextResponse.json({ success: true, delivery })
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
         console.error(error)
         return NextResponse.json({ error: error.message }, { status: 500 })

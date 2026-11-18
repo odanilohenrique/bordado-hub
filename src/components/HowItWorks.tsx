@@ -228,7 +228,7 @@ export default function HowItWorks() {
                                     {/* Linha vertical conectora de fundo */}
                                     <div className="absolute left-[13px] sm:left-[15px] top-3 bottom-5 w-0.5 bg-gradient-to-b from-[#D8C7A7] via-[#DFD1B7] to-[#D8C7A7]" />
 
-                                    {workflow.steps.map((item, idx) => (
+                                    {workflow.steps.map((item) => (
                                         <div key={item.step} className="relative flex items-start gap-3.5 group/item">
                                             {/* Bolinha / Ícone na linha do tempo */}
                                             <div

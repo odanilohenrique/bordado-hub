@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabaseClient'
 import { useRouter, useParams, useSearchParams } from 'next/navigation'
 import { formatDate } from '@/lib/helpers'
 import Link from 'next/link'
-import { ArrowLeft, Clock, Calendar, MessageSquare, AlertCircle, CheckCircle, Package, Zap, User, X, Star, PenTool, Download, Upload, Send, Sparkles, DollarSign, Wrench, Camera, RotateCcw, Ruler, Maximize2, Handshake, Check, Code, Loader2, Trash2, Lock } from 'lucide-react'
+import { ArrowLeft, Clock, Calendar, MessageSquare, AlertCircle, CheckCircle, Package, Zap, User, X, Star, PenTool, Download, Upload, Send, Sparkles, DollarSign, Wrench, Camera, Ruler, Maximize2, Handshake, Check, Code, Loader2, Trash2, Lock } from 'lucide-react'
 import NegotiationChat from '@/components/NegotiationChat'
 import { toast } from 'sonner'
 import JSZip from 'jszip'
@@ -201,7 +201,6 @@ function JobDetailClient({ jobId }: { jobId: string }) {
     const [job, setJob] = useState<Job | null>(null)
     const [selectedMatrixIdx, setSelectedMatrixIdx] = useState(0)
     const [proposals, setProposals] = useState<Proposal[]>([])
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [currentUser, setCurrentUser] = useState<any>(null)
     const [loading, setLoading] = useState<boolean>(true)
 
@@ -496,6 +495,7 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                 }
             }, 300)
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [chatParam, proposals.length, currentUser?.id])
 
     // Auto-open payment modal when arriving via notification with ?pay=...
@@ -509,7 +509,7 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                 const url = new URL(window.location.href)
                 url.searchParams.delete('pay')
                 window.history.replaceState({}, '', url.pathname + (url.search ? url.search : ''))
-            } catch (_) {}
+            } catch {}
             setTimeout(() => {
                 const propCard = document.getElementById(`proposal-card-${found.id}`)
                 if (propCard) {
@@ -525,7 +525,7 @@ function JobDetailClient({ jobId }: { jobId: string }) {
             const url = new URL(window.location.href)
             url.searchParams.delete('pay')
             window.history.replaceState({}, '', url.pathname + (url.search ? url.search : ''))
-        } catch (_) {}
+        } catch {}
     }
 
     const handleCloseChat = () => {
@@ -534,7 +534,7 @@ function JobDetailClient({ jobId }: { jobId: string }) {
             const url = new URL(window.location.href)
             url.searchParams.delete('chat')
             window.history.replaceState({}, '', url.pathname + (url.search ? url.search : ''))
-        } catch (_) {}
+        } catch {}
     }
 
     const handleOpenChatForAdjustment = async () => {
@@ -949,7 +949,7 @@ function JobDetailClient({ jobId }: { jobId: string }) {
             ])
             clearCache('pedidos_jobs')
             clearCache('producao_data')
-        } catch (_) {}
+        } catch {}
 
         window.location.href = `/checkout/${proposalId}`
     }
@@ -1739,7 +1739,7 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                             const content = await zip.generateAsync({ type: 'blob' })
                                             saveAs(content, `${job.title || 'matrizes'}.zip`)
                                             toast.success('Download concluído!')
-                                        } catch (err) {
+                                        } catch {
                                             toast.error('Erro ao compactar arquivos.')
                                         }
                                     }
@@ -2109,7 +2109,7 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                             const content = await zip.generateAsync({ type: 'blob' })
                                             saveAs(content, `${job.title || 'matrizes'}.zip`)
                                             toast.success('Download concluído!')
-                                        } catch (err) {
+                                        } catch {
                                             toast.error('Erro ao compactar arquivos.')
                                         }
                                     }

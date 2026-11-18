@@ -7,6 +7,9 @@ import { Search, Store, UploadCloud, TrendingUp, Tag, AlertCircle, RefreshCw } f
 import ProductCard from '@/components/ProductCard'
 import { getCached, setCached } from '@/lib/clientCache'
 
+const PUBLIC_MARKETPLACE_COLUMNS =
+    'id, seller_id, title, description, price, category, formats, image_url, image_urls, is_bundle, items_count, sales_count, is_active, created_at, seller:seller_id(name, avatar_url, rating)'
+
 function ProductCardSkeleton() {
     return (
         <div className="bg-[#1A1D23] border border-gray-800 rounded-2xl overflow-hidden animate-pulse flex flex-col h-80">
@@ -49,9 +52,10 @@ export default function MarketplacePage() {
             try {
                 const queryPromise = supabase
                     .from('marketplace_products')
-                    .select('*, seller:seller_id(name, avatar_url, rating)')
+                    .select(PUBLIC_MARKETPLACE_COLUMNS)
                     .eq('is_active', true)
                     .order('created_at', { ascending: false })
+                    .limit(60)
 
                 const timeoutPromise = new Promise<{ data: any; error: any }>((resolve) =>
                     setTimeout(() => resolve({ data: null, error: new Error('Marketplace query timeout') }), 8000)

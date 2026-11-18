@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabaseClient'
-import { Bell, Wrench, MessageSquare, CheckCircle, ExternalLink, Check, Zap } from 'lucide-react'
+import { Bell, Wrench, MessageSquare, ExternalLink, Check, Zap } from 'lucide-react'
 import Link from 'next/link'
 
 import { getCached, setCached } from '@/lib/clientCache'

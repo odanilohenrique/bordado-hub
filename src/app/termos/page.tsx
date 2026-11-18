@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { FileText, ArrowLeft, ShieldCheck, Scale, CheckCircle2, AlertCircle } from 'lucide-react'
+import { ArrowLeft, ShieldCheck, Scale } from 'lucide-react'
 
 export const metadata = {
     title: 'Termos de Uso | BordadoHUB',

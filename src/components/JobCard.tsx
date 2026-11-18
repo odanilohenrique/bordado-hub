@@ -317,7 +317,7 @@ export default function JobCard({ job, hasNegotiation, viewerRole, proposalCount
                                         const sizes = parsed.map((p: any) => p.size).filter(Boolean).slice(0, 2).join(', ')
                                         return `${parsed.length} Matrizes${sizes ? ` (${sizes}${parsed.length > 2 ? '...' : ''})` : ''}`
                                     }
-                                } catch (_) {}
+                                } catch {}
                             }
                             return job.dimensions
                         })()

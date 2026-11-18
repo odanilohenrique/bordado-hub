@@ -12,17 +12,11 @@ export default function CreatorDashboard() {
     const { user: authUser, profileId, loading: authLoading, profileLoading } = useAuth()
     const authUserId = authUser?.id || null
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [inRevision, setInRevision] = useState<any[]>([])
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [inProduction, setInProduction] = useState<any[]>([])
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [delivered, setDelivered] = useState<any[]>([])
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [completed, setCompleted] = useState<any[]>([])
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [pendingProposals, setPendingProposals] = useState<any[]>([])
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [directRequests, setDirectRequests] = useState<any[]>([])
     const [loading, setLoading] = useState<boolean>(true)
     const [fetchError, setFetchError] = useState<string | null>(null)

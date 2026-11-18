@@ -87,7 +87,6 @@ export async function GET(request: Request) {
             status: asaasStatus.status,
             isPaid,
         })
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
         console.error('Error checking payment status:', error)
         return NextResponse.json({ error: error.message }, { status: 500 })

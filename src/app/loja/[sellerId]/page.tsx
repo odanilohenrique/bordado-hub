@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabaseClient'
 import { useAuth } from '@/contexts/AuthContext'
-import { clearCache } from '@/lib/clientCache'
+import { clearCache, getCached, setCached } from '@/lib/clientCache'
 import ProductCard from '@/components/ProductCard'
 import { toast } from 'sonner'
 import { 
@@ -25,6 +25,9 @@ import {
     Pencil,
     RefreshCw
 } from 'lucide-react'
+
+const PUBLIC_STORE_PRODUCT_COLUMNS =
+    'id, seller_id, title, description, price, category, formats, image_url, image_urls, is_bundle, items_count, sales_count, is_active, created_at, seller:seller_id(name, avatar_url, rating)'
 
 const formatPrice = (price: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -66,8 +69,19 @@ export default function SellerStorePage() {
     useEffect(() => {
         if (!sellerId) return
 
+        const cleanSellerId = sellerId.trim()
         let isMounted = true
-        setLoading(true)
+        const cachedSeller = getCached<any>(`store_seller_${cleanSellerId}`)
+        const cachedProducts = getCached<any[]>(`store_products_${cleanSellerId}`)
+        const hasWarmCache = Boolean(cachedSeller && cachedProducts)
+
+        if (hasWarmCache) {
+            setSeller(cachedSeller)
+            setProducts(cachedProducts!)
+            setLoading(false)
+        } else {
+            setLoading(true)
+        }
         setFetchError(null)
         fetchedScopeRef.current = null
 
@@ -77,7 +91,6 @@ export default function SellerStorePage() {
 
         async function loadSeller() {
             try {
-                const cleanSellerId = sellerId.trim()
                 const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cleanSellerId)
 
                 let sellerQuery = supabase
@@ -103,8 +116,10 @@ export default function SellerStorePage() {
 
                 if (sellerErr) {
                     console.error('Erro ao carregar vendedor:', sellerErr)
-                    setFetchError('Não foi possível carregar os dados desta loja. Verifique sua conexão e tente novamente.')
-                    setSeller(null)
+                    if (!hasWarmCache) {
+                        setFetchError('Não foi possível carregar os dados desta loja. Verifique sua conexão e tente novamente.')
+                        setSeller(null)
+                    }
                     setLoading(false)
                     return
                 }
@@ -116,10 +131,16 @@ export default function SellerStorePage() {
                 }
 
                 setSeller(sellerData)
+                setCached(`store_seller_${cleanSellerId}`, sellerData, 60000)
+                if (sellerData.id && sellerData.id !== cleanSellerId) {
+                    setCached(`store_seller_${sellerData.id}`, sellerData, 60000)
+                }
             } catch (err) {
                 console.error('Erro ao carregar loja do vendedor:', err)
                 if (isMounted) {
-                    setFetchError('Não foi possível carregar os dados desta loja. Verifique sua conexão e tente novamente.')
+                    if (!hasWarmCache) {
+                        setFetchError('Não foi possível carregar os dados desta loja. Verifique sua conexão e tente novamente.')
+                    }
                     setLoading(false)
                 }
             } finally {
@@ -166,7 +187,7 @@ export default function SellerStorePage() {
             try {
                 let prodQuery = supabase
                     .from('marketplace_products')
-                    .select('*, seller:seller_id(name, avatar_url, rating)')
+                    .select(PUBLIC_STORE_PRODUCT_COLUMNS)
                     .eq('seller_id', seller.id)
 
                 if (!resolvedOwner) {
@@ -190,6 +211,12 @@ export default function SellerStorePage() {
                 } else {
                     setProductsError(null)
                     setProducts(prods || [])
+                    if (!resolvedOwner) {
+                        setCached(`store_products_${cleanSellerId}`, prods || [], 60000)
+                        if (seller.id !== cleanSellerId) {
+                            setCached(`store_products_${seller.id}`, prods || [], 60000)
+                        }
+                    }
                     fetchedScopeRef.current = {
                         sellerId: seller.id,
                         owner: resolvedOwner,
@@ -249,6 +276,8 @@ export default function SellerStorePage() {
 
             clearCache('marketplace_products')
             clearCache(`marketplace_product_${product.id}`)
+            clearCache(`store_products_${sellerId}`)
+            if (seller?.id) clearCache(`store_products_${seller.id}`)
             toast.success(nextActiveState ? 'Matriz reativada com sucesso!' : 'Matriz pausada com sucesso!')
         } catch (err: any) {
             console.error('Erro ao alternar status da matriz:', err)
@@ -285,6 +314,8 @@ export default function SellerStorePage() {
             setProducts(prev => prev.filter(p => p.id !== productToDelete.id))
             clearCache('marketplace_products')
             clearCache(`marketplace_product_${productToDelete.id}`)
+            clearCache(`store_products_${sellerId}`)
+            if (seller?.id) clearCache(`store_products_${seller.id}`)
             toast.success('Matriz desativada com sucesso!')
             setProductToDelete(null)
         } catch (err: any) {
@@ -383,6 +414,8 @@ export default function SellerStorePage() {
                         <img 
                             src={seller.avatar_url} 
                             alt={seller.name} 
+                            loading="lazy"
+                            decoding="async"
                             className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl object-cover border-2 border-[#FFAE00]/30 shadow-xl"
                         />
                     ) : (

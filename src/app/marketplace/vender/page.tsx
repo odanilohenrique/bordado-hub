@@ -718,14 +718,11 @@ function VenderMatrizContent() {
             const coverItem = photos.find((p) => p.id === effectiveCoverId) || photos[0]
             const orderedPhotos = [coverItem, ...photos.filter((p) => p.id !== coverItem.id)]
 
-            const uploadedUrls: string[] = []
-            for (let idx = 0; idx < orderedPhotos.length; idx++) {
-                const item = orderedPhotos[idx]
+            const uploadedResults = await Promise.all(orderedPhotos.map(async (item, idx): Promise<string | null> => {
                 if (item.isExisting) {
-                    uploadedUrls.push(item.url)
-                    continue
+                    return item.url
                 }
-                if (!item.file) continue
+                if (!item.file) return null
 
                 const optimized = await optimizeImageFile(item.file, 1600, 0.82)
                 const readySizeMb = optimized.size / (1024 * 1024)
@@ -752,8 +749,9 @@ function VenderMatrizContent() {
                     .from('marketplace-previews')
                     .getPublicUrl(imagePath)
 
-                uploadedUrls.push(publicUrl)
-            }
+                return publicUrl
+            }))
+            const uploadedUrls = uploadedResults.filter((url): url is string => Boolean(url))
 
             if (uploadedUrls.length === 0) {
                 throw new Error('Nenhuma foto válida disponível para o anúncio.')

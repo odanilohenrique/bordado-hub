@@ -1,4 +1,4 @@
-import { Star, CheckCircle, Quote } from 'lucide-react'
+import { Star, CheckCircle } from 'lucide-react'
 
 const testimonials = [
     {

@@ -26,6 +26,9 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 
+const PUBLIC_PRODUCT_DETAIL_COLUMNS =
+    'id, seller_id, title, description, price, category, formats, image_url, image_urls, is_bundle, items_count, sales_count, is_active, created_at, seller:seller_id(id, name, avatar_url, rating, reviews_count, supabase_user_id)'
+
 export default function MarketplaceProductPage() {
     const params = useParams()
     const router = useRouter()
@@ -45,7 +48,7 @@ export default function MarketplaceProductPage() {
     const [pixData, setPixData] = useState<{ qrCode: string; copyPaste: string } | null>(null)
     const [copied, setCopied] = useState(false)
     const [paymentStatus, setPaymentStatus] = useState<'idle' | 'pending' | 'paid'>('idle')
-    const [downloadUrl, setDownloadUrl] = useState<string | null>(null)
+    const [, setDownloadUrl] = useState<string | null>(null)
     const [isDownloading, setIsDownloading] = useState(false)
 
     const handleDownloadSecure = async () => {
@@ -57,7 +60,12 @@ export default function MarketplaceProductPage() {
 
         setIsDownloading(true)
         try {
-            const res = await fetch(`/api/marketplace/download/${productId}?userId=${currentUserId}`)
+            const { data: { session } } = await supabase.auth.getSession()
+            const res = await fetch(`/api/marketplace/download/${productId}?userId=${currentUserId}`, {
+                headers: {
+                    ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+                },
+            })
             const data = await res.json()
             if (!res.ok || data.error || !data.downloadUrl) {
                 throw new Error(data.error || 'Erro ao gerar download seguro.')
@@ -95,7 +103,7 @@ export default function MarketplaceProductPage() {
             try {
                 const queryPromise = supabase
                     .from('marketplace_products')
-                    .select('*, seller:seller_id(id, name, avatar_url, rating, reviews_count, supabase_user_id)')
+                    .select(PUBLIC_PRODUCT_DETAIL_COLUMNS)
                     .eq('id', productId)
                     .single()
 
@@ -166,7 +174,7 @@ export default function MarketplaceProductPage() {
             try {
                 const { data, error } = await supabase
                     .from('marketplace_orders')
-                    .select('id, status, product:product_id(file_url)')
+                    .select('id, status')
                     .eq('product_id', productId)
                     .in('buyer_id', buyerIds)
                     .eq('status', 'paid')
@@ -180,8 +188,7 @@ export default function MarketplaceProductPage() {
 
                 if (data) {
                     setPaymentStatus('paid')
-                    const fileUrl = (data as any).product?.file_url
-                    if (fileUrl) setDownloadUrl(fileUrl)
+                    setDownloadUrl(`/api/marketplace/download/${productId}`)
                 }
             } catch (err) {
                 console.warn('Erro inesperado ao verificar compra anterior:', err)
@@ -476,7 +483,7 @@ export default function MarketplaceProductPage() {
                                     className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] border border-white/5 transition-all group"
                                 >
                                     {product.seller?.avatar_url ? (
-                                        <img src={product.seller.avatar_url} alt={product.seller.name} className="w-10 h-10 rounded-full object-cover border border-white/10" />
+                                        <img src={product.seller.avatar_url} alt={product.seller.name} loading="lazy" decoding="async" className="w-10 h-10 rounded-full object-cover border border-white/10" />
                                     ) : (
                                         <div className="w-10 h-10 rounded-full bg-[#FFAE00]/20 text-[#FFAE00] font-bold flex items-center justify-center">
                                             {product.seller?.name?.[0]?.toUpperCase() || 'P'}
@@ -493,7 +500,7 @@ export default function MarketplaceProductPage() {
                             </div>
 
                             {/* Bloco de Ação: Download (se pago) ou Checkout PIX */}
-                            {paymentStatus === 'paid' && downloadUrl ? (
+                            {paymentStatus === 'paid' ? (
                                 <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-5 space-y-4 text-center">
                                     <div className="w-12 h-12 bg-green-500/20 rounded-full flex items-center justify-center mx-auto text-green-400">
                                         <CheckCircle className="w-6 h-6" />
@@ -562,14 +569,23 @@ export default function MarketplaceProductPage() {
                                         >
                                             <Pencil className="w-4 h-4" /> Editar Matriz
                                         </Link>
-                                        <a
-                                            href={product.file_url}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="w-full sm:w-auto min-h-[48px] px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-[#FFAE00] inline-flex items-center justify-center gap-2 transition-colors"
+                                        <button
+                                            type="button"
+                                            onClick={handleDownloadSecure}
+                                            disabled={isDownloading}
+                                            className="w-full sm:w-auto min-h-[48px] px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 disabled:opacity-50 border border-white/10 text-xs font-bold text-[#FFAE00] inline-flex items-center justify-center gap-2 transition-colors cursor-pointer"
                                         >
-                                            <Download className="w-4 h-4" /> Baixar arquivo original
-                                        </a>
+                                            {isDownloading ? (
+                                                <>
+                                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                                    Gerando link seguro...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Download className="w-4 h-4" /> Baixar arquivo original
+                                                </>
+                                            )}
+                                        </button>
                                     </div>
                                 </div>
                             ) : (
