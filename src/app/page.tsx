@@ -56,7 +56,7 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)]">
+    <div className="min-h-screen app-canvas-matte text-[var(--text-primary)]">
       <HeroSection />
       <TrustLogowall />
       <MarketplaceShowcase />

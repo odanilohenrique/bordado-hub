@@ -69,7 +69,7 @@ export default function HowItWorksPage() {
     ]
 
     return (
-        <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)]">
+        <div className="min-h-screen bg-transparent text-[var(--text-primary)]">
             {/* 1. HERO PRINCIPAL */}
             <section className="hero-bg-matte relative pt-12 pb-16 sm:pt-16 sm:pb-20 overflow-hidden border-b border-[var(--border-hairline)]">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">

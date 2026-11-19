@@ -2002,6 +2002,36 @@ test('T5-GUEST-PROPOSAL-GUARD: Propostas sanitizadas sem criador_id nunca dão f
     })
 })
 
+test('T5-LIGHT-DEPTH-MATTE: Profundidade arquitetônica e textura fosca no Modo Claro (Zero Glow/Dot-Grid/Emojis)', () => {
+    verifyFileContent('src/app/globals.css', {
+        includes: [
+            '.app-canvas-matte',
+            '.section-bg-woven',
+            '.surface-matte-elevated',
+            '--shadow-card-light',
+            '--shadow-surface-light',
+            '--shadow-card-light: none'
+        ]
+    })
+
+    verifyFileExists('src/components/home/HeroAtelierBackdrop.tsx', 400)
+    verifyFileContent('src/components/home/HeroAtelierBackdrop.tsx', {
+        includes: ['dark:hidden', 'aria-hidden="true"', 'strokeDasharray'],
+        excludes: ['blur-3xl', 'blur-2xl', 'drop-shadow']
+    })
+
+    const backdropLines = fs.readFileSync('src/components/home/HeroAtelierBackdrop.tsx', 'utf8')
+    const emojiRe = /[\p{Extended_Pictographic}\u2600-\u27BF]/gu
+    assert(!emojiRe.test(backdropLines), 'HeroAtelierBackdrop não deve conter emojis Unicode')
+
+    verifyFileContent('src/components/home/HeroSection.tsx', {
+        includes: ['HeroAtelierBackdrop']
+    })
+    verifyFileContent('src/app/layout.tsx', {
+        includes: ['app-canvas-matte']
+    })
+})
+
 test('T5-M1-SYNC: Suíte completa de sincronização e timing (scripts/test-m1-sync.mjs)', () => {
     runSubSuite('scripts/test-m1-sync.mjs')
 })

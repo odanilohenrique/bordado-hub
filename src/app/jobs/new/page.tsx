@@ -449,7 +449,7 @@ function NewJobContent() {
 
     if (checkingAuth) {
         return (
-            <div className="min-h-screen bg-[var(--bg-primary)] flex items-center justify-center">
+            <div className="min-h-screen bg-transparent flex items-center justify-center">
                 <div className="text-center">
                     <div className="w-16 h-16 border-4 border-[#2563EB]/25 dark:border-[#3B82F6]/25 border-t-[#2563EB] dark:border-t-[#3B82F6] rounded-full animate-spin mx-auto mb-4" />
                     <p className="text-[var(--text-secondary)]">Verificando autenticação...</p>
@@ -615,7 +615,7 @@ function NewJobContent() {
     }
 
     return (
-        <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)] py-8 px-4 sm:px-6 lg:px-8">
+        <div className="min-h-screen bg-transparent text-[var(--text-primary)] py-8 px-4 sm:px-6 lg:px-8">
             <div className="max-w-3xl mx-auto">
                 {/* Header */}
                 <div className="text-center mb-8">
@@ -1091,7 +1091,7 @@ function NewJobContent() {
 export default function NewJob() {
     return (
         <Suspense fallback={
-            <div className="min-h-screen bg-[var(--bg-primary)] flex items-center justify-center">
+            <div className="min-h-screen bg-transparent flex items-center justify-center">
                 <div className="text-center">
                     <div className="w-16 h-16 border-4 border-[#2563EB]/25 dark:border-[#3B82F6]/25 border-t-[#2563EB] dark:border-t-[#3B82F6] rounded-full animate-spin mx-auto mb-4" />
                     <p className="text-[var(--text-secondary)]">Carregando...</p>

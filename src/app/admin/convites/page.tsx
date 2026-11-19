@@ -159,7 +159,7 @@ export default function AdminInvitesPage() {
     }
 
     return (
-        <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)] flex flex-col">
+        <div className="min-h-screen bg-transparent text-[var(--text-primary)] flex flex-col">
             {/* Header */}
             <header className="border-b border-[var(--border-hairline)] bg-[var(--bg-surface)]/85 backdrop-blur-md sticky top-0 z-40">
                 <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-3">

@@ -155,7 +155,7 @@ function AuthCallbackContent() {
     }, [code, next])
 
     return (
-        <div className="min-h-[calc(100dvh-9rem)] flex items-center justify-center bg-[var(--bg-primary)] text-[var(--text-primary)] px-4">
+        <div className="min-h-[calc(100dvh-9rem)] flex items-center justify-center bg-transparent text-[var(--text-primary)] px-4">
             <div className="text-center max-w-sm">
                 <div className="w-14 h-14 border-4 border-[#2563EB]/20 border-t-[#2563EB] dark:border-[#3B82F6]/20 dark:border-t-[#3B82F6] rounded-full animate-spin mx-auto mb-4" />
                 <p className="text-[var(--text-primary)] text-base font-semibold">{status}</p>
@@ -168,7 +168,7 @@ function AuthCallbackContent() {
 export default function AuthCallback() {
     return (
         <Suspense fallback={
-            <div className="min-h-[calc(100dvh-9rem)] flex items-center justify-center bg-[var(--bg-primary)] text-[var(--text-primary)] px-4">
+            <div className="min-h-[calc(100dvh-9rem)] flex items-center justify-center bg-transparent text-[var(--text-primary)] px-4">
                 <div className="text-center">
                     <div className="w-14 h-14 border-4 border-[#2563EB]/20 border-t-[#2563EB] dark:border-[#3B82F6]/20 dark:border-t-[#3B82F6] rounded-full animate-spin mx-auto mb-4" />
                     <p className="text-[var(--text-secondary)]">Carregando...</p>

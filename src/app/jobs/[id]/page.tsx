@@ -128,7 +128,7 @@ interface Proposal {
 
 function JobDetailSkeleton() {
     return (
-        <div className="min-h-screen bg-[var(--bg-primary)] py-4 px-4 sm:px-6 lg:px-8 text-[var(--text-primary)] animate-pulse">
+        <div className="min-h-screen bg-transparent py-4 px-4 sm:px-6 lg:px-8 text-[var(--text-primary)] animate-pulse">
             <div className="max-w-6xl mx-auto flex flex-col gap-4">
                 {/* Back button skeleton */}
                 <div className="h-4 w-36 bg-[var(--border-hairline)] rounded-lg" />
@@ -1122,7 +1122,7 @@ function JobDetailClient({ jobId }: { jobId: string }) {
     }
 
     if (!job) return (
-        <div className="min-h-screen bg-[var(--bg-primary)] flex items-center justify-center text-[var(--text-primary)]">
+        <div className="min-h-screen bg-transparent flex items-center justify-center text-[var(--text-primary)]">
             Job não encontrado
         </div>
     )
@@ -1167,7 +1167,7 @@ function JobDetailClient({ jobId }: { jobId: string }) {
         : 0
 
     return (
-        <div className="min-h-screen bg-[var(--bg-primary)] py-4 px-4 sm:px-6 lg:px-8 text-[var(--text-primary)]">
+        <div className="min-h-screen bg-transparent py-4 px-4 sm:px-6 lg:px-8 text-[var(--text-primary)]">
             <div className="max-w-6xl mx-auto flex flex-col gap-4">
                 <Link
                     href="/pedidos"

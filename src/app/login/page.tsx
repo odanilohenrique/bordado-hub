@@ -64,7 +64,7 @@ function LoginForm() {
     }
 
     return (
-        <div className="min-h-[calc(100dvh-9rem)] bg-[var(--bg-primary)] flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8">
+        <div className="min-h-[calc(100dvh-9rem)] bg-transparent flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8">
             <div className="sm:mx-auto sm:w-full sm:max-w-md">
                 {/* Header */}
                 <div className="text-center mb-8">
@@ -193,7 +193,7 @@ function LoginForm() {
 export default function Login() {
     return (
         <Suspense fallback={
-            <div className="min-h-[calc(100dvh-9rem)] bg-[var(--bg-primary)] flex items-center justify-center">
+            <div className="min-h-[calc(100dvh-9rem)] bg-transparent flex items-center justify-center">
                 <div className="w-10 h-10 border-4 border-[#2563EB]/20 border-t-[#2563EB] dark:border-[#3B82F6]/20 dark:border-t-[#3B82F6] rounded-full animate-spin" />
             </div>
         }>

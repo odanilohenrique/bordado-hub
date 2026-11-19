@@ -89,7 +89,7 @@ export default function TrustLogowall() {
                     {ECOSYSTEM_METRICS.map((item) => (
                         <div
                             key={item.value}
-                            className="rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-hairline)] p-4 sm:p-5"
+                            className="rounded-xl bg-[#F7FAFE] dark:bg-[var(--bg-surface-elevated)] border border-[var(--border-hairline)] surface-matte-elevated p-4 sm:p-5"
                         >
                             <p className="text-lg sm:text-xl font-semibold tracking-tight text-[#2563EB] dark:text-[#60A5FA]">
                                 {item.value}

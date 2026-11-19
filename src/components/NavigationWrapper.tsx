@@ -31,7 +31,7 @@ export default function NavigationWrapper({ children }: { children: React.ReactN
     // This prevents hydration mismatches and SEO blockers.
     if (!mounted || !user) {
         return (
-            <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)] flex flex-col">
+            <div className="min-h-screen app-canvas-matte text-[var(--text-primary)] flex flex-col">
                 <Navbar />
                 <main
                     className={
@@ -48,12 +48,12 @@ export default function NavigationWrapper({ children }: { children: React.ReactN
 
     // Authenticated Layout
     return (
-        <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)] flex flex-col md:flex-row">
+        <div className="min-h-screen app-canvas-matte text-[var(--text-primary)] flex flex-col md:flex-row">
             {/* Desktop Sidebar */}
             <Sidebar initialUser={user} initialProfile={profile} />
 
             {/* Mobile Top Header (64px frosted glass) */}
-            <div className="md:hidden fixed top-0 left-0 right-0 h-16 bg-[var(--bg-primary)]/90 backdrop-blur-[20px] border-b border-[var(--border-hairline)] z-30 flex items-center justify-between px-4">
+            <div className="md:hidden fixed top-0 left-0 right-0 h-16 bg-white/90 dark:bg-[var(--bg-primary)]/90 backdrop-blur-[20px] border-b border-[var(--border-hairline)] z-30 flex items-center justify-between px-4">
                 <Link href={profile?.role === 'criador' ? '/jobs' : '/pedidos'} className="flex items-center py-1">
                     <BrandLogo variant="horizontal" className="h-7 w-auto" priority />
                 </Link>

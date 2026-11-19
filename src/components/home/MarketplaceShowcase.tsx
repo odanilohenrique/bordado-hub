@@ -118,7 +118,7 @@ export default function MarketplaceShowcase() {
     }, [products, activeFilter])
 
     return (
-        <section className="py-14 sm:py-20 bg-[var(--bg-primary)] border-b border-[var(--border-hairline)]">
+        <section className="py-14 sm:py-20 section-bg-woven border-b border-[var(--border-hairline)]">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 {/* Header */}
                 <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
@@ -136,7 +136,7 @@ export default function MarketplaceShowcase() {
 
                     <Link
                         href="/marketplace"
-                        className="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg border border-[var(--border-glass)] bg-[var(--btn-glass-bg)] text-sm font-semibold text-[var(--text-primary)] hover:border-[#2563EB]/40 transition-colors shrink-0 self-start md:self-auto"
+                        className="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg border border-[var(--border-glass)] bg-white/85 hover:bg-white dark:bg-[var(--btn-glass-bg)] dark:hover:bg-[var(--btn-glass-bg)] text-sm font-semibold text-[var(--text-primary)] hover:border-[#2563EB]/40 shadow-[0_1px_2px_rgba(15,23,42,0.04)] dark:shadow-none transition-colors shrink-0 self-start md:self-auto"
                     >
                         <span>Ver catálogo completo</span>
                         <ArrowRight className="w-4 h-4" />
@@ -155,7 +155,7 @@ export default function MarketplaceShowcase() {
                                 className={`min-h-[44px] px-4 rounded-full text-xs sm:text-sm font-medium transition-colors cursor-pointer ${
                                     isActive
                                         ? 'bg-[#2563EB] text-white border border-[#2563EB]'
-                                        : 'bg-[var(--bg-surface)] text-[var(--text-secondary)] border border-[var(--border-hairline)] hover:text-[var(--text-primary)] hover:border-[var(--border-glass)]'
+                                        : 'bg-[var(--bg-surface)] text-[var(--text-secondary)] border border-[var(--border-hairline)] shadow-[0_1px_2px_rgba(15,23,42,0.04)] dark:shadow-none hover:text-[var(--text-primary)] hover:border-[var(--border-glass)]'
                                 }`}
                             >
                                 {opt.label}

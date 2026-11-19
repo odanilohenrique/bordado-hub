@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { ArrowRight, ShieldCheck, Star } from 'lucide-react'
 import HeroMarquee from '@/components/home/HeroMarquee'
+import HeroAtelierBackdrop from '@/components/home/HeroAtelierBackdrop'
 import ProgrammerInviteModal from '@/components/ProgrammerInviteModal'
 
 export default function HeroSection() {
@@ -12,12 +13,13 @@ export default function HeroSection() {
     return (
         <>
             <section className="hero-bg-matte relative overflow-hidden border-b border-[var(--border-hairline)]">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-12 sm:pt-14 sm:pb-16 lg:py-20">
+                <HeroAtelierBackdrop />
+                <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-12 sm:pt-14 sm:pb-16 lg:py-20">
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-center">
                         {/* Left Column — Fast Decision Copy & Dual CTAs */}
                         <div className="lg:col-span-7 flex flex-col items-start">
                             {/* Translucent Trust Pill */}
-                            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-[var(--border-glass)] bg-[var(--btn-glass-bg)] backdrop-blur-md text-xs font-medium text-[var(--text-primary)] mb-6">
+                            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-[var(--border-glass)] bg-white/85 dark:bg-[var(--btn-glass-bg)] shadow-[0_1px_2px_rgba(15,23,42,0.05)] dark:shadow-none backdrop-blur-md text-xs font-medium text-[var(--text-primary)] mb-6">
                                 <Star className="w-3.5 h-3.5 text-[#2563EB] dark:text-[#60A5FA] fill-current shrink-0" />
                                 <span>4.9/5</span>
                                 <span className="text-[var(--text-secondary)]">·</span>
@@ -39,7 +41,7 @@ export default function HeroSection() {
                             <div className="w-full sm:w-auto grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-3 mb-4">
                                 <Link
                                     href="/jobs/new"
-                                    className="inline-flex items-center justify-center gap-2 min-h-[48px] px-4 sm:px-6 rounded-lg bg-[var(--btn-primary-bg)] text-[var(--btn-primary-text)] hover:bg-[var(--btn-primary-hover)] font-semibold text-sm sm:text-[15px] transition-colors text-center"
+                                    className="inline-flex items-center justify-center gap-2 min-h-[48px] px-4 sm:px-6 rounded-lg bg-[var(--btn-primary-bg)] text-[var(--btn-primary-text)] hover:bg-[var(--btn-primary-hover)] font-semibold text-sm sm:text-[15px] transition-colors text-center shadow-[0_1px_2px_rgba(15,23,42,0.12)] dark:shadow-none"
                                 >
                                     <span>Pedir Matriz Agora</span>
                                     <ArrowRight className="w-4 h-4 shrink-0 hidden sm:inline" />
@@ -47,7 +49,7 @@ export default function HeroSection() {
 
                                 <Link
                                     href="/marketplace"
-                                    className="inline-flex items-center justify-center gap-2 min-h-[48px] px-4 sm:px-6 rounded-lg bg-[var(--btn-glass-bg)] border border-[var(--border-glass)] backdrop-blur-md text-[var(--text-primary)] hover:border-[#2563EB]/45 dark:hover:border-[#3B82F6]/45 font-semibold text-sm sm:text-[15px] transition-colors text-center"
+                                    className="inline-flex items-center justify-center gap-2 min-h-[48px] px-4 sm:px-6 rounded-lg bg-white/85 hover:bg-white dark:bg-[var(--btn-glass-bg)] dark:hover:bg-[var(--btn-glass-bg)] border border-[var(--border-glass)] backdrop-blur-md text-[var(--text-primary)] hover:border-[#2563EB]/45 dark:hover:border-[#3B82F6]/45 font-semibold text-sm sm:text-[15px] transition-colors text-center shadow-[0_1px_2px_rgba(15,23,42,0.05)] dark:shadow-none"
                                 >
                                     Explorar Marketplace
                                 </Link>

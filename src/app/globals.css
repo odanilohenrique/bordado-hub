@@ -10,8 +10,8 @@
   --bg-primary: #F8FAFC;
   --bg-surface: #FFFFFF;
   --bg-surface-elevated: #F1F5F9;
-  --border-hairline: rgba(15, 23, 42, 0.08);
-  --border-glass: rgba(15, 23, 42, 0.14);
+  --border-hairline: rgba(15, 23, 42, 0.09);
+  --border-glass: rgba(15, 23, 42, 0.16);
   --text-primary: #0F172A;
   --text-secondary: #475569;
   --btn-primary-bg: #2563EB;
@@ -24,6 +24,9 @@
   --teal: #0D9488;
   --teal-text: #0F766E;
   --danger: #DC2626;
+  --shadow-card-light: 0 1px 2px rgba(15, 23, 42, 0.05), 0 8px 22px -12px rgba(15, 23, 42, 0.12);
+  --shadow-card-light-hover: 0 2px 5px rgba(15, 23, 42, 0.06), 0 16px 32px -14px rgba(15, 23, 42, 0.16);
+  --shadow-surface-light: 0 1px 2px rgba(15, 23, 42, 0.04), 0 12px 28px -16px rgba(15, 23, 42, 0.11);
 
   /* Compatibility aliases */
   --background: var(--bg-primary);
@@ -52,6 +55,9 @@
   --teal: #14B8A6;
   --teal-text: #14B8A6;
   --danger: #EF4444;
+  --shadow-card-light: none;
+  --shadow-card-light-hover: none;
+  --shadow-surface-light: none;
 
   /* Compatibility aliases */
   --background: var(--bg-primary);
@@ -97,6 +103,7 @@ body {
   background-color: var(--bg-surface);
   border: 1px solid var(--border-hairline);
   backdrop-filter: blur(12px);
+  box-shadow: var(--shadow-surface-light);
 }
 
 .glass-panel-elevated {
@@ -105,18 +112,44 @@ body {
   box-shadow: 0 10px 30px -12px rgba(2, 6, 23, 0.28);
 }
 
+/* Matte Woven Architectural Canvas (Light Mode Depth — Zero AI Dot-Grid / Zero Glow) */
+.app-canvas-matte {
+  background-color: #F3F6FB;
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Cpath d='M0 16L16 0M-4 4L4 -4M12 20L20 12' stroke='%230F172A' stroke-opacity='0.028' stroke-width='0.75'/%3E%3Cpath d='M0 0L16 16M-4 12L4 20M12 -4L20 4' stroke='%230F172A' stroke-opacity='0.014' stroke-width='0.75'/%3E%3C/svg%3E"),
+    linear-gradient(180deg, #F2F6FC 0%, #F6F9FD 36%, #EDF3FA 100%);
+  background-attachment: scroll;
+}
+
+.dark .app-canvas-matte {
+  background-color: var(--bg-primary);
+  background-image: none;
+}
+
+.section-bg-woven {
+  background-color: #EEF3FA;
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Cpath d='M0 16L16 0M-4 4L4 -4M12 20L20 12' stroke='%230F172A' stroke-opacity='0.03' stroke-width='0.75'/%3E%3Cpath d='M0 0L16 16M-4 12L4 20M12 -4L20 4' stroke='%230F172A' stroke-opacity='0.015' stroke-width='0.75'/%3E%3C/svg%3E"),
+    linear-gradient(180deg, #EDF2F9 0%, #F4F7FC 52%, #EBF1F8 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+.dark .section-bg-woven {
+  background-color: var(--bg-primary);
+  background-image: none;
+  box-shadow: none;
+}
+
+.surface-matte-elevated {
+  box-shadow: var(--shadow-surface-light);
+}
+
 /* Matte Architectural Hero Background (Zero Glow / Zero Neon) */
 .hero-bg-matte {
-  background-color: var(--bg-primary);
+  background-color: #EEF3FA;
   background-image:
-    repeating-linear-gradient(
-      180deg,
-      rgba(37, 99, 235, 0.03) 0px,
-      rgba(37, 99, 235, 0.03) 1px,
-      transparent 1px,
-      transparent 84px
-    ),
-    linear-gradient(180deg, #F8FAFC 0%, #EFF6FF 55%, #F8FAFC 100%);
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Cpath d='M0 16L16 0M-4 4L4 -4M12 20L20 12' stroke='%230F172A' stroke-opacity='0.026' stroke-width='0.75'/%3E%3C/svg%3E"),
+    linear-gradient(165deg, #F8FAFC 0%, #EDF3FC 48%, #E4EDF9 100%);
 }
 
 .dark .hero-bg-matte {
@@ -149,11 +182,13 @@ body {
 
 /* Micro-interaction: Crisp Hairline Elevation */
 .interactive-card {
+  box-shadow: var(--shadow-card-light);
   transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease, box-shadow 0.2s ease;
 }
 .interactive-card:hover {
   transform: translateY(-2px);
   border-color: var(--border-glass);
+  box-shadow: var(--shadow-card-light-hover);
 }
 
 /* Marquee Animations */

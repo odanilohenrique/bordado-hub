@@ -15,7 +15,7 @@ export default function Checkout() {
     const params = useParams()
     const proposalId = params?.proposalId as string
 
-    if (!proposalId) return <div className="min-h-screen bg-[var(--bg-primary)] flex items-center justify-center text-[var(--text-primary)]">Carregando...</div>
+    if (!proposalId) return <div className="min-h-screen bg-transparent flex items-center justify-center text-[var(--text-primary)]">Carregando...</div>
 
     return <CheckoutClient proposalId={proposalId} />
 }
@@ -258,7 +258,7 @@ function CheckoutClient({ proposalId }: { proposalId: string }) {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-[var(--bg-primary)] flex flex-col items-center justify-center text-[var(--text-primary)]">
+            <div className="min-h-screen bg-transparent flex flex-col items-center justify-center text-[var(--text-primary)]">
                 <Loader2 className="w-10 h-10 text-[#2563EB] dark:text-[#3B82F6] animate-spin mb-4" />
                 <p className="text-[var(--text-secondary)]">Carregando detalhes do checkout...</p>
             </div>
@@ -284,7 +284,7 @@ function CheckoutClient({ proposalId }: { proposalId: string }) {
     }
 
     return (
-        <div className="min-h-screen bg-[var(--bg-primary)] py-8 sm:py-12 px-4 sm:px-6 lg:px-8 text-[var(--text-primary)]">
+        <div className="min-h-screen bg-transparent py-8 sm:py-12 px-4 sm:px-6 lg:px-8 text-[var(--text-primary)]">
             <div className="max-w-xl mx-auto">
                 <button
                     onClick={() => {

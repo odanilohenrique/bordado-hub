@@ -156,7 +156,7 @@ export default function RootLayout({
         />
         <script dangerouslySetInnerHTML={{ __html: extensionErrorFilterScript }} />
       </head>
-      <body className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)] font-sans antialiased selection:bg-[#2563EB]/20 selection:text-[#2563EB] dark:selection:bg-[#3B82F6]/25 dark:selection:text-[#60A5FA]">
+      <body className="min-h-screen app-canvas-matte text-[var(--text-primary)] font-sans antialiased selection:bg-[#2563EB]/20 selection:text-[#2563EB] dark:selection:bg-[#3B82F6]/25 dark:selection:text-[#60A5FA]">
         <ClientProviders>
           <NavigationWrapper>
             {children}

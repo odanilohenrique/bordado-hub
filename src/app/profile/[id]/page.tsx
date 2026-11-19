@@ -36,7 +36,7 @@ interface UserProfile {
 
 function ProfileSkeleton() {
     return (
-        <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)] pb-24 md:pb-12 animate-pulse">
+        <div className="min-h-screen bg-transparent text-[var(--text-primary)] pb-24 md:pb-12 animate-pulse">
             {/* Banner Skeleton */}
             <div className="h-44 sm:h-56 hero-bg-matte border-b border-[var(--border-hairline)] relative" />
 
@@ -511,7 +511,7 @@ export default function ProfilePage() {
     // 1. CREATE PROFILE FALLBACK
     if (!profile && currentUser && currentUser.id === id) {
         return (
-            <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)] flex items-center justify-center p-4 pb-24 md:pb-12">
+            <div className="min-h-screen bg-transparent text-[var(--text-primary)] flex items-center justify-center p-4 pb-24 md:pb-12">
                 <div className="bg-[var(--bg-surface)] border border-[var(--border-hairline)] p-8 rounded-2xl max-w-md w-full text-center shadow-xl">
                     <div className="w-16 h-16 bg-[#2563EB]/10 border border-[#2563EB]/25 rounded-full flex items-center justify-center mx-auto mb-4">
                         <User className="w-8 h-8 text-[var(--cobalt-text)]" />
@@ -557,7 +557,7 @@ export default function ProfilePage() {
 
     if (!profile) {
         return (
-            <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)] flex items-center justify-center px-4 pb-24 md:pb-12">
+            <div className="min-h-screen bg-transparent text-[var(--text-primary)] flex items-center justify-center px-4 pb-24 md:pb-12">
                 <div className="bg-[var(--bg-surface)] border border-[var(--border-hairline)] rounded-2xl p-10 max-w-md w-full text-center space-y-4 shadow-xl">
                     <div className="w-16 h-16 rounded-full bg-[var(--bg-surface-elevated)] border border-[var(--border-hairline)] flex items-center justify-center mx-auto text-[var(--text-secondary)]">
                         <User className="w-8 h-8" />
@@ -600,7 +600,7 @@ export default function ProfilePage() {
     // 3. EDIT MODE
     if (isEditing) {
         return (
-            <div className="min-h-screen bg-[var(--bg-primary)] p-4 md:p-8 pb-24 md:pb-12">
+            <div className="min-h-screen bg-transparent p-4 md:p-8 pb-24 md:pb-12">
                 <div className="max-w-3xl mx-auto">
                     <ProfileEditor
                         profile={profile}
@@ -648,7 +648,7 @@ export default function ProfilePage() {
     const isProgrammerView = currentViewRole === 'criador'
 
     return (
-        <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)] pb-24 md:pb-12">
+        <div className="min-h-screen bg-transparent text-[var(--text-primary)] pb-24 md:pb-12">
             {/* Header / Banner */}
             <div className="h-48 hero-bg-matte border-b border-[var(--border-hairline)] relative">
                 {isOwner && (

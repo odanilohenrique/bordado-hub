@@ -58,7 +58,7 @@ export default function Navbar() {
 
     return (
         <>
-            <nav className="sticky top-0 z-50 h-16 bg-[var(--bg-primary)]/85 backdrop-blur-[20px] border-b border-[var(--border-hairline)]">
+            <nav className="sticky top-0 z-50 h-16 bg-white/88 dark:bg-[var(--bg-primary)]/85 backdrop-blur-[20px] border-b border-[var(--border-hairline)] shadow-[0_1px_0_rgba(15,23,42,0.05)] dark:shadow-none">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full">
                     <div className="flex justify-between h-full items-center gap-4">
                         {/* Brand Logo & Desktop Links */}
