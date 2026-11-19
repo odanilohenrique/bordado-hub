@@ -31,7 +31,7 @@ const COLUMN_3: MarqueeItem[] = [
 
 function MarqueeCard({ item }: { item: MarqueeItem }) {
     return (
-        <div className="relative aspect-[3/4] w-full rounded-xl overflow-hidden border border-[var(--border-glass)] dark:border-[var(--border-hairline)] bg-white shadow-[0_2px_6px_rgba(15,23,42,0.06),0_10px_22px_-12px_rgba(15,23,42,0.15)] dark:shadow-none shrink-0">
+        <div className="relative aspect-[3/4] w-full rounded-xl overflow-hidden border border-[var(--border-glass)] dark:border-[var(--border-hairline)] bg-white shadow-[0_2px_6px_rgba(15,23,42,0.06),0_10px_22px_-12px_rgba(15,23,42,0.15)] dark:shadow-[0_4px_12px_rgba(2,6,23,0.45),0_14px_28px_-12px_rgba(2,6,23,0.75)] shrink-0">
             {item.type === 'video' ? (
                 <video
                     src={item.src}

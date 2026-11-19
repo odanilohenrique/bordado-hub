@@ -2002,22 +2002,23 @@ test('T5-GUEST-PROPOSAL-GUARD: Propostas sanitizadas sem criador_id nunca dão f
     })
 })
 
-test('T5-LIGHT-DEPTH-MATTE: Profundidade arquitetônica e textura fosca no Modo Claro (Zero Glow/Dot-Grid/Emojis)', () => {
+test('T5-DUAL-DEPTH-MATTE: Profundidade arquitetônica e textura fosca Dual-Theme (Light + Dark, Zero Em-Dash)', () => {
     verifyFileContent('src/app/globals.css', {
         includes: [
             '.app-canvas-matte',
+            '.dark .app-canvas-matte',
             '.section-bg-woven',
+            '.dark .section-bg-woven',
             '.surface-matte-elevated',
-            '--shadow-card-light',
-            '--shadow-surface-light',
-            '--shadow-card-light: none'
+            '--atelier-hoop-stitch',
+            '--shadow-card-light'
         ]
     })
 
     verifyFileExists('src/components/home/HeroAtelierBackdrop.tsx', 400)
     verifyFileContent('src/components/home/HeroAtelierBackdrop.tsx', {
-        includes: ['dark:hidden', 'aria-hidden="true"', 'strokeDasharray'],
-        excludes: ['blur-3xl', 'blur-2xl', 'drop-shadow']
+        includes: ['aria-hidden="true"', 'strokeDasharray', '--atelier-hoop-stitch'],
+        excludes: ['dark:hidden', 'blur-3xl', 'blur-2xl', 'drop-shadow']
     })
 
     const backdropLines = fs.readFileSync('src/components/home/HeroAtelierBackdrop.tsx', 'utf8')
@@ -2025,7 +2026,8 @@ test('T5-LIGHT-DEPTH-MATTE: Profundidade arquitetônica e textura fosca no Modo 
     assert(!emojiRe.test(backdropLines), 'HeroAtelierBackdrop não deve conter emojis Unicode')
 
     verifyFileContent('src/components/home/HeroSection.tsx', {
-        includes: ['HeroAtelierBackdrop']
+        includes: ['HeroAtelierBackdrop'],
+        excludes: ['em minutos — com aprovação']
     })
     verifyFileContent('src/app/layout.tsx', {
         includes: ['app-canvas-matte']

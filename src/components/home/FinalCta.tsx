@@ -12,10 +12,10 @@ export default function FinalCta() {
                         style={{ background: 'linear-gradient(90deg, #2563EB 0%, #0D9488 100%)' }}
                     />
 
-                    {/* Subtle Corner Embroidery Arc Accent (Light Mode) */}
+                    {/* Subtle Corner Embroidery Arc Accent (Dual-Theme) */}
                     <svg
                         aria-hidden="true"
-                        className="pointer-events-none absolute right-0 top-0 bottom-0 w-72 h-full dark:hidden select-none"
+                        className="pointer-events-none absolute right-0 top-0 bottom-0 w-72 h-full select-none"
                         viewBox="0 0 288 260"
                         preserveAspectRatio="xMaxYMid slice"
                         fill="none"
@@ -24,18 +24,22 @@ export default function FinalCta() {
                             cx="248"
                             cy="130"
                             r="142"
-                            stroke="#2563EB"
-                            strokeOpacity="0.09"
                             strokeWidth="1"
+                            style={{
+                                stroke: 'var(--atelier-hoop-outer)',
+                                strokeOpacity: 'var(--atelier-hoop-outer-opacity)',
+                            }}
                         />
                         <circle
                             cx="248"
                             cy="130"
                             r="112"
-                            stroke="#0D9488"
-                            strokeOpacity="0.16"
                             strokeWidth="1.25"
                             strokeDasharray="5 5"
+                            style={{
+                                stroke: 'var(--atelier-hoop-stitch)',
+                                strokeOpacity: 'var(--atelier-hoop-stitch-opacity)',
+                            }}
                         />
                     </svg>
 

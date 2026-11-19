@@ -34,7 +34,7 @@ export default function HeroSection() {
 
                             {/* High-Contrast 2-Line Subtitle */}
                             <p className="text-base sm:text-lg text-[var(--text-secondary)] leading-[1.55] max-w-xl mb-8">
-                                Envie sua arte ou logo e receba orçamentos de programadores profissionais em minutos — com aprovação na máquina antes de liberar o repasse.
+                                Envie sua arte ou logo e receba orçamentos de programadores profissionais em minutos, com aprovação na máquina antes de liberar o repasse.
                             </p>
 
                             {/* 2 Side-by-Side CTAs (>=48px tap target on mobile) */}

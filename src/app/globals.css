@@ -27,6 +27,24 @@
   --shadow-card-light: 0 1px 2px rgba(15, 23, 42, 0.05), 0 8px 22px -12px rgba(15, 23, 42, 0.12);
   --shadow-card-light-hover: 0 2px 5px rgba(15, 23, 42, 0.06), 0 16px 32px -14px rgba(15, 23, 42, 0.16);
   --shadow-surface-light: 0 1px 2px rgba(15, 23, 42, 0.04), 0 12px 28px -16px rgba(15, 23, 42, 0.11);
+  --atelier-grid-stroke: #0F172A;
+  --atelier-grid-opacity: 0.065;
+  --atelier-plane-fill: #FFFFFF;
+  --atelier-plane-opacity: 0.54;
+  --atelier-diagonal-stroke: #2563EB;
+  --atelier-diagonal-opacity: 0.1;
+  --atelier-hoop-outer: #2563EB;
+  --atelier-hoop-outer-opacity: 0.09;
+  --atelier-hoop-stitch: #0D9488;
+  --atelier-hoop-stitch-opacity: 0.17;
+  --atelier-hoop-inner: #0F172A;
+  --atelier-hoop-inner-opacity: 0.065;
+  --atelier-stitch-line: #2563EB;
+  --atelier-stitch-line-opacity: 0.14;
+  --atelier-crosshair: #0F172A;
+  --atelier-crosshair-opacity: 0.18;
+  --atelier-crosshair-accent: #2563EB;
+  --atelier-crosshair-accent-opacity: 0.28;
 
   /* Compatibility aliases */
   --background: var(--bg-primary);
@@ -55,9 +73,27 @@
   --teal: #14B8A6;
   --teal-text: #14B8A6;
   --danger: #EF4444;
-  --shadow-card-light: none;
-  --shadow-card-light-hover: none;
-  --shadow-surface-light: none;
+  --shadow-card-light: 0 1px 2px rgba(2, 6, 23, 0.45), 0 10px 26px -14px rgba(2, 6, 23, 0.72);
+  --shadow-card-light-hover: 0 4px 10px rgba(2, 6, 23, 0.55), 0 18px 36px -14px rgba(2, 6, 23, 0.85);
+  --shadow-surface-light: 0 1px 2px rgba(2, 6, 23, 0.4), 0 14px 30px -16px rgba(2, 6, 23, 0.7);
+  --atelier-grid-stroke: #94A3B8;
+  --atelier-grid-opacity: 0.085;
+  --atelier-plane-fill: #070B16;
+  --atelier-plane-opacity: 0.62;
+  --atelier-diagonal-stroke: #60A5FA;
+  --atelier-diagonal-opacity: 0.16;
+  --atelier-hoop-outer: #60A5FA;
+  --atelier-hoop-outer-opacity: 0.14;
+  --atelier-hoop-stitch: #2DD4BF;
+  --atelier-hoop-stitch-opacity: 0.22;
+  --atelier-hoop-inner: #CBD5E1;
+  --atelier-hoop-inner-opacity: 0.1;
+  --atelier-stitch-line: #60A5FA;
+  --atelier-stitch-line-opacity: 0.18;
+  --atelier-crosshair: #CBD5E1;
+  --atelier-crosshair-opacity: 0.24;
+  --atelier-crosshair-accent: #60A5FA;
+  --atelier-crosshair-accent-opacity: 0.36;
 
   /* Compatibility aliases */
   --background: var(--bg-primary);
@@ -123,7 +159,10 @@ body {
 
 .dark .app-canvas-matte {
   background-color: var(--bg-primary);
-  background-image: none;
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Cpath d='M0 16L16 0M-4 4L4 -4M12 20L20 12' stroke='%2394A3B8' stroke-opacity='0.045' stroke-width='0.75'/%3E%3Cpath d='M0 0L16 16M-4 12L4 20M12 -4L20 4' stroke='%2394A3B8' stroke-opacity='0.022' stroke-width='0.75'/%3E%3C/svg%3E"),
+    linear-gradient(180deg, #090E1B 0%, #0A0F1D 36%, #070B16 100%);
+  background-attachment: scroll;
 }
 
 .section-bg-woven {
@@ -135,9 +174,11 @@ body {
 }
 
 .dark .section-bg-woven {
-  background-color: var(--bg-primary);
-  background-image: none;
-  box-shadow: none;
+  background-color: #080D19;
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Cpath d='M0 16L16 0M-4 4L4 -4M12 20L20 12' stroke='%2394A3B8' stroke-opacity='0.05' stroke-width='0.75'/%3E%3Cpath d='M0 0L16 16M-4 12L4 20M12 -4L20 4' stroke='%2394A3B8' stroke-opacity='0.025' stroke-width='0.75'/%3E%3C/svg%3E"),
+    linear-gradient(180deg, #070B16 0%, #0B1222 52%, #070B16 100%);
+  box-shadow: inset 0 1px 0 rgba(148, 163, 184, 0.08);
 }
 
 .surface-matte-elevated {
@@ -155,14 +196,8 @@ body {
 .dark .hero-bg-matte {
   background-color: #0A0F1D;
   background-image:
-    repeating-linear-gradient(
-      180deg,
-      rgba(59, 130, 246, 0.045) 0px,
-      rgba(59, 130, 246, 0.045) 1px,
-      transparent 1px,
-      transparent 84px
-    ),
-    linear-gradient(180deg, #0A0F1D 0%, #0F1E45 55%, #0A0F1D 100%);
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Cpath d='M0 16L16 0M-4 4L4 -4M12 20L20 12' stroke='%2394A3B8' stroke-opacity='0.045' stroke-width='0.75'/%3E%3C/svg%3E"),
+    linear-gradient(165deg, #0A0F1D 0%, #0E1B3A 48%, #091229 100%);
 }
 
 /* Vertical Matte Text Gradient for H1/H2 */
