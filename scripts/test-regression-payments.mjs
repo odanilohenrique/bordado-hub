@@ -1939,12 +1939,31 @@ test('T5-DS2-REBRAND: Design System 2.0 (Dual-Theme, Zero Emojis/Âmbar, SVG/Mí
     ]
     for (const asset of v2Assets) verifyFileExists(asset, 500)
 
-    for (const vid of ['crepe.mp4', 'chacara.mp4', 'brutal-force.mp4']) {
+    const marqueeVideos = [
+        'crepe.mp4',
+        'chacara.mp4',
+        'brutal-force.mp4',
+        'atraves-da-ciencia.mp4',
+        'brasao-psi.mp4',
+        'chalesin.mp4',
+        'emoji.mp4',
+        'flamengo.mp4',
+        'leva-pelo-mundo.mp4',
+        'loirinha-liz.mp4',
+        'patchderm.mp4',
+        'thais-closet.mp4',
+    ]
+    for (const vid of marqueeVideos) {
         const full = path.resolve('public/media/marquee', vid)
         assert(fs.existsSync(full), `Vídeo marquee ausente: ${vid}`)
         assert(fs.statSync(full).size <= 700 * 1024, `Vídeo ${vid} excede 700 KB`)
         verifyFileExists(`public/media/marquee/${vid.replace('.mp4', '-poster.webp')}`, 1000)
     }
+
+    verifyFileContent('src/components/home/HeroMarquee.tsx', {
+        includes: ['<video'],
+        excludes: ['still-']
+    })
 
     const formatSvgs = fs.readdirSync('public/svg/formats').filter((f) => f.endsWith('.svg'))
     assert(formatSvgs.length >= 8, 'Devem existir ao menos 8 badges SVG de formatos')

@@ -114,7 +114,7 @@ export default function HeroAtelierBackdrop() {
 
             {/* Swiss Container Framing Rails & Desktop Running-Stitch Column Divider */}
             <div className="relative max-w-7xl mx-auto h-full px-4 sm:px-6 lg:px-8">
-                <div className="relative h-full border-x border-[#0F172A]/[0.05] dark:border-white/[0.06]">
+                <div className="relative h-full border-x border-[#0F172A]/[0.03] dark:border-white/[0.035]">
                     {/* Vertical Running-Stitch Divider Between Hero Columns on Desktop */}
                     <svg
                         className="hidden lg:block absolute top-0 bottom-0 left-[58.3333%] w-px h-full overflow-visible"

@@ -1,60 +1,94 @@
 'use client'
 
 interface MarqueeItem {
-    type: 'image' | 'video'
     src: string
-    poster?: string
+    poster: string
     alt: string
 }
 
 const COLUMN_1: MarqueeItem[] = [
-    { type: 'image', src: '/media/marquee/still-01.webp', alt: 'Bordado macro de circuito em tecido escuro' },
-    { type: 'video', src: '/media/marquee/crepe.mp4', poster: '/media/marquee/crepe-poster.webp', alt: 'Simulação de pontos de matriz brasão gastronômico' },
-    { type: 'image', src: '/media/marquee/still-06.webp', alt: 'Detalhe de pontos tatami em paisagem bordada' },
-    { type: 'image', src: '/media/marquee/still-04.webp', alt: 'Programação de pontos em execução' },
+    {
+        src: '/media/marquee/atraves-da-ciencia.mp4',
+        poster: '/media/marquee/atraves-da-ciencia-poster.webp',
+        alt: 'Simulação de matriz bordada Através da Ciência',
+    },
+    {
+        src: '/media/marquee/crepe.mp4',
+        poster: '/media/marquee/crepe-poster.webp',
+        alt: 'Simulação de pontos de matriz brasão gastronômico',
+    },
+    {
+        src: '/media/marquee/patchderm.mp4',
+        poster: '/media/marquee/patchderm-poster.webp',
+        alt: 'Simulação de matriz brasão Patchderm em ponto tatami',
+    },
+    {
+        src: '/media/marquee/thais-closet.mp4',
+        poster: '/media/marquee/thais-closet-poster.webp',
+        alt: 'Simulação de logotipo bordado em ponto cheio dourado',
+    },
 ]
 
 const COLUMN_2: MarqueeItem[] = [
-    { type: 'image', src: '/media/marquee/still-02.webp', alt: 'Matriz circular com ponto cheio e tatami' },
-    { type: 'video', src: '/media/marquee/chacara.mp4', poster: '/media/marquee/chacara-poster.webp', alt: 'Simulação de bordado circular multicolorido' },
-    { type: 'image', src: '/media/marquee/still-09.webp', alt: 'Close de preenchimento tatami vermelho e preto' },
-    { type: 'image', src: '/media/marquee/still-07.webp', alt: 'Construção de camadas em matriz de bordado' },
+    {
+        src: '/media/marquee/leva-pelo-mundo.mp4',
+        poster: '/media/marquee/leva-pelo-mundo-poster.webp',
+        alt: 'Simulação de bordado circular trailer e violão',
+    },
+    {
+        src: '/media/marquee/chacara.mp4',
+        poster: '/media/marquee/chacara-poster.webp',
+        alt: 'Simulação de bordado circular paisagem campestre',
+    },
+    {
+        src: '/media/marquee/loirinha-liz.mp4',
+        poster: '/media/marquee/loirinha-liz-poster.webp',
+        alt: 'Simulação de matriz infantil personalizada com lettering',
+    },
+    {
+        src: '/media/marquee/brasao-psi.mp4',
+        poster: '/media/marquee/brasao-psi-poster.webp',
+        alt: 'Simulação de brasão de Psicologia em ponto cheio',
+    },
 ]
 
 const COLUMN_3: MarqueeItem[] = [
-    { type: 'image', src: '/media/marquee/still-05.webp', alt: 'Brasão campestre finalizado para bastidor' },
-    { type: 'video', src: '/media/marquee/brutal-force.mp4', poster: '/media/marquee/brutal-force-poster.webp', alt: 'Simulação de matriz esportiva em alta definição' },
-    { type: 'image', src: '/media/marquee/still-03.webp', alt: 'Close de acabamento em ponto cheio' },
-    { type: 'image', src: '/media/marquee/still-08.webp', alt: 'Emblema esportivo em pontos otimizados' },
-    { type: 'image', src: '/media/marquee/still-10.webp', alt: 'Pré-visualização de sequência de costura' },
+    {
+        src: '/media/marquee/brutal-force.mp4',
+        poster: '/media/marquee/brutal-force-poster.webp',
+        alt: 'Simulação de matriz esportiva em alta definição',
+    },
+    {
+        src: '/media/marquee/flamengo.mp4',
+        poster: '/media/marquee/flamengo-poster.webp',
+        alt: 'Simulação de escudo esportivo listrado em ponto cheio',
+    },
+    {
+        src: '/media/marquee/chalesin.mp4',
+        poster: '/media/marquee/chalesin-poster.webp',
+        alt: 'Simulação de tipografia bordada Chalézin Lumiar',
+    },
+    {
+        src: '/media/marquee/emoji.mp4',
+        poster: '/media/marquee/emoji-poster.webp',
+        alt: 'Simulação de preenchimento tatami em matriz circular',
+    },
 ]
 
 function MarqueeCard({ item }: { item: MarqueeItem }) {
     return (
         <div className="relative aspect-[3/4] w-full rounded-xl overflow-hidden border border-[var(--border-glass)] dark:border-[var(--border-hairline)] bg-white shadow-[0_2px_6px_rgba(15,23,42,0.06),0_10px_22px_-12px_rgba(15,23,42,0.15)] dark:shadow-[0_4px_12px_rgba(2,6,23,0.45),0_14px_28px_-12px_rgba(2,6,23,0.75)] shrink-0">
-            {item.type === 'video' ? (
-                <video
-                    src={item.src}
-                    poster={item.poster}
-                    autoPlay
-                    loop
-                    muted
-                    playsInline
-                    preload="metadata"
-                    aria-label={item.alt}
-                    className="w-full h-full object-cover object-center"
-                />
-            ) : (
-                <img
-                    src={item.src}
-                    alt={item.alt}
-                    width={600}
-                    height={800}
-                    loading="eager"
-                    decoding="async"
-                    className="w-full h-full object-cover object-center"
-                />
-            )}
+            <video
+                src={item.src}
+                poster={item.poster}
+                autoPlay
+                loop
+                muted
+                playsInline
+                preload="metadata"
+                aria-label={item.alt}
+                className="w-full h-full object-cover object-center"
+            />
         </div>
     )
 }
