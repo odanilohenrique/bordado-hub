@@ -257,13 +257,21 @@ function JobDetailClient({ jobId }: { jobId: string }) {
     const pendingReloadRef = useRef(false)
 
     useEffect(() => {
+        const currentViewerKey = authProfileId || authUser?.id || 'guest'
         const cached = getCached<any>(`job_detail_${jobId}`)
         if (cached?.job) {
             setJob(cached.job)
-            setProposals(cached.proposals || [])
-            if (cached.review) setJobReview(cached.review)
-            if (cached.transaction) setJobTransaction(cached.transaction)
-            if (cached.unreadCounts) setUnreadCounts(cached.unreadCounts)
+            if (cached.viewerId === currentViewerKey) {
+                setProposals(cached.proposals || [])
+                if (cached.review) setJobReview(cached.review)
+                if (cached.transaction) setJobTransaction(cached.transaction)
+                if (cached.unreadCounts) setUnreadCounts(cached.unreadCounts)
+            } else if (cached.viewerId && cached.viewerId !== currentViewerKey) {
+                setProposals([])
+                setJobReview(null)
+                setJobTransaction(null)
+                setUnreadCounts({})
+            }
             setLoading(false)
             return
         }
@@ -280,13 +288,17 @@ function JobDetailClient({ jobId }: { jobId: string }) {
         if (fromFeed) {
             setJob(fromFeed)
         }
-    }, [jobId])
+    }, [jobId, authProfileId, authUser?.id])
 
     useEffect(() => {
         if (authProfile) {
             setCurrentUser(authProfile)
+        } else if (!authUser) {
+            setCurrentUser(null)
+            setNegotiatingProposalId(null)
+            setShowEditProposalModal(false)
         }
-    }, [authProfile])
+    }, [authProfile, authUser])
 
     const loadData = useCallback(async () => {
         if (isFetchingRef.current) {
@@ -302,7 +314,12 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                 authUserId = session?.user?.id || null
             }
 
-            const existingProfile = authProfileRef.current
+            const existingProfile =
+                authUserId &&
+                authProfileRef.current?.id &&
+                (!authProfileRef.current.supabase_user_id || authProfileRef.current.supabase_user_id === authUserId)
+                    ? authProfileRef.current
+                    : null
             const authPromise = existingProfile?.id
                 ? Promise.resolve(existingProfile)
                 : authUserId
@@ -319,7 +336,7 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                     })
                   : Promise.resolve(null)
 
-            const resolvedUserIdForApi = authUserId || authProfileId || existingProfile?.id || null
+            const resolvedUserIdForApi = authUserId || (authUser?.id ? authProfileId : null) || existingProfile?.id || null
 
             // 2. Fetch full job details from fast server API route (passing userId for privacy check)
             const apiPromise = fetch(`/api/jobs/${jobId}${resolvedUserIdForApi ? `?userId=${encodeURIComponent(resolvedUserIdForApi)}` : ''}`, {
@@ -332,20 +349,20 @@ function JobDetailClient({ jobId }: { jobId: string }) {
 
             const [profile, apiData] = await Promise.all([authPromise, apiPromise])
 
-            if (profile) setCurrentUser(profile)
+            setCurrentUser(profile || null)
 
             if (apiData && apiData.job) {
                 setJob(apiData.job)
                 setProposals(apiData.proposals || [])
-                if (apiData.review) setJobReview(apiData.review)
-                if (apiData.transaction) setJobTransaction(apiData.transaction)
+                setJobReview(apiData.review || null)
+                setJobTransaction(apiData.transaction || null)
                 if (apiData.unreadCounts) setUnreadCounts(apiData.unreadCounts)
-                // Cache this detail for fast back-and-forth navigation
-                setCached(`job_detail_${jobId}`, apiData, 120000)
+                // Cache this detail for fast back-and-forth navigation scoped by viewer
+                setCached(`job_detail_${jobId}`, { ...apiData, viewerId: profile?.id || resolvedUserIdForApi || 'guest' }, 120000)
             }
 
             // Auto-mark notifications for this job as read
-            const resolvedProfileId = profile?.id || authProfileId
+            const resolvedProfileId = profile?.id || (authUserId ? authProfileId : null)
             if (resolvedProfileId) {
                 supabase
                     .from('notifications')
@@ -472,12 +489,14 @@ function JobDetailClient({ jobId }: { jobId: string }) {
 
     // Auto-open chat when arriving via notification with ?chat=...
     useEffect(() => {
-        if (!chatParam || proposals.length === 0) return
+        if (!chatParam || proposals.length === 0 || !currentUser?.id) return
 
         let targetId = chatParam
         if (chatParam === 'true' || chatParam === 'open') {
             const accepted = proposals.find((p: any) => p.status === 'aceita')
-            const mine = proposals.find((p: any) => p.criador_id === currentUser?.id)
+            const mine = currentUser?.id
+                ? proposals.find((p: any) => Boolean(p.criador_id && p.criador_id === currentUser.id))
+                : undefined
             targetId = accepted?.id || mine?.id || proposals[0]?.id
         }
 
@@ -1108,9 +1127,17 @@ function JobDetailClient({ jobId }: { jobId: string }) {
         </div>
     )
 
-    const isOwner = Boolean(currentUser && (currentUser.id === job.cliente_id || currentUser.supabase_user_id === job.cliente_id))
-    const myExistingProposal = proposals.find((p: any) => p.criador_id === currentUser?.id)
-    const hasAlreadySentProposal = !!myExistingProposal
+    const currentProfileId = currentUser?.id || null
+    const isOwner = Boolean(
+        currentUser &&
+        job.cliente_id &&
+        (currentUser.id === job.cliente_id || (currentUser.supabase_user_id && currentUser.supabase_user_id === job.cliente_id))
+    )
+    const isProposalMine = (p: any) => Boolean(currentProfileId && p?.criador_id && p.criador_id === currentProfileId)
+    const myExistingProposal = currentProfileId ? proposals.find(isProposalMine) : undefined
+    const hasAlreadySentProposal = Boolean(myExistingProposal)
+    const isAcceptedProgrammer = Boolean(currentProfileId && acceptedProposal?.criador_id && acceptedProposal.criador_id === currentProfileId)
+    const isParticipant = isOwner || isAcceptedProgrammer
     const hasAnyAcceptedProposal = proposals.some((p: any) => p.status === 'aceita')
     const isJobLocked = job.status !== 'aberto' || hasAnyAcceptedProposal
     const showProposalForm = !isOwner && !isJobLocked && !hasAlreadySentProposal
@@ -1482,7 +1509,9 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                 {job.status === 'em_revisao' ? 'Matriz em Revisão' : 'Matriz em Produção'}
                             </h2>
                             <p className="text-[var(--text-secondary)] text-sm leading-relaxed px-4">
-                                {job.status === 'em_revisao' ? (
+                                {!isParticipant ? (
+                                    <>Este pedido já está fechado e em produção por um programador da plataforma.</>
+                                ) : job.status === 'em_revisao' ? (
                                     isOwner ? (
                                         <>Você solicitou um ajuste na matriz. O profissional <strong className="text-[#2563EB] dark:text-[#60A5FA] text-base">{acceptedProposal.users?.name || 'Parceiro'}</strong> já foi notificado e está trabalhando na correção.</>
                                     ) : (
@@ -1499,17 +1528,19 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                     {job.status === 'em_revisao' ? 'AJUSTES EM ANDAMENTO' : 'TRABALHO EM ANDAMENTO'}
                                 </span>
                                 
-                                <button 
-                                    onClick={() => handleNegotiate(acceptedProposal.id)}
-                                    className="min-h-[44px] sm:min-h-0 inline-flex items-center gap-2 bg-[var(--bg-surface-elevated)] hover:bg-[var(--btn-glass-bg)] text-[var(--text-primary)] px-4 py-2 rounded-full text-xs font-semibold border border-[var(--border-hairline)] transition-colors"
-                                >
-                                    <MessageSquare className="w-3.5 h-3.5" />
-                                    {negotiatingProposalId === acceptedProposal.id ? 'Fechar Chat' : 'Chat / Histórico'}
-                                </button>
+                                {isParticipant && (
+                                    <button 
+                                        onClick={() => handleNegotiate(acceptedProposal.id)}
+                                        className="min-h-[44px] sm:min-h-0 inline-flex items-center gap-2 bg-[var(--bg-surface-elevated)] hover:bg-[var(--btn-glass-bg)] text-[var(--text-primary)] px-4 py-2 rounded-full text-xs font-semibold border border-[var(--border-hairline)] transition-colors"
+                                    >
+                                        <MessageSquare className="w-3.5 h-3.5" />
+                                        {negotiatingProposalId === acceptedProposal.id ? 'Fechar Chat' : 'Chat / Histórico'}
+                                    </button>
+                                )}
                             </div>
 
                             {/* REVISION DETAILS CARD (IF IN REVISION) */}
-                            {job.status === 'em_revisao' && (job.revision_notes || job.revision_image_url) && (
+                            {isParticipant && job.status === 'em_revisao' && (job.revision_notes || job.revision_image_url) && (
                                 <div className="mt-6 bg-[#2563EB]/8 border border-[#2563EB]/25 rounded-xl p-5 text-left">
                                     <p className="text-xs font-bold text-[#2563EB] dark:text-[#60A5FA] flex items-center gap-2 uppercase tracking-wider mb-2">
                                         <Wrench className="w-4 h-4" /> Detalhes do Ajuste Solicitado pelo Cliente:
@@ -1532,7 +1563,7 @@ function JobDetailClient({ jobId }: { jobId: string }) {
 
 
                             {/* DELIVERY SECTION (Programmer Only) */}
-                            {!isOwner && currentUser?.id === acceptedProposal.criador_id && (
+                            {!isOwner && isAcceptedProgrammer && (
                                 <div className="mt-8 pt-8 border-t border-[var(--border-hairline)] w-full max-w-lg mx-auto text-left relative z-10">
                                     <div className="bg-[var(--bg-surface-elevated)] p-6 rounded-xl border border-[#0D9488]/30">
                                         <div className="flex items-center gap-2 mb-4">
@@ -1647,7 +1678,7 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                             )}
                                         </p>
                                     </>
-                                ) : (
+                                ) : isAcceptedProgrammer ? (
                                     <>
                                         <div className="inline-flex items-center gap-2 bg-[#0D9488]/15 text-[#0F766E] dark:text-[#14B8A6] px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider mb-6">
                                             <Package className="w-3 h-3" /> {job.revision_notes ? 'Correção da Matriz Enviada com Sucesso' : 'Matriz Entregue com Sucesso'}
@@ -1661,6 +1692,18 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                             ) : (
                                                 <>Você já enviou os arquivos da matriz. O cliente foi notificado para testar o bordado na máquina. Caso ele não avalie ou solicite revisões dentro do prazo de <strong className="text-[#2563EB] dark:text-[#60A5FA]">24 horas</strong>, o pagamento será liberado automaticamente para você.</>
                                             )}
+                                        </p>
+                                    </>
+                                ) : (
+                                    <>
+                                        <div className="inline-flex items-center gap-2 bg-[#0D9488]/15 text-[#0F766E] dark:text-[#14B8A6] px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider mb-6">
+                                            <Package className="w-3 h-3" /> Pedido Entregue
+                                        </div>
+                                        <h2 className="text-3xl font-semibold text-[var(--text-primary)] mb-4">
+                                            Matriz entregue ao comprador
+                                        </h2>
+                                        <p className="text-[var(--text-secondary)] text-sm mb-6 leading-relaxed">
+                                            Este pedido já foi finalizado pelo programador e está em fase de conferência pelo cliente.
                                         </p>
                                     </>
                                 )}
@@ -1802,7 +1845,7 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                 )}
 
                                 {/* QUICK CHAT BUTTON FOR PROGRAMMER */}
-                                {!isOwner && acceptedProposal && (
+                                {!isOwner && isAcceptedProgrammer && acceptedProposal && (
                                     <div className="mt-8 pt-6 border-t border-[var(--border-hairline)] flex items-center justify-between gap-3 flex-wrap">
                                         <p className="text-xs text-[var(--text-secondary)]">Dúvidas com o cliente sobre o bordado?</p>
                                         <button
@@ -1973,7 +2016,7 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                 </div>
                             )}
 
-                            {!isOwner && currentUser?.id === acceptedProposal?.criador_id && (
+                            {!isOwner && isAcceptedProgrammer && (
                                 <div className="w-full lg:w-[450px] bg-[var(--bg-surface-elevated)] p-8 lg:p-10 flex flex-col items-center justify-center text-center">
                                     <h3 className="text-xl font-semibold text-[var(--text-primary)] mb-8 text-center">Acompanhamento do Pagamento</h3>
                                     
@@ -2029,7 +2072,7 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                             Parabéns! Sua matriz foi 100% aprovada e está pronta para bordar. Os arquivos ficam salvos permanentemente na sua conta e você pode baixá-los a qualquer momento.
                                         </p>
                                     </>
-                                ) : (
+                                ) : isAcceptedProgrammer ? (
                                     <>
                                         {jobReview && jobReview.rating_matrix === 5 && jobReview.rating_service === 5 ? (
                                             <div className="inline-flex items-center gap-2 bg-[#2563EB]/12 text-[#2563EB] dark:text-[#60A5FA] border border-[#2563EB]/30 px-3.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider mb-6">
@@ -2093,6 +2136,18 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                                 Minha Produção
                                             </Link>
                                         </div>
+                                    </>
+                                ) : (
+                                    <>
+                                        <div className="inline-flex items-center gap-2 bg-[#0D9488]/15 text-[#0F766E] dark:text-[#14B8A6] px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider mb-6">
+                                            <CheckCircle className="w-3 h-3" /> Pedido Concluído
+                                        </div>
+                                        <h2 className="text-3xl font-semibold text-[var(--text-primary)] mb-2">
+                                            Pedido finalizado no BordadoHUB
+                                        </h2>
+                                        <p className="text-[var(--text-secondary)] text-sm mb-6 leading-relaxed">
+                                            Este pedido já foi concluído e aprovado pelo cliente.
+                                        </p>
                                     </>
                                 )}
                                 
@@ -2176,7 +2231,7 @@ function JobDetailClient({ jobId }: { jobId: string }) {
 
                                 <div className="mt-8 pt-6 border-t border-[var(--border-hairline)] flex items-center justify-between gap-3 flex-wrap">
                                     <p className="text-xs text-[var(--text-secondary)]">Histórico de mensagens e suporte preservados.</p>
-                                    {!isOwner && acceptedProposal && (
+                                    {!isOwner && isAcceptedProgrammer && acceptedProposal && (
                                         <button
                                             onClick={() => handleNegotiate(acceptedProposal.id)}
                                             className="min-h-[44px] sm:min-h-0 inline-flex items-center gap-2 bg-[var(--bg-surface-elevated)] hover:bg-[var(--btn-glass-bg)] text-[var(--text-primary)] px-4 py-2 rounded-xl text-xs font-semibold border border-[var(--border-hairline)] transition-colors"
@@ -2193,9 +2248,9 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                 <div className="mb-6">
                                     <h3 className="text-lg font-semibold text-[var(--text-primary)] flex items-center gap-2">
                                         <Star className="w-5 h-5 text-[#2563EB] fill-[#2563EB] dark:text-[#60A5FA] dark:fill-[#60A5FA]" />
-                                        {isOwner ? 'Avaliação do Projeto' : 'Avaliação Recebida do Cliente'}
+                                        {isOwner ? 'Avaliação do Projeto' : isAcceptedProgrammer ? 'Avaliação Recebida do Cliente' : 'Avaliação do Projeto'}
                                     </h3>
-                                    {!isOwner && jobReview && jobReview.rating_matrix === 5 && jobReview.rating_service === 5 && (
+                                    {isAcceptedProgrammer && jobReview && jobReview.rating_matrix === 5 && jobReview.rating_service === 5 && (
                                         <span className="inline-flex items-center gap-1.5 mt-2 text-[11px] font-bold bg-[#2563EB]/12 text-[#2563EB] dark:text-[#60A5FA] border border-[#2563EB]/25 px-3 py-1 rounded-full">
                                             <Sparkles className="w-3.5 h-3.5" />
                                             Desempenho 10/10 • Cliente Satisfeito
@@ -2225,13 +2280,13 @@ function JobDetailClient({ jobId }: { jobId: string }) {
 
                                         {jobReview.comment && (
                                             <div className="bg-[var(--bg-surface)] p-3 rounded-xl border border-[var(--border-hairline)] text-sm text-[var(--text-primary)] italic">
-                                                {!isOwner && <p className="text-[10px] text-[var(--text-secondary)] uppercase not-italic font-bold mb-1">Comentário do Comprador:</p>}
+                                                {isAcceptedProgrammer && <p className="text-[10px] text-[var(--text-secondary)] uppercase not-italic font-bold mb-1">Comentário do Comprador:</p>}
                                                 &quot;{jobReview.comment}&quot;
                                             </div>
                                         )}
 
                                         <div className="pt-2 flex flex-col gap-2">
-                                            {!isOwner && (
+                                            {isAcceptedProgrammer && (
                                                 <span className="inline-flex items-center gap-1.5 text-xs text-[#2563EB] dark:text-[#60A5FA] bg-[#2563EB]/10 px-3 py-1.5 rounded-full border border-[#2563EB]/25 font-bold">
                                                     <Sparkles className="w-3.5 h-3.5" /> Pontuação adicionada ao seu perfil profissional!
                                                 </span>
@@ -2654,7 +2709,7 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                                 </div>
                                             )}
 
-                                            {!isOwner && currentUser?.id === proposal.criador_id && (
+                                            {!isOwner && isProposalMine(proposal) && (
                                                 <button onClick={() => handleNegotiate(proposal.id)} className={`w-full min-h-[44px] sm:min-h-0 border text-xs font-semibold py-2 rounded-lg transition-colors flex items-center justify-center gap-1 relative ${negotiatingProposalId === proposal.id ? 'bg-[#2563EB]/12 text-[#2563EB] dark:text-[#60A5FA] border-[#2563EB]/30' : 'border-[var(--border-hairline)] text-[var(--text-secondary)] hover:text-[#2563EB] dark:hover:text-[#60A5FA]'}`}>
                                                     <MessageSquare className="w-3.5 h-3.5"/> {negotiatingProposalId === proposal.id ? 'Fechar Chat' : 'Abrir Chat'}
                                                     {unreadCounts[proposal.id] > 0 && <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-[#DC2626] text-[9px] font-bold text-white shadow-sm">{unreadCounts[proposal.id]}</span>}
@@ -2724,7 +2779,7 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                                 </div>
                                             )}
 
-                                            {!isOwner && proposal.status === 'contraproposta' && proposal.criador_id === currentUser?.id && (
+                                            {!isOwner && proposal.status === 'contraproposta' && isProposalMine(proposal) && (
                                                 <div className="p-3 bg-[#2563EB]/10 border border-[#2563EB]/25 rounded-xl mt-2">
                                                     <p className="text-xs font-bold text-[#2563EB] dark:text-[#60A5FA] mb-2 flex items-center gap-1.5">
                                                         <Handshake className="w-3.5 h-3.5"/> Oferta do Cliente: R$ {Number(proposal.counter_amount).toFixed(2)}

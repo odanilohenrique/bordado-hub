@@ -757,7 +757,7 @@ export default function NegotiationChat({
                     )}
 
                     {/* Botão de Ajustar Valor para o Produtor */}
-                    {!isOwner && proposalData?.criador_id === currentUserId && (
+                    {!isOwner && Boolean(currentUserId && proposalData?.criador_id && proposalData.criador_id === currentUserId) && (
                         <button 
                             onClick={() => setShowProducerAdjust(!showProducerAdjust)}
                             className={`min-h-[44px] sm:min-h-[34px] flex items-center gap-1.5 text-xs font-semibold px-3 py-2 sm:py-1.5 rounded-lg transition-all ${
@@ -1007,7 +1007,7 @@ export default function NegotiationChat({
                         </div>
                     ) : (
                         messages.map(msg => {
-                            const isMe = msg.sender_id === currentUserId
+                            const isMe = Boolean(currentUserId && msg.sender_id && msg.sender_id === currentUserId)
                             const isSystemNotice = msg.content?.startsWith('[CONTRAOFERTA') || 
                                                   msg.content?.startsWith('[SISTEMA]') || 
                                                   msg.content?.includes('NEGÓCIO FECHADO')

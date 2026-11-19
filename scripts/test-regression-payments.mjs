@@ -1953,6 +1953,55 @@ test('T5-DS2-REBRAND: Design System 2.0 (Dual-Theme, Zero Emojis/Âmbar, SVG/Mí
     }
 })
 
+test('T5-GUEST-PROPOSAL-GUARD: Propostas sanitizadas sem criador_id nunca dão falso positivo para visitante deslogado', () => {
+    const sanitizedGuestProposals = [
+        { id: 'p1', job_id: 'j1', status: 'pendente', created_at: '2026-11-19T00:00:00Z' },
+        { id: 'p2', job_id: 'j1', status: 'aceita', created_at: '2026-11-19T00:01:00Z' }
+    ]
+
+    const evalGuards = (currentUser, proposals) => {
+        const currentProfileId = currentUser?.id || null
+        const acceptedProposal = proposals.find((p) => p.status === 'aceita')
+        const isProposalMine = (p) => Boolean(currentProfileId && p?.criador_id && p.criador_id === currentProfileId)
+        const myExistingProposal = currentProfileId ? proposals.find(isProposalMine) : undefined
+        const isAcceptedProgrammer = Boolean(
+            currentProfileId && acceptedProposal?.criador_id && acceptedProposal.criador_id === currentProfileId
+        )
+        return { isProposalMine, myExistingProposal, isAcceptedProgrammer }
+    }
+
+    // 1. Visitante deslogado: nunca dá match com undefined === undefined
+    const guestState = evalGuards(null, sanitizedGuestProposals)
+    assert.equal(guestState.myExistingProposal, undefined)
+    assert.equal(guestState.isAcceptedProgrammer, false)
+    assert.equal(sanitizedGuestProposals.some(guestState.isProposalMine), false)
+
+    // 2. Programador autenticado: propostas de concorrentes (sem criador_id) continuam ocultas/false; apenas a sua dá match
+    const progProposals = [
+        ...sanitizedGuestProposals,
+        { id: 'p3', job_id: 'j1', status: 'pendente', criador_id: 'prog-1', amount: 45, created_at: '2026-11-19T00:02:00Z' }
+    ]
+    const progState = evalGuards({ id: 'prog-1' }, progProposals)
+    assert.equal(progState.isProposalMine(sanitizedGuestProposals[0]), false)
+    assert.equal(progState.isProposalMine(progProposals[2]), true)
+    assert.equal(progState.myExistingProposal?.id, 'p3')
+    assert.equal(progState.isAcceptedProgrammer, false)
+
+    verifyFileContent('src/app/jobs/[id]/page.tsx', {
+        includes: ['isProposalMine', 'isAcceptedProgrammer', 'setCurrentUser(null)'],
+        excludes: [
+            'p.criador_id === currentUser?.id',
+            'currentUser?.id === acceptedProposal.criador_id',
+            'currentUser?.id === acceptedProposal?.criador_id',
+            'currentUser?.id === proposal.criador_id',
+            'proposal.criador_id === currentUser?.id'
+        ]
+    })
+    verifyFileContent('src/components/NegotiationChat.tsx', {
+        excludes: ['proposalData?.criador_id === currentUserId']
+    })
+})
+
 test('T5-M1-SYNC: Suíte completa de sincronização e timing (scripts/test-m1-sync.mjs)', () => {
     runSubSuite('scripts/test-m1-sync.mjs')
 })
