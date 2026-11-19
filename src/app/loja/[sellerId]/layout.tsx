@@ -18,9 +18,9 @@ const DEFAULT_METADATA: Metadata = {
         type: 'website',
         images: [
             {
-                url: '/brand/icon-dark.png',
-                width: 1082,
-                height: 1082,
+                url: 'https://bordadohub.com/brand/v2/og-image.png',
+                width: 1200,
+                height: 630,
                 alt: 'BordadoHub - Marketplace de Matrizes',
             },
         ],
@@ -29,7 +29,7 @@ const DEFAULT_METADATA: Metadata = {
         card: 'summary',
         title: 'Loja Oficial de Matrizes de Bordado | BordadoHub',
         description: 'Explore lojas de programadores profissionais de matrizes de bordado no BordadoHub.',
-        images: ['/brand/icon-dark.png'],
+        images: ['https://bordadohub.com/brand/v2/og-image.png'],
     },
 }
 
@@ -111,7 +111,7 @@ export async function generateMetadata({ params }: { params: Promise<{ sellerId:
             seller.avatar_url.trim().length > 0 &&
             !seller.avatar_url.startsWith('blob:')
 
-        const imageUrl = hasValidAvatar ? seller.avatar_url : '/brand/icon-dark.png'
+        const imageUrl = hasValidAvatar ? seller.avatar_url : 'https://bordadohub.com/brand/v2/og-image.png'
 
         return {
             title,
@@ -126,8 +126,8 @@ export async function generateMetadata({ params }: { params: Promise<{ sellerId:
                 images: [
                     {
                         url: imageUrl,
-                        width: hasValidAvatar ? 400 : 1082,
-                        height: hasValidAvatar ? 400 : 1082,
+                        width: hasValidAvatar ? 400 : 1200,
+                        height: hasValidAvatar ? 400 : 630,
                         alt: `Loja Oficial de ${sellerName} - BordadoHub`,
                     },
                 ],

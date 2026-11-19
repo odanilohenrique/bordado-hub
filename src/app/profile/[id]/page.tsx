@@ -36,37 +36,37 @@ interface UserProfile {
 
 function ProfileSkeleton() {
     return (
-        <div className="min-h-screen bg-[#0B0D11] text-gray-100 pb-16 animate-pulse">
+        <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)] pb-24 md:pb-12 animate-pulse">
             {/* Banner Skeleton */}
-            <div className="h-44 sm:h-56 bg-gradient-to-r from-gray-900 via-[#181C26] to-gray-900 border-b border-white/5 relative" />
+            <div className="h-44 sm:h-56 hero-bg-matte border-b border-[var(--border-hairline)] relative" />
 
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-20 relative z-10">
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                     {/* Sidebar Skeleton */}
                     <div className="lg:col-span-4 space-y-6">
-                        <div className="bg-[#12151C] border border-white/[0.07] rounded-2xl p-6 text-center space-y-4">
-                            <div className="w-32 h-32 mx-auto rounded-full bg-white/10 border-4 border-[#0F1115]" />
-                            <div className="h-6 w-3/4 mx-auto bg-white/10 rounded-lg" />
-                            <div className="h-4 w-1/2 mx-auto bg-white/5 rounded-full" />
-                            <div className="pt-4 border-t border-white/5 space-y-3">
-                                <div className="h-4 w-full bg-white/5 rounded" />
-                                <div className="h-4 w-4/5 bg-white/5 rounded" />
+                        <div className="bg-[var(--bg-surface)] border border-[var(--border-hairline)] rounded-2xl p-6 text-center space-y-4">
+                            <div className="w-32 h-32 mx-auto rounded-full bg-[var(--bg-surface-elevated)] border-4 border-[var(--bg-primary)]" />
+                            <div className="h-6 w-3/4 mx-auto bg-[var(--bg-surface-elevated)] rounded-lg" />
+                            <div className="h-4 w-1/2 mx-auto bg-[var(--bg-surface-elevated)] rounded-full" />
+                            <div className="pt-4 border-t border-[var(--border-hairline)] space-y-3">
+                                <div className="h-4 w-full bg-[var(--bg-surface-elevated)] rounded" />
+                                <div className="h-4 w-4/5 bg-[var(--bg-surface-elevated)] rounded" />
                             </div>
                         </div>
                     </div>
 
                     {/* Main Content Skeleton */}
                     <div className="lg:col-span-8 space-y-6">
-                        <div className="bg-[#12151C] border border-white/[0.07] rounded-2xl p-6 space-y-4">
-                            <div className="h-6 w-48 bg-white/10 rounded-lg" />
-                            <div className="h-4 w-full bg-white/5 rounded" />
-                            <div className="h-4 w-3/4 bg-white/5 rounded" />
+                        <div className="bg-[var(--bg-surface)] border border-[var(--border-hairline)] rounded-2xl p-6 space-y-4">
+                            <div className="h-6 w-48 bg-[var(--bg-surface-elevated)] rounded-lg" />
+                            <div className="h-4 w-full bg-[var(--bg-surface-elevated)] rounded" />
+                            <div className="h-4 w-3/4 bg-[var(--bg-surface-elevated)] rounded" />
                         </div>
-                        <div className="bg-[#12151C] border border-white/[0.07] rounded-2xl p-6">
-                            <div className="h-6 w-40 bg-white/10 rounded-lg mb-4" />
+                        <div className="bg-[var(--bg-surface)] border border-[var(--border-hairline)] rounded-2xl p-6">
+                            <div className="h-6 w-40 bg-[var(--bg-surface-elevated)] rounded-lg mb-4" />
                             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                                 {[1, 2, 3, 4, 5, 6].map(i => (
-                                    <div key={i} className="aspect-square bg-white/5 rounded-xl border border-white/5" />
+                                    <div key={i} className="aspect-square bg-[var(--bg-surface-elevated)] rounded-xl border border-[var(--border-hairline)]" />
                                 ))}
                             </div>
                         </div>
@@ -511,31 +511,31 @@ export default function ProfilePage() {
     // 1. CREATE PROFILE FALLBACK
     if (!profile && currentUser && currentUser.id === id) {
         return (
-            <div className="min-h-screen bg-[#0F1115] flex items-center justify-center p-4">
-                <div className="bg-[#1A1D23] border border-[#FFAE00] p-8 rounded-xl max-w-md w-full text-center">
-                    <div className="w-16 h-16 bg-[#FFAE00]/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <User className="w-8 h-8 text-[#FFAE00]" />
+            <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)] flex items-center justify-center p-4 pb-24 md:pb-12">
+                <div className="bg-[var(--bg-surface)] border border-[var(--border-hairline)] p-8 rounded-2xl max-w-md w-full text-center shadow-xl">
+                    <div className="w-16 h-16 bg-[#2563EB]/10 border border-[#2563EB]/25 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <User className="w-8 h-8 text-[var(--cobalt-text)]" />
                     </div>
-                    <h2 className="text-2xl font-bold text-white mb-2">Complete seu Perfil</h2>
-                    <p className="text-gray-400 mb-6">Parece que você ainda não finalizou seu cadastro.</p>
+                    <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-2">Complete seu Perfil</h2>
+                    <p className="text-[var(--text-secondary)] mb-6">Parece que você ainda não finalizou seu cadastro.</p>
 
                     <div className="text-left mb-6">
-                        <label className="block text-sm font-medium text-gray-300 mb-2">Eu quero:</label>
+                        <label className="block text-sm font-medium text-[var(--text-primary)] mb-2">Eu quero:</label>
                         <div className="grid grid-cols-2 gap-4">
                             <button
                                 onClick={() => setNewRole('cliente')}
-                                className={`p-3 rounded-lg border text-sm font-bold transition-all ${newRole === 'cliente'
-                                    ? 'bg-[#FFAE00] text-black border-[#FFAE00]'
-                                    : 'bg-[#0F1115] text-gray-400 border-gray-700 hover:border-[#FFAE00]'
+                                className={`min-h-[44px] p-3 rounded-lg border text-sm font-bold transition-all cursor-pointer ${newRole === 'cliente'
+                                    ? 'bg-[#2563EB] text-white border-[#2563EB]'
+                                    : 'bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] border-[var(--border-hairline)] hover:border-[#2563EB]/40 hover:text-[var(--text-primary)]'
                                     }`}
                             >
                                 Contratar Matrizes
                             </button>
                             <button
                                 onClick={() => setNewRole('criador')}
-                                className={`p-3 rounded-lg border text-sm font-bold transition-all ${newRole === 'criador'
-                                    ? 'bg-[#FFAE00] text-black border-[#FFAE00]'
-                                    : 'bg-[#0F1115] text-gray-400 border-gray-700 hover:border-[#FFAE00]'
+                                className={`min-h-[44px] p-3 rounded-lg border text-sm font-bold transition-all cursor-pointer ${newRole === 'criador'
+                                    ? 'bg-[#2563EB] text-white border-[#2563EB]'
+                                    : 'bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] border-[var(--border-hairline)] hover:border-[#2563EB]/40 hover:text-[var(--text-primary)]'
                                     }`}
                             >
                                 Trabalhar
@@ -546,7 +546,7 @@ export default function ProfilePage() {
                     <button
                         onClick={handleCreateProfile}
                         disabled={isCreating}
-                        className="w-full bg-[#FFAE00] text-black font-bold py-3 rounded-lg hover:bg-[#D97706] transition-colors disabled:opacity-50"
+                        className="w-full min-h-[48px] bg-[var(--btn-primary-bg)] hover:bg-[var(--btn-primary-hover)] text-[var(--btn-primary-text)] font-semibold py-3 rounded-lg transition-colors disabled:opacity-50 cursor-pointer"
                     >
                         {isCreating ? 'Finalizando...' : 'Concluir Cadastro'}
                     </button>
@@ -557,25 +557,25 @@ export default function ProfilePage() {
 
     if (!profile) {
         return (
-            <div className="min-h-screen bg-[#0B0D11] text-gray-100 flex items-center justify-center px-4">
-                <div className="bg-[#12151C] border border-white/[0.07] rounded-2xl p-10 max-w-md w-full text-center space-y-4 shadow-2xl">
-                    <div className="w-16 h-16 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mx-auto text-gray-400">
+            <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)] flex items-center justify-center px-4 pb-24 md:pb-12">
+                <div className="bg-[var(--bg-surface)] border border-[var(--border-hairline)] rounded-2xl p-10 max-w-md w-full text-center space-y-4 shadow-xl">
+                    <div className="w-16 h-16 rounded-full bg-[var(--bg-surface-elevated)] border border-[var(--border-hairline)] flex items-center justify-center mx-auto text-[var(--text-secondary)]">
                         <User className="w-8 h-8" />
                     </div>
-                    <h2 className="text-xl font-extrabold text-white">Perfil não encontrado</h2>
-                    <p className="text-gray-400 text-sm leading-relaxed">
+                    <h2 className="text-xl font-bold text-[var(--text-primary)]">Perfil não encontrado</h2>
+                    <p className="text-[var(--text-secondary)] text-sm leading-relaxed">
                         Não foi possível carregar as informações deste usuário ou o perfil ainda não foi configurado.
                     </p>
                     <div className="pt-4 flex flex-col sm:flex-row gap-3">
                         <Link
                             href="/programadores"
-                            className="flex-1 py-3 px-4 rounded-xl border border-white/10 hover:border-white/20 text-gray-300 hover:text-white font-bold text-xs transition-all text-center"
+                            className="min-h-[44px] flex-1 flex items-center justify-center py-3 px-4 rounded-lg bg-[var(--btn-glass-bg)] border border-[var(--border-glass)] hover:border-[#2563EB]/40 text-[var(--text-primary)] font-semibold text-xs transition-all text-center"
                         >
                             Ver Programadores
                         </Link>
                         <button
                             onClick={() => loadData(true)}
-                            className="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-[#FFB703] to-[#FB8500] hover:brightness-110 text-black font-extrabold text-xs transition-all shadow-md shadow-[#FFB703]/10 text-center"
+                            className="min-h-[48px] flex-1 flex items-center justify-center py-3 px-4 rounded-lg bg-[var(--btn-primary-bg)] hover:bg-[var(--btn-primary-hover)] text-[var(--btn-primary-text)] font-semibold text-xs transition-all text-center cursor-pointer"
                         >
                             Tentar Novamente
                         </button>
@@ -600,7 +600,7 @@ export default function ProfilePage() {
     // 3. EDIT MODE
     if (isEditing) {
         return (
-            <div className="min-h-screen bg-[#0B0D11] p-4 md:p-8">
+            <div className="min-h-screen bg-[var(--bg-primary)] p-4 md:p-8 pb-24 md:pb-12">
                 <div className="max-w-3xl mx-auto">
                     <ProfileEditor
                         profile={profile}
@@ -648,18 +648,17 @@ export default function ProfilePage() {
     const isProgrammerView = currentViewRole === 'criador'
 
     return (
-        <div className="min-h-screen bg-[#0F1115] pb-12">
+        <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)] pb-24 md:pb-12">
             {/* Header / Banner */}
-            <div className="h-48 bg-gradient-to-r from-[#1A1D23] to-[#0F1115] border-b border-[#FFAE00]/10 relative">
-                <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10"></div>
+            <div className="h-48 hero-bg-matte border-b border-[var(--border-hairline)] relative">
                 {isOwner && (
                     <div className="absolute top-4 right-4 z-50 flex flex-wrap gap-2.5 items-center justify-end">
                         {(profile.is_programmer || profile.role === 'criador') && (
                             <button
                                 onClick={toggleView}
-                                className="bg-black/80 hover:bg-black text-white px-3 py-2 rounded-xl text-xs font-bold border border-white/20 transition-all flex items-center gap-2 backdrop-blur-sm shadow-md"
+                                className="min-h-[44px] bg-[var(--bg-surface)]/90 hover:bg-[var(--bg-surface)] text-[var(--text-primary)] px-3.5 py-2 rounded-xl text-xs font-bold border border-[var(--border-glass)] transition-all flex items-center gap-2 backdrop-blur-md shadow-sm cursor-pointer"
                             >
-                                <Eye className="w-3.5 h-3.5 text-[#FFAE00]" />
+                                <Eye className="w-3.5 h-3.5 text-[var(--cobalt-text)]" />
                                 {isProgrammerView ? 'Ver como Cliente' : 'Ver como Programador'}
                             </button>
                         )}
@@ -668,7 +667,7 @@ export default function ProfilePage() {
                             onClick={() => {
                                 setIsEditing(true)
                             }}
-                            className="bg-gradient-to-r from-[#FFB703] to-[#FB8500] hover:brightness-110 active:scale-95 text-black px-4 py-2 rounded-xl text-xs font-black shadow-lg shadow-[#FFB703]/20 transition-all flex items-center gap-2"
+                            className="min-h-[44px] bg-[var(--btn-primary-bg)] hover:bg-[var(--btn-primary-hover)] active:scale-95 text-[var(--btn-primary-text)] px-4 py-2 rounded-lg text-xs font-semibold transition-all flex items-center gap-2 cursor-pointer"
                         >
                             <Edit2 className="w-3.5 h-3.5" /> Configurar / Editar Perfil
                         </button>
@@ -681,16 +680,16 @@ export default function ProfilePage() {
 
                     {/* Sidebar / Info Card */}
                     <div className="w-full md:w-80 flex-shrink-0">
-                        <div className="bg-[#12151C] rounded-2xl border border-white/[0.07] p-6 shadow-2xl relative overflow-hidden">
+                        <div className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-hairline)] p-6 shadow-sm relative overflow-hidden">
                             {/* Role & Business Type Badges */}
                             <div className="absolute top-0 right-0 p-3 flex flex-col items-end gap-1.5">
                                 {(profile.is_programmer || (profile.skills && profile.skills.length > 0) || profile.role === 'criador') && (
-                                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-[#F5A623]/10 text-[#F5A623] border border-[#F5A623]/30">
+                                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-[#2563EB]/10 text-[var(--cobalt-text)] border border-[#2563EB]/25">
                                         Programador
                                     </span>
                                 )}
                                 {!(profile.is_programmer || profile.role === 'criador') && (profile.is_client || profile.client_business_type) && (
-                                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold tracking-wide bg-white/5 text-gray-300 border border-white/10">
+                                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold tracking-wide bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] border border-[var(--border-hairline)]">
                                         {profile.client_business_type || 'Cliente'}
                                     </span>
                                 )}
@@ -703,7 +702,7 @@ export default function ProfilePage() {
 
                                 return (
                                     <>
-                                        <div className="w-32 h-32 mx-auto rounded-full border-4 border-[#0F1115] bg-[#2A2D35] flex items-center justify-center overflow-hidden mb-3 relative shadow-[0_0_20px_rgba(255,174,0,0.2)]">
+                                        <div className="w-32 h-32 mx-auto rounded-full border-4 border-[var(--bg-primary)] bg-[var(--bg-surface-elevated)] flex items-center justify-center overflow-hidden mb-3 relative">
                                             {displayAvatar ? (
                                                 <Image
                                                     src={displayAvatar}
@@ -714,15 +713,15 @@ export default function ProfilePage() {
                                                     unoptimized
                                                 />
                                             ) : (
-                                                <User className="w-16 h-16 text-gray-500" />
+                                                <User className="w-16 h-16 text-[var(--text-secondary)]" />
                                             )}
                                         </div>
 
                                         {/* Botão único: Alterar foto de perfil */}
                                         {isOwner && (
                                             <div className="flex justify-center mb-4">
-                                                <label className="inline-flex items-center justify-center gap-2 px-3 py-1.5 rounded-full bg-[#0F1115] border border-gray-700 text-xs font-medium text-gray-300 hover:text-[#FFAE00] hover:border-[#FFAE00]/50 cursor-pointer transition-all shadow-sm group">
-                                                    <Camera className="w-3.5 h-3.5 text-[#FFAE00]" />
+                                                <label className="min-h-[44px] inline-flex items-center justify-center gap-2 px-4 py-2 rounded-full bg-[var(--bg-surface-elevated)] border border-[var(--border-hairline)] text-xs font-medium text-[var(--text-primary)] hover:text-[var(--cobalt-text)] hover:border-[#2563EB]/50 cursor-pointer transition-all group">
+                                                    <Camera className="w-3.5 h-3.5 text-[var(--cobalt-text)]" />
                                                     {avatarUploading ? 'Enviando foto...' : 'Alterar foto de perfil'}
                                                     <input
                                                         type="file"
@@ -738,7 +737,7 @@ export default function ProfilePage() {
                                 )
                             })()}
 
-                            <h1 className="text-2xl font-bold text-[#F3F4F6] text-center mb-1">{profile.name}</h1>
+                            <h1 className="text-2xl font-bold text-[var(--text-primary)] text-center mb-1">{profile.name}</h1>
 
                             {/* Ações do Proprietário do Perfil */}
                             {isOwner && (
@@ -747,7 +746,7 @@ export default function ProfilePage() {
                                         onClick={() => {
                                             setIsEditing(true)
                                         }}
-                                        className="w-full bg-gradient-to-r from-[#FFB703] to-[#FB8500] hover:brightness-110 active:scale-95 text-black px-4 py-2.5 rounded-xl text-xs font-black shadow-md shadow-[#FFB703]/20 transition-all flex items-center justify-center gap-2"
+                                        className="w-full min-h-[44px] bg-[var(--btn-primary-bg)] hover:bg-[var(--btn-primary-hover)] active:scale-95 text-[var(--btn-primary-text)] px-4 py-2.5 rounded-lg text-xs font-semibold transition-all flex items-center justify-center gap-2 cursor-pointer"
                                     >
                                         <Edit2 className="w-3.5 h-3.5" /> Configurar / Editar Perfil
                                     </button>
@@ -757,7 +756,7 @@ export default function ProfilePage() {
                                             onClick={() => {
                                                 setIsProgrammerModalOpen(true)
                                             }}
-                                            className="w-full bg-[#181C26] hover:bg-[#202533] text-[#FFAE00] border border-[#FFAE00]/30 hover:border-[#FFAE00] px-3 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2"
+                                            className="w-full min-h-[44px] bg-[var(--btn-glass-bg)] hover:border-[#2563EB]/50 text-[var(--cobalt-text)] border border-[var(--border-glass)] px-3 py-2.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer"
                                         >
                                             <Code className="w-3.5 h-3.5" /> Quero Produzir Matrizes
                                         </button>
@@ -765,26 +764,26 @@ export default function ProfilePage() {
                                 </div>
                             )}
 
-                            <div className="space-y-4 border-t border-gray-800 pt-6 mt-6">
+                            <div className="space-y-4 border-t border-[var(--border-hairline)] pt-6 mt-6">
                                 {/* Common Stats */}
                                 <div className="flex items-center justify-between text-sm">
-                                    <span className="text-gray-400 flex items-center gap-2">
+                                    <span className="text-[var(--text-secondary)] flex items-center gap-2">
                                         {profile.reviews_count && profile.reviews_count > 0 ? (
-                                            <Star className="w-4 h-4 text-[#F5A623] fill-[#F5A623]" />
+                                            <Star className="w-4 h-4 text-[#2563EB] fill-[#2563EB] dark:text-[#60A5FA] dark:fill-[#60A5FA]" />
                                         ) : null}
                                         Avaliação
                                     </span>
-                                    <span className="text-white font-bold">
+                                    <span className="text-[var(--text-primary)] font-bold">
                                         {profile.reviews_count && profile.reviews_count > 0
                                             ? `${profile.rating?.toFixed(1)} (${profile.reviews_count})`
                                             : 'Sem avaliações ainda'}
                                     </span>
                                 </div>
                                 <div className="flex items-center justify-between text-sm">
-                                    <span className="text-gray-400 flex items-center gap-2">
-                                        <Calendar className="w-4 h-4 text-[#FFAE00]" /> Membro desde
+                                    <span className="text-[var(--text-secondary)] flex items-center gap-2">
+                                        <Calendar className="w-4 h-4 text-[var(--cobalt-text)]" /> Membro desde
                                     </span>
-                                    <span className="text-white font-bold">
+                                    <span className="text-[var(--text-primary)] font-bold">
                                         {new Date(profile.created_at).toLocaleDateString('pt-BR')}
                                     </span>
                                 </div>
@@ -792,25 +791,25 @@ export default function ProfilePage() {
                                 {/* Role Specific Stats */}
                                 {isProgrammerView ? (
                                     <div className="flex items-center justify-between text-sm">
-                                        <span className="text-gray-400 flex items-center gap-2">
-                                            <Package className="w-4 h-4 text-[#FFAE00]" /> Matrizes
+                                        <span className="text-[var(--text-secondary)] flex items-center gap-2">
+                                            <Package className="w-4 h-4 text-[var(--cobalt-text)]" /> Matrizes
                                         </span>
-                                        <span className="text-white font-bold">{profile.matrices_count || 0}</span>
+                                        <span className="text-[var(--text-primary)] font-bold">{profile.matrices_count || 0}</span>
                                     </div>
                                 ) : (
                                     <>
                                         <div className="flex items-center justify-between text-sm">
-                                            <span className="text-gray-400 flex items-center gap-2">
-                                                <Layers className="w-4 h-4 text-[#FFAE00]" /> Perfil
+                                            <span className="text-[var(--text-secondary)] flex items-center gap-2">
+                                                <Layers className="w-4 h-4 text-[var(--cobalt-text)]" /> Perfil
                                             </span>
-                                            <span className="text-white font-bold text-xs">{profile.client_business_type || profile.experience_level || 'Iniciante'}</span>
+                                            <span className="text-[var(--text-primary)] font-bold text-xs">{profile.client_business_type || profile.experience_level || 'Iniciante'}</span>
                                         </div>
                                         {profile.client_machine_brand && (
                                             <div className="flex items-center justify-between text-sm">
-                                                <span className="text-gray-400 flex items-center gap-2">
-                                                    <Layers className="w-4 h-4 text-[#FFAE00]" /> Máquina
+                                                <span className="text-[var(--text-secondary)] flex items-center gap-2">
+                                                    <Layers className="w-4 h-4 text-[var(--cobalt-text)]" /> Máquina
                                                 </span>
-                                                <span className="text-white font-bold text-xs">{profile.client_machine_brand}</span>
+                                                <span className="text-[var(--text-primary)] font-bold text-xs">{profile.client_machine_brand}</span>
                                             </div>
                                         )}
                                     </>
@@ -822,18 +821,18 @@ export default function ProfilePage() {
                                 <div className="mt-8">
                                     <Link
                                         href={`/jobs/new?programmer_id=${profile.id}`}
-                                        className="block w-full text-center bg-[#FFAE00] hover:bg-[#D97706] text-[#0F1115] font-bold py-3 rounded-lg transition-colors shadow-[0_0_15px_rgba(255,174,0,0.3)]"
+                                        className="min-h-[48px] flex items-center justify-center w-full text-center bg-[var(--btn-primary-bg)] hover:bg-[var(--btn-primary-hover)] text-[var(--btn-primary-text)] font-semibold py-3 rounded-lg transition-colors"
                                     >
                                         Solicitar Matriz Direta
                                     </Link>
-                                    <p className="text-xs text-gray-500 text-center mt-2">
+                                    <p className="text-xs text-[var(--text-secondary)] text-center mt-2">
                                         Envie um pedido privado para este programador
                                     </p>
                                 </div>
                             )}
 
                             {isOwner && (
-                                <div className="mt-6 pt-5 border-t border-white/[0.08] space-y-3">
+                                <div className="mt-6 pt-5 border-t border-[var(--border-hairline)] space-y-3">
                                     {!isProgrammer ? (
                                         <div>
                                             <button
@@ -841,12 +840,12 @@ export default function ProfilePage() {
                                                 onClick={() => {
                                                     setIsProgrammerModalOpen(true)
                                                 }}
-                                                className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-[#FFB703] to-[#FB8500] hover:brightness-110 active:scale-95 text-black font-black text-xs shadow-lg shadow-[#FFB703]/20 flex items-center justify-center gap-2 transition-all cursor-pointer"
+                                                className="w-full min-h-[48px] py-3 px-4 rounded-lg bg-[var(--btn-primary-bg)] hover:bg-[var(--btn-primary-hover)] active:scale-95 text-[var(--btn-primary-text)] font-semibold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer"
                                             >
                                                 <Code className="w-4 h-4" />
                                                 Quero Produzir Matrizes
                                             </button>
-                                            <p className="text-[11px] text-gray-400 text-center mt-2 leading-tight">
+                                            <p className="text-[11px] text-[var(--text-secondary)] text-center mt-2 leading-tight">
                                                 Acesso exclusivo para novos programadores
                                             </p>
                                         </div>
@@ -855,14 +854,14 @@ export default function ProfilePage() {
                                             <button
                                                 type="button"
                                                 onClick={() => setIsEditing(true)}
-                                                className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-[#FFB703] to-[#FB8500] hover:brightness-110 active:scale-95 text-black font-black text-xs shadow-md shadow-[#FFB703]/20 flex items-center justify-center gap-2 transition-all cursor-pointer"
+                                                className="w-full min-h-[44px] py-2.5 px-4 rounded-lg bg-[var(--btn-primary-bg)] hover:bg-[var(--btn-primary-hover)] active:scale-95 text-[var(--btn-primary-text)] font-semibold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer"
                                             >
                                                 <Edit2 className="w-3.5 h-3.5" />
                                                 Configurar Portfólio & Softwares
                                             </button>
                                             <Link
                                                 href="/jobs"
-                                                className="block w-full text-center bg-[#1A1D23] border border-[#FFAE00] text-[#FFAE00] hover:bg-[#FFAE00] hover:text-[#0F1115] font-bold py-2.5 rounded-xl transition-colors text-xs"
+                                                className="min-h-[44px] flex items-center justify-center w-full text-center bg-[#2563EB]/10 border border-[#2563EB]/30 text-[var(--cobalt-text)] hover:bg-[#2563EB] hover:text-white font-bold py-2.5 rounded-lg transition-colors text-xs"
                                             >
                                                 Mural de Pedidos
                                             </Link>
@@ -871,7 +870,7 @@ export default function ProfilePage() {
 
                                     <Link
                                         href="/pedidos"
-                                        className="block w-full text-center bg-[#12151C] border border-white/10 hover:border-white/30 text-gray-300 hover:text-white font-medium py-2 rounded-xl transition-all text-xs"
+                                        className="min-h-[44px] flex items-center justify-center w-full text-center bg-[var(--btn-glass-bg)] border border-[var(--border-glass)] hover:border-[#2563EB]/40 text-[var(--text-primary)] font-medium py-2 rounded-lg transition-all text-xs"
                                     >
                                         Meus Pedidos de Bordado
                                     </Link>
@@ -880,9 +879,9 @@ export default function ProfilePage() {
                         </div>
 
                         {/* Sidebar: Skills (Programmer) OR Formats (Client) */}
-                        <div className="bg-[#1A1D23] rounded-xl border border-[#FFAE00]/20 p-6 mt-6 shadow-xl">
-                            <h3 className="text-[#F3F4F6] font-bold mb-4 flex items-center gap-2">
-                                {isProgrammerView ? <Code className="w-4 h-4 text-[#FFAE00]" /> : <FileJson className="w-4 h-4 text-[#FFAE00]" />}
+                        <div className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-hairline)] p-6 mt-6 shadow-sm">
+                            <h3 className="text-[var(--text-primary)] font-bold mb-4 flex items-center gap-2">
+                                {isProgrammerView ? <Code className="w-4 h-4 text-[var(--cobalt-text)]" /> : <FileJson className="w-4 h-4 text-[var(--cobalt-text)]" />}
                                 {isProgrammerView ? 'Softwares & Habilidades' : 'Formatos Utilizados'}
                             </h3>
                             <div className="flex flex-wrap gap-2">
@@ -892,7 +891,7 @@ export default function ProfilePage() {
                                 ).map((item, index) => (
                                     <span
                                         key={index}
-                                        className="px-3 py-1 bg-[#0F1115] border border-gray-700 text-gray-300 text-xs rounded-full"
+                                        className="px-3 py-1 bg-[var(--bg-surface-elevated)] border border-[var(--border-hairline)] text-[var(--text-secondary)] text-xs rounded-full"
                                     >
                                         {item}
                                     </span>
@@ -906,18 +905,17 @@ export default function ProfilePage() {
 
                         {/* Banner de Onboarding para Programador Aprovado configurar portfólio */}
                         {isOwner && isProgrammer && (!profile.skills || profile.skills.length === 0) && (
-                            <div className="bg-gradient-to-r from-[#181C26] via-[#151922] to-[#181C26] rounded-2xl border-2 border-[#FFB703]/30 p-6 shadow-2xl relative overflow-hidden">
-                                <div className="absolute top-0 right-0 -mr-8 -mt-8 w-32 h-32 bg-[#FFB703]/10 rounded-full blur-2xl pointer-events-none" />
+                            <div className="bg-[var(--bg-surface)] rounded-2xl border border-[#2563EB]/30 p-6 shadow-sm relative overflow-hidden">
                                 <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative z-10">
                                     <div className="space-y-2 max-w-xl">
-                                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-bold uppercase tracking-wider">
+                                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#0D9488]/10 border border-[#0D9488]/30 text-[var(--teal-text)] text-xs font-bold uppercase tracking-wider">
                                             <Sparkles className="w-3.5 h-3.5" />
                                             Acesso de Programador Liberado!
                                         </div>
-                                        <h3 className="text-lg sm:text-xl font-black text-white">
+                                        <h3 className="text-lg sm:text-xl font-bold text-[var(--text-primary)]">
                                             Complete seu Perfil Profissional de Programador
                                         </h3>
-                                        <p className="text-xs sm:text-sm text-gray-400 leading-relaxed">
+                                        <p className="text-xs sm:text-sm text-[var(--text-secondary)] leading-relaxed">
                                             Seu convite foi validado com sucesso! Agora configure seus softwares (Wilcom, Embird, etc.), biografia, portfólio de matrizes e chave PIX para começar a enviar propostas no mural.
                                         </p>
                                     </div>
@@ -926,7 +924,7 @@ export default function ProfilePage() {
                                         onClick={() => {
                                             setIsEditing(true)
                                         }}
-                                        className="shrink-0 inline-flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-xl bg-gradient-to-r from-[#FFB703] to-[#FB8500] hover:brightness-110 active:scale-95 text-black font-black text-sm shadow-xl shadow-[#FFB703]/25 transition-all cursor-pointer"
+                                        className="min-h-[48px] shrink-0 inline-flex items-center justify-center gap-2.5 px-6 py-3 rounded-lg bg-[var(--btn-primary-bg)] hover:bg-[var(--btn-primary-hover)] active:scale-95 text-[var(--btn-primary-text)] font-semibold text-sm transition-all cursor-pointer"
                                     >
                                         <Edit2 className="w-4 h-4" />
                                         Configurar Perfil e Portfólio
@@ -938,17 +936,17 @@ export default function ProfilePage() {
 
                         {/* Banner de Onboarding para Comprador que deseja virar Programador */}
                         {isOwner && !isProgrammer && (
-                            <div className="bg-gradient-to-r from-[#181C26] via-[#151922] to-[#181C26] rounded-2xl border-2 border-white/10 p-6 shadow-2xl relative overflow-hidden">
+                            <div className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-hairline)] p-6 shadow-sm relative overflow-hidden">
                                 <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative z-10">
                                     <div className="space-y-2 max-w-xl">
-                                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#FFB703]/10 border border-[#FFB703]/30 text-[#FFB703] text-xs font-bold uppercase tracking-wider">
+                                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#2563EB]/10 border border-[#2563EB]/25 text-[var(--cobalt-text)] text-xs font-bold uppercase tracking-wider">
                                             <Code className="w-3.5 h-3.5" />
                                             Mural de Pedidos
                                         </div>
-                                        <h3 className="text-lg sm:text-xl font-black text-white">
+                                        <h3 className="text-lg sm:text-xl font-bold text-[var(--text-primary)]">
                                             Deseja produzir matrizes e enviar propostas?
                                         </h3>
-                                        <p className="text-xs sm:text-sm text-gray-400 leading-relaxed">
+                                        <p className="text-xs sm:text-sm text-[var(--text-secondary)] leading-relaxed">
                                             O cadastro de novos programadores é exclusivo para convidados selecionados. Se você é um profissional de bordado, clique abaixo para solicitar convite ou validar seu código.
                                         </p>
                                     </div>
@@ -957,7 +955,7 @@ export default function ProfilePage() {
                                         onClick={() => {
                                             setIsProgrammerModalOpen(true)
                                         }}
-                                        className="shrink-0 inline-flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-xl bg-gradient-to-r from-[#FFB703] to-[#FB8500] hover:brightness-110 active:scale-95 text-black font-black text-sm shadow-xl shadow-[#FFB703]/25 transition-all cursor-pointer"
+                                        className="min-h-[48px] shrink-0 inline-flex items-center justify-center gap-2.5 px-6 py-3 rounded-lg bg-[var(--btn-primary-bg)] hover:bg-[var(--btn-primary-hover)] active:scale-95 text-[var(--btn-primary-text)] font-semibold text-sm transition-all cursor-pointer"
                                     >
                                         <Code className="w-4 h-4" />
                                         Quero Produzir Matrizes
@@ -968,29 +966,29 @@ export default function ProfilePage() {
                         )}
 
                         {/* Bio / About */}
-                        <div className="bg-[#1A1D23] rounded-xl border border-[#FFAE00]/20 p-6 shadow-xl">
-                            <h2 className="text-xl font-bold text-[#F3F4F6] mb-4 flex items-center gap-2">
-                                <User className="w-5 h-5 text-[#FFAE00]" />
+                        <div className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-hairline)] p-6 shadow-sm">
+                            <h2 className="text-xl font-bold text-[var(--text-primary)] mb-4 flex items-center gap-2">
+                                <User className="w-5 h-5 text-[var(--cobalt-text)]" />
                                 {isProgrammerView ? 'Histórico Profissional' : 'Sobre o Cliente'}
                             </h2>
-                            <p className="text-gray-300 leading-relaxed text-sm whitespace-pre-line">
+                            <p className="text-[var(--text-secondary)] leading-relaxed text-sm whitespace-pre-line">
                                 {profile.bio || (isOwner ? "Clique em 'Editar Perfil' para adicionar sua biografia." : "Este usuário ainda não preencheu sua biografia.")}
                             </p>
                         </div>
 
                         {/* Portfolio (Programmer Only) */}
                         {isProgrammerView && (
-                            <div className="bg-[#1A1D23] rounded-xl border border-[#FFAE00]/20 p-6 shadow-xl">
-                                <div className="flex justify-between items-center mb-6">
-                                    <h2 className="text-xl font-bold text-[#F3F4F6] flex items-center gap-2">
-                                        <Award className="w-5 h-5 text-[#FFAE00]" />
+                            <div className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-hairline)] p-6 shadow-sm">
+                                <div className="flex flex-wrap justify-between items-center gap-3 mb-6">
+                                    <h2 className="text-xl font-bold text-[var(--text-primary)] flex items-center gap-2">
+                                        <Award className="w-5 h-5 text-[var(--cobalt-text)]" />
                                         Portfólio
                                     </h2>
                                     {isOwner && (
-                                        <label className={`text-xs cursor-pointer transition-colors flex items-center gap-1.5 bg-[#0F1115] px-3 py-1.5 rounded-lg border ${avatarUploading ? 'text-gray-500 border-gray-800 cursor-not-allowed opacity-70' : 'text-gray-300 hover:text-[#FFAE00] border-gray-700 hover:border-[#FFAE00]'}`}>
+                                        <label className={`min-h-[44px] text-xs cursor-pointer transition-colors flex items-center gap-1.5 bg-[var(--bg-surface-elevated)] px-3.5 py-2 rounded-lg border ${avatarUploading ? 'text-[var(--text-secondary)] border-[var(--border-hairline)] cursor-not-allowed opacity-70' : 'text-[var(--text-primary)] hover:text-[var(--cobalt-text)] border-[var(--border-hairline)] hover:border-[#2563EB]'}`}>
                                             {avatarUploading ? (
                                                 <>
-                                                    <Loader2 className="w-3.5 h-3.5 animate-spin text-[#FFAE00]" />
+                                                    <Loader2 className="w-3.5 h-3.5 animate-spin text-[var(--cobalt-text)]" />
                                                     <span>Enviando fotos...</span>
                                                 </>
                                             ) : (
@@ -1020,15 +1018,15 @@ export default function ProfilePage() {
 
                                                 if (isPdf) {
                                                     return (
-                                                        <div key={idx} className="aspect-square bg-[#0F1115] rounded-xl overflow-hidden border border-red-900/40 hover:border-red-500/60 transition-all p-3 flex flex-col items-center justify-center text-center group relative">
-                                                            <FileText className="w-10 h-10 text-red-400 mb-2 group-hover:scale-110 transition-transform" />
-                                                            <span className="text-xs font-bold text-gray-300 line-clamp-1 px-1">Arquivo PDF</span>
-                                                            <span className="text-[10px] text-gray-500 mb-2">Não pré-visualizável</span>
+                                                        <div key={idx} className="aspect-square bg-[var(--bg-surface-elevated)] rounded-xl overflow-hidden border border-[var(--danger)]/30 hover:border-[var(--danger)]/60 transition-all p-3 flex flex-col items-center justify-center text-center group relative">
+                                                            <FileText className="w-10 h-10 text-[var(--danger)] mb-2 group-hover:scale-110 transition-transform" />
+                                                            <span className="text-xs font-bold text-[var(--text-primary)] line-clamp-1 px-1">Arquivo PDF</span>
+                                                            <span className="text-[10px] text-[var(--text-secondary)] mb-2">Não pré-visualizável</span>
                                                             <a
                                                                 href={url}
                                                                 target="_blank"
                                                                 rel="noopener noreferrer"
-                                                                className="text-[11px] font-semibold text-[#FFAE00] hover:underline bg-[#FFAE00]/10 px-2.5 py-1 rounded-md"
+                                                                className="min-h-[44px] inline-flex items-center justify-center text-[11px] font-semibold text-[var(--cobalt-text)] hover:underline bg-[#2563EB]/10 px-3 py-1.5 rounded-md"
                                                             >
                                                                 Abrir arquivo
                                                             </a>
@@ -1042,9 +1040,10 @@ export default function ProfilePage() {
                                                                         }
                                                                     }}
                                                                     title="Remover do portfólio"
-                                                                    className="absolute top-2 right-2 p-1.5 rounded-full bg-red-600/80 hover:bg-red-600 text-white transition-all shadow-lg cursor-pointer"
+                                                                    aria-label="Remover do portfólio"
+                                                                    className="absolute top-1.5 right-1.5 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full bg-[var(--danger)]/90 hover:bg-[var(--danger)] text-white transition-all shadow-md cursor-pointer"
                                                                 >
-                                                                    <Trash2 className="w-3.5 h-3.5" />
+                                                                    <Trash2 className="w-4 h-4" />
                                                                 </button>
                                                             )}
                                                         </div>
@@ -1052,7 +1051,7 @@ export default function ProfilePage() {
                                                 }
 
                                                 return (
-                                                    <div key={idx} className="aspect-square bg-white rounded-xl overflow-hidden border border-gray-800 hover:border-[#FFAE00] transition-colors group relative">
+                                                    <div key={idx} className="aspect-square bg-white rounded-xl overflow-hidden border border-[var(--border-hairline)] hover:border-[#2563EB] dark:hover:border-[#3B82F6] transition-colors group relative">
                                                         <Image
                                                             src={url}
                                                             alt={`Portfolio ${idx + 1}`}
@@ -1070,9 +1069,10 @@ export default function ProfilePage() {
                                                                     }
                                                                 }}
                                                                 title="Remover foto do portfólio"
-                                                                className="absolute top-2 right-2 p-1.5 rounded-full bg-black/80 hover:bg-red-600 text-white transition-all shadow-lg opacity-90 sm:opacity-0 sm:group-hover:opacity-100 cursor-pointer"
+                                                                aria-label="Remover foto do portfólio"
+                                                                className="absolute top-1.5 right-1.5 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full bg-black/80 hover:bg-[var(--danger)] text-white transition-all shadow-md opacity-95 sm:opacity-0 sm:group-hover:opacity-100 cursor-pointer"
                                                             >
-                                                                <Trash2 className="w-3.5 h-3.5" />
+                                                                <Trash2 className="w-4 h-4" />
                                                             </button>
                                                         )}
                                                     </div>
@@ -1080,10 +1080,10 @@ export default function ProfilePage() {
                                             })}
                                     </div>
                                 ) : (
-                                    <div className="text-center py-12 border-2 border-dashed border-gray-800 rounded-xl bg-[#0F1115]/50">
-                                        <Package className="w-12 h-12 text-gray-700 mx-auto mb-3" />
-                                        <p className="text-gray-500 text-sm">
-                                            {isOwner ? "Clique em 'Adicionar' acima para incluir fotos do seu trabalho." : "Nenhum projeto no portfólio ainda."}
+                                    <div className="text-center py-12 border-2 border-dashed border-[var(--border-hairline)] rounded-xl bg-[var(--bg-surface-elevated)]/50">
+                                        <Package className="w-12 h-12 text-[var(--text-secondary)] mx-auto mb-3 opacity-60" />
+                                        <p className="text-[var(--text-secondary)] text-sm">
+                                            {isOwner ? "Clique em 'Adicionar Fotos' acima para incluir fotos do seu trabalho." : "Nenhum projeto no portfólio ainda."}
                                         </p>
                                     </div>
                                 )}
@@ -1091,80 +1091,80 @@ export default function ProfilePage() {
                         )}
 
                         {/* Reviews (Common) */}
-                        <div className="bg-[#1A1D23] rounded-xl border border-[#FFAE00]/20 p-6 shadow-xl">
+                        <div className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-hairline)] p-6 shadow-sm">
                             <div className="flex items-center justify-between mb-6">
-                                <h2 className="text-xl font-bold text-[#F3F4F6] flex items-center gap-2">
-                                    <Star className="w-5 h-5 text-[#FFAE00] fill-[#FFAE00]" />
+                                <h2 className="text-xl font-bold text-[var(--text-primary)] flex items-center gap-2">
+                                    <Star className="w-5 h-5 text-[#2563EB] fill-[#2563EB] dark:text-[#60A5FA] dark:fill-[#60A5FA]" />
                                     Avaliações Recentes
                                 </h2>
                                 {reviews.length > 0 && (
-                                    <span className="text-xs font-bold text-gray-400 bg-white/5 border border-white/10 px-3 py-1 rounded-full">
+                                    <span className="text-xs font-bold text-[var(--text-secondary)] bg-[var(--bg-surface-elevated)] border border-[var(--border-hairline)] px-3 py-1 rounded-full">
                                         {reviews.length} {reviews.length === 1 ? 'avaliação' : 'avaliações'}
                                     </span>
                                 )}
                             </div>
 
                             {reviews.length === 0 ? (
-                                <div className="text-center py-8 text-gray-500 text-sm">
+                                <div className="text-center py-8 text-[var(--text-secondary)] text-sm">
                                     Nenhuma avaliação recebida ainda.
                                 </div>
                             ) : (
                                 <div className="space-y-4">
                                     {reviews.map((rev) => (
-                                        <div key={rev.id} className="bg-[#0F1115] border border-white/5 hover:border-[#FFAE00]/30 rounded-xl p-5 transition-all">
+                                        <div key={rev.id} className="bg-[var(--bg-surface-elevated)] border border-[var(--border-hairline)] hover:border-[#2563EB]/30 rounded-xl p-5 transition-all">
                                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
                                                 <div className="flex items-center gap-3">
-                                                    <div className="w-10 h-10 rounded-full bg-[#1A1D23] border border-gray-700 flex items-center justify-center overflow-hidden shrink-0">
+                                                    <div className="w-10 h-10 rounded-full bg-[var(--bg-surface)] border border-[var(--border-hairline)] flex items-center justify-center overflow-hidden shrink-0">
                                                         {rev.reviewer?.avatar_url ? (
                                                             <img src={rev.reviewer.avatar_url} alt={rev.reviewer.name} className="w-full h-full object-cover" />
                                                         ) : (
-                                                            <User className="w-5 h-5 text-gray-400" />
+                                                            <User className="w-5 h-5 text-[var(--text-secondary)]" />
                                                         )}
                                                     </div>
                                                     <div>
-                                                        <h4 className="text-sm font-bold text-white leading-tight">{rev.reviewer?.name || 'Cliente'}</h4>
-                                                        <p className="text-[11px] text-gray-500 mt-0.5">
+                                                        <h4 className="text-sm font-bold text-[var(--text-primary)] leading-tight">{rev.reviewer?.name || 'Cliente'}</h4>
+                                                        <p className="text-[11px] text-[var(--text-secondary)] mt-0.5">
                                                             {new Date(rev.created_at).toLocaleDateString('pt-BR')}
                                                             {rev.jobs?.title && (
-                                                                <span className="text-gray-400"> • Pedido: <strong className="text-gray-300 font-medium">{rev.jobs.title}</strong></span>
+                                                                <span> • Pedido: <strong className="text-[var(--text-primary)] font-medium">{rev.jobs.title}</strong></span>
                                                             )}
                                                         </p>
                                                     </div>
                                                 </div>
 
                                                 {/* Stars */}
-                                                <div className="flex items-center gap-1.5 self-start sm:self-auto bg-[#1A1D23] px-3 py-1.5 rounded-lg border border-white/5">
+                                                <div className="flex items-center gap-1.5 self-start sm:self-auto bg-[var(--bg-surface)] px-3 py-1.5 rounded-lg border border-[var(--border-hairline)]">
                                                     <div className="flex">
                                                         {[1, 2, 3, 4, 5].map((s) => (
                                                             <Star
                                                                 key={s}
-                                                                className={`w-3.5 h-3.5 ${s <= (rev.rating || 5) ? 'text-[#FFAE00] fill-[#FFAE00]' : 'text-gray-700'}`}
+                                                                className={`w-3.5 h-3.5 ${s <= (rev.rating || 5) ? 'text-[#2563EB] fill-[#2563EB] dark:text-[#60A5FA] dark:fill-[#60A5FA]' : 'text-slate-300 dark:text-slate-700'}`}
                                                             />
                                                         ))}
                                                     </div>
-                                                    <span className="text-xs font-bold text-white ml-1">{(rev.rating || 5).toFixed(1)}</span>
+                                                    <span className="text-xs font-bold text-[var(--text-primary)] ml-1">{(rev.rating || 5).toFixed(1)}</span>
                                                 </div>
                                             </div>
 
                                             {/* Matrix & Service breakdown */}
                                             <div className="flex flex-wrap gap-2 mb-3">
                                                 {rev.rating_matrix && (
-                                                    <span className="text-[10px] font-medium text-gray-300 bg-white/[0.03] border border-white/5 px-2.5 py-1 rounded-md flex items-center gap-1.5">
-                                                        Matriz: <strong className="text-[#F5A623]">{rev.rating_matrix}.0</strong>
-                                                        <Star className="w-3 h-3 text-[#F5A623] fill-[#F5A623]" />
+                                                    <span className="text-[10px] font-medium text-[var(--text-secondary)] bg-[var(--bg-surface)] border border-[var(--border-hairline)] px-2.5 py-1 rounded-md flex items-center gap-1.5">
+                                                        Matriz: <strong className="text-[var(--text-primary)]">{rev.rating_matrix}.0</strong>
+                                                        <Star className="w-3 h-3 text-[#2563EB] fill-[#2563EB] dark:text-[#60A5FA] dark:fill-[#60A5FA]" />
                                                     </span>
                                                 )}
                                                 {rev.rating_service && (
-                                                    <span className="text-[10px] font-medium text-gray-300 bg-white/[0.03] border border-white/5 px-2.5 py-1 rounded-md flex items-center gap-1.5">
-                                                        Atendimento / Prazo: <strong className="text-[#F5A623]">{rev.rating_service}.0</strong>
-                                                        <Star className="w-3 h-3 text-[#F5A623] fill-[#F5A623]" />
+                                                    <span className="text-[10px] font-medium text-[var(--text-secondary)] bg-[var(--bg-surface)] border border-[var(--border-hairline)] px-2.5 py-1 rounded-md flex items-center gap-1.5">
+                                                        Atendimento / Prazo: <strong className="text-[var(--text-primary)]">{rev.rating_service}.0</strong>
+                                                        <Star className="w-3 h-3 text-[#2563EB] fill-[#2563EB] dark:text-[#60A5FA] dark:fill-[#60A5FA]" />
                                                     </span>
                                                 )}
                                             </div>
 
                                             {/* Comment text */}
                                             {rev.comment && (
-                                                <p className="text-sm text-gray-300 leading-relaxed italic bg-white/[0.01] p-3 rounded-lg border border-white/5">
+                                                <p className="text-sm text-[var(--text-primary)] leading-relaxed italic bg-[var(--bg-surface)] p-3 rounded-lg border border-[var(--border-hairline)]">
                                                     &quot;{rev.comment}&quot;
                                                 </p>
                                             )}

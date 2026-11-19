@@ -155,11 +155,11 @@ function AuthCallbackContent() {
     }, [code, next])
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-[#0F1115] text-[#F3F4F6] px-4">
+        <div className="min-h-[calc(100dvh-9rem)] flex items-center justify-center bg-[var(--bg-primary)] text-[var(--text-primary)] px-4">
             <div className="text-center max-w-sm">
-                <div className="w-16 h-16 border-4 border-[#FFAE00]/30 border-t-[#FFAE00] rounded-full animate-spin mx-auto mb-4" />
-                <p className="text-white text-base font-semibold animate-pulse">{status}</p>
-                <p className="text-xs text-gray-500 mt-2">Você será redirecionado para a plataforma em instantes...</p>
+                <div className="w-14 h-14 border-4 border-[#2563EB]/20 border-t-[#2563EB] dark:border-[#3B82F6]/20 dark:border-t-[#3B82F6] rounded-full animate-spin mx-auto mb-4" />
+                <p className="text-[var(--text-primary)] text-base font-semibold">{status}</p>
+                <p className="text-xs text-[var(--text-secondary)] mt-2">Você será redirecionado para a plataforma em instantes...</p>
             </div>
         </div>
     )
@@ -168,10 +168,10 @@ function AuthCallbackContent() {
 export default function AuthCallback() {
     return (
         <Suspense fallback={
-            <div className="min-h-screen flex items-center justify-center bg-[#0F1115]">
+            <div className="min-h-[calc(100dvh-9rem)] flex items-center justify-center bg-[var(--bg-primary)] text-[var(--text-primary)] px-4">
                 <div className="text-center">
-                    <div className="w-16 h-16 border-4 border-[#FFAE00]/30 border-t-[#FFAE00] rounded-full animate-spin mx-auto mb-4" />
-                    <p className="text-gray-400">Carregando...</p>
+                    <div className="w-14 h-14 border-4 border-[#2563EB]/20 border-t-[#2563EB] dark:border-[#3B82F6]/20 dark:border-t-[#3B82F6] rounded-full animate-spin mx-auto mb-4" />
+                    <p className="text-[var(--text-secondary)]">Carregando...</p>
                 </div>
             </div>
         }>

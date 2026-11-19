@@ -186,12 +186,13 @@ export default function NotificationBell({ profileId: propProfileId }: Notificat
             <button
                 type="button"
                 onClick={toggleDropdown}
-                className="relative p-2 rounded-xl text-gray-300 hover:text-[#FFAE00] hover:bg-white/5 transition-all focus:outline-none"
+                className="relative min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg border border-[var(--border-hairline)] bg-[var(--btn-glass-bg)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--border-glass)] transition-colors focus:outline-none cursor-pointer"
                 title="Notificações"
+                aria-label="Notificações"
             >
                 <Bell className="w-5 h-5" />
                 {unreadCount > 0 && (
-                    <span className="absolute top-1 right-1 bg-red-500 text-white text-[10px] font-black w-4 h-4 rounded-full flex items-center justify-center shadow-lg shadow-red-500/50 animate-pulse">
+                    <span className="absolute top-1.5 right-1.5 bg-[#DC2626] dark:bg-[#EF4444] text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
                         {unreadCount > 9 ? '9+' : unreadCount}
                     </span>
                 )}
@@ -199,32 +200,33 @@ export default function NotificationBell({ profileId: propProfileId }: Notificat
 
             {/* Dropdown Menu */}
             {isOpen && (
-                <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-[#1A1D23] border border-gray-700 rounded-2xl shadow-2xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
-                    <div className="p-3.5 border-b border-gray-800 flex items-center justify-between bg-[#0F1115]">
+                <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-[var(--bg-surface)] border border-[var(--border-hairline)] rounded-2xl shadow-xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                    <div className="p-3.5 border-b border-[var(--border-hairline)] flex items-center justify-between bg-[var(--bg-surface-elevated)]">
                         <div className="flex items-center gap-2">
-                            <Bell className="w-4 h-4 text-[#FFAE00]" />
-                            <span className="text-xs font-bold text-white uppercase tracking-wider">Notificações</span>
+                            <Bell className="w-4 h-4 text-[#2563EB] dark:text-[#60A5FA]" />
+                            <span className="text-xs font-semibold text-[var(--text-primary)] uppercase tracking-wider">Notificações</span>
                             {unreadCount > 0 && (
-                                <span className="bg-[#FFAE00]/20 text-[#FFAE00] text-[10px] font-bold px-2 py-0.5 rounded-full">
+                                <span className="bg-[#2563EB]/15 text-[#2563EB] dark:text-[#60A5FA] text-[10px] font-semibold px-2 py-0.5 rounded-full">
                                     {unreadCount} nova{unreadCount > 1 ? 's' : ''}
                                 </span>
                             )}
                         </div>
                         {unreadCount > 0 && (
                             <button
+                                type="button"
                                 onClick={markAllAsRead}
-                                className="text-[11px] text-gray-400 hover:text-[#FFAE00] transition-colors flex items-center gap-1"
+                                className="min-h-[36px] px-2.5 -my-1 rounded-lg text-[11px] font-medium text-[var(--text-secondary)] hover:text-[#2563EB] dark:hover:text-[#60A5FA] hover:bg-[var(--bg-surface)] transition-colors flex items-center gap-1 cursor-pointer"
                             >
-                                <Check className="w-3 h-3" /> Marcar lidas
+                                <Check className="w-3.5 h-3.5" /> Marcar lidas
                             </button>
                         )}
                     </div>
 
-                    <div className="max-h-[380px] overflow-y-auto divide-y divide-gray-800/60 scrollbar-thin scrollbar-thumb-gray-800">
+                    <div className="max-h-[380px] overflow-y-auto divide-y divide-[var(--border-hairline)]">
                         {loading && notifications.length === 0 ? (
-                            <div className="p-8 text-center text-xs text-gray-500">Carregando...</div>
+                            <div className="p-8 text-center text-xs text-[var(--text-secondary)]">Carregando...</div>
                         ) : notifications.length === 0 ? (
-                            <div className="p-8 text-center text-xs text-gray-500">
+                            <div className="p-8 text-center text-xs text-[var(--text-secondary)]">
                                 Nenhuma notificação recente.
                             </div>
                         ) : (
@@ -235,28 +237,40 @@ export default function NotificationBell({ profileId: propProfileId }: Notificat
                                 return (
                                     <div
                                         key={n.id}
-                                        className={`p-3.5 transition-colors hover:bg-white/5 ${
-                                            !n.is_read ? 'bg-[#FFAE00]/5 border-l-2 border-[#FFAE00]' : ''
+                                        className={`p-3.5 transition-colors hover:bg-[var(--bg-surface-elevated)] ${
+                                            !n.is_read ? 'bg-[#2563EB]/[0.04] border-l-2 border-[#2563EB] dark:border-[#3B82F6]' : ''
                                         }`}
                                     >
                                         <div className="flex items-start gap-3">
-                                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${
-                                                isCounterAccepted ? 'bg-amber-500/20 text-[#FFAE00]' : isAdjustment ? 'bg-amber-500/20 text-[#FFAE00]' : 'bg-blue-500/20 text-blue-400'
-                                            }`}>
-                                                {isCounterAccepted ? <Zap className="w-4 h-4 fill-[#FFAE00]" /> : isAdjustment ? <Wrench className="w-4 h-4" /> : <MessageSquare className="w-4 h-4" />}
+                                            <div
+                                                className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${
+                                                    isCounterAccepted
+                                                        ? 'bg-[#0D9488]/15 text-[#0F766E] dark:text-[#14B8A6]'
+                                                        : isAdjustment
+                                                            ? 'bg-[#2563EB]/15 text-[#2563EB] dark:text-[#60A5FA]'
+                                                            : 'bg-[var(--bg-surface-elevated)] text-[#2563EB] dark:text-[#60A5FA]'
+                                                }`}
+                                            >
+                                                {isCounterAccepted ? (
+                                                    <Zap className="w-4 h-4" />
+                                                ) : isAdjustment ? (
+                                                    <Wrench className="w-4 h-4" />
+                                                ) : (
+                                                    <MessageSquare className="w-4 h-4" />
+                                                )}
                                             </div>
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex items-center justify-between gap-2">
-                                                    <p className="text-xs font-bold text-white truncate">{n.title}</p>
-                                                    <span className="text-[10px] text-gray-500 shrink-0">
+                                                    <p className="text-xs font-semibold text-[var(--text-primary)] truncate">{n.title}</p>
+                                                    <span className="text-[10px] text-[var(--text-secondary)] shrink-0">
                                                         {new Date(n.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                                     </span>
                                                 </div>
-                                                <p className="text-[11px] text-gray-300 mt-0.5 line-clamp-2 leading-relaxed">
+                                                <p className="text-[11px] text-[var(--text-secondary)] mt-0.5 line-clamp-2 leading-relaxed">
                                                     {n.message}
                                                 </p>
                                                 {n.link_url && (
-                                                    <div className="flex items-center gap-3 mt-2">
+                                                    <div className="flex flex-wrap items-center gap-2 mt-2">
                                                         {isCounterAccepted && payProposalId ? (
                                                             <Link
                                                                 href={`/checkout/${payProposalId}`}
@@ -265,9 +279,9 @@ export default function NotificationBell({ profileId: propProfileId }: Notificat
                                                                     setIsOpen(false)
                                                                     if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('bordadohub_reload_job'))
                                                                 }}
-                                                                className="inline-flex items-center gap-1 text-[11px] font-black bg-[#FFAE00] text-black px-2.5 py-1 rounded-md hover:bg-yellow-400 transition-colors shadow-sm"
+                                                                className="inline-flex items-center justify-center gap-1.5 min-h-[36px] px-3 text-xs font-semibold bg-[#2563EB] hover:bg-[#1D4ED8] text-white rounded-lg transition-colors"
                                                             >
-                                                                <Zap className="w-3 h-3 fill-black" /> Pagar Agora
+                                                                <Zap className="w-3.5 h-3.5" /> Pagar Agora
                                                             </Link>
                                                         ) : null}
                                                         <Link
@@ -277,9 +291,9 @@ export default function NotificationBell({ profileId: propProfileId }: Notificat
                                                                 setIsOpen(false)
                                                                 if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('bordadohub_reload_job'))
                                                             }}
-                                                            className="inline-flex items-center gap-1 text-[11px] font-bold text-[#FFAE00] hover:text-yellow-400"
+                                                            className="inline-flex items-center gap-1.5 min-h-[36px] px-2.5 text-xs font-semibold text-[#2563EB] dark:text-[#60A5FA] hover:bg-[#2563EB]/10 rounded-lg transition-colors"
                                                         >
-                                                            {isCounterAccepted ? 'Ver Pedido' : 'Abrir Pedido / Chat'} <ExternalLink className="w-3 h-3" />
+                                                            {isCounterAccepted ? 'Ver Pedido' : 'Abrir Pedido / Chat'} <ExternalLink className="w-3.5 h-3.5" />
                                                         </Link>
                                                     </div>
                                                 )}

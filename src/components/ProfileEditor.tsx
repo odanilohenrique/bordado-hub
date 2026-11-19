@@ -343,14 +343,14 @@ export default function ProfileEditor({ profile, onCancel, onSave }: ProfileEdit
     const currentDisplayAvatar = avatarPreview || formData.avatar_url
 
     return (
-        <div className="bg-[#12151C] rounded-2xl border border-white/[0.07] p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200 h-[85vh] overflow-y-auto">
+        <div className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-hairline)] p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200 h-[85vh] overflow-y-auto text-[var(--text-primary)]">
             {/* Header */}
-            <div className="flex justify-between items-center pb-5 mb-6 border-b border-white/[0.07]">
+            <div className="flex justify-between items-center gap-3 pb-5 mb-6 border-b border-[var(--border-hairline)]">
                 <div>
-                    <h2 className="text-xl font-extrabold text-white">
+                    <h2 className="text-xl font-bold text-[var(--text-primary)]">
                         {isAlreadyProgrammer ? 'Editar Perfil Profissional' : 'Editar Perfil de Comprador'}
                     </h2>
-                    <p className="text-xs text-gray-400 mt-0.5">
+                    <p className="text-xs text-[var(--text-secondary)] mt-0.5">
                         {isAlreadyProgrammer 
                             ? 'Atualize suas habilidades, portfólio de matrizes e dados de recebimento' 
                             : 'Atualize sua foto, nome de exibição e preferências de máquinas para pedidos'}
@@ -358,7 +358,7 @@ export default function ProfileEditor({ profile, onCancel, onSave }: ProfileEdit
                 </div>
                 <button 
                     onClick={onCancel} 
-                    className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-colors"
+                    className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--btn-glass-bg)] transition-colors shrink-0 cursor-pointer"
                     aria-label="Fechar"
                 >
                     <X className="w-5 h-5" />
@@ -368,22 +368,22 @@ export default function ProfileEditor({ profile, onCancel, onSave }: ProfileEdit
             <div className="space-y-7">
                 {/* Avatar Upload */}
                 <div>
-                    <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-3">Foto de Perfil</label>
+                    <label className="block text-xs font-semibold text-[var(--text-primary)] uppercase tracking-wider mb-3">Foto de Perfil</label>
                     <div className="flex flex-wrap items-center gap-4">
-                        <div className="w-16 h-16 rounded-full bg-[#181C26] border border-white/10 flex items-center justify-center overflow-hidden relative shrink-0">
+                        <div className="w-16 h-16 rounded-full bg-[var(--bg-surface-elevated)] border border-[var(--border-hairline)] flex items-center justify-center overflow-hidden relative shrink-0">
                             {currentDisplayAvatar ? (
                                 <Image src={currentDisplayAvatar} alt="Avatar" fill className="object-cover" unoptimized />
                             ) : (
-                                <span className="text-gray-500 text-xs">Sem foto</span>
+                                <span className="text-[var(--text-secondary)] text-xs">Sem foto</span>
                             )}
                             {uploading && (
                                 <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
-                                    <Loader2 className="w-5 h-5 text-[#F5A623] animate-spin" />
+                                    <Loader2 className="w-5 h-5 text-white animate-spin" />
                                 </div>
                             )}
                         </div>
-                        <label className="bg-[#181C26] border border-white/10 text-gray-200 px-4 py-2.5 rounded-xl cursor-pointer hover:border-[#F5A623] hover:text-[#F5A623] transition-all flex items-center gap-2 text-xs font-semibold">
-                            <Camera className="w-4 h-4 text-[#F5A623]" />
+                        <label className="min-h-[44px] bg-[var(--bg-surface-elevated)] border border-[var(--border-hairline)] text-[var(--text-primary)] px-4 py-2.5 rounded-xl cursor-pointer hover:border-[#2563EB] dark:hover:border-[#3B82F6] hover:text-[var(--cobalt-text)] transition-all flex items-center gap-2 text-xs font-semibold">
+                            <Camera className="w-4 h-4 text-[var(--cobalt-text)]" />
                             {uploading ? 'Enviando foto...' : 'Alterar foto'}
                             <input
                                 type="file"
@@ -400,7 +400,7 @@ export default function ProfileEditor({ profile, onCancel, onSave }: ProfileEdit
                                     setAvatarPreview(googleAvatarUrl)
                                     handleChange('avatar_url', googleAvatarUrl)
                                 }}
-                                className="text-xs text-gray-400 hover:text-[#F5A623] underline transition-colors"
+                                className="min-h-[44px] inline-flex items-center px-2 text-xs text-[var(--text-secondary)] hover:text-[var(--cobalt-text)] underline transition-colors cursor-pointer"
                             >
                                 Restaurar foto do Google
                             </button>
@@ -410,12 +410,12 @@ export default function ProfileEditor({ profile, onCancel, onSave }: ProfileEdit
 
                 {/* Name */}
                 <div>
-                    <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-2">Nome de Exibição</label>
+                    <label className="block text-xs font-semibold text-[var(--text-primary)] uppercase tracking-wider mb-2">Nome de Exibição</label>
                     <input
                         type="text"
                         value={formData.name}
                         onChange={(e) => handleChange('name', e.target.value)}
-                        className="w-full bg-[#0B0D11] border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-[#F5A623] transition-all text-sm"
+                        className="w-full min-h-[44px] bg-[var(--bg-surface-elevated)] border border-[var(--border-hairline)] rounded-xl px-4 py-3 text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]/70 focus:outline-none focus:border-[#2563EB] dark:focus:border-[#3B82F6] transition-all text-sm"
                         placeholder="Seu nome ou nome do ateliê"
                     />
                 </div>
@@ -425,20 +425,20 @@ export default function ProfileEditor({ profile, onCancel, onSave }: ProfileEdit
                 {/* Apenas visível para COMPRADORES (não-programadores)             */}
                 {/* ============================================================== */}
                 {!isAlreadyProgrammer && (
-                <div className="p-5 rounded-2xl bg-[#181C26] border border-white/[0.07] space-y-5">
+                <div className="p-5 rounded-2xl bg-[var(--bg-surface-elevated)] border border-[var(--border-hairline)] space-y-5">
                     <div className="flex items-center gap-2">
-                        <ShoppingBag className="w-4 h-4 text-[#F5A623]" />
-                        <h3 className="text-xs font-bold text-[#F5A623] uppercase tracking-wider">
+                        <ShoppingBag className="w-4 h-4 text-[var(--cobalt-text)]" />
+                        <h3 className="text-xs font-bold text-[var(--cobalt-text)] uppercase tracking-wider">
                             Preferências de Bordado & Máquinas
                         </h3>
                     </div>
-                    <p className="text-xs text-gray-400">
+                    <p className="text-xs text-[var(--text-secondary)]">
                         Ajuda os programadores a entenderem suas necessidades técnicas e os formatos ideais para seus trabalhos.
                     </p>
 
                     {/* Nível / Tipo de Negócio */}
                     <div>
-                        <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-2.5">
+                        <label className="block text-xs font-semibold text-[var(--text-primary)] uppercase tracking-wider mb-2.5">
                             Tipo de Negócio / Maturidade no Bordado
                         </label>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
@@ -447,14 +447,14 @@ export default function ProfileEditor({ profile, onCancel, onSave }: ProfileEdit
                                     type="button"
                                     key={opt.value}
                                     onClick={() => handleChange('client_business_type', opt.value)}
-                                    className={`p-3 rounded-xl border text-left transition-all ${
+                                    className={`min-h-[48px] p-3 rounded-xl border text-left transition-all cursor-pointer ${
                                         formData.client_business_type === opt.value
-                                            ? 'bg-[#F5A623]/10 border-[#F5A623] text-white'
-                                            : 'bg-[#0B0D11] border-white/5 text-gray-400 hover:border-white/20'
+                                            ? 'bg-[#2563EB]/10 border-[#2563EB] dark:border-[#3B82F6] text-[var(--text-primary)]'
+                                            : 'bg-[var(--bg-surface)] border-[var(--border-hairline)] text-[var(--text-secondary)] hover:border-[var(--border-glass)]'
                                     }`}
                                 >
-                                    <div className="text-xs font-bold text-white">{opt.title}</div>
-                                    <div className="text-[11px] text-gray-400 mt-0.5 leading-snug">{opt.desc}</div>
+                                    <div className="text-xs font-bold text-[var(--text-primary)]">{opt.title}</div>
+                                    <div className="text-[11px] text-[var(--text-secondary)] mt-0.5 leading-snug">{opt.desc}</div>
                                 </button>
                             ))}
                         </div>
@@ -463,13 +463,13 @@ export default function ProfileEditor({ profile, onCancel, onSave }: ProfileEdit
                     {/* Marca de Máquina e Formatos */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
                         <div>
-                            <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-2">
+                            <label className="block text-xs font-semibold text-[var(--text-primary)] uppercase tracking-wider mb-2">
                                 Marca da sua Máquina Principal
                             </label>
                             <select
                                 value={formData.client_machine_brand}
                                 onChange={(e) => handleChange('client_machine_brand', e.target.value)}
-                                className="w-full bg-[#0B0D11] border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-[#F5A623]"
+                                className="w-full min-h-[44px] bg-[var(--bg-surface)] border border-[var(--border-hairline)] rounded-xl px-3.5 py-2.5 text-xs text-[var(--text-primary)] focus:outline-none focus:border-[#2563EB] dark:focus:border-[#3B82F6]"
                             >
                                 <option value="">Selecione uma marca...</option>
                                 {MACHINE_OPTIONS.map(m => (
@@ -479,7 +479,7 @@ export default function ProfileEditor({ profile, onCancel, onSave }: ProfileEdit
                         </div>
 
                         <div>
-                            <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-2">
+                            <label className="block text-xs font-semibold text-[var(--text-primary)] uppercase tracking-wider mb-2">
                                 Formatos que Você Utiliza
                             </label>
                             <div className="flex flex-wrap gap-1.5">
@@ -488,10 +488,10 @@ export default function ProfileEditor({ profile, onCancel, onSave }: ProfileEdit
                                         type="button"
                                         key={format}
                                         onClick={() => toggleArrayItem('formats', format)}
-                                        className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
+                                        className={`min-h-[44px] sm:min-h-[38px] px-3 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                                             formData.formats.includes(format)
-                                                ? 'bg-[#F5A623] text-black'
-                                                : 'bg-[#0B0D11] text-gray-400 border border-white/10 hover:border-white/20'
+                                                ? 'bg-[#2563EB] text-white border border-[#2563EB]'
+                                                : 'bg-[var(--bg-surface)] text-[var(--text-secondary)] border border-[var(--border-hairline)] hover:border-[var(--border-glass)] hover:text-[var(--text-primary)]'
                                         }`}
                                     >
                                         {format}
@@ -507,20 +507,20 @@ export default function ProfileEditor({ profile, onCancel, onSave }: ProfileEdit
                 {/* SEÇÃO DO PROGRAMADOR (APENAS PARA PROGRAMADORES APROVADOS)     */}
                 {/* ============================================================== */}
                 {isAlreadyProgrammer && (
-                    <div className="p-5 rounded-2xl bg-[#181C26] border border-white/[0.07] space-y-6">
+                    <div className="p-5 rounded-2xl bg-[var(--bg-surface-elevated)] border border-[var(--border-hairline)] space-y-6">
                         <div className="flex items-center gap-2">
-                            <Code className="w-4 h-4 text-[#F5A623]" />
-                            <h3 className="text-xs font-bold text-[#F5A623] uppercase tracking-wider">
+                            <Code className="w-4 h-4 text-[var(--cobalt-text)]" />
+                            <h3 className="text-xs font-bold text-[var(--cobalt-text)] uppercase tracking-wider">
                                 Perfil Profissional do Programador
                             </h3>
                         </div>
-                        <p className="text-xs text-gray-400">
+                        <p className="text-xs text-[var(--text-secondary)]">
                             Configure seus softwares e dados para aparecer na vitrine de programadores e receber pagamentos.
                         </p>
 
                         {/* Softwares que Domina */}
                         <div>
-                            <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-2.5">
+                            <label className="block text-xs font-semibold text-[var(--text-primary)] uppercase tracking-wider mb-2.5">
                                 Softwares que Você Domina
                             </label>
                             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
@@ -529,10 +529,10 @@ export default function ProfileEditor({ profile, onCancel, onSave }: ProfileEdit
                                         type="button"
                                         key={software}
                                         onClick={() => toggleArrayItem('skills', software)}
-                                        className={`px-3 py-2 rounded-xl text-xs text-left transition-all font-medium ${
+                                        className={`min-h-[44px] px-3 py-2 rounded-xl text-xs text-left transition-all font-medium cursor-pointer ${
                                             formData.skills.includes(software)
-                                                ? 'bg-[#F5A623] text-black font-bold'
-                                                : 'bg-[#0B0D11] text-gray-400 border border-white/10 hover:border-white/20'
+                                                ? 'bg-[#2563EB] text-white border border-[#2563EB] font-bold'
+                                                : 'bg-[var(--bg-surface)] text-[var(--text-secondary)] border border-[var(--border-hairline)] hover:border-[var(--border-glass)] hover:text-[var(--text-primary)]'
                                         }`}
                                     >
                                         {software}
@@ -543,11 +543,11 @@ export default function ProfileEditor({ profile, onCancel, onSave }: ProfileEdit
 
                         {/* Bio Profissional */}
                         <div>
-                            <div className="flex items-center justify-between mb-2">
-                                <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider">
+                            <div className="flex items-center justify-between gap-2 mb-2">
+                                <label className="block text-xs font-semibold text-[var(--text-primary)] uppercase tracking-wider">
                                     Bio Profissional & Experiência
                                 </label>
-                                <span className="text-[11px] text-gray-400">
+                                <span className="text-[11px] text-[var(--text-secondary)]">
                                     {formData.bio.length} caracteres • Arraste o canto inferior se desejar ampliar
                                 </span>
                             </div>
@@ -555,39 +555,39 @@ export default function ProfileEditor({ profile, onCancel, onSave }: ProfileEdit
                                 value={formData.bio}
                                 onChange={(e) => handleChange('bio', e.target.value)}
                                 rows={8}
-                                className="w-full bg-[#0B0D11] border border-white/10 rounded-xl p-4 text-white focus:outline-none focus:border-[#F5A623] transition-all text-sm leading-relaxed min-h-[190px] resize-y placeholder-gray-500 font-normal shadow-inner"
+                                className="w-full bg-[var(--bg-surface)] border border-[var(--border-hairline)] rounded-xl p-4 text-[var(--text-primary)] focus:outline-none focus:border-[#2563EB] dark:focus:border-[#3B82F6] transition-all text-sm leading-relaxed min-h-[190px] resize-y placeholder:text-[var(--text-secondary)]/70 font-normal"
                                 placeholder="Conte sobre seus anos de experiência, especialidades (ex: ponto cheio, 3D puff, logos) e compromisso com qualidade..."
                             />
                         </div>
 
                         {/* Dados PIX */}
-                        <div className="p-4 rounded-xl bg-[#0B0D11] border border-white/10 space-y-3.5">
-                            <div className="flex items-center gap-1.5 text-xs font-bold text-white">
-                                <CreditCard className="w-4 h-4 text-[#F5A623]" />
+                        <div className="p-4 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-hairline)] space-y-3.5">
+                            <div className="flex items-center gap-1.5 text-xs font-bold text-[var(--text-primary)]">
+                                <CreditCard className="w-4 h-4 text-[var(--teal-text)]" />
                                 <span>Dados para Recebimento via PIX</span>
                             </div>
-                            <p className="text-[11px] text-gray-400">
+                            <p className="text-[11px] text-[var(--text-secondary)]">
                                 Seus pagamentos por serviços entregues serão transferidos diretamente para esta chave PIX.
                             </p>
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                 <div>
-                                    <label className="block text-[11px] font-medium text-gray-400 mb-1">CPF ou CNPJ</label>
+                                    <label className="block text-[11px] font-medium text-[var(--text-secondary)] mb-1">CPF ou CNPJ</label>
                                     <input
                                         type="text"
                                         value={formData.cpf_cnpj}
                                         onChange={(e) => handleChange('cpf_cnpj', e.target.value)}
-                                        className="w-full bg-[#181C26] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#F5A623]"
+                                        className="w-full min-h-[44px] bg-[var(--bg-surface-elevated)] border border-[var(--border-hairline)] rounded-xl px-3 py-2 text-xs text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]/70 focus:outline-none focus:border-[#2563EB] dark:focus:border-[#3B82F6]"
                                         placeholder="000.000.000-00"
                                     />
                                 </div>
 
                                 <div>
-                                    <label className="block text-[11px] font-medium text-gray-400 mb-1">Tipo de Chave PIX</label>
+                                    <label className="block text-[11px] font-medium text-[var(--text-secondary)] mb-1">Tipo de Chave PIX</label>
                                     <select
                                         value={formData.pix_key_type}
                                         onChange={(e) => handleChange('pix_key_type', e.target.value)}
-                                        className="w-full bg-[#181C26] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#F5A623]"
+                                        className="w-full min-h-[44px] bg-[var(--bg-surface-elevated)] border border-[var(--border-hairline)] rounded-xl px-3 py-2 text-xs text-[var(--text-primary)] focus:outline-none focus:border-[#2563EB] dark:focus:border-[#3B82F6]"
                                     >
                                         <option value="cpf">CPF</option>
                                         <option value="cnpj">CNPJ</option>
@@ -598,12 +598,12 @@ export default function ProfileEditor({ profile, onCancel, onSave }: ProfileEdit
                                 </div>
 
                                 <div className="sm:col-span-2">
-                                    <label className="block text-[11px] font-medium text-gray-400 mb-1">Chave PIX</label>
+                                    <label className="block text-[11px] font-medium text-[var(--text-secondary)] mb-1">Chave PIX</label>
                                     <input
                                         type="text"
                                         value={formData.pix_key}
                                         onChange={(e) => handleChange('pix_key', e.target.value)}
-                                        className="w-full bg-[#181C26] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#F5A623]"
+                                        className="w-full min-h-[44px] bg-[var(--bg-surface-elevated)] border border-[var(--border-hairline)] rounded-xl px-3 py-2 text-xs text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]/70 focus:outline-none focus:border-[#2563EB] dark:focus:border-[#3B82F6]"
                                         placeholder="Digite sua chave PIX completa"
                                     />
                                 </div>
@@ -613,7 +613,7 @@ export default function ProfileEditor({ profile, onCancel, onSave }: ProfileEdit
                         {/* Portfólio */}
                         <div>
                             <div className="flex items-center justify-between mb-2">
-                                <label className="text-xs font-semibold text-gray-300 uppercase tracking-wider">
+                                <label className="text-xs font-semibold text-[var(--text-primary)] uppercase tracking-wider">
                                     Portfólio de Amostras ({formData.portfolio_urls.length}/12)
                                 </label>
                             </div>
@@ -622,31 +622,32 @@ export default function ProfileEditor({ profile, onCancel, onSave }: ProfileEdit
                                     .filter(url => Boolean(url && typeof url === 'string' && url.trim().length > 0))
                                     .map((url, idx) => {
                                         return (
-                                            <div key={`${url}-${idx}`} className="relative aspect-square rounded-xl overflow-hidden border border-white/10 group bg-white">
+                                            <div key={`${url}-${idx}`} className="relative aspect-square rounded-xl overflow-hidden border border-[var(--border-hairline)] group bg-white">
                                                 <Image src={url} alt={`Amostra ${idx + 1}`} fill className="object-cover object-center" unoptimized />
                                                 <button
                                                     type="button"
                                                     onClick={() => removePortfolioImage(idx)}
-                                                    className="absolute top-1.5 right-1.5 p-1 rounded-lg bg-red-500/80 hover:bg-red-500 text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                                                    className="absolute top-1 right-1 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg bg-[var(--danger)]/90 hover:bg-[var(--danger)] text-white opacity-95 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity cursor-pointer"
                                                     title="Remover foto"
+                                                    aria-label="Remover foto"
                                                 >
-                                                    <Trash2 className="w-3.5 h-3.5" />
+                                                    <Trash2 className="w-4 h-4" />
                                                 </button>
                                             </div>
                                         )
                                     })}
 
                                 {formData.portfolio_urls.filter(u => Boolean(u && typeof u === 'string' && u.trim().length > 0)).length < 12 && (
-                                    <label className="aspect-square rounded-xl border border-dashed border-white/20 hover:border-[#F5A623] cursor-pointer flex flex-col items-center justify-center gap-1.5 transition-colors bg-[#0B0D11] p-2 text-center">
+                                    <label className="aspect-square rounded-xl border border-dashed border-[var(--border-glass)] hover:border-[#2563EB] dark:hover:border-[#3B82F6] cursor-pointer flex flex-col items-center justify-center gap-1.5 transition-colors bg-[var(--bg-surface)] p-2 text-center">
                                         {portfolioUploading ? (
                                             <>
-                                                <Loader2 className="w-5 h-5 text-[#F5A623] animate-spin" />
-                                                <span className="text-[10px] text-[#F5A623] font-bold">Enviando...</span>
+                                                <Loader2 className="w-5 h-5 text-[var(--cobalt-text)] animate-spin" />
+                                                <span className="text-[10px] text-[var(--cobalt-text)] font-bold">Enviando...</span>
                                             </>
                                         ) : (
                                             <>
-                                                <ImageIcon className="w-5 h-5 text-gray-500" />
-                                                <span className="text-[10px] text-gray-400 leading-tight">
+                                                <ImageIcon className="w-5 h-5 text-[var(--text-secondary)]" />
+                                                <span className="text-[10px] text-[var(--text-secondary)] leading-tight">
                                                     + Amostras
                                                 </span>
                                             </>
@@ -670,10 +671,10 @@ export default function ProfileEditor({ profile, onCancel, onSave }: ProfileEdit
                 {!isAlreadyProgrammer && (
                     <div>
                         <div className="flex items-center justify-between mb-2">
-                            <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider">
+                            <label className="block text-xs font-semibold text-[var(--text-primary)] uppercase tracking-wider">
                                 Sobre Você / Ateliê (Opcional)
                             </label>
-                            <span className="text-[11px] text-gray-400">
+                            <span className="text-[11px] text-[var(--text-secondary)]">
                                 {formData.bio.length} caracteres
                             </span>
                         </div>
@@ -681,19 +682,19 @@ export default function ProfileEditor({ profile, onCancel, onSave }: ProfileEdit
                             value={formData.bio}
                             onChange={(e) => handleChange('bio', e.target.value)}
                             rows={5}
-                            className="w-full bg-[#0B0D11] border border-white/10 rounded-xl p-4 text-white focus:outline-none focus:border-[#F5A623] transition-all text-sm leading-relaxed min-h-[140px] resize-y placeholder-gray-500 font-normal shadow-inner"
+                            className="w-full bg-[var(--bg-surface-elevated)] border border-[var(--border-hairline)] rounded-xl p-4 text-[var(--text-primary)] focus:outline-none focus:border-[#2563EB] dark:focus:border-[#3B82F6] transition-all text-sm leading-relaxed min-h-[140px] resize-y placeholder:text-[var(--text-secondary)]/70 font-normal"
                             placeholder="Descreva brevemente seu negócio, máquinas e os tipos de bordado que costuma encomendar..."
                         />
                     </div>
                 )}
 
                 {/* Action Buttons */}
-                <div className="flex justify-end gap-3 pt-4 border-t border-white/[0.07]">
+                <div className="flex justify-end gap-3 pt-4 border-t border-[var(--border-hairline)]">
                     <button
                         type="button"
                         onClick={onCancel}
                         disabled={saving}
-                        className="px-5 py-2.5 rounded-xl text-gray-300 hover:text-white hover:bg-white/5 font-semibold text-xs transition-colors"
+                        className="min-h-[48px] px-5 py-2.5 rounded-lg bg-[var(--btn-glass-bg)] border border-[var(--border-glass)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] font-semibold text-xs transition-colors cursor-pointer"
                     >
                         Cancelar
                     </button>
@@ -701,10 +702,10 @@ export default function ProfileEditor({ profile, onCancel, onSave }: ProfileEdit
                         type="button"
                         onClick={handleSave}
                         disabled={saving}
-                        className="flex items-center gap-2 bg-gradient-to-r from-[#FFB703] to-[#FB8500] hover:brightness-110 active:scale-95 text-black px-6 py-2.5 rounded-xl font-black text-xs transition-all shadow-md shadow-[#FFB703]/10 disabled:opacity-50"
+                        className="min-h-[48px] flex items-center gap-2 bg-[var(--btn-primary-bg)] hover:bg-[var(--btn-primary-hover)] active:scale-95 text-[var(--btn-primary-text)] px-6 py-2.5 rounded-lg font-semibold text-xs transition-all disabled:opacity-50 cursor-pointer"
                     >
                         {saving ? (
-                            <div className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" />
+                            <div className="w-4 h-4 border-2 border-[var(--btn-primary-text)]/30 border-t-[var(--btn-primary-text)] rounded-full animate-spin" />
                         ) : (
                             <>
                                 <Save className="w-4 h-4" />

@@ -574,7 +574,7 @@ export default function NegotiationChat({
         }
     }
 
-    const renderAttachment = (url?: string) => {
+    const renderAttachment = (url?: string, isMe?: boolean) => {
         if (!url) return null
         const ext = url.split('.').pop()?.toLowerCase() || ''
         const isImage = ['png', 'jpg', 'jpeg', 'webp', 'gif'].includes(ext)
@@ -612,7 +612,7 @@ export default function NegotiationChat({
 
         if (isImage) {
             return (
-                <div className="mb-2 overflow-hidden rounded-xl border border-black/20 bg-black/40">
+                <div className="mb-2 overflow-hidden rounded-xl border border-[var(--border-hairline)] bg-[#0A0F1D]/20">
                     <a href={url} target="_blank" rel="noopener noreferrer" className="block relative group/img">
                         <img
                             src={url}
@@ -620,8 +620,8 @@ export default function NegotiationChat({
                             className="max-w-full h-auto object-cover rounded-xl hover:opacity-95 transition-opacity"
                             style={{ maxHeight: '240px' }}
                         />
-                        <div className="absolute inset-0 bg-black/30 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center">
-                            <span className="bg-black/70 text-white text-[11px] font-medium px-2.5 py-1 rounded-md backdrop-blur-sm flex items-center gap-1.5 shadow">
+                        <div className="absolute inset-0 bg-[#0A0F1D]/40 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center">
+                            <span className="bg-[#0A0F1D]/85 text-[#F8FAFC] text-[11px] font-medium px-2.5 py-1 rounded-md backdrop-blur-sm flex items-center gap-1.5 shadow">
                                 <FileImage className="w-3.5 h-3.5" /> Ver imagem completa
                             </span>
                         </div>
@@ -637,35 +637,49 @@ export default function NegotiationChat({
                     target="_blank"
                     rel="noopener noreferrer"
                     download
-                    className="flex items-center gap-2.5 bg-black/30 hover:bg-black/45 border border-white/10 text-gray-100 p-2.5 rounded-xl transition-all group/file text-left"
+                    className={`flex items-center gap-2.5 p-2.5 rounded-xl transition-all group/file text-left border ${
+                        isMe
+                            ? 'bg-white/15 hover:bg-white/25 border-white/20 text-white'
+                            : 'bg-[var(--bg-surface)] hover:bg-[var(--bg-primary)] border-[var(--border-hairline)] text-[var(--text-primary)]'
+                    }`}
                 >
-                    <div className="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 group-hover/file:scale-105 transition-transform">
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 group-hover/file:scale-105 transition-transform ${
+                        isMe
+                            ? 'bg-white/20 text-white'
+                            : 'bg-[#0D9488]/15 text-[#0F766E] dark:text-[#14B8A6]'
+                    }`}>
                         <Package className="w-4 h-4" />
                     </div>
                     <div className="flex flex-col min-w-0 flex-1">
-                        <span className="truncate text-xs font-semibold text-white group-hover/file:underline">
+                        <span className={`truncate text-xs font-semibold group-hover/file:underline ${
+                            isMe ? 'text-white' : 'text-[var(--text-primary)]'
+                        }`}>
                             {fileName}
                         </span>
-                        <span className="text-[9.5px] text-gray-400 uppercase tracking-wider font-bold">
+                        <span className={`text-[9.5px] uppercase tracking-wider font-bold ${
+                            isMe ? 'text-white/80' : 'text-[var(--text-secondary)]'
+                        }`}>
                             Arquivo .{(ext).toUpperCase()}
                         </span>
                     </div>
-                    <Download className="w-3.5 h-3.5 text-gray-300 group-hover/file:text-white shrink-0 ml-1" />
+                    <Download className={`w-3.5 h-3.5 shrink-0 ml-1 ${
+                        isMe ? 'text-white/90' : 'text-[var(--text-secondary)] group-hover/file:text-[var(--text-primary)]'
+                    }`} />
                 </a>
             </div>
         )
     }
 
     return (
-        <div className="flex flex-col h-full bg-[#111b21] md:rounded-2xl overflow-hidden shadow-2xl md:border md:border-white/10 relative">
-            {/* WhatsApp Header */}
-            <div className="px-3 sm:px-4 py-2.5 sm:py-3 bg-[#202c33] border-b border-white/5 flex items-center justify-between z-10 shrink-0">
+        <div className="flex flex-col h-full bg-[var(--bg-primary)] md:rounded-2xl overflow-hidden shadow-2xl md:border md:border-[var(--border-hairline)] relative">
+            {/* Chat Header */}
+            <div className="px-3 sm:px-4 py-2.5 sm:py-3 bg-[var(--bg-surface)] border-b border-[var(--border-hairline)] flex items-center justify-between z-10 shrink-0">
                 <div className="flex items-center gap-2 sm:gap-3 min-w-0">
                     {onClose && (
                         <button
                             type="button"
                             onClick={onClose}
-                            className="md:hidden -ml-1 p-1.5 text-gray-400 hover:text-white rounded-full transition-colors shrink-0"
+                            className="md:hidden -ml-1 min-w-[44px] min-h-[44px] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] rounded-full transition-colors shrink-0"
                             title="Voltar ao pedido"
                             aria-label="Voltar"
                         >
@@ -674,29 +688,29 @@ export default function NegotiationChat({
                     )}
 
                     <div className="relative">
-                        <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full overflow-hidden bg-gray-700 border border-white/10 flex items-center justify-center text-sm font-bold text-gray-200 shrink-0">
+                        <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full overflow-hidden bg-[var(--bg-surface-elevated)] border border-[var(--border-hairline)] flex items-center justify-center text-sm font-bold text-[var(--text-primary)] shrink-0">
                             {otherUserData?.avatar_url ? (
                                 <img src={otherUserData.avatar_url} alt="" className="w-full h-full object-cover" />
                             ) : (
                                 <span>{(otherUserData?.name || 'C').charAt(0).toUpperCase()}</span>
                             )}
                         </div>
-                        <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-[#202c33]"></span>
+                        <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-[#0D9488] dark:bg-[#14B8A6] ring-2 ring-[var(--bg-surface)]"></span>
                     </div>
 
                     <div className="min-w-0">
                         <div className="flex items-center gap-1.5 sm:gap-2">
-                            <h3 className="text-sm font-semibold text-white truncate leading-tight">
+                            <h3 className="text-sm font-semibold text-[var(--text-primary)] truncate leading-tight">
                                 {otherUserData?.name || 'Negociação Privada'}
                             </h3>
                             {otherUserData?.role && (
-                                <span className="text-[9px] sm:text-[10px] font-semibold text-gray-400 bg-white/5 border border-white/10 px-1.5 sm:px-2 py-0.5 rounded-full shrink-0">
+                                <span className="text-[9px] sm:text-[10px] font-semibold text-[var(--text-secondary)] bg-[var(--btn-glass-bg)] border border-[var(--border-hairline)] px-1.5 sm:px-2 py-0.5 rounded-full shrink-0">
                                     {otherUserData.role}
                                 </span>
                             )}
                         </div>
-                        <p className="text-[11px] text-emerald-400 flex items-center gap-1.5 mt-0.5 font-medium">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                        <p className="text-[11px] text-[#0F766E] dark:text-[#14B8A6] flex items-center gap-1.5 mt-0.5 font-medium">
+                            <span className="w-1.5 h-1.5 rounded-full bg-[#0D9488] dark:bg-[#14B8A6]"></span>
                             Online • Proposta #{proposalId.slice(0, 8)}
                         </p>
                     </div>
@@ -704,9 +718,9 @@ export default function NegotiationChat({
 
                 <div className="flex items-center gap-2 shrink-0">
                     {(proposalData?.amount || initialAmount > 0) && (
-                        <div className="hidden sm:flex items-center gap-1.5 bg-[#111b21] border border-white/10 px-2.5 py-1 rounded-lg">
-                            <span className="text-[10px] uppercase font-bold text-gray-400">Valor</span>
-                            <span className="text-xs font-black text-[#FFAE00]">
+                        <div className="hidden sm:flex items-center gap-1.5 bg-[var(--bg-surface-elevated)] border border-[var(--border-hairline)] px-2.5 py-1 rounded-lg">
+                            <span className="text-[10px] uppercase font-bold text-[var(--text-secondary)]">Valor</span>
+                            <span className="text-xs font-bold text-[#2563EB] dark:text-[#60A5FA]">
                                 R$ {(proposalData?.amount || initialAmount).toFixed(2)}
                             </span>
                         </div>
@@ -720,7 +734,7 @@ export default function NegotiationChat({
                             setSyncing(false)
                         }}
                         disabled={syncing || loading}
-                        className="p-2 text-gray-400 hover:text-white hover:bg-white/5 rounded-full transition-colors active:rotate-180 duration-500 disabled:opacity-50"
+                        className="min-w-[44px] min-h-[44px] sm:min-w-[36px] sm:min-h-[36px] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--btn-glass-bg)] rounded-full transition-colors active:rotate-180 duration-500 disabled:opacity-50"
                         title="Sincronizar mensagens"
                     >
                         <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
@@ -730,10 +744,10 @@ export default function NegotiationChat({
                     {isOwner && (
                         <button 
                             onClick={() => setShowQuickDeal(!showQuickDeal)}
-                            className={`flex items-center gap-1.5 text-xs font-black px-3 py-1.5 rounded-lg transition-all shadow ${
+                            className={`min-h-[44px] sm:min-h-[34px] flex items-center gap-1.5 text-xs font-semibold px-3 py-2 sm:py-1.5 rounded-lg transition-all ${
                                 showQuickDeal 
-                                ? 'bg-[#FFAE00] text-black shadow-lg shadow-[#FFAE00]/25' 
-                                : 'bg-gradient-to-r from-[#FFB703] to-[#FB8500] hover:brightness-110 text-black'
+                                ? 'bg-[#1D4ED8] text-white' 
+                                : 'bg-[#2563EB] hover:bg-[#1D4ED8] text-white'
                             }`}
                             title="Contraproposta / Fechar Negócio"
                         >
@@ -746,10 +760,10 @@ export default function NegotiationChat({
                     {!isOwner && proposalData?.criador_id === currentUserId && (
                         <button 
                             onClick={() => setShowProducerAdjust(!showProducerAdjust)}
-                            className={`flex items-center gap-1.5 text-xs font-black px-3 py-1.5 rounded-lg transition-all shadow ${
+                            className={`min-h-[44px] sm:min-h-[34px] flex items-center gap-1.5 text-xs font-semibold px-3 py-2 sm:py-1.5 rounded-lg transition-all ${
                                 showProducerAdjust 
-                                ? 'bg-[#FFAE00] text-black shadow-lg shadow-[#FFAE00]/25' 
-                                : 'bg-[#1F2430] hover:bg-[#282F3E] text-yellow-400 border border-yellow-500/30'
+                                ? 'bg-[#2563EB] text-white' 
+                                : 'bg-[var(--bg-surface-elevated)] hover:bg-[#2563EB]/10 text-[#2563EB] dark:text-[#60A5FA] border border-[#2563EB]/30'
                             }`}
                             title="Ajustar valor da proposta"
                         >
@@ -761,7 +775,7 @@ export default function NegotiationChat({
                     {onClose && (
                         <button 
                             onClick={onClose}
-                            className="p-2 text-gray-400 hover:text-white hover:bg-white/5 rounded-full transition-colors ml-1"
+                            className="min-w-[44px] min-h-[44px] sm:min-w-[36px] sm:min-h-[36px] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--btn-glass-bg)] rounded-full transition-colors ml-1"
                             title="Fechar chat"
                         >
                             <X className="w-4 h-4" />
@@ -772,22 +786,22 @@ export default function NegotiationChat({
 
             {/* Producer Revision Action Banner */}
             {!isOwner && jobStatus === 'em_revisao' && (
-                <div className="bg-yellow-500/15 border-b border-yellow-500/30 p-3 sm:p-4 animate-in slide-in-from-top duration-300 z-10 shrink-0">
+                <div className="bg-[#2563EB]/10 border-b border-[#2563EB]/25 p-3 sm:p-4 animate-in slide-in-from-top duration-300 z-10 shrink-0">
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                         <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-xl bg-yellow-500/20 text-yellow-400 flex items-center justify-center shrink-0 border border-yellow-500/30 shadow-sm">
+                            <div className="w-9 h-9 rounded-xl bg-[#2563EB]/15 text-[#2563EB] dark:text-[#60A5FA] flex items-center justify-center shrink-0 border border-[#2563EB]/25">
                                 <Wrench className="w-5 h-5" />
                             </div>
                             <div>
                                 <div className="flex items-center gap-2 mb-0.5">
-                                    <span className="text-[10px] font-black uppercase tracking-wider bg-yellow-500 text-black px-2 py-0.5 rounded-full">
+                                    <span className="text-[10px] font-bold uppercase tracking-wider bg-[#2563EB] text-white px-2 py-0.5 rounded-full">
                                         Ajuste Solicitado
                                     </span>
                                 </div>
-                                <p className="text-sm font-bold text-white leading-tight">
+                                <p className="text-sm font-semibold text-[var(--text-primary)] leading-tight">
                                     {jobRevisionNotes ? `"${jobRevisionNotes}"` : 'O cliente solicitou ajustes nesta matriz.'}
                                 </p>
-                                <p className="text-[11px] text-gray-400 mt-0.5">
+                                <p className="text-[11px] text-[var(--text-secondary)] mt-0.5">
                                     Ao enviar novos arquivos no chat ou clicar no botão, a matriz é marcada como pronta e corrigida.
                                 </p>
                             </div>
@@ -795,7 +809,7 @@ export default function NegotiationChat({
                         <button
                             onClick={handleMarkRevisionDelivered}
                             disabled={deliveringRevision}
-                            className="w-full sm:w-auto bg-green-500 hover:bg-green-600 text-white font-black text-xs px-4 py-2.5 rounded-xl transition-all shadow-lg shadow-green-500/20 flex items-center justify-center gap-1.5 active:scale-95 disabled:opacity-50 shrink-0"
+                            className="w-full sm:w-auto min-h-[44px] sm:min-h-[38px] bg-[#0D9488] hover:bg-[#0F766E] text-white font-semibold text-xs px-4 py-2.5 rounded-xl transition-all flex items-center justify-center gap-1.5 active:scale-95 disabled:opacity-50 shrink-0"
                         >
                             <Check className="w-4 h-4" />
                             {deliveringRevision ? 'Atualizando...' : 'Marcar Correção como Entregue'}
@@ -806,25 +820,25 @@ export default function NegotiationChat({
 
             {/* Producer Counter-Proposal Action Banner */}
             {!isOwner && proposalData?.status === 'contraproposta' && proposalData.counter_amount && (
-                <div className="bg-[#FFAE00]/15 border-b border-[#FFAE00]/30 p-3 sm:p-4 animate-in slide-in-from-top duration-300 z-10 shrink-0">
+                <div className="bg-[#2563EB]/10 border-b border-[#2563EB]/25 p-3 sm:p-4 animate-in slide-in-from-top duration-300 z-10 shrink-0">
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                         <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-xl bg-[#FFAE00]/20 text-[#FFAE00] flex items-center justify-center shrink-0 border border-[#FFAE00]/30 shadow-sm">
+                            <div className="w-9 h-9 rounded-xl bg-[#2563EB]/15 text-[#2563EB] dark:text-[#60A5FA] flex items-center justify-center shrink-0 border border-[#2563EB]/25">
                                 <Handshake className="w-5 h-5" />
                             </div>
                             <div>
                                 <div className="flex items-center gap-2 mb-0.5">
-                                    <span className="text-[10px] font-black uppercase tracking-wider bg-[#FFAE00] text-black px-2 py-0.5 rounded-full">
+                                    <span className="text-[10px] font-bold uppercase tracking-wider bg-[#2563EB] text-white px-2 py-0.5 rounded-full">
                                         Contraproposta do Cliente
                                     </span>
-                                    <span className="text-[11px] text-gray-400">
+                                    <span className="text-[11px] text-[var(--text-secondary)]">
                                         Original: R$ {(proposalData.amount || initialAmount).toFixed(2)}
                                     </span>
                                 </div>
-                                <p className="text-sm font-bold text-white leading-tight">
-                                    O cliente ofereceu <strong className="text-[#FFAE00] text-base">R$ {Number(proposalData.counter_amount).toFixed(2)}</strong> para fechar este trabalho.
+                                <p className="text-sm font-semibold text-[var(--text-primary)] leading-tight">
+                                    O cliente ofereceu <strong className="text-[#2563EB] dark:text-[#60A5FA] text-base">R$ {Number(proposalData.counter_amount).toFixed(2)}</strong> para fechar este trabalho.
                                 </p>
-                                <p className="text-[11px] text-gray-400 mt-0.5">
+                                <p className="text-[11px] text-[var(--text-secondary)] mt-0.5">
                                     Ao aceitar, o valor da sua proposta é atualizado e o cliente poderá concluir o pagamento.
                                 </p>
                             </div>
@@ -833,7 +847,7 @@ export default function NegotiationChat({
                             <button
                                 onClick={handleAcceptCounter}
                                 disabled={processingCounter}
-                                className="flex-1 sm:flex-none bg-[#FFAE00] hover:bg-yellow-400 text-black font-black text-xs px-4 py-2.5 rounded-xl transition-all shadow-lg shadow-[#FFAE00]/20 flex items-center justify-center gap-1.5 active:scale-95 disabled:opacity-50"
+                                className="flex-1 sm:flex-none min-h-[44px] sm:min-h-[38px] bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-semibold text-xs px-4 py-2.5 rounded-xl transition-all flex items-center justify-center gap-1.5 active:scale-95 disabled:opacity-50"
                             >
                                 <Check className="w-4 h-4" />
                                 {processingCounter ? 'Atualizando...' : `Aceitar Oferta (R$ ${Number(proposalData.counter_amount).toFixed(2)})`}
@@ -841,7 +855,7 @@ export default function NegotiationChat({
                             <button
                                 onClick={handleRejectCounter}
                                 disabled={processingCounter}
-                                className="border border-white/10 hover:border-white/20 text-gray-400 hover:text-white font-bold text-xs px-3 py-2.5 rounded-xl transition-colors hover:bg-white/5 active:scale-95 disabled:opacity-50 flex items-center gap-1"
+                                className="min-h-[44px] sm:min-h-[38px] border border-[var(--border-glass)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] font-semibold text-xs px-3 py-2.5 rounded-xl transition-colors hover:bg-[var(--btn-glass-bg)] active:scale-95 disabled:opacity-50 flex items-center gap-1"
                             >
                                 <X className="w-3.5 h-3.5" />
                                 Recusar
@@ -853,10 +867,10 @@ export default function NegotiationChat({
 
             {/* Buyer Waiting Banner */}
             {isOwner && proposalData?.status === 'contraproposta' && proposalData.counter_amount && (
-                <div className="bg-yellow-500/10 border-b border-yellow-500/20 p-3 flex items-center justify-between z-10 shrink-0">
+                <div className="bg-[#2563EB]/10 border-b border-[#2563EB]/25 p-3 flex items-center justify-between z-10 shrink-0">
                     <div className="flex items-center gap-2">
-                        <Clock className="w-4 h-4 text-yellow-500 shrink-0" />
-                        <span className="text-xs text-yellow-400 font-bold">
+                        <Clock className="w-4 h-4 text-[#2563EB] dark:text-[#60A5FA] shrink-0" />
+                        <span className="text-xs text-[#2563EB] dark:text-[#60A5FA] font-semibold">
                             Você enviou uma contraproposta de <strong>R$ {Number(proposalData.counter_amount).toFixed(2)}</strong>. Aguardando o produtor aceitar.
                         </span>
                     </div>
@@ -865,32 +879,32 @@ export default function NegotiationChat({
 
             {/* Quick Deal / Counter-Proposal Panel (Owner Only) */}
             {isOwner && showQuickDeal && (
-                <div className="bg-[#181C26] border-b border-[#FFAE00]/30 p-3 sm:p-4 animate-in slide-in-from-top duration-300 z-10 shrink-0 shadow-2xl">
+                <div className="bg-[var(--bg-surface)] border-b border-[var(--border-hairline)] p-3 sm:p-4 animate-in slide-in-from-top duration-300 z-10 shrink-0 shadow-xl">
                     <div className="flex flex-col gap-3 max-w-2xl mx-auto w-full">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-1.5">
-                                <Handshake className="w-4 h-4 text-[#FFAE00]" />
-                                <h4 className="text-xs font-black text-white uppercase tracking-wider">Negociar com o Produtor</h4>
+                                <Handshake className="w-4 h-4 text-[#2563EB] dark:text-[#60A5FA]" />
+                                <h4 className="text-xs font-bold text-[var(--text-primary)] uppercase tracking-wider">Negociar com o Produtor</h4>
                             </div>
-                            <span className="text-[11px] text-gray-400">
-                                Valor Atual: <strong className="text-yellow-400">R$ {(proposalData?.amount || initialAmount).toFixed(2)}</strong>
+                            <span className="text-[11px] text-[var(--text-secondary)]">
+                                Valor Atual: <strong className="text-[#2563EB] dark:text-[#60A5FA]">R$ {(proposalData?.amount || initialAmount).toFixed(2)}</strong>
                             </span>
                         </div>
 
-                        <div className="bg-[#0F1115] border border-white/10 rounded-xl p-3 space-y-2.5">
+                        <div className="bg-[var(--bg-surface-elevated)] border border-[var(--border-hairline)] rounded-xl p-3 space-y-2.5">
                             <div>
-                                <label className="text-[11px] font-bold text-gray-300 block mb-1">
+                                <label className="text-[11px] font-semibold text-[var(--text-primary)] block mb-1">
                                     Digite sua oferta ou valor acordado (R$):
                                 </label>
                                 <div className="relative">
-                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs font-black">R$</span>
+                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-secondary)] text-xs font-bold">R$</span>
                                     <input 
                                         type="number" 
                                         step="0.01"
                                         placeholder="0,00" 
                                         value={agreedValue}
                                         onChange={(e) => setAgreedValue(e.target.value)}
-                                        className="w-full bg-[#181C26] border border-white/15 rounded-lg pl-9 pr-3 py-2 text-sm text-white font-bold focus:outline-none focus:border-[#FFAE00] transition-colors"
+                                        className="w-full bg-[var(--bg-surface)] border border-[var(--border-hairline)] rounded-lg pl-9 pr-3 py-2 text-sm text-[var(--text-primary)] font-bold focus:outline-none focus:border-[#2563EB] dark:focus:border-[#3B82F6] transition-colors"
                                     />
                                 </div>
                             </div>
@@ -899,7 +913,7 @@ export default function NegotiationChat({
                                 <button 
                                     onClick={handleOwnerSendCounter}
                                     disabled={processingCounter || !agreedValue}
-                                    className="flex-1 bg-[#FFAE00]/15 hover:bg-[#FFAE00]/25 text-[#FFAE00] border border-[#FFAE00]/40 font-black text-xs py-2.5 px-3 rounded-lg transition-all flex items-center justify-center gap-1.5 active:scale-95 disabled:opacity-50"
+                                    className="flex-1 min-h-[44px] sm:min-h-[38px] bg-[#2563EB]/12 hover:bg-[#2563EB]/20 text-[#2563EB] dark:text-[#60A5FA] border border-[#2563EB]/30 font-semibold text-xs py-2.5 px-3 rounded-lg transition-all flex items-center justify-center gap-1.5 active:scale-95 disabled:opacity-50"
                                 >
                                     <Handshake className="w-3.5 h-3.5" />
                                     {processingCounter ? 'Enviando...' : 'Enviar Contraproposta Oficial'}
@@ -907,13 +921,13 @@ export default function NegotiationChat({
                                 <button 
                                     onClick={handleQuickDeal}
                                     disabled={sending || !agreedValue}
-                                    className="flex-1 bg-gradient-to-r from-[#FFB703] to-[#FB8500] hover:brightness-110 text-black font-black text-xs py-2.5 px-3 rounded-lg transition-all flex items-center justify-center gap-1.5 active:scale-95 disabled:opacity-50 shadow-md shadow-[#FFAE00]/15"
+                                    className="flex-1 min-h-[44px] sm:min-h-[38px] bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-semibold text-xs py-2.5 px-3 rounded-lg transition-all flex items-center justify-center gap-1.5 active:scale-95 disabled:opacity-50"
                                 >
                                     <CheckCircle2 className="w-3.5 h-3.5" />
                                     {sending ? 'Processando...' : 'Fechar & Pagar Agora'}
                                 </button>
                             </div>
-                            <p className="text-[10px] text-gray-400 text-center leading-tight">
+                            <p className="text-[10px] text-[var(--text-secondary)] text-center leading-tight">
                                 &bull; <strong>Contraproposta:</strong> O produtor decide se aceita no painel dele. &bull; <strong>Fechar & Pagar:</strong> Vai direto para o pagamento seguro.
                             </p>
                         </div>
@@ -923,32 +937,32 @@ export default function NegotiationChat({
 
             {/* Producer Adjust Proposal Panel */}
             {!isOwner && showProducerAdjust && (
-                <div className="bg-[#181C26] border-b border-[#FFAE00]/30 p-3 sm:p-4 animate-in slide-in-from-top duration-300 z-10 shrink-0 shadow-2xl">
+                <div className="bg-[var(--bg-surface)] border-b border-[var(--border-hairline)] p-3 sm:p-4 animate-in slide-in-from-top duration-300 z-10 shrink-0 shadow-xl">
                     <div className="flex flex-col gap-3 max-w-2xl mx-auto w-full">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-1.5">
-                                <DollarSign className="w-4 h-4 text-green-400" />
-                                <h4 className="text-xs font-black text-white uppercase tracking-wider">Ajustar Valor da sua Proposta</h4>
+                                <DollarSign className="w-4 h-4 text-[#0F766E] dark:text-[#14B8A6]" />
+                                <h4 className="text-xs font-bold text-[var(--text-primary)] uppercase tracking-wider">Ajustar Valor da sua Proposta</h4>
                             </div>
-                            <span className="text-[11px] text-gray-400">
-                                Atual: <strong className="text-white">R$ {(proposalData?.amount || initialAmount).toFixed(2)}</strong>
+                            <span className="text-[11px] text-[var(--text-secondary)]">
+                                Atual: <strong className="text-[var(--text-primary)]">R$ {(proposalData?.amount || initialAmount).toFixed(2)}</strong>
                             </span>
                         </div>
 
-                        <div className="bg-[#0F1115] border border-white/10 rounded-xl p-3 space-y-2.5">
+                        <div className="bg-[var(--bg-surface-elevated)] border border-[var(--border-hairline)] rounded-xl p-3 space-y-2.5">
                             <div>
-                                <label className="text-[11px] font-bold text-gray-300 block mb-1">
+                                <label className="text-[11px] font-semibold text-[var(--text-primary)] block mb-1">
                                     Novo valor acordado com o cliente (R$):
                                 </label>
                                 <div className="relative">
-                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs font-black">R$</span>
+                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-secondary)] text-xs font-bold">R$</span>
                                     <input 
                                         type="number" 
                                         step="0.01"
                                         placeholder="Ex: 35.00" 
                                         value={producerNewAmount}
                                         onChange={(e) => setProducerNewAmount(e.target.value)}
-                                        className="w-full bg-[#181C26] border border-white/15 rounded-lg pl-9 pr-3 py-2 text-sm text-white font-bold focus:outline-none focus:border-[#FFAE00] transition-colors"
+                                        className="w-full bg-[var(--bg-surface)] border border-[var(--border-hairline)] rounded-lg pl-9 pr-3 py-2 text-sm text-[var(--text-primary)] font-bold focus:outline-none focus:border-[#2563EB] dark:focus:border-[#3B82F6] transition-colors"
                                     />
                                 </div>
                             </div>
@@ -957,19 +971,19 @@ export default function NegotiationChat({
                                 <button 
                                     onClick={handleProducerAdjust}
                                     disabled={adjustingProposal || !producerNewAmount}
-                                    className="flex-1 bg-[#FFAE00] hover:bg-yellow-400 text-black font-black text-xs py-2.5 px-3 rounded-lg transition-all flex items-center justify-center gap-1.5 active:scale-95 disabled:opacity-50 shadow-md shadow-[#FFAE00]/15"
+                                    className="flex-1 min-h-[44px] sm:min-h-[38px] bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-semibold text-xs py-2.5 px-3 rounded-lg transition-all flex items-center justify-center gap-1.5 active:scale-95 disabled:opacity-50"
                                 >
                                     <Check className="w-3.5 h-3.5" />
                                     {adjustingProposal ? 'Atualizando...' : 'Confirmar Novo Valor da Proposta'}
                                 </button>
                                 <button 
                                     onClick={() => setShowProducerAdjust(false)}
-                                    className="border border-white/10 text-gray-400 hover:text-white text-xs px-3 py-2.5 rounded-lg hover:bg-white/5 transition-colors"
+                                    className="min-h-[44px] sm:min-h-[38px] border border-[var(--border-glass)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] text-xs px-3 py-2.5 rounded-lg hover:bg-[var(--btn-glass-bg)] transition-colors"
                                 >
                                     Cancelar
                                 </button>
                             </div>
-                            <p className="text-[10px] text-gray-400 text-center">
+                            <p className="text-[10px] text-[var(--text-secondary)] text-center">
                                 O valor da sua proposta será atualizado imediatamente no pedido e no chat para o cliente poder pagar.
                             </p>
                         </div>
@@ -977,17 +991,17 @@ export default function NegotiationChat({
                 </div>
             )}
 
-            {/* Messages Area - WhatsApp Web Style Centered Column */}
-            <div className="flex-1 overflow-y-auto p-3 sm:p-4 scrollbar-thin scrollbar-thumb-gray-700/40 scrollbar-track-transparent bg-[#0b141a]">
+            {/* Messages Area */}
+            <div className="flex-1 overflow-y-auto p-3 sm:p-4 scrollbar-thin scrollbar-thumb-gray-700/40 scrollbar-track-transparent bg-[var(--bg-primary)]">
                 <div className="max-w-2xl mx-auto w-full space-y-2.5">
                     {loading ? (
-                        <div className="flex justify-center items-center h-48 text-gray-400 text-xs">
+                        <div className="flex justify-center items-center h-48 text-[var(--text-secondary)] text-xs">
                             <span className="animate-pulse">Carregando mensagens...</span>
                         </div>
                     ) : messages.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center h-48 text-gray-400 space-y-2 opacity-70">
-                            <div className="w-10 h-10 bg-white/5 rounded-full flex items-center justify-center">
-                                <Send className="w-4 h-4 text-gray-400" />
+                        <div className="flex flex-col items-center justify-center h-48 text-[var(--text-secondary)] space-y-2 opacity-80">
+                            <div className="w-10 h-10 bg-[var(--bg-surface-elevated)] border border-[var(--border-hairline)] rounded-full flex items-center justify-center">
+                                <Send className="w-4 h-4 text-[var(--text-secondary)]" />
                             </div>
                             <p className="text-xs text-center">Nenhuma mensagem ainda.<br/>Inicie a conversa!</p>
                         </div>
@@ -998,7 +1012,7 @@ export default function NegotiationChat({
                                                   msg.content?.startsWith('[SISTEMA]') || 
                                                   msg.content?.includes('NEGÓCIO FECHADO')
 
-                            // Render centered WhatsApp-style pill for system updates
+                            // Render centered pill for system updates
                             if (isSystemNotice) {
                                 const cleanSystemContent = msg.content
                                     .replace(/^\[CONTRAOFERTA ACEITA\]\s*/i, 'Contraproposta aceita: ')
@@ -1009,10 +1023,10 @@ export default function NegotiationChat({
 
                                 return (
                                     <div key={msg.id} className="flex justify-center my-2.5 select-none">
-                                        <div className="bg-[#182229] border border-white/10 text-gray-300 text-[11px] sm:text-xs px-3.5 py-1.5 rounded-lg shadow-sm max-w-md text-center flex items-center gap-2">
-                                            <Handshake className="w-3.5 h-3.5 text-[#FFAE00] shrink-0" />
+                                        <div className="bg-[var(--bg-surface-elevated)] border border-[var(--border-hairline)] text-[var(--text-primary)] text-[11px] sm:text-xs px-3.5 py-1.5 rounded-lg shadow-sm max-w-md text-center flex items-center gap-2">
+                                            <Handshake className="w-3.5 h-3.5 text-[#2563EB] dark:text-[#60A5FA] shrink-0" />
                                             <span>{cleanSystemContent}</span>
-                                            <span className="text-[10px] text-gray-500 ml-1">
+                                            <span className="text-[10px] text-[var(--text-secondary)] ml-1">
                                                 {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                             </span>
                                         </div>
@@ -1031,7 +1045,7 @@ export default function NegotiationChat({
                                     <div className={`flex items-end gap-2 max-w-[85%] sm:max-w-[75%] md:max-w-[70%] ${isMe ? 'flex-row-reverse' : 'flex-row'}`}>
                                         {/* Avatar on other user's message */}
                                         {!isMe && (
-                                            <div className="w-7 h-7 rounded-full overflow-hidden bg-gray-800 border border-white/10 shrink-0 mb-1 flex items-center justify-center text-[10px] font-bold text-gray-300 select-none">
+                                            <div className="w-7 h-7 rounded-full overflow-hidden bg-[var(--bg-surface-elevated)] border border-[var(--border-hairline)] shrink-0 mb-1 flex items-center justify-center text-[10px] font-bold text-[var(--text-secondary)] select-none">
                                                 {msg.users?.avatar_url || otherUserData?.avatar_url ? (
                                                     <img 
                                                         src={msg.users?.avatar_url || otherUserData?.avatar_url || ''} 
@@ -1047,31 +1061,33 @@ export default function NegotiationChat({
                                         {/* Speech Bubble */}
                                         <div className={`relative px-3.5 py-2 shadow-sm ${
                                             isMe 
-                                                ? 'bg-[#005c4b] text-[#e9edef] rounded-2xl rounded-tr-xs border border-[#02735e]/30' 
-                                                : 'bg-[#202c33] text-[#e9edef] rounded-2xl rounded-tl-xs border border-white/5'
+                                                ? 'bg-[#2563EB] text-white rounded-2xl rounded-tr-xs border border-[#1D4ED8]/30' 
+                                                : 'bg-[var(--bg-surface-elevated)] text-[var(--text-primary)] rounded-2xl rounded-tl-xs border border-[var(--border-hairline)]'
                                         }`}>
                                             {/* Contact name header for incoming message */}
                                             {!isMe && (
-                                                <p className="text-[11px] font-bold text-sky-400 mb-1 leading-tight select-none">
+                                                <p className="text-[11px] font-bold text-[#2563EB] dark:text-[#60A5FA] mb-1 leading-tight select-none">
                                                     {msg.users?.name || otherUserData?.name || 'Contato'}
                                                 </p>
                                             )}
 
-                                            {renderAttachment(msg.attachment_url)}
+                                            {renderAttachment(msg.attachment_url, isMe)}
 
-                                            {/* Content & Time Layout (WhatsApp inline/wrap style) */}
+                                            {/* Content & Time Layout */}
                                             <div className="flex flex-wrap items-end justify-between gap-x-3 gap-y-1">
                                                 {cleanContent && (
-                                                    <p className="text-[13.5px] leading-relaxed whitespace-pre-wrap break-words text-[#e9edef] flex-1 min-w-[60px]">
+                                                    <p className={`text-[13.5px] leading-relaxed whitespace-pre-wrap break-words flex-1 min-w-[60px] ${
+                                                        isMe ? 'text-white' : 'text-[var(--text-primary)]'
+                                                    }`}>
                                                         {cleanContent}
                                                     </p>
                                                 )}
                                                 <div className={`flex items-center gap-1 select-none text-[10px] ml-auto shrink-0 pb-0.5 ${
-                                                    isMe ? 'text-emerald-200/75' : 'text-gray-400'
+                                                    isMe ? 'text-white/80' : 'text-[var(--text-secondary)]'
                                                 }`}>
                                                     <span>{new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                                                     {isMe && (
-                                                        <CheckCheck className="w-3.5 h-3.5 text-sky-400 shrink-0" />
+                                                        <CheckCheck className="w-3.5 h-3.5 text-white/90 shrink-0" />
                                                     )}
                                                 </div>
                                             </div>
@@ -1085,12 +1101,12 @@ export default function NegotiationChat({
                 </div>
             </div>
 
-            {/* WhatsApp Input Area */}
-            <form onSubmit={handleSendMessage} className="p-2.5 sm:p-3 bg-[#202c33] border-t border-white/5 flex gap-2 items-center w-full shrink-0">
+            {/* Chat Input Area */}
+            <form onSubmit={handleSendMessage} className="p-2.5 sm:p-3 bg-[var(--bg-surface)] border-t border-[var(--border-hairline)] flex gap-2 items-center w-full shrink-0">
                 <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    className="flex-shrink-0 p-2.5 text-gray-400 hover:text-gray-200 hover:bg-white/5 rounded-full transition-colors focus:outline-none"
+                    className="flex-shrink-0 w-11 h-11 flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--btn-glass-bg)] rounded-full transition-colors focus:outline-none"
                     title="Anexar arquivo ou imagem"
                 >
                     <Paperclip className="w-5 h-5" />
@@ -1110,14 +1126,14 @@ export default function NegotiationChat({
                         value={newMessage}
                         onChange={e => setNewMessage(e.target.value)}
                         placeholder="Mensagem"
-                        className="w-full bg-[#2a3942] border border-transparent focus:border-white/10 rounded-lg px-4 py-2.5 text-sm text-[#e9edef] placeholder-gray-400 focus:outline-none transition-colors"
+                        className="w-full bg-[var(--bg-surface-elevated)] border border-[var(--border-hairline)] focus:border-[#2563EB] dark:focus:border-[#3B82F6] rounded-lg px-4 py-2.5 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] focus:outline-none transition-colors"
                     />
                 </div>
 
                 <button
                     type="submit"
                     disabled={sending || !newMessage.trim()}
-                    className="flex-shrink-0 w-10 h-10 rounded-full bg-[#00a884] hover:bg-[#029071] text-white flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-md focus:outline-none active:scale-95"
+                    className="flex-shrink-0 w-11 h-11 rounded-full bg-[#2563EB] hover:bg-[#1D4ED8] text-white flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-sm focus:outline-none active:scale-95"
                     title="Enviar mensagem"
                 >
                     <Send className="w-4 h-4 ml-0.5" />

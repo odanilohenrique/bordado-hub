@@ -644,9 +644,9 @@ test('T1-F09-03: Configuração de display standalone e start_url="/"', () => {
     })
 })
 
-test('T1-F09-04: Cores oficiais Dark Onyx (#0B0D11) e Ouro Âmbar (#FFAE00)', () => {
+test('T1-F09-04: Cores oficiais Design System 2.0 (#0A0F1D e #2563EB)', () => {
     verifyFileContent('src/app/manifest.ts', {
-        includes: ["background_color: '#0B0D11'", "theme_color: '#FFAE00'"]
+        includes: ["background_color: '#0A0F1D'", "theme_color: '#2563EB'"]
     })
 })
 
@@ -710,7 +710,7 @@ test('T1-F11-03: Inclusão da bio e resumo de matrizes ativas na descrição', (
 
 test('T1-F11-04: Inclusão do avatar real do vendedor na imagem OpenGraph', () => {
     verifyFileContent('src/app/loja/[sellerId]/layout.tsx', {
-        includes: ['seller.avatar_url', '/brand/icon-dark.png']
+        includes: ['seller.avatar_url', '/brand/v2/og-image.png']
     })
 })
 
@@ -901,8 +901,8 @@ test('T2-F03-02: Proteção contra job_id e product_id indefinidos sem gerar rot
 test('T2-F03-03: Formatação compacta de badges para telas mobile (<640px)', () => {
     verifyFileContent('src/app/financeiro/page.tsx', {
         includes: [
-            'px-2 py-0.5 rounded text-[10px] font-bold bg-[#FFAE00]/10 text-[#FFAE00]',
-            'px-2 py-0.5 rounded text-[10px] font-bold bg-cyan-500/10 text-cyan-400'
+            'px-2 py-0.5 rounded text-[10px] font-bold bg-[#2563EB]/10 text-[#1D4ED8] dark:bg-[#3B82F6]/15 dark:text-[#60A5FA]',
+            'px-2 py-0.5 rounded text-[10px] font-bold bg-[#0D9488]/10 text-[#0F766E] dark:bg-[#14B8A6]/15 dark:text-[#14B8A6]'
         ]
     })
 })
@@ -913,7 +913,7 @@ test('T2-F03-04: Resiliência de alinhamento em zoom alto (200%) com flex-wrap',
     })
 })
 
-test('T2-F03-05: Conformidade de contraste WCAG para cores âmbar (#FFAE00) sobre escuro (#0B0D11)', () => {
+test('T2-F03-05: Conformidade de contraste WCAG AA (>= 4.5:1) para paleta Design System 2.0 (Cobalt & Teal)', () => {
     function getLuminance(hex) {
         const rgb = hex.replace('#', '').match(/.{2}/g).map(x => {
             const c = parseInt(x, 16) / 255
@@ -921,10 +921,21 @@ test('T2-F03-05: Conformidade de contraste WCAG para cores âmbar (#FFAE00) sobr
         })
         return 0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2]
     }
-    const l1 = getLuminance('#FFAE00')
-    const l2 = getLuminance('#0B0D11')
-    const contrastRatio = (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05)
-    assert(contrastRatio >= 4.5, `Contrast ratio ${contrastRatio.toFixed(2)} must satisfy WCAG AA >= 4.5`)
+    function getContrastRatio(fg, bg) {
+        const l1 = getLuminance(fg)
+        const l2 = getLuminance(bg)
+        return (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05)
+    }
+    const pairs = [
+        ['#3B82F6', '#0A0F1D'],
+        ['#14B8A6', '#0A0F1D'],
+        ['#2563EB', '#F8FAFC'],
+        ['#0F766E', '#FFFFFF']
+    ]
+    for (const [fg, bg] of pairs) {
+        const ratio = getContrastRatio(fg, bg)
+        assert(ratio >= 4.5, `Contrast ratio ${fg} on ${bg} (${ratio.toFixed(2)}) must satisfy WCAG AA >= 4.5`)
+    }
 })
 
 // FEATURE 4 (Boundary)
@@ -1231,10 +1242,12 @@ test('T2-F09-01: Conformidade do endpoint /manifest.webmanifest gerado pelo Next
     verifyFileExists('src/app/manifest.ts')
 })
 
-test('T2-F09-02: Validação de expressões regulares para códigos hexadecimais (#0B0D11, #FFAE00)', () => {
+test('T2-F09-02: Validação de expressões regulares para códigos hexadecimais (#0A0F1D, #F8FAFC, #2563EB, #0D9488)', () => {
     const hexRegex = /^#[0-9A-Fa-f]{6}$/
-    assert(hexRegex.test('#0B0D11'))
-    assert(hexRegex.test('#FFAE00'))
+    assert(hexRegex.test('#0A0F1D'))
+    assert(hexRegex.test('#F8FAFC'))
+    assert(hexRegex.test('#2563EB'))
+    assert(hexRegex.test('#0D9488'))
 })
 
 test('T2-F09-03: Existência física dos arquivos de ícone na pasta do projeto', () => {
@@ -1270,7 +1283,7 @@ test('T2-F10-02: Bloco try/catch resiliente contra falhas no cliente Supabase em
 
 test('T2-F10-03: Fallback para imagem padrão da marca quando image_url for nulo', () => {
     verifyFileContent('src/app/marketplace/[id]/layout.tsx', {
-        includes: ["product.image_url || '/brand/icon-dark.png'"]
+        includes: ["product.image_url || '/brand/v2/og-image.png'"]
     })
 })
 
@@ -1537,7 +1550,7 @@ test('TC-T3-08: F6 + F10: Matriz Inativa + Resiliência de Metadados OpenGraph',
 
 test('TC-T3-09: F9 + F10/F11: PWA Standalone + Compartilhamento Social no WhatsApp', () => {
     verifyFileContent('src/app/manifest.ts', {
-        includes: ["display: 'standalone'", '#FFAE00', '#0B0D11']
+        includes: ["display: 'standalone'", '#2563EB', '#0A0F1D']
     })
     verifyFileContent('src/app/marketplace/[id]/layout.tsx', {
         includes: ['openGraph:', 'twitter:']
@@ -1722,7 +1735,7 @@ test('Cenário 4: Loop de Crescimento Viral via WhatsApp & Previews Ricos de Ope
 test('Cenário 5: Experiência Mobile-First no iOS (Instalação PWA, Modo Standalone & Web Push)', () => {
     // Manifest PWA oficial do Next.js
     verifyFileContent('src/app/manifest.ts', {
-        includes: ["display: 'standalone'", "background_color: '#0B0D11'", "theme_color: '#FFAE00'"]
+        includes: ["display: 'standalone'", "background_color: '#0A0F1D'", "theme_color: '#2563EB'"]
     })
     // Ícones obrigatórios para Safari iOS
     assert(fs.existsSync('src/app/apple-icon.png') || fs.existsSync('public/apple-icon.png'))
@@ -1883,6 +1896,62 @@ function runSubSuite(scriptRelPath) {
         throw new Error(`Sub-suite ${scriptRelPath} failed:\n${output || err.message}`)
     }
 }
+
+test('T5-DS2-REBRAND: Design System 2.0 (Dual-Theme, Zero Emojis/Âmbar, SVG/Mídias Otimizadas)', () => {
+    verifyFileContent('src/app/globals.css', {
+        includes: ['--bg-primary: #0A0F1D', '--bg-primary: #F8FAFC', '@custom-variant dark', '.hero-bg-matte', '.hero-h1-gradient'],
+        excludes: ['.text-gold-gradient', '.gold-glow']
+    })
+
+    const uiFiles = []
+    function collectUi(dir) {
+        for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+            const p = path.join(dir, entry.name)
+            if (entry.isDirectory()) collectUi(p)
+            else if (entry.name.endsWith('.tsx')) uiFiles.push(p)
+        }
+    }
+    collectUi('src/app')
+    collectUi('src/components')
+
+    const emojiRe = /[\p{Extended_Pictographic}\u2600-\u27BF]/gu
+    const legacyAmberRe = /#(?:FFAE00|F5A623|FFB703|FB8500)\b/i
+
+    for (const file of uiFiles) {
+        const lines = fs.readFileSync(file, 'utf8').split(/\r?\n/)
+        lines.forEach((line, idx) => {
+            if (file.endsWith('NegotiationChat.tsx') && line.includes('replace(/🤝')) return
+            assert(!emojiRe.test(line), `Emoji Unicode proibido encontrado em ${file}:${idx + 1}`)
+            assert(!legacyAmberRe.test(line), `Cor âmbar legada encontrada em ${file}:${idx + 1}`)
+            emojiRe.lastIndex = 0
+        })
+    }
+
+    const v2Assets = [
+        'public/brand/v2/icon.svg',
+        'public/brand/v2/logo-bg-dark.svg',
+        'public/brand/v2/logo-bg-light.svg',
+        'public/brand/v2/logo-horizontal-dark.svg',
+        'public/brand/v2/logo-horizontal-light.svg',
+        'public/brand/v2/logo-stacked-dark.svg',
+        'public/brand/v2/logo-stacked-light.svg',
+        'public/brand/v2/og-image.png',
+    ]
+    for (const asset of v2Assets) verifyFileExists(asset, 500)
+
+    for (const vid of ['crepe.mp4', 'chacara.mp4', 'brutal-force.mp4']) {
+        const full = path.resolve('public/media/marquee', vid)
+        assert(fs.existsSync(full), `Vídeo marquee ausente: ${vid}`)
+        assert(fs.statSync(full).size <= 700 * 1024, `Vídeo ${vid} excede 700 KB`)
+        verifyFileExists(`public/media/marquee/${vid.replace('.mp4', '-poster.webp')}`, 1000)
+    }
+
+    const formatSvgs = fs.readdirSync('public/svg/formats').filter((f) => f.endsWith('.svg'))
+    assert(formatSvgs.length >= 8, 'Devem existir ao menos 8 badges SVG de formatos')
+    for (const svg of formatSvgs) {
+        assert(fs.statSync(path.join('public/svg/formats', svg)).size <= 2048, `Badge ${svg} excede 2 KB`)
+    }
+})
 
 test('T5-M1-SYNC: Suíte completa de sincronização e timing (scripts/test-m1-sync.mjs)', () => {
     runSubSuite('scripts/test-m1-sync.mjs')

@@ -139,14 +139,14 @@ export default function MobileBottomNav({ profile, userId }: MobileBottomNavProp
     const items = isCreator ? creatorItems : clientItems
 
     return (
-        <nav 
+        <nav
             aria-label="Navegação móvel"
-            className="fixed bottom-0 left-0 right-0 z-40 md:hidden bg-[#12151C]/95 backdrop-blur-xl border-t border-white/[0.07] px-2 py-1.5 pb-[max(0.5rem,env(safe-area-inset-bottom,0px))] shadow-2xl transition-all"
+            className="fixed bottom-0 left-0 right-0 z-40 md:hidden bg-[var(--bg-surface)]/95 backdrop-blur-[20px] border-t border-[var(--border-hairline)] px-2 py-1.5 pb-[max(0.5rem,env(safe-area-inset-bottom,0px))] transition-colors"
         >
             <div className="flex items-center justify-around max-w-lg mx-auto">
                 {items.map((item) => {
-                    const isActive = item.exact 
-                        ? pathname === item.href 
+                    const isActive = item.exact
+                        ? pathname === item.href
                         : pathname === item.href || pathname.startsWith(`${item.href}/`)
 
                     if (item.isAction) {
@@ -154,12 +154,12 @@ export default function MobileBottomNav({ profile, userId }: MobileBottomNavProp
                             <Link
                                 key={item.name}
                                 href={item.href}
-                                className="flex flex-col items-center justify-center -mt-5 group"
+                                className="flex flex-col items-center justify-center -mt-5 min-w-[56px] group"
                             >
-                                <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-[#F5A623] to-amber-300 text-black flex items-center justify-center shadow-lg shadow-[#F5A623]/25 group-active:scale-95 transition-transform border-2 border-[#12151C]">
-                                    <item.icon className="w-6 h-6 stroke-[2.5]" />
+                                <div className="w-12 h-12 rounded-full bg-[#2563EB] hover:bg-[#1D4ED8] text-white flex items-center justify-center group-active:scale-95 transition-transform border-2 border-[var(--bg-surface)]">
+                                    <item.icon className="w-6 h-6 stroke-[2.25]" />
                                 </div>
-                                <span className="text-[10px] font-bold text-gray-300 mt-1 tracking-tight">
+                                <span className="text-[10px] font-semibold text-[var(--text-secondary)] mt-1 tracking-tight">
                                     {item.name}
                                 </span>
                             </Link>
@@ -170,25 +170,35 @@ export default function MobileBottomNav({ profile, userId }: MobileBottomNavProp
                         <Link
                             key={item.name}
                             href={item.href}
-                            className={`flex flex-col items-center justify-center min-w-[56px] py-1 px-2 rounded-xl transition-all relative ${
-                                isActive ? 'text-[#F5A623]' : 'text-gray-400 hover:text-gray-200'
+                            className={`flex flex-col items-center justify-center min-w-[56px] min-h-[48px] py-1 px-2 rounded-lg transition-colors relative ${
+                                isActive
+                                    ? 'text-[#2563EB] dark:text-[#60A5FA]'
+                                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                             }`}
                         >
                             <div className="relative">
-                                <item.icon className={`w-5 h-5 transition-transform ${isActive ? 'scale-110 stroke-[2.2]' : 'stroke-[1.8]'}`} />
+                                <item.icon
+                                    className={`w-5 h-5 transition-transform ${
+                                        isActive ? 'scale-105 stroke-[2.2]' : 'stroke-[1.8]'
+                                    }`}
+                                />
                                 {Boolean(item.badge && item.badge > 0) && (
-                                    <span className="absolute -top-1 -right-2 bg-amber-500 text-black font-black text-[9px] w-4 h-4 rounded-full flex items-center justify-center shadow-md animate-pulse">
+                                    <span className="absolute -top-1 -right-2 bg-[#2563EB] text-white font-bold text-[9px] w-4 h-4 rounded-full flex items-center justify-center">
                                         {item.badge}
                                     </span>
                                 )}
                             </div>
-                            <span className={`text-[10px] font-medium mt-1 tracking-tight transition-colors ${
-                                isActive ? 'font-bold text-[#F5A623]' : 'text-gray-400'
-                            }`}>
+                            <span
+                                className={`text-[10px] mt-1 tracking-tight transition-colors ${
+                                    isActive
+                                        ? 'font-semibold text-[#2563EB] dark:text-[#60A5FA]'
+                                        : 'font-medium text-[var(--text-secondary)]'
+                                }`}
+                            >
                                 {item.name}
                             </span>
                             {isActive && (
-                                <span className="w-1 h-1 rounded-full bg-[#F5A623] mt-0.5" />
+                                <span className="w-1 h-1 rounded-full bg-[#2563EB] dark:bg-[#60A5FA] mt-0.5" />
                             )}
                         </Link>
                     )

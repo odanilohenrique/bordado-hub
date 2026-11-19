@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="168" height="40" viewBox="0 0 168 40" fill="none">
+  <rect x="0.5" y="0.5" width="167" height="39" rx="8" stroke="#000000" stroke-opacity="0.18"/>
+  <rect x="15" y="13" width="14" height="14" rx="3" stroke="#000000" stroke-width="2"/>
+  <path d="M19 20H25" stroke="#000000" stroke-width="2" stroke-linecap="round"/>
+  <text x="40" y="25" fill="#000000" font-family="Inter, system-ui, -apple-system, sans-serif" font-size="14" font-weight="600" letter-spacing="-0.02em">.EXP Bernina</text>
+</svg>

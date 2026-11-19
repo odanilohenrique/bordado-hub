@@ -11,15 +11,15 @@ import PushNotificationBanner from '@/components/PushNotificationBanner'
 
 function JobCardSkeleton() {
     return (
-        <div className="bg-[#1A1D23] border border-white/5 rounded-xl overflow-hidden p-6 animate-pulse flex flex-col md:flex-row gap-6 mb-4">
-            <div className="w-full md:w-64 h-48 bg-white/5 rounded-lg shrink-0" />
+        <div className="bg-[var(--bg-surface)] border border-[var(--border-hairline)] rounded-2xl overflow-hidden p-6 flex flex-col md:flex-row gap-6 mb-4">
+            <div className="w-full md:w-64 h-48 bg-[var(--bg-surface-elevated)] rounded-xl shrink-0" />
             <div className="flex-1 flex flex-col justify-between space-y-4 py-2">
                 <div className="space-y-3">
-                    <div className="h-6 bg-white/5 rounded w-3/4" />
-                    <div className="h-4 bg-white/5 rounded w-1/3" />
+                    <div className="h-6 bg-[var(--bg-surface-elevated)] rounded-lg w-3/4" />
+                    <div className="h-4 bg-[var(--bg-surface-elevated)] rounded-lg w-1/3" />
                 </div>
-                <div className="h-4 bg-white/5 rounded w-full" />
-                <div className="h-10 bg-white/5 rounded-xl w-36" />
+                <div className="h-4 bg-[var(--bg-surface-elevated)] rounded-lg w-full" />
+                <div className="h-10 bg-[var(--bg-surface-elevated)] rounded-lg w-36" />
             </div>
         </div>
     )
@@ -252,41 +252,44 @@ export default function JobsPage() {
     }, [profileId, filter])
 
     return (
-        <div className="min-h-screen bg-[#0B0D11] py-8 px-4 sm:px-6 lg:px-8">
+        <div className="w-full text-[var(--text-primary)]">
             <div className="max-w-7xl mx-auto">
                 {/* Banner de Push Notifications — aparece apenas para programadores não inscritos */}
                 <PushNotificationBanner userId={profileId} role={profile?.role} />
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
                     <div>
-                        <h1 className="text-3xl font-extrabold text-[#F8FAFC] tracking-tight">Pedidos de Clientes</h1>
-                        <p className="text-gray-400 mt-1 text-sm">Mural de solicitações de novas matrizes de bordado para você orçar e produzir com pagamento garantido</p>
+                        <h1 className="text-2xl sm:text-3xl font-semibold text-[var(--text-primary)] tracking-tight">Pedidos de Clientes</h1>
+                        <p className="text-[var(--text-secondary)] mt-1 text-sm">Mural de solicitações de novas matrizes de bordado para você orçar e produzir com pagamento garantido</p>
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-3">
-                        <div className="flex p-1 bg-[#12151C] rounded-2xl border border-white/[0.07]">
+                    <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+                        <div className="flex flex-wrap p-1 bg-[var(--bg-surface)] rounded-xl border border-[var(--border-hairline)] gap-1">
                             <button
+                                type="button"
                                 onClick={() => setFilter('all')}
-                                className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-medium transition-all ${filter === 'all'
-                                    ? 'bg-gradient-to-r from-[#FFB703] to-[#FB8500] text-black font-extrabold shadow-md shadow-[#F5A623]/20'
-                                    : 'text-gray-400 hover:text-white'
+                                className={`min-h-[44px] sm:min-h-[38px] px-4 rounded-lg text-xs sm:text-sm font-semibold transition-colors cursor-pointer ${filter === 'all'
+                                    ? 'bg-[#2563EB] text-white'
+                                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--btn-glass-bg)]'
                                     }`}
                             >
                                 Todos
                             </button>
                             <button
+                                type="button"
                                 onClick={() => setFilter('aberto')}
-                                className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-medium transition-all ${filter === 'aberto'
-                                    ? 'bg-gradient-to-r from-[#FFB703] to-[#FB8500] text-black font-extrabold shadow-md shadow-[#F5A623]/20'
-                                    : 'text-gray-400 hover:text-white'
+                                className={`min-h-[44px] sm:min-h-[38px] px-4 rounded-lg text-xs sm:text-sm font-semibold transition-colors cursor-pointer ${filter === 'aberto'
+                                    ? 'bg-[#2563EB] text-white'
+                                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--btn-glass-bg)]'
                                     }`}
                             >
                                 Abertos
                             </button>
                             <button
+                                type="button"
                                 onClick={() => setFilter('em_progresso')}
-                                className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-medium transition-all inline-flex items-center gap-1.5 ${filter === 'em_progresso'
-                                    ? 'bg-gradient-to-r from-[#FFB703] to-[#FB8500] text-black font-extrabold shadow-md shadow-[#F5A623]/20'
-                                    : 'text-gray-400 hover:text-white'
+                                className={`min-h-[44px] sm:min-h-[38px] px-4 rounded-lg text-xs sm:text-sm font-semibold transition-colors inline-flex items-center gap-1.5 cursor-pointer ${filter === 'em_progresso'
+                                    ? 'bg-[#2563EB] text-white'
+                                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--btn-glass-bg)]'
                                     }`}
                             >
                                 <Handshake className="w-4 h-4" /> Negócio Fechado
@@ -295,9 +298,9 @@ export default function JobsPage() {
 
                         <Link
                             href="/jobs/new"
-                            className="inline-flex items-center gap-2 bg-gradient-to-r from-[#FFB703] to-[#FB8500] hover:brightness-110 text-black px-5 py-2.5 rounded-2xl font-extrabold text-sm transition-all shadow-md shadow-[#F5A623]/20 hover:scale-[1.02] active:scale-95 whitespace-nowrap"
+                            className="inline-flex items-center justify-center gap-2 min-h-[48px] sm:min-h-[44px] px-5 rounded-lg bg-[var(--btn-primary-bg)] hover:bg-[var(--btn-primary-hover)] text-[var(--btn-primary-text)] font-semibold text-sm transition-colors whitespace-nowrap"
                         >
-                            <Plus className="w-4 h-4 stroke-[3]" />
+                            <Plus className="w-4 h-4 stroke-[2.5]" />
                             Criar Pedido
                         </Link>
                     </div>
@@ -310,23 +313,23 @@ export default function JobsPage() {
                         <JobCardSkeleton />
                     </div>
                 ) : fetchError && jobs.length === 0 ? (
-                    <div className="text-center py-16 bg-[#12151C] rounded-2xl border border-red-500/20 px-4">
-                        <AlertCircle className="w-10 h-10 text-red-400 mx-auto mb-4 opacity-80" />
-                        <p className="text-gray-200 font-bold text-base">{fetchError}</p>
+                    <div className="text-center py-16 bg-[var(--bg-surface)] rounded-2xl border border-[#DC2626]/30 dark:border-[#EF4444]/30 px-4">
+                        <AlertCircle className="w-10 h-10 text-[#DC2626] dark:text-[#EF4444] mx-auto mb-4" />
+                        <p className="text-[var(--text-primary)] font-semibold text-base">{fetchError}</p>
                         <button
                             type="button"
                             onClick={() => setRetryTick((t) => t + 1)}
-                            className="mt-5 inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[#FFB703] to-[#FB8500] hover:brightness-110 text-black font-extrabold text-sm rounded-xl transition-all shadow-md"
+                            className="mt-5 inline-flex items-center justify-center gap-2 min-h-[48px] sm:min-h-[44px] px-5 bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-semibold text-sm rounded-lg transition-colors cursor-pointer"
                         >
                             <RefreshCw className="w-4 h-4" />
                             Tentar novamente
                         </button>
                     </div>
                 ) : jobs.length === 0 ? (
-                    <div className="text-center py-20 bg-[#12151C] rounded-2xl border border-white/[0.07] px-4">
-                        <Search className="w-10 h-10 text-gray-500 mx-auto mb-4 opacity-50" />
-                        <p className="text-gray-300 font-bold text-base">Nenhum pedido encontrado com este filtro.</p>
-                        <p className="text-gray-500 text-xs mt-1 max-w-sm mx-auto">Assim que os clientes publicarem novas solicitações de matrizes, elas aparecerão aqui instantaneamente.</p>
+                    <div className="text-center py-20 bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-hairline)] px-4">
+                        <Search className="w-10 h-10 text-[var(--text-secondary)] mx-auto mb-4 opacity-60" />
+                        <p className="text-[var(--text-primary)] font-semibold text-base">Nenhum pedido encontrado com este filtro.</p>
+                        <p className="text-[var(--text-secondary)] text-xs sm:text-sm mt-1 max-w-sm mx-auto">Assim que os clientes publicarem novas solicitações de matrizes, elas aparecerão aqui instantaneamente.</p>
                     </div>
                 ) : (
                     <div className="grid grid-cols-1 gap-6">

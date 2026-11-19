@@ -181,15 +181,12 @@ export default function ProgrammerAccessModal({
     }
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-            <div className="relative w-full max-w-lg bg-[#12151C] border border-[#FFAE00]/30 rounded-2xl sm:rounded-3xl shadow-2xl p-5 sm:p-7 overflow-hidden text-gray-100 max-h-[92vh] overflow-y-auto">
-                {/* Glow decorativo de fundo */}
-                <div className="absolute top-0 right-0 w-44 h-44 bg-[#FFAE00]/10 rounded-full blur-3xl pointer-events-none -z-10" />
-
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 dark:bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+            <div className="relative w-full max-w-lg bg-[var(--bg-surface)] border border-[var(--border-hairline)] rounded-2xl sm:rounded-3xl shadow-2xl p-5 sm:p-7 overflow-hidden text-[var(--text-primary)] max-h-[92vh] overflow-y-auto">
                 {/* Botão Fechar */}
                 <button
                     onClick={handleClose}
-                    className="absolute top-4 right-4 p-2 text-gray-400 hover:text-white rounded-xl hover:bg-white/5 transition-all"
+                    className="absolute top-3 right-3 min-w-[44px] min-h-[44px] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] rounded-xl hover:bg-[var(--btn-glass-bg)] transition-all"
                     aria-label="Fechar"
                 >
                     <X className="w-5 h-5" />
@@ -198,16 +195,16 @@ export default function ProgrammerAccessModal({
                 {/* Sucesso: Waitlist */}
                 {waitlistSuccess ? (
                     <div className="text-center py-6 space-y-4 animate-in zoom-in-95 duration-200">
-                        <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 flex items-center justify-center mx-auto shadow-lg shadow-emerald-500/10">
+                        <div className="w-16 h-16 rounded-2xl bg-[#0D9488]/10 border border-[#0D9488]/30 text-[var(--teal-text)] flex items-center justify-center mx-auto">
                             <CheckCircle2 className="w-8 h-8" />
                         </div>
 
                         <div className="space-y-2">
-                            <h3 className="text-xl font-bold text-white">Solicitação Recebida!</h3>
-                            <p className="text-xs sm:text-sm text-gray-300 leading-relaxed max-w-md mx-auto">
-                                Seus dados foram adicionados com sucesso à nossa <strong>Lista de Espera VIP de Programadores</strong>.
+                            <h3 className="text-xl font-bold text-[var(--text-primary)]">Solicitação Recebida!</h3>
+                            <p className="text-xs sm:text-sm text-[var(--text-secondary)] leading-relaxed max-w-md mx-auto">
+                                Seus dados foram adicionados com sucesso à nossa <strong className="text-[var(--text-primary)]">Lista de Espera VIP de Programadores</strong>.
                             </p>
-                            <p className="text-xs text-gray-400 max-w-md mx-auto">
+                            <p className="text-xs text-[var(--text-secondary)] max-w-md mx-auto">
                                 Nossa equipe entrará em contato diretamente pelo seu WhatsApp para enviar seu convite individual assim que liberarmos a próxima turma!
                             </p>
                         </div>
@@ -215,7 +212,7 @@ export default function ProgrammerAccessModal({
                         <div className="pt-4">
                             <button
                                 onClick={handleClose}
-                                className="w-full py-3 px-4 bg-gradient-to-r from-[#FFAE00] to-yellow-400 hover:brightness-110 active:scale-95 text-black font-black text-sm rounded-xl transition-all shadow-lg shadow-[#FFAE00]/15"
+                                className="w-full min-h-[48px] py-3 px-4 bg-[var(--btn-primary-bg)] hover:bg-[var(--btn-primary-hover)] active:scale-95 text-[var(--btn-primary-text)] font-semibold text-sm rounded-lg transition-all cursor-pointer"
                             >
                                 Entendido, obrigado!
                             </button>
@@ -224,13 +221,13 @@ export default function ProgrammerAccessModal({
                 ) : activateSuccess ? (
                     /* Sucesso: Ativação por Código */
                     <div className="text-center py-6 space-y-4 animate-in zoom-in-95 duration-200">
-                        <div className="w-16 h-16 rounded-2xl bg-[#FFAE00]/10 border border-[#FFAE00]/40 text-[#FFAE00] flex items-center justify-center mx-auto shadow-lg shadow-[#FFAE00]/15">
+                        <div className="w-16 h-16 rounded-2xl bg-[#2563EB]/10 border border-[#2563EB]/30 text-[var(--cobalt-text)] flex items-center justify-center mx-auto">
                             <Sparkles className="w-8 h-8" />
                         </div>
 
                         <div className="space-y-2">
-                            <h3 className="text-xl sm:text-2xl font-black text-white">Perfil de Programador Liberado!</h3>
-                            <p className="text-xs sm:text-sm text-gray-300 leading-relaxed max-w-md mx-auto">
+                            <h3 className="text-xl sm:text-2xl font-bold text-[var(--text-primary)]">Perfil de Programador Liberado!</h3>
+                            <p className="text-xs sm:text-sm text-[var(--text-secondary)] leading-relaxed max-w-md mx-auto">
                                 Parabéns! Seu código de convite foi validado e sua conta agora tem permissão oficial para programar matrizes, enviar propostas e receber pagamentos.
                             </p>
                         </div>
@@ -243,7 +240,7 @@ export default function ProgrammerAccessModal({
                                         onConfigureProfile()
                                     }
                                 }}
-                                className="w-full py-3.5 px-4 bg-gradient-to-r from-[#FFAE00] to-yellow-400 hover:brightness-110 active:scale-95 text-black font-black text-sm rounded-xl transition-all shadow-lg shadow-[#FFAE00]/20 flex items-center justify-center gap-2 cursor-pointer"
+                                className="w-full min-h-[48px] py-3 px-4 bg-[var(--btn-primary-bg)] hover:bg-[var(--btn-primary-hover)] active:scale-95 text-[var(--btn-primary-text)] font-semibold text-sm rounded-lg transition-all flex items-center justify-center gap-2 cursor-pointer"
                             >
                                 <Sparkles className="w-4 h-4" />
                                 <span>Configurar Portfólio & Informações Agora</span>
@@ -255,23 +252,23 @@ export default function ProgrammerAccessModal({
                     /* Conteúdo Principal do Modal */
                     <div className="space-y-5">
                         {/* Header */}
-                        <div className="text-left space-y-2">
-                            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#FFAE00]/10 border border-[#FFAE00]/30 text-[11px] font-bold text-[#FFAE00]">
+                        <div className="text-left space-y-2 pr-8">
+                            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#2563EB]/10 border border-[#2563EB]/25 text-[11px] font-bold text-[var(--cobalt-text)]">
                                 <Lock className="w-3.5 h-3.5" />
                                 <span>Acesso Exclusivo a Programadores</span>
                             </div>
 
-                            <h3 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+                            <h3 className="text-xl sm:text-2xl font-bold text-[var(--text-primary)] tracking-tight">
                                 Produzir Matrizes no BordadoHUB
                             </h3>
 
-                            <p className="text-xs text-gray-300 leading-relaxed">
+                            <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
                                 Para garantir alta qualidade e clientes recorrentes, o cadastro de programadores é feito por convite.
                             </p>
                         </div>
 
                         {/* Abas Alternadoras: Lista VIP vs Já Tenho Convite */}
-                        <div className="grid grid-cols-2 gap-1.5 p-1 bg-[#0B0D11] rounded-xl border border-white/10">
+                        <div className="grid grid-cols-2 gap-1.5 p-1 bg-[var(--bg-surface-elevated)] rounded-xl border border-[var(--border-hairline)]">
                             <button
                                 type="button"
                                 onClick={() => {
@@ -279,10 +276,10 @@ export default function ProgrammerAccessModal({
                                     setWaitlistError(null)
                                     setActivateError(null)
                                 }}
-                                className={`py-2 px-3 rounded-lg text-xs font-bold transition-all text-center ${
+                                className={`min-h-[44px] py-2 px-3 rounded-lg text-xs font-bold transition-all text-center cursor-pointer ${
                                     activeTab === 'waitlist'
-                                        ? 'bg-[#181C26] text-[#FFAE00] shadow-sm border border-[#FFAE00]/30'
-                                        : 'text-gray-400 hover:text-white'
+                                        ? 'bg-[#2563EB] text-white border border-[#2563EB]'
+                                        : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                                 }`}
                             >
                                 Quero um Convite
@@ -295,13 +292,13 @@ export default function ProgrammerAccessModal({
                                     setWaitlistError(null)
                                     setActivateError(null)
                                 }}
-                                className={`py-2 px-3 rounded-lg text-xs font-bold transition-all text-center flex items-center justify-center gap-1.5 ${
+                                className={`min-h-[44px] py-2 px-3 rounded-lg text-xs font-bold transition-all text-center flex items-center justify-center gap-1.5 cursor-pointer ${
                                     activeTab === 'invite'
-                                        ? 'bg-[#181C26] text-[#FFAE00] shadow-sm border border-[#FFAE00]/30'
-                                        : 'text-gray-400 hover:text-white'
+                                        ? 'bg-[#2563EB] text-white border border-[#2563EB]'
+                                        : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                                 }`}
                             >
-                                <Key className="w-3 h-3" />
+                                <Key className="w-3.5 h-3.5" />
                                 Já Tenho Convite
                             </button>
                         </div>
@@ -309,14 +306,14 @@ export default function ProgrammerAccessModal({
                         {/* ABA 1: QUERO UM CONVITE (LISTA DE ESPERA VIP) */}
                         {activeTab === 'waitlist' && (
                             <form onSubmit={handleWaitlistSubmit} className="space-y-3.5 animate-in fade-in duration-150">
-                                <div className="bg-[#0B0D11] border border-white/5 rounded-xl p-3 text-xs text-gray-400 leading-relaxed">
+                                <div className="bg-[var(--bg-surface-elevated)] border border-[var(--border-hairline)] rounded-xl p-3 text-xs text-[var(--text-secondary)] leading-relaxed">
                                     Cadastre seu WhatsApp abaixo. Nossa equipe avalia os inscritos e envia convites exclusivos semanalmente.
                                 </div>
 
                                 {/* Nome (Preenchido) */}
                                 <div className="space-y-1">
-                                    <label className="text-[11px] font-bold uppercase tracking-wider text-gray-400 flex items-center gap-1.5">
-                                        <User className="w-3.5 h-3.5 text-[#FFAE00]" />
+                                    <label className="text-[11px] font-bold uppercase tracking-wider text-[var(--text-secondary)] flex items-center gap-1.5">
+                                        <User className="w-3.5 h-3.5 text-[var(--cobalt-text)]" />
                                         Seu Nome
                                     </label>
                                     <input
@@ -325,14 +322,14 @@ export default function ProgrammerAccessModal({
                                         value={name}
                                         onChange={(e) => setName(e.target.value)}
                                         placeholder="Ex: Carlos Silva"
-                                        className="w-full bg-[#0B0D11] border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-[#FFAE00] transition-all"
+                                        className="w-full min-h-[44px] bg-[var(--bg-surface-elevated)] border border-[var(--border-hairline)] rounded-xl px-3.5 py-2.5 text-xs text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]/70 focus:outline-none focus:border-[#2563EB] dark:focus:border-[#3B82F6] transition-all"
                                     />
                                 </div>
 
                                 {/* E-mail (Preenchido) */}
                                 <div className="space-y-1">
-                                    <label className="text-[11px] font-bold uppercase tracking-wider text-gray-400 flex items-center gap-1.5">
-                                        <Mail className="w-3.5 h-3.5 text-[#FFAE00]" />
+                                    <label className="text-[11px] font-bold uppercase tracking-wider text-[var(--text-secondary)] flex items-center gap-1.5">
+                                        <Mail className="w-3.5 h-3.5 text-[var(--cobalt-text)]" />
                                         Seu E-mail
                                     </label>
                                     <input
@@ -341,14 +338,14 @@ export default function ProgrammerAccessModal({
                                         value={email}
                                         onChange={(e) => setEmail(e.target.value)}
                                         placeholder="seu@email.com"
-                                        className="w-full bg-[#0B0D11] border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-[#FFAE00] transition-all"
+                                        className="w-full min-h-[44px] bg-[var(--bg-surface-elevated)] border border-[var(--border-hairline)] rounded-xl px-3.5 py-2.5 text-xs text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]/70 focus:outline-none focus:border-[#2563EB] dark:focus:border-[#3B82F6] transition-all"
                                     />
                                 </div>
 
                                 {/* WhatsApp com DDD (Obrigatório) */}
                                 <div className="space-y-1">
-                                    <label className="text-[11px] font-bold uppercase tracking-wider text-gray-400 flex items-center gap-1.5">
-                                        <Phone className="w-3.5 h-3.5 text-[#FFAE00]" />
+                                    <label className="text-[11px] font-bold uppercase tracking-wider text-[var(--text-secondary)] flex items-center gap-1.5">
+                                        <Phone className="w-3.5 h-3.5 text-[var(--cobalt-text)]" />
                                         WhatsApp com DDD (para envio do convite)
                                     </label>
                                     <input
@@ -358,14 +355,14 @@ export default function ProgrammerAccessModal({
                                         onChange={(e) => setWhatsapp(formatWhatsapp(e.target.value))}
                                         placeholder="(11) 99999-9999"
                                         maxLength={15}
-                                        className="w-full bg-[#0B0D11] border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-[#FFAE00] transition-all font-mono"
+                                        className="w-full min-h-[44px] bg-[var(--bg-surface-elevated)] border border-[var(--border-hairline)] rounded-xl px-3.5 py-2.5 text-xs text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]/70 focus:outline-none focus:border-[#2563EB] dark:focus:border-[#3B82F6] transition-all font-mono"
                                     />
                                 </div>
 
                                 {/* Softwares que domina */}
                                 <div className="space-y-1.5 pt-1">
-                                    <label className="text-[11px] font-bold uppercase tracking-wider text-gray-400 flex items-center gap-1.5">
-                                        <Code2 className="w-3.5 h-3.5 text-[#FFAE00]" />
+                                    <label className="text-[11px] font-bold uppercase tracking-wider text-[var(--text-secondary)] flex items-center gap-1.5">
+                                        <Code2 className="w-3.5 h-3.5 text-[var(--cobalt-text)]" />
                                         Softwares que Você Utiliza
                                     </label>
                                     <div className="flex flex-wrap gap-1.5">
@@ -376,10 +373,10 @@ export default function ProgrammerAccessModal({
                                                     type="button"
                                                     key={sw}
                                                     onClick={() => toggleSoftware(sw)}
-                                                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all flex items-center gap-1 ${
+                                                    className={`min-h-[44px] sm:min-h-[38px] px-3 py-2 rounded-lg text-xs font-semibold transition-all flex items-center gap-1 cursor-pointer ${
                                                         isSelected
-                                                            ? 'bg-[#FFAE00] text-black font-bold'
-                                                            : 'bg-[#0B0D11] text-gray-400 border border-white/10 hover:border-white/20'
+                                                            ? 'bg-[#2563EB] text-white border border-[#2563EB] font-bold'
+                                                            : 'bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] border border-[var(--border-hairline)] hover:border-[var(--border-glass)] hover:text-[var(--text-primary)]'
                                                     }`}
                                                 >
                                                     {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
@@ -393,12 +390,12 @@ export default function ProgrammerAccessModal({
                                         value={customSoftware}
                                         onChange={(e) => setCustomSoftware(e.target.value)}
                                         placeholder="Outro software? Digite aqui..."
-                                        className="w-full mt-1.5 bg-[#0B0D11] border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-[#FFAE00] transition-all"
+                                        className="w-full min-h-[44px] mt-1.5 bg-[var(--bg-surface-elevated)] border border-[var(--border-hairline)] rounded-xl px-3 py-2 text-xs text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]/70 focus:outline-none focus:border-[#2563EB] dark:focus:border-[#3B82F6] transition-all"
                                     />
                                 </div>
 
                                 {waitlistError && (
-                                    <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs flex items-center gap-2">
+                                    <div className="p-3 rounded-xl bg-[var(--danger)]/10 border border-[var(--danger)]/30 text-[var(--danger)] text-xs flex items-center gap-2">
                                         <AlertCircle className="w-4 h-4 shrink-0" />
                                         <span>{waitlistError}</span>
                                     </div>
@@ -408,7 +405,7 @@ export default function ProgrammerAccessModal({
                                     <button
                                         type="submit"
                                         disabled={waitlistLoading}
-                                        className="w-full py-3 px-4 bg-gradient-to-r from-[#FFAE00] to-yellow-400 hover:brightness-110 active:scale-[0.99] text-black font-black text-xs sm:text-sm rounded-xl transition-all shadow-lg shadow-[#FFAE00]/15 flex items-center justify-center gap-2 disabled:opacity-50"
+                                        className="w-full min-h-[48px] py-3 px-4 bg-[var(--btn-primary-bg)] hover:bg-[var(--btn-primary-hover)] active:scale-[0.99] text-[var(--btn-primary-text)] font-semibold text-xs sm:text-sm rounded-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
                                     >
                                         {waitlistLoading ? (
                                             <>
@@ -424,13 +421,13 @@ export default function ProgrammerAccessModal({
                                     </button>
                                 </div>
 
-                                <div className="pt-2 text-center">
+                                <div className="pt-1 text-center">
                                     <button
                                         type="button"
                                         onClick={() => setActiveTab('invite')}
-                                        className="text-xs text-gray-400 hover:text-[#FFAE00] transition-colors"
+                                        className="min-h-[44px] inline-flex items-center justify-center px-3 text-xs text-[var(--text-secondary)] hover:text-[var(--cobalt-text)] transition-colors cursor-pointer"
                                     >
-                                        Já possui um código? <strong className="underline">Ativar agora</strong>
+                                        Já possui um código? <strong className="underline ml-1">Ativar agora</strong>
                                     </button>
                                 </div>
                             </form>
@@ -439,18 +436,18 @@ export default function ProgrammerAccessModal({
                         {/* ABA 2: JÁ TENHO CONVITE (DIGITAÇÃO DO CÓDIGO) */}
                         {activeTab === 'invite' && (
                             <form onSubmit={handleActivateWithCode} className="space-y-4 animate-in fade-in duration-150">
-                                <div className="bg-[#0B0D11] border border-[#FFAE00]/20 rounded-xl p-3.5 space-y-1">
-                                    <div className="flex items-center gap-2 text-[#FFAE00] text-xs font-bold">
+                                <div className="bg-[var(--bg-surface-elevated)] border border-[#2563EB]/25 rounded-xl p-3.5 space-y-1">
+                                    <div className="flex items-center gap-2 text-[var(--cobalt-text)] text-xs font-bold">
                                         <Key className="w-3.5 h-3.5" />
                                         <span>Insira seu Código de Convite</span>
                                     </div>
-                                    <p className="text-[11px] text-gray-400 leading-relaxed">
+                                    <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed">
                                         Digite o código de 8 dígitos que você recebeu para liberar instantaneamente seu perfil profissional.
                                     </p>
                                 </div>
 
                                 <div className="space-y-1.5">
-                                    <label className="text-[11px] font-bold uppercase tracking-wider text-gray-400">
+                                    <label className="text-[11px] font-bold uppercase tracking-wider text-[var(--text-secondary)]">
                                         Código de Convite
                                     </label>
                                     <input
@@ -463,12 +460,12 @@ export default function ProgrammerAccessModal({
                                         placeholder="EX: K8X2M9P4"
                                         maxLength={16}
                                         autoFocus
-                                        className="w-full bg-[#0B0D11] border border-white/10 rounded-xl px-4 py-3 text-base text-center font-mono font-bold tracking-widest text-white uppercase placeholder-gray-500 focus:outline-none focus:border-[#FFAE00] transition-all shadow-inner"
+                                        className="w-full min-h-[48px] bg-[var(--bg-surface-elevated)] border border-[var(--border-hairline)] rounded-xl px-4 py-3 text-base text-center font-mono font-bold tracking-widest text-[var(--text-primary)] uppercase placeholder:text-[var(--text-secondary)]/70 focus:outline-none focus:border-[#2563EB] dark:focus:border-[#3B82F6] transition-all"
                                     />
                                 </div>
 
                                 {activateError && (
-                                    <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs flex items-center gap-2">
+                                    <div className="p-3 rounded-xl bg-[var(--danger)]/10 border border-[var(--danger)]/30 text-[var(--danger)] text-xs flex items-center gap-2">
                                         <AlertCircle className="w-4 h-4 shrink-0" />
                                         <span>{activateError}</span>
                                     </div>
@@ -478,7 +475,7 @@ export default function ProgrammerAccessModal({
                                     <button
                                         type="submit"
                                         disabled={activateLoading || !code.trim()}
-                                        className="w-full py-3.5 px-4 bg-gradient-to-r from-[#FFAE00] to-yellow-400 hover:brightness-110 active:scale-[0.99] text-black font-black text-xs sm:text-sm rounded-xl transition-all shadow-lg shadow-[#FFAE00]/15 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        className="w-full min-h-[48px] py-3 px-4 bg-[var(--btn-primary-bg)] hover:bg-[var(--btn-primary-hover)] active:scale-[0.99] text-[var(--btn-primary-text)] font-semibold text-xs sm:text-sm rounded-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                                     >
                                         {activateLoading ? (
                                             <>
@@ -494,13 +491,13 @@ export default function ProgrammerAccessModal({
                                     </button>
                                 </div>
 
-                                <div className="pt-2 text-center">
+                                <div className="pt-1 text-center">
                                     <button
                                         type="button"
                                         onClick={() => setActiveTab('waitlist')}
-                                        className="text-xs text-gray-400 hover:text-[#FFAE00] transition-colors"
+                                        className="min-h-[44px] inline-flex items-center justify-center px-3 text-xs text-[var(--text-secondary)] hover:text-[var(--cobalt-text)] transition-colors cursor-pointer"
                                     >
-                                        Não tem um código? <strong className="underline">Entrar na lista de espera</strong>
+                                        Não tem um código? <strong className="underline ml-1">Entrar na lista de espera</strong>
                                     </button>
                                 </div>
                             </form>

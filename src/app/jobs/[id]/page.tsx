@@ -128,20 +128,20 @@ interface Proposal {
 
 function JobDetailSkeleton() {
     return (
-        <div className="min-h-screen bg-[#0B0D11] py-4 px-4 sm:px-6 lg:px-8 text-slate-100 animate-pulse">
+        <div className="min-h-screen bg-[var(--bg-primary)] py-4 px-4 sm:px-6 lg:px-8 text-[var(--text-primary)] animate-pulse">
             <div className="max-w-6xl mx-auto flex flex-col gap-4">
                 {/* Back button skeleton */}
-                <div className="h-4 w-36 bg-white/5 rounded-lg" />
+                <div className="h-4 w-36 bg-[var(--border-hairline)] rounded-lg" />
 
                 {/* Status Progress Tracker Bar Skeleton */}
-                <div className="bg-[#12151C] border border-white/[0.07] rounded-2xl p-4 sm:p-5">
+                <div className="bg-[var(--bg-surface)] border border-[var(--border-hairline)] rounded-2xl p-4 sm:p-5">
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                         {[1, 2, 3, 4].map(i => (
-                            <div key={i} className="flex items-center gap-3 p-2.5 rounded-xl bg-white/[0.03]">
-                                <div className="w-9 h-9 rounded-xl bg-white/10 shrink-0" />
+                            <div key={i} className="flex items-center gap-3 p-2.5 rounded-xl bg-[var(--bg-surface-elevated)]">
+                                <div className="w-9 h-9 rounded-xl bg-[var(--border-hairline)] shrink-0" />
                                 <div className="space-y-1.5 flex-1">
-                                    <div className="h-3 w-16 bg-white/10 rounded" />
-                                    <div className="h-2 w-24 bg-white/5 rounded" />
+                                    <div className="h-3 w-16 bg-[var(--border-hairline)] rounded" />
+                                    <div className="h-2 w-24 bg-[var(--border-hairline)] rounded" />
                                 </div>
                             </div>
                         ))}
@@ -149,29 +149,29 @@ function JobDetailSkeleton() {
                 </div>
 
                 {/* Main Job Card Skeleton */}
-                <div className="bg-[#12151C] border border-white/[0.07] rounded-2xl overflow-hidden md:flex">
-                    <div className="w-full md:w-80 h-72 md:h-auto bg-[#0F1115] p-6 flex flex-col items-center justify-center border-b md:border-b-0 md:border-r border-white/5">
-                        <div className="w-48 h-48 rounded-xl bg-white/5" />
+                <div className="bg-[var(--bg-surface)] border border-[var(--border-hairline)] rounded-2xl overflow-hidden md:flex">
+                    <div className="w-full md:w-80 h-72 md:h-auto bg-[var(--bg-surface-elevated)] p-6 flex flex-col items-center justify-center border-b md:border-b-0 md:border-r border-[var(--border-hairline)]">
+                        <div className="w-48 h-48 rounded-xl bg-[var(--border-hairline)]" />
                     </div>
                     <div className="flex-1 p-6 flex flex-col justify-between space-y-4">
                         <div className="space-y-3">
                             <div className="flex justify-between items-start gap-4">
-                                <div className="h-7 w-2/3 bg-white/10 rounded-lg" />
-                                <div className="h-6 w-20 bg-white/5 rounded-full" />
+                                <div className="h-7 w-2/3 bg-[var(--border-hairline)] rounded-lg" />
+                                <div className="h-6 w-20 bg-[var(--border-hairline)] rounded-full" />
                             </div>
-                            <div className="h-4 w-32 bg-white/5 rounded-full" />
-                            <div className="h-24 bg-white/[0.03] border border-white/5 rounded-xl p-4 mt-3" />
+                            <div className="h-4 w-32 bg-[var(--border-hairline)] rounded-full" />
+                            <div className="h-24 bg-[var(--bg-surface-elevated)] border border-[var(--border-hairline)] rounded-xl p-4 mt-3" />
                         </div>
-                        <div className="h-10 w-full bg-white/5 rounded-xl mt-4" />
+                        <div className="h-10 w-full bg-[var(--border-hairline)] rounded-xl mt-4" />
                     </div>
                 </div>
 
                 {/* Proposals area skeleton */}
-                <div className="bg-[#12151C] border border-white/[0.07] rounded-2xl p-6">
-                    <div className="h-5 w-48 bg-white/10 rounded mb-4" />
+                <div className="bg-[var(--bg-surface)] border border-[var(--border-hairline)] rounded-2xl p-6">
+                    <div className="h-5 w-48 bg-[var(--border-hairline)] rounded mb-4" />
                     <div className="space-y-3">
-                        <div className="h-20 bg-white/[0.02] border border-white/5 rounded-xl" />
-                        <div className="h-20 bg-white/[0.02] border border-white/5 rounded-xl" />
+                        <div className="h-20 bg-[var(--bg-surface-elevated)] border border-[var(--border-hairline)] rounded-xl" />
+                        <div className="h-20 bg-[var(--bg-surface-elevated)] border border-[var(--border-hairline)] rounded-xl" />
                     </div>
                 </div>
             </div>
@@ -1103,7 +1103,7 @@ function JobDetailClient({ jobId }: { jobId: string }) {
     }
 
     if (!job) return (
-        <div className="min-h-screen bg-[#0F1115] flex items-center justify-center text-[#F3F4F6]">
+        <div className="min-h-screen bg-[var(--bg-primary)] flex items-center justify-center text-[var(--text-primary)]">
             Job não encontrado
         </div>
     )
@@ -1140,18 +1140,18 @@ function JobDetailClient({ jobId }: { jobId: string }) {
         : 0
 
     return (
-        <div className="min-h-screen bg-[#0B0D11] py-4 px-4 sm:px-6 lg:px-8 text-slate-100">
+        <div className="min-h-screen bg-[var(--bg-primary)] py-4 px-4 sm:px-6 lg:px-8 text-[var(--text-primary)]">
             <div className="max-w-6xl mx-auto flex flex-col gap-4">
                 <Link
                     href="/pedidos"
-                    className="inline-flex items-center gap-2 text-gray-400 hover:text-[#F5A623] transition-colors text-xs font-bold uppercase tracking-wider w-fit"
+                    className="inline-flex items-center gap-2 min-h-[44px] sm:min-h-0 text-[var(--text-secondary)] hover:text-[#2563EB] dark:hover:text-[#60A5FA] transition-colors text-xs font-bold uppercase tracking-wider w-fit"
                 >
                     <ArrowLeft className="w-3.5 h-3.5" />
                     Voltar aos Pedidos
                 </Link>
 
                 {/* Status Progress Tracker Bar */}
-                <div className="bg-[#12151C] border border-white/[0.07] rounded-2xl p-4 sm:p-5 shadow-sm">
+                <div className="bg-[var(--bg-surface)] border border-[var(--border-hairline)] rounded-2xl p-4 sm:p-5 shadow-sm">
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 relative">
                         {statusSteps.map((step, idx) => {
                             const StepIcon = step.icon
@@ -1162,19 +1162,19 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                     key={step.key}
                                     className={`flex items-center gap-3 p-2.5 rounded-xl transition-all ${
                                         isCurrent
-                                            ? 'bg-[#181C26] border border-[#F5A623]/40 shadow-sm shadow-[#F5A623]/5'
+                                            ? 'bg-[#2563EB]/10 border border-[#2563EB]/30'
                                             : isCompleted
-                                            ? 'bg-emerald-500/5 border border-emerald-500/20'
-                                            : 'bg-transparent opacity-40 border border-transparent'
+                                            ? 'bg-[#0D9488]/10 border border-[#0D9488]/25'
+                                            : 'bg-transparent opacity-45 border border-transparent'
                                     }`}
                                 >
                                     <div
                                         className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-transform ${
                                             isCurrent
-                                                ? 'bg-gradient-to-r from-[#FFB703] to-[#FB8500] text-black font-black scale-105 shadow-md shadow-[#FFB703]/20'
+                                                ? 'bg-[#2563EB] text-white font-bold'
                                                 : isCompleted
-                                                ? 'bg-emerald-500/20 text-emerald-400'
-                                                : 'bg-white/5 text-gray-500'
+                                                ? 'bg-[#0D9488]/15 text-[#0F766E] dark:text-[#14B8A6]'
+                                                : 'bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)]'
                                         }`}
                                     >
                                         {isCompleted ? <Check className="w-4 h-4" /> : <StepIcon className="w-4 h-4" />}
@@ -1182,12 +1182,12 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                     <div className="min-w-0 flex-1">
                                         <p
                                             className={`text-xs font-bold truncate leading-tight ${
-                                                isCurrent ? 'text-white' : isCompleted ? 'text-emerald-300' : 'text-gray-400'
+                                                isCurrent ? 'text-[var(--text-primary)]' : isCompleted ? 'text-[#0F766E] dark:text-[#14B8A6]' : 'text-[var(--text-secondary)]'
                                             }`}
                                         >
                                             {step.label}
                                         </p>
-                                        <p className="text-[10px] text-gray-500 truncate mt-0.5">{step.desc}</p>
+                                        <p className="text-[10px] text-[var(--text-secondary)] truncate mt-0.5">{step.desc}</p>
                                     </div>
                                 </div>
                             )
@@ -1196,10 +1196,10 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                 </div>
 
                 {/* 1. TOP SECTION: Job Detail (Unified Card for Single Matrix and Kits) */}
-                <div className="bg-[#12151C] border border-white/[0.07] rounded-2xl overflow-hidden shadow-xl">
+                <div className="bg-[var(--bg-surface)] border border-[var(--border-hairline)] rounded-2xl overflow-hidden shadow-xl">
                     <div className="flex flex-col md:flex-row">
                         {/* Foto à esquerda */}
-                        <div className="w-full md:w-80 lg:w-96 min-h-[300px] bg-[#0B0D11] border-r border-white/[0.07] relative flex flex-col justify-between group shrink-0">
+                        <div className="w-full md:w-80 lg:w-96 min-h-[300px] bg-[var(--bg-primary)] border-b md:border-b-0 md:border-r border-[var(--border-hairline)] relative flex flex-col justify-between group shrink-0">
                             <div className="relative flex-1 min-h-[240px] flex items-center justify-center overflow-hidden p-4">
                                 {activeImageUrl ? (
                                     activeImageUrl.toLowerCase().includes('.pdf') ? (
@@ -1212,7 +1212,7 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                         />
                                     )
                                 ) : (
-                                    <div className="flex flex-col items-center justify-center text-gray-500 py-12">
+                                    <div className="flex flex-col items-center justify-center text-[var(--text-secondary)] py-12">
                                         <Package className="w-12 h-12 opacity-30 mb-2" />
                                         <span className="text-xs">Sem foto cadastrada</span>
                                     </div>
@@ -1221,7 +1221,7 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                 {/* Badge no topo da foto */}
                                 {activeImageUrl && (
                                     <div className="absolute top-3 left-3 flex flex-col gap-1 z-10">
-                                        <span className="bg-black/80 backdrop-blur-md text-[#FFAE00] border border-[#FFAE00]/30 text-[10px] font-black px-2.5 py-1 rounded-md uppercase tracking-wider shadow">
+                                        <span className="bg-[#0A0F1D]/85 backdrop-blur-md text-[#F8FAFC] border border-white/15 text-[10px] font-bold px-2.5 py-1 rounded-md uppercase tracking-wider shadow">
                                             {matrixList.length > 1 ? `Foto: ${currentMatrix.name} (${safeMatrixIdx + 1}/${matrixList.length})` : currentMatrix.name}
                                         </span>
                                     </div>
@@ -1229,20 +1229,20 @@ function JobDetailClient({ jobId }: { jobId: string }) {
 
                                 {/* Hover overlay rápido para ver e baixar */}
                                 {activeImageUrl && (
-                                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 p-2">
+                                    <div className="absolute inset-0 bg-[#0A0F1D]/70 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 p-2">
                                         <a
                                             href={activeImageUrl}
                                             target="_blank"
                                             rel="noopener noreferrer"
                                             className="inline-flex items-center gap-1.5 bg-white/20 hover:bg-white/30 text-white text-xs font-bold px-3 py-2 rounded-lg backdrop-blur-sm transition-all"
                                         >
-                                            <Maximize2 className="w-3.5 h-3.5 text-[#FFAE00]" />
+                                            <Maximize2 className="w-3.5 h-3.5 text-[#60A5FA]" />
                                             Ver Completa
                                         </a>
                                         <button
                                             type="button"
                                             onClick={() => handleDownloadReferenceImage(activeImageUrl, safeMatrixIdx, currentMatrix.name)}
-                                            className="inline-flex items-center gap-1.5 bg-[#FFAE00] hover:bg-yellow-400 text-black text-xs font-black px-3 py-2 rounded-lg shadow-lg transition-all"
+                                            className="inline-flex items-center gap-1.5 bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-semibold px-3 py-2 rounded-lg shadow-lg transition-all"
                                         >
                                             <Download className="w-3.5 h-3.5" />
                                             Baixar
@@ -1253,21 +1253,21 @@ function JobDetailClient({ jobId }: { jobId: string }) {
 
                             {/* Ações da Imagem no Rodapé */}
                             {activeImageUrl && (
-                                <div className="p-3 bg-[#0F1115] border-t border-white/5 flex flex-col gap-2">
+                                <div className="p-3 bg-[var(--bg-surface-elevated)] border-t border-[var(--border-hairline)] flex flex-col gap-2">
                                     <div className="flex items-center justify-between gap-2">
                                         <a
                                             href={activeImageUrl}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className="flex-1 inline-flex items-center justify-center gap-1.5 bg-[#1A1D23] hover:bg-white/5 text-gray-300 hover:text-white border border-white/10 text-xs font-semibold py-2 px-2 rounded-lg transition-colors"
+                                            className="flex-1 min-h-[44px] sm:min-h-0 inline-flex items-center justify-center gap-1.5 bg-[var(--bg-surface)] hover:bg-[var(--btn-glass-bg)] text-[var(--text-primary)] border border-[var(--border-hairline)] text-xs font-semibold py-2.5 sm:py-2 px-2 rounded-lg transition-colors"
                                         >
-                                            <Maximize2 className="w-3.5 h-3.5 text-[#FFAE00]" />
+                                            <Maximize2 className="w-3.5 h-3.5 text-[#2563EB] dark:text-[#60A5FA]" />
                                             Ver Completa
                                         </a>
                                         <button
                                             type="button"
                                             onClick={() => handleDownloadReferenceImage(activeImageUrl, safeMatrixIdx, currentMatrix.name)}
-                                            className="flex-1 inline-flex items-center justify-center gap-1.5 bg-[#FFAE00]/10 hover:bg-[#FFAE00]/20 text-[#FFAE00] border border-[#FFAE00]/30 text-xs font-bold py-2 px-2 rounded-lg transition-colors"
+                                            className="flex-1 min-h-[44px] sm:min-h-0 inline-flex items-center justify-center gap-1.5 bg-[#2563EB]/10 hover:bg-[#2563EB]/20 text-[#2563EB] dark:text-[#60A5FA] border border-[#2563EB]/25 text-xs font-semibold py-2.5 sm:py-2 px-2 rounded-lg transition-colors"
                                         >
                                             <Download className="w-3.5 h-3.5" />
                                             Baixar Imagem
@@ -1277,9 +1277,9 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                         <button
                                             type="button"
                                             onClick={handleDownloadAllReferenceImages}
-                                            className="w-full inline-flex items-center justify-center gap-1.5 bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white border border-white/10 text-[11px] font-medium py-1.5 px-2 rounded-lg transition-colors"
+                                            className="w-full min-h-[44px] sm:min-h-0 inline-flex items-center justify-center gap-1.5 bg-[var(--btn-glass-bg)] hover:bg-[#2563EB]/10 text-[var(--text-primary)] border border-[var(--border-hairline)] text-[11px] font-medium py-2 sm:py-1.5 px-2 rounded-lg transition-colors"
                                         >
-                                            <Download className="w-3 h-3 text-[#FFAE00]" />
+                                            <Download className="w-3 h-3 text-[#2563EB] dark:text-[#60A5FA]" />
                                             Baixar Todas as Imagens (.zip)
                                         </button>
                                     )}
@@ -1293,22 +1293,22 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                 {/* Título Principal & Status */}
                                 <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-4">
                                     <div>
-                                        <h1 className="text-2xl lg:text-3xl font-extrabold text-[#F3F4F6] tracking-tight">{job.title}</h1>
+                                        <h1 className="text-2xl lg:text-3xl font-semibold text-[var(--text-primary)] tracking-tight">{job.title}</h1>
                                         <div className="flex items-center gap-2 mt-2 flex-wrap">
                                             {matrixList.length > 1 && (
-                                                <span className="inline-flex items-center gap-1.5 text-xs font-bold text-[#FFAE00] bg-[#FFAE00]/10 border border-[#FFAE00]/30 px-3 py-1 rounded-full shadow-sm">
+                                                <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#2563EB] dark:text-[#60A5FA] bg-[#2563EB]/10 border border-[#2563EB]/25 px-3 py-1 rounded-full">
                                                     <Package className="w-3.5 h-3.5" />
                                                     Kit com {matrixList.length} Matrizes
                                                 </span>
                                             )}
-                                            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#0F1115] border border-gray-800 rounded-full text-xs text-gray-300">
-                                                <Clock className="w-3 h-3 text-[#FFAE00]" />
+                                            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-[var(--bg-surface-elevated)] border border-[var(--border-hairline)] rounded-full text-xs text-[var(--text-secondary)]">
+                                                <Clock className="w-3 h-3 text-[#2563EB] dark:text-[#60A5FA]" />
                                                 Prazo: {urgencyLabels[job.urgency] || job.urgency}
                                             </span>
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-2 self-start">
-                                        <span className="px-3.5 py-1.5 bg-[#FFAE00]/10 text-[#FFAE00] border border-[#FFAE00]/25 rounded-full text-xs font-bold tracking-wider uppercase">
+                                        <span className="px-3.5 py-1.5 bg-[#2563EB]/10 text-[#2563EB] dark:text-[#60A5FA] border border-[#2563EB]/25 rounded-full text-xs font-bold tracking-wider uppercase">
                                             {job.status.replace('_', ' ')}
                                         </span>
                                         {/* Botão Cancelar Pedido — visível apenas para o dono e em status cancelável */}
@@ -1316,7 +1316,7 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                             <button
                                                 type="button"
                                                 onClick={() => setShowCancelModal(true)}
-                                                className="px-3 py-1.5 bg-red-500/10 text-red-400 border border-red-500/25 rounded-full text-xs font-bold tracking-wider uppercase hover:bg-red-500/20 hover:border-red-500/40 transition-all flex items-center gap-1.5"
+                                                className="min-h-[44px] sm:min-h-0 px-3.5 py-2 sm:py-1.5 bg-red-500/10 text-[#DC2626] dark:text-[#EF4444] border border-red-500/25 rounded-full text-xs font-bold tracking-wider uppercase hover:bg-red-500/20 transition-all flex items-center gap-1.5"
                                                 title="Excluir este pedido definitivamente"
                                             >
                                                 <Trash2 className="w-3 h-3" />
@@ -1329,11 +1329,11 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                 {/* Botões lado a lado para selecionar cada matriz contida no kit */}
                                 {matrixList.length > 1 && (
                                     <div className="mb-4">
-                                        <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                                            <Sparkles className="w-3.5 h-3.5 text-[#FFAE00]" />
+                                        <p className="text-[11px] font-bold text-[var(--text-secondary)] uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                                            <Sparkles className="w-3.5 h-3.5 text-[#2563EB] dark:text-[#60A5FA]" />
                                             Selecione a matriz para carregar suas informações e foto:
                                         </p>
-                                        <div className="flex items-center gap-2 overflow-x-auto pb-1.5 scrollbar-thin scrollbar-thumb-gray-800">
+                                        <div className="flex items-center gap-2 overflow-x-auto pb-1.5 scrollbar-thin">
                                             {matrixList.map((m, idx) => {
                                                 const isSelected = safeMatrixIdx === idx
                                                 return (
@@ -1341,14 +1341,14 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                                         key={idx}
                                                         type="button"
                                                         onClick={() => setSelectedMatrixIdx(idx)}
-                                                        className={`px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-2 whitespace-nowrap shrink-0 border ${
+                                                        className={`min-h-[44px] sm:min-h-0 px-4 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-2 whitespace-nowrap shrink-0 border ${
                                                             isSelected
-                                                                ? 'bg-[#FFAE00] text-black border-[#FFAE00] shadow-[0_0_15px_rgba(255,174,0,0.35)] scale-[1.02]'
-                                                                : 'bg-[#0F1115] hover:bg-white/5 text-gray-300 hover:text-white border-white/10 hover:border-white/20'
+                                                                ? 'bg-[#2563EB] text-white border-[#2563EB]'
+                                                                : 'bg-[var(--bg-surface-elevated)] hover:bg-[var(--btn-glass-bg)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border-[var(--border-hairline)]'
                                                         }`}
                                                     >
-                                                        <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black ${
-                                                            isSelected ? 'bg-black text-[#FFAE00]' : 'bg-white/10 text-gray-400'
+                                                        <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
+                                                            isSelected ? 'bg-white/20 text-white' : 'bg-[var(--bg-surface)] text-[var(--text-secondary)]'
                                                         }`}>
                                                             {idx + 1}
                                                         </span>
@@ -1361,36 +1361,36 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                 )}
 
                                 {/* Informações importantes logo abaixo */}
-                                <div className="bg-[#0F1115]/80 border border-white/10 rounded-xl p-4 sm:p-5 mb-4 shadow-inner">
-                                    <div className="flex items-center justify-between mb-3 border-b border-white/5 pb-2.5">
-                                        <h3 className="text-xs font-black text-[#FFAE00] uppercase tracking-wider flex items-center gap-1.5">
-                                            <Ruler className="w-4 h-4 text-[#FFAE00]" />
+                                <div className="bg-[var(--bg-surface-elevated)] border border-[var(--border-hairline)] rounded-xl p-4 sm:p-5 mb-4">
+                                    <div className="flex items-center justify-between mb-3 border-b border-[var(--border-hairline)] pb-2.5">
+                                        <h3 className="text-xs font-bold text-[#2563EB] dark:text-[#60A5FA] uppercase tracking-wider flex items-center gap-1.5">
+                                            <Ruler className="w-4 h-4 text-[#2563EB] dark:text-[#60A5FA]" />
                                             {matrixList.length > 1 ? `Especificações: ${currentMatrix.name}` : 'Especificações da Matriz'}
                                         </h3>
                                         {matrixList.length > 1 && (
-                                            <span className="text-[10px] text-gray-500 font-mono">
+                                            <span className="text-[10px] text-[var(--text-secondary)] font-mono">
                                                 Matriz {safeMatrixIdx + 1} de {matrixList.length}
                                             </span>
                                         )}
                                     </div>
 
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 mb-3">
-                                        <div className="bg-[#1A1D23] border border-white/5 rounded-lg p-3">
-                                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">
+                                        <div className="bg-[var(--bg-surface)] border border-[var(--border-hairline)] rounded-lg p-3">
+                                            <span className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-wider block mb-1">
                                                 Tamanho Desejado
                                             </span>
-                                            <span className="text-sm font-black text-white flex items-center gap-1.5">
-                                                <Ruler className="w-3.5 h-3.5 text-[#FFAE00]" />
+                                            <span className="text-sm font-bold text-[var(--text-primary)] flex items-center gap-1.5">
+                                                <Ruler className="w-3.5 h-3.5 text-[#2563EB] dark:text-[#60A5FA]" />
                                                 {currentMatrix.size || 'Conforme arte'}
                                             </span>
                                         </div>
 
-                                        <div className="bg-[#1A1D23] border border-white/5 rounded-lg p-3">
-                                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">
+                                        <div className="bg-[var(--bg-surface)] border border-[var(--border-hairline)] rounded-lg p-3">
+                                            <span className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-wider block mb-1">
                                                 Tipo de Tecido
                                             </span>
-                                            <span className="text-sm font-black text-white flex items-center gap-1.5">
-                                                <Package className="w-3.5 h-3.5 text-[#FFAE00]" />
+                                            <span className="text-sm font-bold text-[var(--text-primary)] flex items-center gap-1.5">
+                                                <Package className="w-3.5 h-3.5 text-[#2563EB] dark:text-[#60A5FA]" />
                                                 {currentMatrix.fabric || job.fabric_type || 'A combinar'}
                                             </span>
                                         </div>
@@ -1398,35 +1398,35 @@ function JobDetailClient({ jobId }: { jobId: string }) {
 
                                     {/* Observação específica da matriz */}
                                     {currentMatrix.notes && (
-                                        <div className="bg-[#1A1D23] border border-white/5 rounded-lg p-3 mb-3">
-                                            <span className="text-[10px] font-bold text-[#FFAE00] uppercase tracking-wider block mb-1 flex items-center gap-1">
-                                                <Sparkles className="w-3 h-3 text-[#FFAE00]" /> Observação desta Matriz
+                                        <div className="bg-[var(--bg-surface)] border border-[var(--border-hairline)] rounded-lg p-3 mb-3">
+                                            <span className="text-[10px] font-bold text-[#2563EB] dark:text-[#60A5FA] uppercase tracking-wider block mb-1 flex items-center gap-1">
+                                                <Sparkles className="w-3 h-3 text-[#2563EB] dark:text-[#60A5FA]" /> Observação desta Matriz
                                             </span>
-                                            <p className="text-xs text-gray-200 leading-relaxed whitespace-pre-wrap">
+                                            <p className="text-xs text-[var(--text-primary)] leading-relaxed whitespace-pre-wrap">
                                                 {currentMatrix.notes}
                                             </p>
                                         </div>
                                     )}
 
                                     {/* Formatos Solicitados */}
-                                    <div className="flex items-center gap-2 flex-wrap pt-2 border-t border-white/5">
-                                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Formatos:</span>
+                                    <div className="flex items-center gap-2 flex-wrap pt-2 border-t border-[var(--border-hairline)]">
+                                        <span className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-wider">Formatos:</span>
                                         {job.formats && job.formats.length > 0 ? (
                                             job.formats.map((fmt, idx) => (
-                                                <span key={idx} className="px-2.5 py-0.5 bg-[#1A1D23] border border-[#FFAE00]/30 text-[#FFAE00] rounded text-[11px] uppercase font-black">
+                                                <span key={idx} className="px-2.5 py-0.5 bg-[var(--bg-surface)] border border-[#2563EB]/25 text-[#2563EB] dark:text-[#60A5FA] rounded text-[11px] uppercase font-bold">
                                                     {fmt}
                                                 </span>
                                             ))
                                         ) : (
-                                            <span className="text-xs text-gray-400">Qualquer formato compatível</span>
+                                            <span className="text-xs text-[var(--text-secondary)]">Qualquer formato compatível</span>
                                         )}
                                     </div>
                                 </div>
 
                                 {/* Aviso sobre o pacote de matrizes */}
                                 {matrixList.length > 1 && (
-                                    <div className="bg-amber-500/10 border-l-4 border-[#FFAE00] p-3 rounded-r-lg mb-4 text-xs text-amber-200/90 leading-relaxed">
-                                        <span className="font-bold text-[#FFAE00] flex items-center gap-1.5 mb-1">
+                                    <div className="bg-[#2563EB]/8 border-l-4 border-[#2563EB] dark:border-[#3B82F6] p-3 rounded-r-lg mb-4 text-xs text-[var(--text-primary)] leading-relaxed">
+                                        <span className="font-bold text-[#2563EB] dark:text-[#60A5FA] flex items-center gap-1.5 mb-1">
                                             <Sparkles className="w-3.5 h-3.5" /> Aviso sobre o Pacote de Matrizes:
                                         </span>
                                         Este pedido contempla a digitalização de <strong>todas as {matrixList.length} matrizes</strong> do kit. Ao enviar sua proposta, considere o valor e prazo total para entregar o conjunto completo.
@@ -1436,10 +1436,10 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                 {/* Descrição geral do pedido */}
                                 {job.description && (
                                     <div className="mb-2">
-                                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">
+                                        <span className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-wider block mb-1">
                                             Descrição Geral do Pedido:
                                         </span>
-                                        <p className="text-xs text-gray-300 leading-relaxed whitespace-pre-wrap bg-black/20 p-3 rounded-lg border border-white/5">
+                                        <p className="text-xs text-[var(--text-primary)] leading-relaxed whitespace-pre-wrap bg-[var(--bg-surface-elevated)] p-3 rounded-lg border border-[var(--border-hairline)]">
                                             {job.description}
                                         </p>
                                     </div>
@@ -1447,10 +1447,10 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                             </div>
 
                             {/* Rodapé do Card */}
-                            <div className="flex items-center justify-between mt-auto pt-4 border-t border-gray-800/50 text-[11px] text-gray-500">
+                            <div className="flex items-center justify-between mt-auto pt-4 border-t border-[var(--border-hairline)] text-[11px] text-[var(--text-secondary)]">
                                 <span className="font-mono">ID: #{job.id.slice(0, 8)}</span>
                                 <div className="flex items-center gap-1 font-bold">
-                                    <Calendar className="w-3 h-3 text-gray-400" />
+                                    <Calendar className="w-3 h-3 text-[var(--text-secondary)]" />
                                     Publicado em {formatDate(job.created_at)}
                                 </div>
                             </div>
@@ -1459,50 +1459,49 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                 </div>
 
                 {/* 2. MIDDLE SECTION: Proposals OR Production/Revision Hero OR Delivery OR Finalized */}
+                {/* 2. MIDDLE SECTION: Proposals OR Production/Revision Hero OR Delivery OR Finalized */}
                 {(job.status === 'em_progresso' || job.status === 'em_revisao') && acceptedProposal ? (
-                    <div className="bg-[#1A1D23] border border-[#FFAE00]/30 rounded-xl p-8 shadow-[0_0_40px_rgba(255,174,0,0.15)] relative overflow-hidden flex flex-col items-center justify-center min-h-[320px] text-center mb-8">
-                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-40 h-40 bg-[#FFAE00]/5 rounded-full blur-3xl"></div>
-                        
+                    <div className="bg-[var(--bg-surface)] border border-[#2563EB]/30 rounded-2xl p-8 relative overflow-hidden flex flex-col items-center justify-center min-h-[320px] text-center mb-8 shadow-xl">
                         <div className="relative z-10 mb-6 mt-2">
                             <div className="w-28 h-28 relative flex items-center justify-center mx-auto">
-                                <svg className="absolute inset-0 w-full h-full text-[#FFAE00] animate-[spin_12s_linear_infinite] opacity-30" viewBox="0 0 100 100">
+                                <svg className="absolute inset-0 w-full h-full text-[#2563EB] dark:text-[#60A5FA] animate-[spin_12s_linear_infinite] opacity-30" viewBox="0 0 100 100">
                                     <circle cx="50" cy="50" r="48" fill="none" stroke="currentColor" strokeWidth="1.5" strokeDasharray="6 4" strokeLinecap="round" />
                                 </svg>
-                                <div className="bg-[#0F1115] w-14 h-14 rounded-full border border-[#FFAE00]/40 z-10 shadow-[0_0_25px_rgba(255,174,0,0.25)] flex items-center justify-center">
+                                <div className="bg-[var(--bg-surface-elevated)] w-14 h-14 rounded-full border border-[#2563EB]/30 z-10 flex items-center justify-center">
                                     {job.status === 'em_revisao' ? (
-                                        <Wrench className="w-6 h-6 text-yellow-400 animate-pulse" />
+                                        <Wrench className="w-6 h-6 text-[#2563EB] dark:text-[#60A5FA]" />
                                     ) : (
-                                        <PenTool className="w-6 h-6 text-[#FFAE00] animate-pulse" style={{ animationDuration: '2.5s' }} />
+                                        <PenTool className="w-6 h-6 text-[#2563EB] dark:text-[#60A5FA]" />
                                     )}
                                 </div>
                             </div>
                         </div>
 
                         <div className="relative z-10 max-w-lg mx-auto">
-                            <h2 className="text-3xl font-black text-white mb-3 tracking-tight">
+                            <h2 className="text-3xl font-semibold text-[var(--text-primary)] mb-3 tracking-tight">
                                 {job.status === 'em_revisao' ? 'Matriz em Revisão' : 'Matriz em Produção'}
                             </h2>
-                            <p className="text-gray-400 text-sm leading-relaxed px-4">
+                            <p className="text-[var(--text-secondary)] text-sm leading-relaxed px-4">
                                 {job.status === 'em_revisao' ? (
                                     isOwner ? (
-                                        <>Você solicitou um ajuste na matriz. O profissional <strong className="text-[#FFAE00] text-base">{acceptedProposal.users?.name || 'Parceiro'}</strong> já foi notificado e está trabalhando na correção.</>
+                                        <>Você solicitou um ajuste na matriz. O profissional <strong className="text-[#2563EB] dark:text-[#60A5FA] text-base">{acceptedProposal.users?.name || 'Parceiro'}</strong> já foi notificado e está trabalhando na correção.</>
                                     ) : (
                                         <>O comprador testou o bordado e solicitou um ajuste. Veja os detalhes abaixo e envie a matriz corrigida.</>
                                     )
                                 ) : (
-                                    <>Aguarde... O profissional <strong className="text-[#FFAE00] text-base">{acceptedProposal.users?.name || 'Parceiro'}</strong> está criando sua matriz da melhor maneira possível.</>
+                                    <>Aguarde... O profissional <strong className="text-[#2563EB] dark:text-[#60A5FA] text-base">{acceptedProposal.users?.name || 'Parceiro'}</strong> está criando sua matriz da melhor maneira possível.</>
                                 )}
                             </p>
 
-                            <div className="mt-6 flex items-center justify-center gap-4">
-                                <span className={`inline-flex items-center gap-2 ${job.status === 'em_revisao' ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20' : 'bg-[#FFAE00]/10 text-[#FFAE00] border-[#FFAE00]/20'} px-4 py-2 rounded-full text-xs font-bold border`}>
-                                    <span className={`w-2 h-2 ${job.status === 'em_revisao' ? 'bg-yellow-400' : 'bg-[#FFAE00]'} rounded-full animate-pulse`}></span>
+                            <div className="mt-6 flex items-center justify-center gap-4 flex-wrap">
+                                <span className="inline-flex items-center gap-2 bg-[#2563EB]/10 text-[#2563EB] dark:text-[#60A5FA] border-[#2563EB]/25 px-4 py-2 rounded-full text-xs font-bold border">
+                                    <span className="w-2 h-2 bg-[#2563EB] dark:bg-[#3B82F6] rounded-full"></span>
                                     {job.status === 'em_revisao' ? 'AJUSTES EM ANDAMENTO' : 'TRABALHO EM ANDAMENTO'}
                                 </span>
                                 
                                 <button 
                                     onClick={() => handleNegotiate(acceptedProposal.id)}
-                                    className="inline-flex items-center gap-2 bg-[#1A1D23] hover:bg-white/5 text-gray-300 px-4 py-2 rounded-full text-xs font-bold border border-white/10 transition-colors"
+                                    className="min-h-[44px] sm:min-h-0 inline-flex items-center gap-2 bg-[var(--bg-surface-elevated)] hover:bg-[var(--btn-glass-bg)] text-[var(--text-primary)] px-4 py-2 rounded-full text-xs font-semibold border border-[var(--border-hairline)] transition-colors"
                                 >
                                     <MessageSquare className="w-3.5 h-3.5" />
                                     {negotiatingProposalId === acceptedProposal.id ? 'Fechar Chat' : 'Chat / Histórico'}
@@ -1511,19 +1510,19 @@ function JobDetailClient({ jobId }: { jobId: string }) {
 
                             {/* REVISION DETAILS CARD (IF IN REVISION) */}
                             {job.status === 'em_revisao' && (job.revision_notes || job.revision_image_url) && (
-                                <div className="mt-6 bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-5 text-left">
-                                    <p className="text-xs font-bold text-yellow-400 flex items-center gap-2 uppercase tracking-wider mb-2">
+                                <div className="mt-6 bg-[#2563EB]/8 border border-[#2563EB]/25 rounded-xl p-5 text-left">
+                                    <p className="text-xs font-bold text-[#2563EB] dark:text-[#60A5FA] flex items-center gap-2 uppercase tracking-wider mb-2">
                                         <Wrench className="w-4 h-4" /> Detalhes do Ajuste Solicitado pelo Cliente:
                                     </p>
                                     {job.revision_notes && (
-                                        <div className="bg-[#0F1115] p-3.5 rounded-lg border border-white/5 text-sm text-gray-200 mb-3 whitespace-pre-wrap">
+                                        <div className="bg-[var(--bg-surface-elevated)] p-3.5 rounded-lg border border-[var(--border-hairline)] text-sm text-[var(--text-primary)] mb-3 whitespace-pre-wrap">
                                             &quot;{job.revision_notes}&quot;
                                         </div>
                                     )}
                                     {job.revision_image_url && (
                                         <div>
-                                            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">Foto do Teste / Defeito no Bordado:</p>
-                                            <a href={job.revision_image_url} target="_blank" rel="noopener noreferrer" className="inline-block relative rounded-lg overflow-hidden border border-white/10 hover:border-yellow-500/50 transition-colors">
+                                            <p className="text-[11px] font-bold text-[var(--text-secondary)] uppercase tracking-wider mb-1.5">Foto do Teste / Defeito no Bordado:</p>
+                                            <a href={job.revision_image_url} target="_blank" rel="noopener noreferrer" className="inline-block relative rounded-lg overflow-hidden border border-[var(--border-hairline)] hover:border-[#2563EB]/50 transition-colors">
                                                 <img src={job.revision_image_url} alt="Foto do bordado com defeito" className="max-h-48 rounded-lg object-cover" />
                                             </a>
                                         </div>
@@ -1534,25 +1533,25 @@ function JobDetailClient({ jobId }: { jobId: string }) {
 
                             {/* DELIVERY SECTION (Programmer Only) */}
                             {!isOwner && currentUser?.id === acceptedProposal.criador_id && (
-                                <div className="mt-8 pt-8 border-t border-white/10 w-full max-w-lg mx-auto text-left relative z-10">
-                                    <div className="bg-[#0F1115] p-6 rounded-xl border border-green-500/30 shadow-[0_0_30px_rgba(34,197,94,0.1)]">
+                                <div className="mt-8 pt-8 border-t border-[var(--border-hairline)] w-full max-w-lg mx-auto text-left relative z-10">
+                                    <div className="bg-[var(--bg-surface-elevated)] p-6 rounded-xl border border-[#0D9488]/30">
                                         <div className="flex items-center gap-2 mb-4">
-                                            <div className="bg-green-500/20 p-2 rounded-lg">
-                                                <Package className="w-5 h-5 text-green-400" />
+                                            <div className="bg-[#0D9488]/15 p-2 rounded-lg">
+                                                <Package className="w-5 h-5 text-[#0F766E] dark:text-[#14B8A6]" />
                                             </div>
-                                            <h3 className="text-lg font-bold text-white">
+                                            <h3 className="text-lg font-semibold text-[var(--text-primary)]">
                                                 {job.status === 'em_revisao' ? 'Enviar Matriz Corrigida' : 'Entregar Matriz'}
                                             </h3>
                                         </div>
                                         
                                         <div className="space-y-4">
                                             <div>
-                                                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Notas da Entrega</label>
+                                                <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider mb-2">Notas da Entrega</label>
                                                 <textarea 
                                                     value={deliveryNotes}
                                                     onChange={e => setDeliveryNotes(e.target.value)}
                                                     placeholder="Ex: Segue a matriz nos formatos solicitados. Ajustei o ponto para o tecido mencionado."
-                                                    className="w-full bg-[#1A1D23] border border-white/10 rounded-lg p-3 text-sm text-gray-300 focus:border-green-500/50 transition-colors min-h-[100px]"
+                                                    className="w-full bg-[var(--bg-surface)] border border-[var(--border-hairline)] rounded-lg p-3 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]/70 focus:outline-none focus:border-[#0D9488] dark:focus:border-[#14B8A6] transition-colors min-h-[100px]"
                                                 />
                                             </div>
                                             
@@ -1573,28 +1572,28 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                                     }}
                                                     disabled={delivering}
                                                 />
-                                                <label 
+                                                <label
                                                     htmlFor="matrix-upload"
-                                                    className={`flex flex-col items-center justify-center border-2 border-dashed border-white/10 rounded-xl p-8 cursor-pointer hover:border-green-500/50 hover:bg-green-500/5 transition-all ${delivering ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                                    className={`flex flex-col items-center justify-center border-2 border-dashed border-[var(--border-glass)] rounded-xl p-8 cursor-pointer hover:border-[#0D9488] dark:hover:border-[#14B8A6] hover:bg-[#0D9488]/5 transition-all ${delivering ? 'opacity-50 cursor-not-allowed' : ''}`}
                                                 >
                                                     {selectedFiles.length > 0 ? (
                                                         <>
-                                                            <Upload className="w-8 h-8 text-green-400 mb-2" />
-                                                            <p className="text-sm text-green-400 font-bold text-center">{selectedFiles.length} arquivo(s) selecionado(s):</p>
+                                                            <Upload className="w-8 h-8 text-[#0F766E] dark:text-[#14B8A6] mb-2" />
+                                                            <p className="text-sm text-[#0F766E] dark:text-[#14B8A6] font-bold text-center">{selectedFiles.length} arquivo(s) selecionado(s):</p>
                                                             <div className="flex flex-wrap justify-center gap-2 mt-3">
                                                                 {selectedFiles.map((f, i) => (
-                                                                    <div key={i} className="bg-[#1A1D23] px-3 py-1 rounded text-xs text-gray-300 border border-white/10 truncate max-w-[150px]">
+                                                                    <div key={i} className="bg-[var(--bg-surface)] px-3 py-1 rounded text-xs text-[var(--text-primary)] border border-[var(--border-hairline)] truncate max-w-[150px]">
                                                                         {f.name}
                                                                     </div>
                                                                 ))}
                                                             </div>
-                                                            <p className="text-[10px] text-gray-500 mt-4 uppercase tracking-widest font-bold">Clique para alterar a seleção</p>
+                                                            <p className="text-[10px] text-[var(--text-secondary)] mt-4 uppercase tracking-widest font-bold">Clique para alterar a seleção</p>
                                                         </>
                                                     ) : (
                                                         <>
-                                                            <Upload className="w-8 h-8 text-green-400 mb-2" />
-                                                            <p className="text-sm text-gray-300 font-bold text-center">Clique para selecionar os arquivos (até 10)</p>
-                                                            <p className="text-[10px] text-gray-500 mt-1 uppercase tracking-widest font-bold text-center">Apenas formatos de bordado (.pxf, .emb, .dst, .pes, etc) e imagens/pdf</p>
+                                                            <Upload className="w-8 h-8 text-[#0F766E] dark:text-[#14B8A6] mb-2" />
+                                                            <p className="text-sm text-[var(--text-primary)] font-semibold text-center">Clique para selecionar os arquivos (até 10)</p>
+                                                            <p className="text-[10px] text-[var(--text-secondary)] mt-1 uppercase tracking-widest font-bold text-center">Apenas formatos de bordado (.pxf, .emb, .dst, .pes, etc) e imagens/pdf</p>
                                                         </>
                                                     )}
                                                 </label>
@@ -1605,7 +1604,7 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                                     <button 
                                                         onClick={handleSubmitDelivery}
                                                         disabled={delivering}
-                                                        className="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-8 rounded-xl flex items-center gap-2 transition-all shadow-lg shadow-green-500/20 disabled:opacity-50"
+                                                        className="min-h-[48px] bg-[#0D9488] hover:bg-[#0F766E] text-white font-semibold py-3 px-8 rounded-xl flex items-center gap-2 transition-all disabled:opacity-50"
                                                     >
                                                         {delivering ? (
                                                             <>
@@ -1628,97 +1627,97 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                         </div>
                     </div>
                 ) : job.status === 'entregue' ? (
-                    <div className="bg-[#12151C] border border-emerald-500/30 rounded-2xl overflow-hidden shadow-[0_0_50px_rgba(16,185,129,0.1)] mb-8">
+                    <div className="bg-[var(--bg-surface)] border border-[#0D9488]/30 rounded-2xl overflow-hidden shadow-xl mb-8">
                         <div className="flex flex-col lg:flex-row">
                             {/* Left Side: Owner gets test/download/revision; Programmer gets confirmation + file list */}
-                            <div className="flex-1 p-8 lg:p-10 border-b lg:border-b-0 lg:border-r border-white/[0.07]">
+                            <div className="flex-1 p-8 lg:p-10 border-b lg:border-b-0 lg:border-r border-[var(--border-hairline)]">
                                 {isOwner ? (
                                     <>
-                                        <div className="inline-flex items-center gap-2 bg-emerald-500/20 text-emerald-400 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider mb-6">
+                                        <div className="inline-flex items-center gap-2 bg-[#0D9488]/15 text-[#0F766E] dark:text-[#14B8A6] px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider mb-6">
                                             <CheckCircle className="w-3 h-3" /> {job.revision_notes ? 'Matriz Revisada Pronta para Teste' : 'Matriz Pronta para Teste'}
                                         </div>
-                                        <h2 className="text-3xl font-black text-white mb-4">
+                                        <h2 className="text-3xl font-semibold text-[var(--text-primary)] mb-4">
                                             {job.revision_notes ? 'Sua matriz revisada está pronta!' : 'Sua matriz está pronta!'}
                                         </h2>
-                                        <p className="text-gray-400 text-sm mb-6 leading-relaxed">
+                                        <p className="text-[var(--text-secondary)] text-sm mb-6 leading-relaxed">
                                             {job.revision_notes ? (
-                                                <>O programador <strong className="text-white">{acceptedProposal?.users?.name}</strong> enviou a <strong>versão revisada da matriz com as alterações solicitadas</strong>. Baixe os arquivos abaixo e faça um novo teste na sua máquina. Você tem até <strong className="text-[#F5A623]">24 horas</strong> para aprovar ou solicitar novos ajustes antes da liberação automática.</>
+                                                <>O programador <strong className="text-[var(--text-primary)]">{acceptedProposal?.users?.name}</strong> enviou a <strong>versão revisada da matriz com as alterações solicitadas</strong>. Baixe os arquivos abaixo e faça um novo teste na sua máquina. Você tem até <strong className="text-[#2563EB] dark:text-[#60A5FA]">24 horas</strong> para aprovar ou solicitar novos ajustes antes da liberação automática.</>
                                             ) : (
-                                                <>O programador <strong className="text-white">{acceptedProposal?.users?.name}</strong> finalizou o trabalho. Baixe os arquivos abaixo e faça um teste na sua máquina. Você tem até <strong className="text-[#F5A623]">24 horas</strong> para testar o bordado ou solicitar ajustes antes da liberação automática.</>
+                                                <>O programador <strong className="text-[var(--text-primary)]">{acceptedProposal?.users?.name}</strong> finalizou o trabalho. Baixe os arquivos abaixo e faça um teste na sua máquina. Você tem até <strong className="text-[#2563EB] dark:text-[#60A5FA]">24 horas</strong> para testar o bordado ou solicitar ajustes antes da liberação automática.</>
                                             )}
                                         </p>
                                     </>
                                 ) : (
                                     <>
-                                        <div className="inline-flex items-center gap-2 bg-emerald-500/20 text-emerald-400 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider mb-6">
+                                        <div className="inline-flex items-center gap-2 bg-[#0D9488]/15 text-[#0F766E] dark:text-[#14B8A6] px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider mb-6">
                                             <Package className="w-3 h-3" /> {job.revision_notes ? 'Correção da Matriz Enviada com Sucesso' : 'Matriz Entregue com Sucesso'}
                                         </div>
-                                        <h2 className="text-3xl font-black text-white mb-4">
-                                            {job.revision_notes ? 'Matriz Revisada Enviada para o Comprador!' : 'Matriz Enviada para o Comprador!'}
+                                        <h2 className="text-3xl font-semibold text-[var(--text-primary)] mb-4">
+                                            {job.revision_notes ? 'Matriz Revisada Enviada para o Comprador!' : 'Matriz Entregue para o Comprador!'}
                                         </h2>
-                                        <p className="text-gray-400 text-sm mb-6 leading-relaxed">
+                                        <p className="text-[var(--text-secondary)] text-sm mb-6 leading-relaxed">
                                             {job.revision_notes ? (
-                                                <>Você enviou a <strong>versão revisada da matriz</strong> atendendo aos ajustes solicitados pelo comprador. O cliente foi notificado para testar o novo arquivo na máquina. Caso ele não avalie ou solicite novas revisões dentro do prazo de <strong className="text-[#F5A623]">24 horas</strong>, o pagamento será liberado automaticamente para você.</>
+                                                <>Você enviou a <strong>versão revisada da matriz</strong> atendendo aos ajustes solicitados pelo comprador. O cliente foi notificado para testar o novo arquivo na máquina. Caso ele não avalie ou solicite novas revisões dentro do prazo de <strong className="text-[#2563EB] dark:text-[#60A5FA]">24 horas</strong>, o pagamento será liberado automaticamente para você.</>
                                             ) : (
-                                                <>Você já enviou os arquivos da matriz. O cliente foi notificado para testar o bordado na máquina. Caso ele não avalie ou solicite revisões dentro do prazo de <strong className="text-[#F5A623]">24 horas</strong>, o pagamento será liberado automaticamente para você.</>
+                                                <>Você já enviou os arquivos da matriz. O cliente foi notificado para testar o bordado na máquina. Caso ele não avalie ou solicite revisões dentro do prazo de <strong className="text-[#2563EB] dark:text-[#60A5FA]">24 horas</strong>, o pagamento será liberado automaticamente para você.</>
                                             )}
                                         </p>
                                     </>
                                 )}
                                 
                                 {job.revision_notes && (
-                                    <div className="bg-yellow-500/10 p-3.5 rounded-xl border border-yellow-500/20 mb-4 text-xs text-yellow-300">
-                                        <p className="font-bold uppercase tracking-wider text-[10px] text-yellow-400 mb-1">Ajuste que havia sido solicitado:</p>
-                                        <p className="italic text-gray-300">&quot;{job.revision_notes}&quot;</p>
+                                    <div className="bg-[#2563EB]/8 p-3.5 rounded-xl border border-[#2563EB]/25 mb-4 text-xs text-[var(--text-primary)]">
+                                        <p className="font-bold uppercase tracking-wider text-[10px] text-[#2563EB] dark:text-[#60A5FA] mb-1">Ajuste que havia sido solicitado:</p>
+                                        <p className="italic text-[var(--text-secondary)]">&quot;{job.revision_notes}&quot;</p>
                                     </div>
                                 )}
 
                                 {job.delivery_notes && (
-                                    <div className="bg-[#0B0D11] p-4 rounded-xl border border-white/[0.07] mb-6 text-sm text-gray-400">
-                                        <p className="font-bold uppercase tracking-wider text-[10px] text-gray-500 mb-1">
+                                    <div className="bg-[var(--bg-surface-elevated)] p-4 rounded-xl border border-[var(--border-hairline)] mb-6 text-sm text-[var(--text-secondary)]">
+                                        <p className="font-bold uppercase tracking-wider text-[10px] text-[var(--text-secondary)] mb-1">
                                             {job.revision_notes ? 'Notas da Correção do Produtor:' : 'Notas da Entrega:'}
                                         </p>
-                                        <p className="italic">&quot;{job.delivery_notes}&quot;</p>
+                                        <p className="italic text-[var(--text-primary)]">&quot;{job.delivery_notes}&quot;</p>
                                     </div>
                                 )}
 
                                 {/* Ficha Técnica da Matriz Entregue */}
-                                <div className="bg-[#181C26] border border-white/[0.07] rounded-xl p-4 mb-6 shadow-inner">
-                                    <div className="flex items-center justify-between mb-3 border-b border-white/[0.07] pb-2">
-                                        <span className="text-xs font-bold text-[#F5A623] uppercase tracking-wider flex items-center gap-1.5">
+                                <div className="bg-[var(--bg-surface-elevated)] border border-[var(--border-hairline)] rounded-xl p-4 mb-6">
+                                    <div className="flex items-center justify-between mb-3 border-b border-[var(--border-hairline)] pb-2">
+                                        <span className="text-xs font-bold text-[#2563EB] dark:text-[#60A5FA] uppercase tracking-wider flex items-center gap-1.5">
                                             <Sparkles className="w-3.5 h-3.5" />
                                             Especificações Técnicas da Entrega
                                         </span>
-                                        <span className="text-[10px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 rounded-full font-bold">
+                                        <span className="text-[10px] text-[#0F766E] dark:text-[#14B8A6] bg-[#0D9488]/10 border border-[#0D9488]/25 px-2.5 py-0.5 rounded-full font-bold">
                                             Apto para Bastidor
                                         </span>
                                     </div>
                                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 text-xs">
-                                        <div className="bg-[#0B0D11] border border-white/[0.07] p-2.5 rounded-lg">
-                                            <span className="text-[10px] text-gray-500 block uppercase font-bold">Bastidor / Tamanho</span>
-                                            <span className="font-bold text-white flex items-center gap-1 mt-0.5">
-                                                <Ruler className="w-3 h-3 text-[#F5A623]" />
+                                        <div className="bg-[var(--bg-surface)] border border-[var(--border-hairline)] p-2.5 rounded-lg">
+                                            <span className="text-[10px] text-[var(--text-secondary)] block uppercase font-bold">Bastidor / Tamanho</span>
+                                            <span className="font-bold text-[var(--text-primary)] flex items-center gap-1 mt-0.5">
+                                                <Ruler className="w-3 h-3 text-[#2563EB] dark:text-[#60A5FA]" />
                                                 {currentMatrix?.size || job.dimensions || 'Conforme arte'}
                                             </span>
                                         </div>
-                                        <div className="bg-[#0B0D11] border border-white/[0.07] p-2.5 rounded-lg">
-                                            <span className="text-[10px] text-gray-500 block uppercase font-bold">Tecido Recomendado</span>
-                                            <span className="font-bold text-white flex items-center gap-1 mt-0.5">
-                                                <Package className="w-3 h-3 text-[#F5A623]" />
+                                        <div className="bg-[var(--bg-surface)] border border-[var(--border-hairline)] p-2.5 rounded-lg">
+                                            <span className="text-[10px] text-[var(--text-secondary)] block uppercase font-bold">Tecido Recomendado</span>
+                                            <span className="font-bold text-[var(--text-primary)] flex items-center gap-1 mt-0.5">
+                                                <Package className="w-3 h-3 text-[#2563EB] dark:text-[#60A5FA]" />
                                                 {currentMatrix?.fabric || job.fabric_type || 'A combinar'}
                                             </span>
                                         </div>
-                                        <div className="bg-[#0B0D11] border border-white/[0.07] p-2.5 rounded-lg col-span-2 sm:col-span-1">
-                                            <span className="text-[10px] text-gray-500 block uppercase font-bold">Formatos Inclusos</span>
+                                        <div className="bg-[var(--bg-surface)] border border-[var(--border-hairline)] p-2.5 rounded-lg col-span-2 sm:col-span-1">
+                                            <span className="text-[10px] text-[var(--text-secondary)] block uppercase font-bold">Formatos Inclusos</span>
                                             <div className="flex flex-wrap gap-1 mt-0.5">
                                                 {job.formats && job.formats.length > 0 ? (
                                                     job.formats.map((fmt, i) => (
-                                                        <span key={i} className="text-[10px] font-bold text-[#F5A623] bg-[#F5A623]/10 px-1.5 py-0.5 rounded">
+                                                        <span key={i} className="text-[10px] font-bold text-[#2563EB] dark:text-[#60A5FA] bg-[#2563EB]/10 px-1.5 py-0.5 rounded">
                                                             {fmt}
                                                         </span>
                                                     ))
                                                 ) : (
-                                                    <span className="text-white font-bold">Compatíveis</span>
+                                                    <span className="text-[var(--text-primary)] font-bold">Compatíveis</span>
                                                 )}
                                             </div>
                                         </div>
@@ -1746,7 +1745,7 @@ function JobDetailClient({ jobId }: { jobId: string }) {
 
                                     return (
                                         <div className="flex flex-col gap-4">
-                                            <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">
+                                            <p className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-widest">
                                                 {isOwner 
                                                     ? (job.revision_notes ? `Arquivos da Matriz Revisada (${urls.length})` : `Arquivos para Download (${urls.length})`) 
                                                     : (job.revision_notes ? `Arquivos da Matriz Revisada Entregues (${urls.length})` : `Arquivos Entregues (${urls.length})`)}
@@ -1760,9 +1759,9 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                                             type="button"
                                                             onClick={() => handleDownloadDeliveryFile(url)}
                                                             title={`Baixar ${cleanName}`}
-                                                            className="inline-flex items-center gap-2 bg-[#0F1115] hover:bg-green-500/20 border border-white/10 hover:border-green-500/50 text-gray-300 hover:text-green-400 px-4 py-2 rounded-lg transition-all text-xs cursor-pointer active:scale-95"
+                                                            className="min-h-[44px] sm:min-h-0 inline-flex items-center gap-2 bg-[var(--bg-surface-elevated)] hover:bg-[#0D9488]/12 border border-[var(--border-hairline)] hover:border-[#0D9488]/40 text-[var(--text-primary)] hover:text-[#0F766E] dark:hover:text-[#14B8A6] px-4 py-2 rounded-lg transition-all text-xs cursor-pointer active:scale-95"
                                                         >
-                                                            <Download className="w-3.5 h-3.5 text-green-400" />
+                                                            <Download className="w-3.5 h-3.5 text-[#0F766E] dark:text-[#14B8A6]" />
                                                             <span>{cleanName}</span>
                                                         </button>
                                                     )
@@ -1771,7 +1770,7 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                             {urls.length > 1 && (
                                                 <button
                                                     onClick={handleDownloadAll}
-                                                    className="inline-flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-xl font-bold transition-all shadow-lg shadow-green-500/20 hover:scale-105 active:scale-95 w-fit"
+                                                    className="min-h-[48px] inline-flex items-center gap-2 bg-[#0D9488] hover:bg-[#0F766E] text-white px-6 py-3 rounded-xl font-semibold transition-all active:scale-95 w-fit"
                                                 >
                                                     <Download className="w-5 h-5" />
                                                     Baixar Tudo (.zip)
@@ -1783,18 +1782,18 @@ function JobDetailClient({ jobId }: { jobId: string }) {
 
                                 {/* REVISION TRIGGER BUTTON FOR BUYER */}
                                 {isOwner && (
-                                    <div className="mt-8 pt-6 border-t border-white/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-yellow-500/[0.04] p-4 rounded-xl border border-yellow-500/20">
+                                    <div className="mt-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-[#2563EB]/8 p-4 rounded-xl border border-[#2563EB]/25">
                                         <div>
-                                            <p className="text-xs font-bold text-yellow-400 flex items-center gap-1.5">
+                                            <p className="text-xs font-bold text-[#2563EB] dark:text-[#60A5FA] flex items-center gap-1.5">
                                                 <AlertCircle className="w-4 h-4" /> Testou o bordado e precisa de algum ajuste ou correção?
                                             </p>
-                                            <p className="text-[11px] text-gray-400 mt-0.5">
+                                            <p className="text-[11px] text-[var(--text-secondary)] mt-0.5">
                                                 Você pode solicitar uma correção de ponto, tamanho ou formato com foto.
                                             </p>
                                         </div>
                                         <button
                                             onClick={() => setShowRevisionModal(true)}
-                                            className="inline-flex items-center gap-2 bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 px-4 py-2 rounded-xl text-xs font-bold transition-all hover:scale-105 active:scale-95 shrink-0"
+                                            className="min-h-[44px] sm:min-h-0 inline-flex items-center gap-2 bg-[#2563EB]/12 hover:bg-[#2563EB]/20 text-[#2563EB] dark:text-[#60A5FA] border border-[#2563EB]/30 px-4 py-2 rounded-xl text-xs font-semibold transition-all active:scale-95 shrink-0"
                                         >
                                             <Wrench className="w-3.5 h-3.5" />
                                             Pedir Ajuste / Revisão
@@ -1804,11 +1803,11 @@ function JobDetailClient({ jobId }: { jobId: string }) {
 
                                 {/* QUICK CHAT BUTTON FOR PROGRAMMER */}
                                 {!isOwner && acceptedProposal && (
-                                    <div className="mt-8 pt-6 border-t border-white/10 flex items-center justify-between">
-                                        <p className="text-xs text-gray-500">Dúvidas com o cliente sobre o bordado?</p>
+                                    <div className="mt-8 pt-6 border-t border-[var(--border-hairline)] flex items-center justify-between gap-3 flex-wrap">
+                                        <p className="text-xs text-[var(--text-secondary)]">Dúvidas com o cliente sobre o bordado?</p>
                                         <button
                                             onClick={() => handleNegotiate(acceptedProposal.id)}
-                                            className="inline-flex items-center gap-2 bg-[#1A1D23] hover:bg-white/5 text-gray-300 px-4 py-2 rounded-xl text-xs font-bold border border-white/10 transition-colors"
+                                            className="min-h-[44px] sm:min-h-0 inline-flex items-center gap-2 bg-[var(--bg-surface-elevated)] hover:bg-[var(--btn-glass-bg)] text-[var(--text-primary)] px-4 py-2 rounded-xl text-xs font-semibold border border-[var(--border-hairline)] transition-colors"
                                         >
                                             <MessageSquare className="w-3.5 h-3.5" />
                                             Abrir Chat com Cliente
@@ -1819,18 +1818,18 @@ function JobDetailClient({ jobId }: { jobId: string }) {
 
                             {/* Right Side: Review Form for Owner, Timeline for Programmer */}
                             {isOwner && (
-                                <div className="w-full lg:w-[450px] bg-green-500/5 p-8 lg:p-10 flex flex-col justify-center">
-                                    <h3 className="text-xl font-bold text-white mb-4">Tudo Certo? Avalie o Trabalho</h3>
+                                <div className="w-full lg:w-[450px] bg-[var(--bg-surface-elevated)] p-8 lg:p-10 flex flex-col justify-center">
+                                    <h3 className="text-xl font-semibold text-[var(--text-primary)] mb-4">Tudo Certo? Avalie o Trabalho</h3>
 
                                     {/* Dica amigável antes de avaliar */}
-                                    <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 text-xs text-amber-200/90 flex items-start gap-2.5 mb-5">
-                                        <Sparkles className="w-4 h-4 text-[#FFAE00] flex-shrink-0 mt-0.5" />
+                                    <div className="bg-[#2563EB]/8 border border-[#2563EB]/25 rounded-xl p-3 text-xs text-[var(--text-primary)] flex items-start gap-2.5 mb-5">
+                                        <Sparkles className="w-4 h-4 text-[#2563EB] dark:text-[#60A5FA] flex-shrink-0 mt-0.5" />
                                         <div className="space-y-1">
-                                            <p className="font-bold text-white">Já testou o bordado?</p>
-                                            <p className="text-gray-300 leading-relaxed text-[11px]">
+                                            <p className="font-bold text-[var(--text-primary)]">Já testou o bordado?</p>
+                                            <p className="text-[var(--text-secondary)] leading-relaxed text-[11px]">
                                                 Recomendamos fazer um teste no tecido antes de avaliar. Se precisar de ajustes agora, use o botão <strong>Pedir Ajuste / Revisão</strong> ao lado.
                                             </p>
-                                            <p className="text-[10px] text-amber-400 font-semibold">
+                                            <p className="text-[10px] text-[#0F766E] dark:text-[#14B8A6] font-semibold">
                                                 Fique tranquilo: mesmo após aprovar, você terá 7 dias de garantia para solicitar correções na matriz!
                                             </p>
                                         </div>
@@ -1838,30 +1837,30 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                     
                                     {/* Formulário de Avaliação com Seleção Explícita de Estrelas */}
                                     <div className="space-y-5">
-                                        <div className="bg-[#12151C] border border-amber-500/20 rounded-2xl p-4 sm:p-5 space-y-4 shadow-xl">
+                                        <div className="bg-[var(--bg-surface)] border border-[var(--border-hairline)] rounded-2xl p-4 sm:p-5 space-y-4 shadow-sm">
                                             {/* Critério 1: Qualidade da Matriz */}
                                             <div className="space-y-1.5">
                                                 <div className="flex items-center justify-between">
-                                                    <span className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-1.5">
-                                                        <Sparkles className="w-3.5 h-3.5 text-[#FFAE00]" /> 1. Qualidade da Matriz
+                                                    <span className="text-xs font-bold text-[var(--text-primary)] uppercase tracking-wider flex items-center gap-1.5">
+                                                        <Sparkles className="w-3.5 h-3.5 text-[#2563EB] dark:text-[#60A5FA]" /> 1. Qualidade da Matriz
                                                     </span>
                                                     <span className="text-xs font-bold transition-all">
                                                         {(ratingHoverMatrix || ratingMatrix) === 5 ? (
-                                                            <span className="text-[#FFAE00]">5.0 - Excelente / Perfeita!</span>
+                                                            <span className="text-[#2563EB] dark:text-[#60A5FA]">5.0 - Excelente / Perfeita!</span>
                                                         ) : (ratingHoverMatrix || ratingMatrix) === 4 ? (
-                                                            <span className="text-emerald-400">4.0 - Muito Boa</span>
+                                                            <span className="text-[#0F766E] dark:text-[#14B8A6]">4.0 - Muito Boa</span>
                                                         ) : (ratingHoverMatrix || ratingMatrix) === 3 ? (
-                                                            <span className="text-yellow-400">3.0 - Regular</span>
+                                                            <span className="text-[var(--text-secondary)]">3.0 - Regular</span>
                                                         ) : (ratingHoverMatrix || ratingMatrix) === 2 ? (
-                                                            <span className="text-orange-400">2.0 - Ruim</span>
+                                                            <span className="text-[#DC2626] dark:text-[#F87171]">2.0 - Ruim</span>
                                                         ) : (ratingHoverMatrix || ratingMatrix) === 1 ? (
-                                                            <span className="text-red-400">1.0 - Péssima</span>
+                                                            <span className="text-[#DC2626] dark:text-[#F87171]">1.0 - Péssima</span>
                                                         ) : (
-                                                            <span className="text-gray-500 italic text-[11px]">Toque nas estrelas</span>
+                                                            <span className="text-[var(--text-secondary)] italic text-[11px]">Toque nas estrelas</span>
                                                         )}
                                                     </span>
                                                 </div>
-                                                <div className="flex items-center gap-2 bg-[#0B0D11] p-2.5 rounded-xl border border-white/5">
+                                                <div className="flex items-center gap-1 sm:gap-2 bg-[var(--bg-surface-elevated)] p-2 rounded-xl border border-[var(--border-hairline)]">
                                                     {[1, 2, 3, 4, 5].map(star => {
                                                         const isFilled = star <= (ratingHoverMatrix || ratingMatrix)
                                                         return (
@@ -1871,16 +1870,16 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                                                 onMouseEnter={() => setRatingHoverMatrix(star)}
                                                                 onMouseLeave={() => setRatingHoverMatrix(0)}
                                                                 onClick={() => setRatingMatrix(star)} 
-                                                                className="p-1 transition-transform hover:scale-125 active:scale-95 focus:outline-none"
+                                                                className="min-w-[44px] min-h-[44px] flex items-center justify-center p-1 transition-transform hover:scale-110 active:scale-95 focus:outline-none"
                                                                 title={`${star} estrela${star > 1 ? 's' : ''}`}
                                                             >
-                                                                <Star className={`w-7 h-7 sm:w-8 sm:h-8 transition-colors ${isFilled ? 'fill-[#FFAE00] text-[#FFAE00] drop-shadow-[0_0_8px_rgba(255,174,0,0.5)]' : 'text-gray-600 hover:text-gray-400'}`} />
+                                                                <Star className={`w-7 h-7 sm:w-8 sm:h-8 transition-colors ${isFilled ? 'fill-[#2563EB] text-[#2563EB] dark:fill-[#60A5FA] dark:text-[#60A5FA]' : 'text-slate-300 dark:text-slate-600 hover:text-slate-400'}`} />
                                                             </button>
                                                         )
                                                     })}
                                                     {ratingMatrix > 0 && (
-                                                        <span className="ml-auto text-xs font-black text-[#FFAE00] bg-[#FFAE00]/15 px-2.5 py-1 rounded-lg border border-[#FFAE00]/30 font-mono">
-                                                            {ratingMatrix}.0 ★
+                                                        <span className="inline-flex items-center gap-1 ml-auto text-xs font-bold text-[#2563EB] dark:text-[#60A5FA] bg-[#2563EB]/10 px-2.5 py-1 rounded-lg border border-[#2563EB]/25 font-mono">
+                                                            {ratingMatrix}.0 <Star className="w-3 h-3 fill-current" />
                                                         </span>
                                                     )}
                                                 </div>
@@ -1889,26 +1888,26 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                             {/* Critério 2: Atendimento / Prazo */}
                                             <div className="space-y-1.5">
                                                 <div className="flex items-center justify-between">
-                                                    <span className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-1.5">
-                                                        <Clock className="w-3.5 h-3.5 text-[#FFAE00]" /> 2. Atendimento & Prazo
+                                                    <span className="text-xs font-bold text-[var(--text-primary)] uppercase tracking-wider flex items-center gap-1.5">
+                                                        <Clock className="w-3.5 h-3.5 text-[#2563EB] dark:text-[#60A5FA]" /> 2. Atendimento & Prazo
                                                     </span>
                                                     <span className="text-xs font-bold transition-all">
                                                         {(ratingHoverService || ratingService) === 5 ? (
-                                                            <span className="text-[#FFAE00]">5.0 - Excelente / Rápido!</span>
+                                                            <span className="text-[#2563EB] dark:text-[#60A5FA]">5.0 - Excelente / Rápido!</span>
                                                         ) : (ratingHoverService || ratingService) === 4 ? (
-                                                            <span className="text-emerald-400">4.0 - Muito Bom</span>
+                                                            <span className="text-[#0F766E] dark:text-[#14B8A6]">4.0 - Muito Bom</span>
                                                         ) : (ratingHoverService || ratingService) === 3 ? (
-                                                            <span className="text-yellow-400">3.0 - Regular</span>
+                                                            <span className="text-[var(--text-secondary)]">3.0 - Regular</span>
                                                         ) : (ratingHoverService || ratingService) === 2 ? (
-                                                            <span className="text-orange-400">2.0 - Ruim</span>
+                                                            <span className="text-[#DC2626] dark:text-[#F87171]">2.0 - Ruim</span>
                                                         ) : (ratingHoverService || ratingService) === 1 ? (
-                                                            <span className="text-red-400">1.0 - Péssimo</span>
+                                                            <span className="text-[#DC2626] dark:text-[#F87171]">1.0 - Péssimo</span>
                                                         ) : (
-                                                            <span className="text-gray-500 italic text-[11px]">Toque nas estrelas</span>
+                                                            <span className="text-[var(--text-secondary)] italic text-[11px]">Toque nas estrelas</span>
                                                         )}
                                                     </span>
                                                 </div>
-                                                <div className="flex items-center gap-2 bg-[#0B0D11] p-2.5 rounded-xl border border-white/5">
+                                                <div className="flex items-center gap-1 sm:gap-2 bg-[var(--bg-surface-elevated)] p-2 rounded-xl border border-[var(--border-hairline)]">
                                                     {[1, 2, 3, 4, 5].map(star => {
                                                         const isFilled = star <= (ratingHoverService || ratingService)
                                                         return (
@@ -1918,16 +1917,16 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                                                 onMouseEnter={() => setRatingHoverService(star)}
                                                                 onMouseLeave={() => setRatingHoverService(0)}
                                                                 onClick={() => setRatingService(star)} 
-                                                                className="p-1 transition-transform hover:scale-125 active:scale-95 focus:outline-none"
+                                                                className="min-w-[44px] min-h-[44px] flex items-center justify-center p-1 transition-transform hover:scale-110 active:scale-95 focus:outline-none"
                                                                 title={`${star} estrela${star > 1 ? 's' : ''}`}
                                                             >
-                                                                <Star className={`w-7 h-7 sm:w-8 sm:h-8 transition-colors ${isFilled ? 'fill-[#FFAE00] text-[#FFAE00] drop-shadow-[0_0_8px_rgba(255,174,0,0.5)]' : 'text-gray-600 hover:text-gray-400'}`} />
+                                                                <Star className={`w-7 h-7 sm:w-8 sm:h-8 transition-colors ${isFilled ? 'fill-[#2563EB] text-[#2563EB] dark:fill-[#60A5FA] dark:text-[#60A5FA]' : 'text-slate-300 dark:text-slate-600 hover:text-slate-400'}`} />
                                                             </button>
                                                         )
                                                     })}
                                                     {ratingService > 0 && (
-                                                        <span className="ml-auto text-xs font-black text-[#FFAE00] bg-[#FFAE00]/15 px-2.5 py-1 rounded-lg border border-[#FFAE00]/30 font-mono">
-                                                            {ratingService}.0 ★
+                                                        <span className="inline-flex items-center gap-1 ml-auto text-xs font-bold text-[#2563EB] dark:text-[#60A5FA] bg-[#2563EB]/10 px-2.5 py-1 rounded-lg border border-[#2563EB]/25 font-mono">
+                                                            {ratingService}.0 <Star className="w-3 h-3 fill-current" />
                                                         </span>
                                                     )}
                                                 </div>
@@ -1938,7 +1937,7 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                             value={reviewComment}
                                             onChange={e => setReviewComment(e.target.value)}
                                             placeholder="Deixe um elogio ou comentário sobre o trabalho do programador (opcional)..."
-                                            className="w-full bg-[#1A1D23] border border-white/10 rounded-xl p-3.5 text-xs sm:text-sm text-gray-200 min-h-[90px] focus:border-[#FFAE00] outline-none transition-colors"
+                                            className="w-full bg-[var(--bg-surface)] border border-[var(--border-hairline)] rounded-xl p-3.5 text-xs sm:text-sm text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]/70 min-h-[90px] focus:border-[#2563EB] dark:focus:border-[#3B82F6] outline-none transition-colors"
                                         />
 
                                         <div className="space-y-1.5">
@@ -1946,25 +1945,27 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                                 type="button"
                                                 onClick={() => handleSubmitReview(ratingMatrix, ratingService, reviewComment)}
                                                 disabled={ratingMatrix === 0 || ratingService === 0}
-                                                className={`w-full py-4 rounded-xl font-black uppercase tracking-wider text-xs sm:text-sm flex items-center justify-center gap-2 shadow-xl transition-all ${
+                                                className={`min-h-[48px] w-full py-4 rounded-xl font-semibold uppercase tracking-wider text-xs sm:text-sm flex items-center justify-center gap-2 transition-all ${
                                                     ratingMatrix > 0 && ratingService > 0
-                                                        ? 'bg-gradient-to-r from-[#FFB703] to-[#FB8500] hover:brightness-110 text-black active:scale-95 shadow-[#FFB703]/25 cursor-pointer'
-                                                        : 'bg-white/10 text-gray-500 cursor-not-allowed border border-white/5'
+                                                        ? 'bg-[var(--btn-primary-bg)] text-[var(--btn-primary-text)] hover:bg-[var(--btn-primary-hover)] active:scale-95 cursor-pointer'
+                                                        : 'bg-[var(--btn-glass-bg)] text-[var(--text-secondary)] cursor-not-allowed border border-[var(--border-hairline)]'
                                                 }`}
                                             >
                                                 {ratingMatrix > 0 && ratingService > 0 ? (
                                                     <>
-                                                        <CheckCircle className="w-4 h-4 fill-black text-white" />
-                                                        Confirmar Avaliação ({((ratingMatrix + ratingService) / 2).toFixed(1)} ★) & Liberar Pagamento
+                                                        <CheckCircle className="w-4 h-4" />
+                                                        <span>
+                                                            Confirmar Avaliação ({((ratingMatrix + ratingService) / 2).toFixed(1)} <Star className="w-3.5 h-3.5 fill-current inline -mt-0.5" />) & Liberar Pagamento
+                                                        </span>
                                                     </>
                                                 ) : (
                                                     <>
-                                                        <Star className="w-4 h-4 text-gray-500" />
+                                                        <Star className="w-4 h-4 text-[var(--text-secondary)]" />
                                                         Selecione as estrelas acima para avaliar
                                                     </>
                                                 )}
                                             </button>
-                                            <p className="text-[10px] text-gray-400 text-center leading-tight">
+                                            <p className="text-[10px] text-[var(--text-secondary)] text-center leading-tight">
                                                 Ao confirmar, sua avaliação é salva no perfil do programador e o pagamento em custódia é repassado a ele.
                                             </p>
                                         </div>
@@ -1973,35 +1974,35 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                             )}
 
                             {!isOwner && currentUser?.id === acceptedProposal?.criador_id && (
-                                <div className="w-full lg:w-[450px] bg-white/5 p-8 lg:p-10 flex flex-col items-center justify-center text-center">
-                                    <h3 className="text-xl font-bold text-white mb-8 text-center">Acompanhamento do Pagamento</h3>
+                                <div className="w-full lg:w-[450px] bg-[var(--bg-surface-elevated)] p-8 lg:p-10 flex flex-col items-center justify-center text-center">
+                                    <h3 className="text-xl font-semibold text-[var(--text-primary)] mb-8 text-center">Acompanhamento do Pagamento</h3>
                                     
-                                    <div className="relative pl-6 space-y-8 before:content-[''] before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-0.5 before:bg-white/10 w-full max-w-sm">
+                                    <div className="relative pl-6 space-y-8 before:content-[''] before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-0.5 before:bg-[var(--border-hairline)] w-full max-w-sm">
                                         {/* Etapa 1: Concluída */}
                                         <div className="relative">
-                                            <div className="absolute -left-[30px] top-0 w-[24px] h-[24px] bg-green-500 rounded-full border-4 border-[#1A1D23] flex items-center justify-center shadow-[0_0_10px_rgba(34,197,94,0.5)] z-10">
+                                            <div className="absolute -left-[30px] top-0 w-[24px] h-[24px] bg-[#0D9488] rounded-full border-4 border-[var(--bg-surface-elevated)] flex items-center justify-center z-10">
                                                 <CheckCircle className="w-3 h-3 text-white" />
                                             </div>
-                                            <h4 className="text-sm font-bold text-green-400 mb-1 leading-none pt-0.5">Matriz Entregue</h4>
-                                            <p className="text-xs text-gray-500 text-left">Seu arquivo foi enviado com sucesso.</p>
+                                            <h4 className="text-sm font-bold text-[#0F766E] dark:text-[#14B8A6] mb-1 leading-none pt-0.5 text-left">Matriz Entregue</h4>
+                                            <p className="text-xs text-[var(--text-secondary)] text-left">Seu arquivo foi enviado com sucesso.</p>
                                         </div>
 
                                         {/* Etapa 2: Aguardando (Pendente) */}
                                         <div className="relative">
-                                            <div className="absolute -left-[30px] top-0 w-[24px] h-[24px] bg-[#FFAE00] rounded-full border-4 border-[#1A1D23] flex items-center justify-center shadow-[0_0_10px_rgba(255,174,0,0.5)] animate-pulse z-10">
-                                                <Clock className="w-3 h-3 text-black" />
+                                            <div className="absolute -left-[30px] top-0 w-[24px] h-[24px] bg-[#2563EB] rounded-full border-4 border-[var(--bg-surface-elevated)] flex items-center justify-center z-10">
+                                                <Clock className="w-3 h-3 text-white" />
                                             </div>
-                                            <h4 className="text-sm font-bold text-[#FFAE00] mb-1 leading-none pt-0.5">Avaliação do Cliente (até 24h)</h4>
-                                            <p className="text-xs text-gray-500 leading-relaxed text-left">
+                                            <h4 className="text-sm font-bold text-[#2563EB] dark:text-[#60A5FA] mb-1 leading-none pt-0.5 text-left">Avaliação do Cliente (até 24h)</h4>
+                                            <p className="text-xs text-[var(--text-secondary)] leading-relaxed text-left">
                                                 O comprador tem até 24 horas para testar o bordado. Se ele não avaliar nem solicitar ajustes nesse prazo, o valor é liberado automaticamente.
                                             </p>
                                         </div>
 
                                         {/* Etapa 3: Futura */}
                                         <div className="relative">
-                                            <div className="absolute -left-[30px] top-0 w-[24px] h-[24px] bg-gray-800 rounded-full border-4 border-[#1A1D23] z-10"></div>
-                                            <h4 className="text-sm font-bold text-gray-600 mb-1 leading-none pt-0.5">Pagamento Liberado</h4>
-                                            <p className="text-xs text-gray-600 text-left">
+                                            <div className="absolute -left-[30px] top-0 w-[24px] h-[24px] bg-[var(--border-glass)] rounded-full border-4 border-[var(--bg-surface-elevated)] z-10"></div>
+                                            <h4 className="text-sm font-bold text-[var(--text-secondary)] mb-1 leading-none pt-0.5 text-left">Pagamento Liberado</h4>
+                                            <p className="text-xs text-[var(--text-secondary)] text-left">
                                                 O repasse via PIX é liberado imediatamente após a aprovação ou ao final do prazo de 24 horas.
                                             </p>
                                         </div>
@@ -2011,40 +2012,40 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                         </div>
                     </div>
                 ) : job.status === 'finalizado' ? (
-                    <div className="bg-[#1A1D23] border border-green-500/30 rounded-xl overflow-hidden shadow-[0_0_50px_rgba(34,197,94,0.1)] mb-8">
+                    <div className="bg-[var(--bg-surface)] border border-[#0D9488]/30 rounded-2xl overflow-hidden shadow-xl mb-8">
                         <div className="flex flex-col lg:flex-row">
                             {/* Left Side: Always accessible downloads & personalized messages */}
-                            <div className="flex-1 p-8 lg:p-10 border-b lg:border-b-0 lg:border-r border-white/5">
+                            <div className="flex-1 p-8 lg:p-10 border-b lg:border-b-0 lg:border-r border-[var(--border-hairline)]">
                                 {isOwner ? (
                                     <>
-                                        <div className="inline-flex items-center gap-2 bg-green-500/20 text-green-400 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider mb-6">
+                                        <div className="inline-flex items-center gap-2 bg-[#0D9488]/15 text-[#0F766E] dark:text-[#14B8A6] px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider mb-6">
                                             <CheckCircle className="w-3 h-3" /> Pedido Concluído & Pago
                                         </div>
-                                        <h2 className="text-3xl font-black text-white mb-2 flex items-center gap-2">
+                                        <h2 className="text-3xl font-semibold text-[var(--text-primary)] mb-2 flex items-center gap-2">
                                             Matriz Aprovada e Concluída!
-                                            <Sparkles className="w-6 h-6 text-[#F5A623]" />
+                                            <Sparkles className="w-6 h-6 text-[#2563EB] dark:text-[#60A5FA]" />
                                         </h2>
-                                        <p className="text-gray-400 text-sm mb-6 leading-relaxed">
+                                        <p className="text-[var(--text-secondary)] text-sm mb-6 leading-relaxed">
                                             Parabéns! Sua matriz foi 100% aprovada e está pronta para bordar. Os arquivos ficam salvos permanentemente na sua conta e você pode baixá-los a qualquer momento.
                                         </p>
                                     </>
                                 ) : (
                                     <>
                                         {jobReview && jobReview.rating_matrix === 5 && jobReview.rating_service === 5 ? (
-                                            <div className="inline-flex items-center gap-2 bg-[#F5A623]/20 text-[#F5A623] border border-[#F5A623]/40 px-3.5 py-1 rounded-full text-[11px] font-black uppercase tracking-wider mb-6 shadow-[0_0_15px_rgba(245,166,35,0.2)]">
-                                                <Sparkles className="w-3.5 h-3.5 text-[#F5A623]" /> Avaliação Máxima • 5 Estrelas
+                                            <div className="inline-flex items-center gap-2 bg-[#2563EB]/12 text-[#2563EB] dark:text-[#60A5FA] border border-[#2563EB]/30 px-3.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider mb-6">
+                                                <Sparkles className="w-3.5 h-3.5" /> Avaliação Máxima • 5 Estrelas
                                             </div>
                                         ) : jobReview && (jobReview.rating_matrix + jobReview.rating_service) >= 8 ? (
-                                            <div className="inline-flex items-center gap-2 bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 px-3.5 py-1 rounded-full text-[11px] font-black uppercase tracking-wider mb-6">
-                                                <Star className="w-3.5 h-3.5 fill-emerald-400 text-emerald-400" /> Ótimo Trabalho • Avaliação Positiva
+                                            <div className="inline-flex items-center gap-2 bg-[#0D9488]/15 text-[#0F766E] dark:text-[#14B8A6] border border-[#0D9488]/30 px-3.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider mb-6">
+                                                <Star className="w-3.5 h-3.5 fill-current" /> Ótimo Trabalho • Avaliação Positiva
                                             </div>
                                         ) : (
-                                            <div className="inline-flex items-center gap-2 bg-emerald-500/20 text-emerald-400 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider mb-6">
+                                            <div className="inline-flex items-center gap-2 bg-[#0D9488]/15 text-[#0F766E] dark:text-[#14B8A6] px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider mb-6">
                                                 <CheckCircle className="w-3 h-3" /> Pedido Concluído & Aprovado
                                             </div>
                                         )}
 
-                                        <h2 className="text-3xl font-black text-white mb-2">
+                                        <h2 className="text-3xl font-semibold text-[var(--text-primary)] mb-2">
                                             {jobReview && jobReview.rating_matrix === 5 && jobReview.rating_service === 5
                                                 ? 'Excelente Trabalho! Parabéns!'
                                                 : jobReview && (jobReview.rating_matrix + jobReview.rating_service) >= 8
@@ -2052,10 +2053,10 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                                 : 'Missão Cumprida! Pedido Finalizado'}
                                         </h2>
 
-                                        <p className="text-gray-300 text-sm mb-6 leading-relaxed">
+                                        <p className="text-[var(--text-secondary)] text-sm mb-6 leading-relaxed">
                                             {jobReview && jobReview.rating_matrix === 5 && jobReview.rating_service === 5 ? (
                                                 <>
-                                                    O comprador avaliou sua entrega com <strong className="text-[#F5A623]">nota máxima (5 estrelas)</strong>! Sua precisão nos pontos, pontualidade e capricho fazem toda a diferença no BordadoHUB. Continue mantendo esse padrão de excelência — <strong className="text-white">profissionais 5 estrelas ganham maior destaque e preferência em novos pedidos!</strong>
+                                                    O comprador avaliou sua entrega com <strong className="text-[#2563EB] dark:text-[#60A5FA]">nota máxima (5 estrelas)</strong>! Sua precisão nos pontos, pontualidade e capricho fazem toda a diferença no BordadoHUB. Continue mantendo esse padrão de excelência — <strong className="text-[var(--text-primary)]">profissionais 5 estrelas ganham maior destaque e preferência em novos pedidos!</strong>
                                                 </>
                                             ) : jobReview && (jobReview.rating_matrix + jobReview.rating_service) >= 8 ? (
                                                 <>
@@ -2069,24 +2070,24 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                         </p>
 
                                         {/* Card Financeiro / Repasse do Produtor */}
-                                        <div className="mb-6 p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-[0_0_20px_rgba(16,185,129,0.08)]">
+                                        <div className="mb-6 p-4 bg-[#0D9488]/10 border border-[#0D9488]/25 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                                             <div className="flex items-center gap-3">
-                                                <div className="w-10 h-10 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-lg shrink-0">
-                                                    <DollarSign className="w-5 h-5 text-emerald-400" />
+                                                <div className="w-10 h-10 rounded-full bg-[#0D9488]/15 text-[#0F766E] dark:text-[#14B8A6] flex items-center justify-center font-bold text-lg shrink-0">
+                                                    <DollarSign className="w-5 h-5" />
                                                 </div>
                                                 <div>
-                                                    <p className="text-xs font-bold text-green-400 uppercase tracking-wider">Pagamento Liberado para Repasse</p>
-                                                    <p className="text-sm font-bold text-white mt-0.5">
-                                                        Valor da sua proposta: <span className="text-green-400 font-black">R$ {acceptedProposal?.amount ? acceptedProposal.amount.toFixed(2) : '---'}</span>
+                                                    <p className="text-xs font-bold text-[#0F766E] dark:text-[#14B8A6] uppercase tracking-wider">Pagamento Liberado para Repasse</p>
+                                                    <p className="text-sm font-bold text-[var(--text-primary)] mt-0.5">
+                                                        Valor da sua proposta: <span className="text-[#0F766E] dark:text-[#14B8A6] font-extrabold">R$ {acceptedProposal?.amount ? acceptedProposal.amount.toFixed(2) : '---'}</span>
                                                     </p>
-                                                    <p className="text-[11px] text-gray-400">
+                                                    <p className="text-[11px] text-[var(--text-secondary)]">
                                                         O pagamento do comprador foi confirmado e o valor será repassado via PIX para sua chave cadastrada.
                                                     </p>
                                                 </div>
                                             </div>
                                             <Link
                                                 href="/producao"
-                                                className="inline-flex items-center gap-1.5 bg-green-500 hover:bg-green-600 text-white px-3.5 py-2 rounded-lg text-xs font-bold transition-all shrink-0 hover:scale-105 active:scale-95 shadow-md"
+                                                className="min-h-[44px] sm:min-h-0 inline-flex items-center gap-1.5 bg-[#0D9488] hover:bg-[#0F766E] text-white px-3.5 py-2 rounded-lg text-xs font-semibold transition-all shrink-0 active:scale-95"
                                             >
                                                 <Package className="w-3.5 h-3.5" />
                                                 Minha Produção
@@ -2116,7 +2117,7 @@ function JobDetailClient({ jobId }: { jobId: string }) {
 
                                     return (
                                         <div className="flex flex-col gap-4">
-                                            <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">
+                                            <p className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-widest">
                                                 Arquivos da Matriz ({urls.length})
                                             </p>
                                             <div className="flex flex-wrap gap-2">
@@ -2128,9 +2129,9 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                                             type="button"
                                                             onClick={() => handleDownloadDeliveryFile(url)}
                                                             title={`Baixar ${cleanName}`}
-                                                            className="inline-flex items-center gap-2 bg-[#0F1115] hover:bg-green-500/20 border border-white/10 hover:border-green-500/50 text-gray-300 hover:text-green-400 px-4 py-2 rounded-lg transition-all text-xs cursor-pointer active:scale-95"
+                                                            className="min-h-[44px] sm:min-h-0 inline-flex items-center gap-2 bg-[var(--bg-surface-elevated)] hover:bg-[#0D9488]/12 border border-[var(--border-hairline)] hover:border-[#0D9488]/40 text-[var(--text-primary)] hover:text-[#0F766E] dark:hover:text-[#14B8A6] px-4 py-2 rounded-lg transition-all text-xs cursor-pointer active:scale-95"
                                                         >
-                                                            <Download className="w-3.5 h-3.5 text-green-400" />
+                                                            <Download className="w-3.5 h-3.5 text-[#0F766E] dark:text-[#14B8A6]" />
                                                             <span>{cleanName}</span>
                                                         </button>
                                                     )
@@ -2139,7 +2140,7 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                             {urls.length > 1 && (
                                                 <button
                                                     onClick={handleDownloadAll}
-                                                    className="inline-flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-xl font-bold transition-all shadow-lg shadow-green-500/20 hover:scale-105 active:scale-95 w-fit"
+                                                    className="min-h-[48px] inline-flex items-center gap-2 bg-[#0D9488] hover:bg-[#0F766E] text-white px-6 py-3 rounded-xl font-semibold transition-all active:scale-95 w-fit"
                                                 >
                                                     <Download className="w-5 h-5" />
                                                     Baixar Tudo (.zip)
@@ -2151,21 +2152,21 @@ function JobDetailClient({ jobId }: { jobId: string }) {
 
                                 {/* GARANTIA DE AJUSTE OU CORREÇÃO (PÓS-AVALIAÇÃO - APENAS PARA O COMPRADOR) */}
                                 {isOwner && (
-                                    <div className="mt-6 p-4 bg-yellow-500/[0.05] border border-yellow-500/25 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                                    <div className="mt-6 p-4 bg-[#2563EB]/8 border border-[#2563EB]/25 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                                         <div>
                                             <div className="flex items-center gap-2">
-                                                <span className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse"></span>
-                                                <p className="text-xs font-bold text-yellow-400 flex items-center gap-1.5">
+                                                <span className="w-2 h-2 rounded-full bg-[#2563EB] dark:bg-[#3B82F6]"></span>
+                                                <p className="text-xs font-bold text-[#2563EB] dark:text-[#60A5FA] flex items-center gap-1.5">
                                                     <Wrench className="w-3.5 h-3.5" /> Garantia de Ajuste ou Correção (7 dias)
                                                 </p>
                                             </div>
-                                            <p className="text-xs text-gray-400 mt-1 leading-relaxed">
+                                            <p className="text-xs text-[var(--text-secondary)] mt-1 leading-relaxed">
                                                 Bordou a peça e precisa de alteração de pontos, tamanho ou compensação na matriz?
                                             </p>
                                         </div>
                                         <button
                                             onClick={handleOpenChatForAdjustment}
-                                            className="inline-flex items-center gap-2 bg-[#FFAE00] hover:bg-yellow-400 text-black px-4 py-2.5 rounded-xl text-xs font-black transition-all hover:scale-105 active:scale-95 shrink-0 shadow-lg shadow-[#FFAE00]/10"
+                                            className="min-h-[44px] sm:min-h-0 inline-flex items-center gap-2 bg-[#2563EB] hover:bg-[#1D4ED8] text-white px-4 py-2.5 rounded-xl text-xs font-semibold transition-all active:scale-95 shrink-0"
                                         >
                                             <MessageSquare className="w-3.5 h-3.5" />
                                             Solicitar Ajuste no Chat
@@ -2173,12 +2174,12 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                     </div>
                                 )}
 
-                                <div className="mt-8 pt-6 border-t border-white/10 flex items-center justify-between">
-                                    <p className="text-xs text-gray-500">Histórico de mensagens e suporte preservados.</p>
+                                <div className="mt-8 pt-6 border-t border-[var(--border-hairline)] flex items-center justify-between gap-3 flex-wrap">
+                                    <p className="text-xs text-[var(--text-secondary)]">Histórico de mensagens e suporte preservados.</p>
                                     {!isOwner && acceptedProposal && (
                                         <button
                                             onClick={() => handleNegotiate(acceptedProposal.id)}
-                                            className="inline-flex items-center gap-2 bg-[#1A1D23] hover:bg-white/5 text-gray-300 px-4 py-2 rounded-xl text-xs font-bold border border-white/10 transition-colors"
+                                            className="min-h-[44px] sm:min-h-0 inline-flex items-center gap-2 bg-[var(--bg-surface-elevated)] hover:bg-[var(--btn-glass-bg)] text-[var(--text-primary)] px-4 py-2 rounded-xl text-xs font-semibold border border-[var(--border-hairline)] transition-colors"
                                         >
                                             <MessageSquare className="w-3.5 h-3.5" />
                                             Abrir Chat com Cliente
@@ -2188,15 +2189,15 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                             </div>
 
                             {/* Right Side: Review Summary */}
-                            <div className="w-full lg:w-[450px] bg-green-500/5 p-8 lg:p-10 flex flex-col justify-center">
+                            <div className="w-full lg:w-[450px] bg-[var(--bg-surface-elevated)] p-8 lg:p-10 flex flex-col justify-center">
                                 <div className="mb-6">
-                                    <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                                        <Star className="w-5 h-5 text-[#FFAE00] fill-[#FFAE00]" />
+                                    <h3 className="text-lg font-semibold text-[var(--text-primary)] flex items-center gap-2">
+                                        <Star className="w-5 h-5 text-[#2563EB] fill-[#2563EB] dark:text-[#60A5FA] dark:fill-[#60A5FA]" />
                                         {isOwner ? 'Avaliação do Projeto' : 'Avaliação Recebida do Cliente'}
                                     </h3>
                                     {!isOwner && jobReview && jobReview.rating_matrix === 5 && jobReview.rating_service === 5 && (
-                                        <span className="inline-flex items-center gap-1.5 mt-2 text-[11px] font-bold bg-[#F5A623]/20 text-[#F5A623] border border-[#F5A623]/30 px-3 py-1 rounded-full">
-                                            <Sparkles className="w-3.5 h-3.5 text-[#F5A623]" />
+                                        <span className="inline-flex items-center gap-1.5 mt-2 text-[11px] font-bold bg-[#2563EB]/12 text-[#2563EB] dark:text-[#60A5FA] border border-[#2563EB]/25 px-3 py-1 rounded-full">
+                                            <Sparkles className="w-3.5 h-3.5" />
                                             Desempenho 10/10 • Cliente Satisfeito
                                         </span>
                                     )}
@@ -2205,56 +2206,56 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                 {jobReview ? (
                                     <div className="space-y-4">
                                         <div>
-                                            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Qualidade da Matriz</p>
+                                            <p className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-widest mb-1">Qualidade da Matriz</p>
                                             <div className="flex gap-1">
                                                 {[1, 2, 3, 4, 5].map(s => (
-                                                    <Star key={s} className={`w-5 h-5 ${s <= jobReview.rating_matrix ? 'fill-[#FFAE00] text-[#FFAE00]' : 'text-gray-700'}`} />
+                                                    <Star key={s} className={`w-5 h-5 ${s <= jobReview.rating_matrix ? 'fill-[#2563EB] text-[#2563EB] dark:fill-[#60A5FA] dark:text-[#60A5FA]' : 'text-slate-300 dark:text-slate-600'}`} />
                                                 ))}
                                             </div>
                                         </div>
 
                                         <div>
-                                            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Atendimento / Prazo</p>
+                                            <p className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-widest mb-1">Atendimento / Prazo</p>
                                             <div className="flex gap-1">
                                                 {[1, 2, 3, 4, 5].map(s => (
-                                                    <Star key={s} className={`w-5 h-5 ${s <= jobReview.rating_service ? 'fill-[#FFAE00] text-[#FFAE00]' : 'text-gray-700'}`} />
+                                                    <Star key={s} className={`w-5 h-5 ${s <= jobReview.rating_service ? 'fill-[#2563EB] text-[#2563EB] dark:fill-[#60A5FA] dark:text-[#60A5FA]' : 'text-slate-300 dark:text-slate-600'}`} />
                                                 ))}
                                             </div>
                                         </div>
 
                                         {jobReview.comment && (
-                                            <div className="bg-[#0F1115] p-3 rounded-xl border border-white/5 text-sm text-gray-300 italic">
-                                                {!isOwner && <p className="text-[10px] text-gray-500 uppercase not-italic font-bold mb-1">Comentário do Comprador:</p>}
+                                            <div className="bg-[var(--bg-surface)] p-3 rounded-xl border border-[var(--border-hairline)] text-sm text-[var(--text-primary)] italic">
+                                                {!isOwner && <p className="text-[10px] text-[var(--text-secondary)] uppercase not-italic font-bold mb-1">Comentário do Comprador:</p>}
                                                 &quot;{jobReview.comment}&quot;
                                             </div>
                                         )}
 
                                         <div className="pt-2 flex flex-col gap-2">
                                             {!isOwner && (
-                                                <span className="inline-flex items-center gap-1.5 text-xs text-[#FFAE00] bg-amber-500/10 px-3 py-1.5 rounded-full border border-amber-500/20 font-bold">
-                                                    <Sparkles className="w-3.5 h-3.5 text-[#FFAE00]" /> Pontuação adicionada ao seu perfil profissional!
+                                                <span className="inline-flex items-center gap-1.5 text-xs text-[#2563EB] dark:text-[#60A5FA] bg-[#2563EB]/10 px-3 py-1.5 rounded-full border border-[#2563EB]/25 font-bold">
+                                                    <Sparkles className="w-3.5 h-3.5" /> Pontuação adicionada ao seu perfil profissional!
                                                 </span>
                                             )}
-                                            <span className="inline-flex items-center gap-1.5 text-xs text-green-400 bg-green-500/10 px-3 py-1.5 rounded-full border border-green-500/20 font-bold">
+                                            <span className="inline-flex items-center gap-1.5 text-xs text-[#0F766E] dark:text-[#14B8A6] bg-[#0D9488]/10 px-3 py-1.5 rounded-full border border-[#0D9488]/25 font-bold">
                                                 <CheckCircle className="w-3.5 h-3.5" /> Pagamento {jobTransaction?.metodo === 'asaas_cartao' ? 'via Cartão' : 'PIX'} Confirmado
                                             </span>
                                         </div>
                                     </div>
                                 ) : (
                                     <div className="text-center py-4">
-                                        <CheckCircle className="w-10 h-10 text-green-400 mx-auto mb-2" />
-                                        <p className="text-sm text-gray-300 font-bold">Trabalho concluído com sucesso!</p>
-                                        <p className="text-xs text-gray-500 mt-1">O valor foi liberado para o programador.</p>
+                                        <CheckCircle className="w-10 h-10 text-[#0F766E] dark:text-[#14B8A6] mx-auto mb-2" />
+                                        <p className="text-sm text-[var(--text-primary)] font-bold">Trabalho concluído com sucesso!</p>
+                                        <p className="text-xs text-[var(--text-secondary)] mt-1">O valor foi liberado para o programador.</p>
                                     </div>
                                 )}
                             </div>
                         </div>
                     </div>
                 ) : (
-                    <div className="bg-[#1A1D23] border border-white/5 rounded-xl p-5 shadow-lg">
+                    <div className="bg-[var(--bg-surface)] border border-[var(--border-hairline)] rounded-2xl p-5 shadow-xl">
                         <div className="flex items-center justify-between mb-4">
-                            <h2 className="text-lg font-bold text-[#F3F4F6] flex items-center gap-2">
-                                <MessageSquare className="w-4 h-4 text-[#FFAE00]" />
+                            <h2 className="text-lg font-semibold text-[var(--text-primary)] flex items-center gap-2">
+                                <MessageSquare className="w-4 h-4 text-[#2563EB] dark:text-[#60A5FA]" />
                                 {isOwner ? (
                                     <>Propostas Recebidas ({proposals.length})</>
                                 ) : (
@@ -2265,19 +2266,19 @@ function JobDetailClient({ jobId }: { jobId: string }) {
 
                         {showProposalForm && (
                             isProgrammerReady ? (
-                                <div className="mb-6 bg-[#0F1115] p-4 sm:p-5 rounded-2xl border border-[#FFAE00]/20 shadow-lg">
-                                    <div className="text-xs font-black text-[#FFAE00] uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                                <div className="mb-6 bg-[var(--bg-surface-elevated)] p-4 sm:p-5 rounded-2xl border border-[#2563EB]/25">
+                                    <div className="text-xs font-bold text-[#2563EB] dark:text-[#60A5FA] uppercase tracking-wider mb-3 flex items-center gap-1.5">
                                         <Zap className="w-3.5 h-3.5" /> Enviar Proposta de Orçamento
                                     </div>
                                     <form onSubmit={handleSubmitProposal} className="space-y-3 md:space-y-0 md:flex md:gap-3 md:items-end">
                                         <div className="grid grid-cols-2 gap-3 md:contents">
                                             {/* Campo Valor */}
                                             <div className="w-full md:w-36 lg:w-44 shrink-0">
-                                                <label className="block text-[11px] font-bold text-gray-300 mb-1">
+                                                <label className="block text-[11px] font-bold text-[var(--text-primary)] mb-1">
                                                     Valor (R$)
                                                 </label>
                                                 <div className="relative">
-                                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs font-black">R$</span>
+                                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-secondary)] text-xs font-bold">R$</span>
                                                     <input 
                                                         type="number" 
                                                         step="0.01" 
@@ -2286,7 +2287,7 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                                         required 
                                                         value={amount} 
                                                         onChange={e => setAmount(e.target.value)} 
-                                                        className="w-full bg-[#1A1D23] border border-white/10 focus:border-[#FFAE00] rounded-xl pl-8 pr-2.5 py-2.5 text-base md:text-sm font-bold text-white placeholder-gray-500 focus:outline-none transition-colors" 
+                                                        className="w-full bg-[var(--bg-surface)] border border-[var(--border-hairline)] focus:border-[#2563EB] dark:focus:border-[#3B82F6] rounded-xl pl-8 pr-2.5 py-2.5 text-base md:text-sm font-bold text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]/70 focus:outline-none transition-colors" 
                                                         placeholder="0,00" 
                                                     />
                                                 </div>
@@ -2294,7 +2295,7 @@ function JobDetailClient({ jobId }: { jobId: string }) {
 
                                             {/* Campo Prazo */}
                                             <div className="w-full md:w-36 lg:w-44 shrink-0">
-                                                <label className="block text-[11px] font-bold text-gray-300 mb-1">
+                                                <label className="block text-[11px] font-bold text-[var(--text-primary)] mb-1">
                                                     Prazo
                                                 </label>
                                                 <input 
@@ -2302,7 +2303,7 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                                     required 
                                                     value={deadline} 
                                                     onChange={e => setDeadline(e.target.value)} 
-                                                    className="w-full bg-[#1A1D23] border border-white/10 focus:border-[#FFAE00] rounded-xl px-3 py-2.5 text-base md:text-sm text-white placeholder-gray-500 focus:outline-none transition-colors font-medium" 
+                                                    className="w-full bg-[var(--bg-surface)] border border-[var(--border-hairline)] focus:border-[#2563EB] dark:focus:border-[#3B82F6] rounded-xl px-3 py-2.5 text-base md:text-sm text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]/70 focus:outline-none transition-colors font-medium" 
                                                     placeholder="ex: 2 dias, 24h" 
                                                 />
                                             </div>
@@ -2310,7 +2311,7 @@ function JobDetailClient({ jobId }: { jobId: string }) {
 
                                         {/* Campo Mensagem */}
                                         <div className="flex-1 min-w-0">
-                                            <label className="block text-[11px] font-bold text-gray-300 mb-1">
+                                            <label className="block text-[11px] font-bold text-[var(--text-primary)] mb-1">
                                                 Mensagem / Diferencial
                                             </label>
                                             <input 
@@ -2318,7 +2319,7 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                                 required 
                                                 value={message} 
                                                 onChange={e => setMessage(e.target.value)} 
-                                                className="w-full bg-[#1A1D23] border border-white/10 focus:border-[#FFAE00] rounded-xl px-3.5 py-2.5 text-base md:text-sm text-white placeholder-gray-500 focus:outline-none transition-colors font-medium" 
+                                                className="w-full bg-[var(--bg-surface)] border border-[var(--border-hairline)] focus:border-[#2563EB] dark:focus:border-[#3B82F6] rounded-xl px-3.5 py-2.5 text-base md:text-sm text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]/70 focus:outline-none transition-colors font-medium" 
                                                 placeholder="Descreva seu prazo, qualidade ou software..." 
                                             />
                                         </div>
@@ -2328,7 +2329,7 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                             <button 
                                                 type="submit" 
                                                 disabled={submitting} 
-                                                className="w-full md:w-auto bg-gradient-to-r from-[#FFAE00] to-yellow-400 hover:from-yellow-400 hover:to-[#FFAE00] text-black font-extrabold px-6 py-2.5 rounded-xl text-sm transition-all shadow-md shadow-[#FFAE00]/10 hover:scale-[1.02] active:scale-95 disabled:opacity-50 whitespace-nowrap flex items-center justify-center gap-2"
+                                                className="w-full md:w-auto min-h-[48px] md:min-h-[42px] bg-[var(--btn-primary-bg)] text-[var(--btn-primary-text)] hover:bg-[var(--btn-primary-hover)] font-semibold px-6 py-2.5 rounded-xl text-sm transition-all active:scale-95 disabled:opacity-50 whitespace-nowrap flex items-center justify-center gap-2"
                                             >
                                                 <Send className="w-4 h-4" />
                                                 Enviar Proposta
@@ -2336,24 +2337,24 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                         </div>
                                     </form>
                                     {amount && Number(amount) > 0 && (
-                                        <div className="mt-3 pt-3 border-t border-white/5 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-gray-400">
-                                            <span>Cliente paga: <strong className="text-white font-bold">R$ {Number(amount).toFixed(2)}</strong> (Taxa Zero)</span>
-                                            <span>Taxa da Plataforma (10%): <strong className="text-[#FFAE00] font-bold">R$ {(Number(amount) * 0.10).toFixed(2)}</strong></span>
-                                            <span className="bg-green-500/10 text-green-400 border border-green-500/20 px-2.5 py-0.5 rounded-md font-bold">
+                                        <div className="mt-3 pt-3 border-t border-[var(--border-hairline)] flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-[var(--text-secondary)]">
+                                            <span>Cliente paga: <strong className="text-[var(--text-primary)] font-bold">R$ {Number(amount).toFixed(2)}</strong> (Taxa Zero)</span>
+                                            <span>Taxa da Plataforma (10%): <strong className="text-[#2563EB] dark:text-[#60A5FA] font-bold">R$ {(Number(amount) * 0.10).toFixed(2)}</strong></span>
+                                            <span className="bg-[#0D9488]/10 text-[#0F766E] dark:text-[#14B8A6] border border-[#0D9488]/25 px-2.5 py-0.5 rounded-md font-bold">
                                                 Você recebe líquido: R$ {(Number(amount) * 0.90).toFixed(2)}
                                             </span>
                                         </div>
                                     )}
                                 </div>
                             ) : (
-                                <div className="mb-6 bg-[#12151C] p-5 rounded-2xl border border-white/[0.07] flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xl">
+                                <div className="mb-6 bg-[var(--bg-surface-elevated)] p-5 rounded-2xl border border-[var(--border-hairline)] flex flex-col sm:flex-row items-center justify-between gap-4">
                                     <div className="flex items-center gap-3.5">
-                                        <div className="p-3 rounded-xl bg-[#F5A623]/10 border border-[#F5A623]/20 text-[#F5A623] shrink-0">
+                                        <div className="p-3 rounded-xl bg-[#2563EB]/10 border border-[#2563EB]/25 text-[#2563EB] dark:text-[#60A5FA] shrink-0">
                                             <Code className="w-5 h-5" />
                                         </div>
                                         <div>
-                                            <h3 className="text-sm font-bold text-white">Quer enviar uma proposta para este pedido?</h3>
-                                            <p className="text-xs text-gray-400 mt-0.5 leading-relaxed">
+                                            <h3 className="text-sm font-bold text-[var(--text-primary)]">Quer enviar uma proposta para este pedido?</h3>
+                                            <p className="text-xs text-[var(--text-secondary)] mt-0.5 leading-relaxed">
                                                 Para garantir segurança e qualidade técnica, ative seu perfil de programador configurando seus softwares e dados de PIX.
                                             </p>
                                         </div>
@@ -2363,7 +2364,7 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                             ? `/profile/${currentUser.id}?edit=true&activate=programmer&returnTo=${encodeURIComponent(`/jobs/${job.id}`)}` 
                                             : `/login?redirect=${encodeURIComponent(`/profile/me?edit=true&activate=programmer&returnTo=${encodeURIComponent(`/jobs/${job.id}`)}`)}`
                                         }
-                                        className="shrink-0 bg-gradient-to-r from-[#FFB703] to-[#FB8500] hover:brightness-110 active:scale-95 text-black font-black text-xs px-4 py-2.5 rounded-xl transition-all shadow-md shadow-[#FFB703]/10 text-center w-full sm:w-auto"
+                                        className="shrink-0 min-h-[48px] inline-flex items-center justify-center bg-[var(--btn-primary-bg)] text-[var(--btn-primary-text)] hover:bg-[var(--btn-primary-hover)] active:scale-95 font-semibold text-xs px-4 py-2.5 rounded-xl transition-all text-center w-full sm:w-auto"
                                     >
                                         Completar Perfil para Enviar Proposta
                                     </Link>
@@ -2373,19 +2374,19 @@ function JobDetailClient({ jobId }: { jobId: string }) {
 
                         {/* Buyer Alert: Pending Payment */}
                         {isOwner && acceptedProposal && job.status === 'aberto' && (
-                            <div className="mb-6 bg-gradient-to-r from-yellow-500/15 via-[#FFAE00]/10 to-transparent border border-yellow-500/30 p-5 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-lg">
+                            <div className="mb-6 bg-[#2563EB]/10 border border-[#2563EB]/25 p-5 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                                 <div className="flex items-start sm:items-center gap-3">
-                                    <div className="w-10 h-10 rounded-full bg-yellow-500/20 text-yellow-400 flex items-center justify-center shrink-0">
+                                    <div className="w-10 h-10 rounded-full bg-[#2563EB]/15 text-[#2563EB] dark:text-[#60A5FA] flex items-center justify-center shrink-0">
                                         <DollarSign className="w-5 h-5" />
                                     </div>
                                     <div>
-                                        <span className="text-[10px] font-black uppercase tracking-wider bg-yellow-500/20 text-yellow-400 px-2.5 py-0.5 rounded-full">
+                                        <span className="text-[10px] font-bold uppercase tracking-wider bg-[#2563EB]/15 text-[#2563EB] dark:text-[#60A5FA] px-2.5 py-0.5 rounded-full">
                                             Aguardando Seu Pagamento
                                         </span>
-                                        <p className="text-sm font-bold text-white mt-1">
-                                            Você aceitou a proposta de {acceptedProposal.users?.name || 'um profissional'} no valor de <strong className="text-yellow-400">R$ {acceptedProposal.amount?.toFixed(2)}</strong>
+                                        <p className="text-sm font-bold text-[var(--text-primary)] mt-1">
+                                            Você aceitou a proposta de {acceptedProposal.users?.name || 'um profissional'} no valor de <strong className="text-[#2563EB] dark:text-[#60A5FA]">R$ {acceptedProposal.amount?.toFixed(2)}</strong>
                                         </p>
-                                        <p className="text-xs text-gray-400 mt-0.5">
+                                        <p className="text-xs text-[var(--text-secondary)] mt-0.5">
                                             Conclua o pagamento para o programador começar a criar sua matriz. O valor fica 100% seguro em custódia até você aprovar.
                                         </p>
                                     </div>
@@ -2393,7 +2394,7 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                 <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
                                     <Link
                                         href={`/checkout/${acceptedProposal.id}`}
-                                        className="inline-flex items-center gap-2 bg-[#FFAE00] hover:bg-yellow-400 text-black px-5 py-2.5 rounded-xl text-xs font-black transition-all hover:scale-105 active:scale-95 shadow-md shadow-[#FFAE00]/10"
+                                        className="min-h-[48px] inline-flex items-center gap-2 bg-[#2563EB] hover:bg-[#1D4ED8] text-white px-5 py-2.5 rounded-xl text-xs font-semibold transition-all active:scale-95"
                                     >
                                         <DollarSign className="w-4 h-4" />
                                         Pagar Agora
@@ -2401,7 +2402,7 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                     <button
                                         onClick={() => handleCancelReservation(acceptedProposal.id, 'client')}
                                         disabled={cancellingReserve}
-                                        className="inline-flex items-center gap-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 px-3 py-2.5 rounded-xl text-xs font-bold transition-colors"
+                                        className="min-h-[44px] sm:min-h-0 inline-flex items-center gap-1.5 bg-red-500/10 hover:bg-red-500/20 text-[#DC2626] dark:text-[#EF4444] border border-red-500/25 px-3 py-2.5 rounded-xl text-xs font-semibold transition-colors"
                                         title="Desistir e reabrir o pedido para outras propostas"
                                     >
                                         <X className="w-3.5 h-3.5" />
@@ -2415,21 +2416,21 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                         {!isOwner && hasAlreadySentProposal && myExistingProposal && (
                             myExistingProposal.status === 'aceita' ? (
                                 (job.status === 'aberto' || !job.status) ? (
-                                    <div className="mb-6 bg-yellow-500/10 border border-yellow-500/30 p-5 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-lg">
+                                    <div className="mb-6 bg-[#2563EB]/10 border border-[#2563EB]/25 p-5 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                                         <div className="flex items-start sm:items-center gap-3">
-                                            <div className="w-10 h-10 rounded-full bg-yellow-500/20 text-yellow-400 flex items-center justify-center shrink-0">
-                                                <Clock className="w-5 h-5 animate-pulse" />
+                                            <div className="w-10 h-10 rounded-full bg-[#2563EB]/15 text-[#2563EB] dark:text-[#60A5FA] flex items-center justify-center shrink-0">
+                                                <Clock className="w-5 h-5" />
                                             </div>
                                             <div>
                                                 <div className="flex items-center gap-2">
-                                                    <span className="text-[10px] font-black uppercase tracking-wider bg-yellow-500/20 text-yellow-400 px-2.5 py-0.5 rounded-full">
+                                                    <span className="text-[10px] font-bold uppercase tracking-wider bg-[#2563EB]/15 text-[#2563EB] dark:text-[#60A5FA] px-2.5 py-0.5 rounded-full">
                                                         Proposta Aceita • Aguardando Pagamento
                                                     </span>
                                                 </div>
-                                                <p className="text-sm font-bold text-white mt-1">
-                                                    O comprador aceitou sua proposta no valor de <strong className="text-yellow-400">R$ {myExistingProposal.amount?.toFixed(2)}</strong>
+                                                <p className="text-sm font-bold text-[var(--text-primary)] mt-1">
+                                                    O comprador aceitou sua proposta no valor de <strong className="text-[#2563EB] dark:text-[#60A5FA]">R$ {myExistingProposal.amount?.toFixed(2)}</strong>
                                                 </p>
-                                                <p className="text-xs text-gray-300 mt-1">
+                                                <p className="text-xs text-[var(--text-secondary)] mt-1">
                                                     <strong>Atenção:</strong> Não inicie a criação da matriz ainda. Seu prazo ({myExistingProposal.deadline_text || 'combinado'}) só começará a contar após a confirmação do pagamento em custódia.
                                                 </p>
                                             </div>
@@ -2437,7 +2438,7 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                         <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
                                             <button
                                                 onClick={() => handleNegotiate(myExistingProposal.id)}
-                                                className="inline-flex items-center gap-2 bg-[#FFAE00] hover:bg-yellow-400 text-black px-4 py-2 rounded-xl text-xs font-black transition-all hover:scale-105 active:scale-95 shadow-md"
+                                                className="min-h-[44px] sm:min-h-0 inline-flex items-center gap-2 bg-[#2563EB] hover:bg-[#1D4ED8] text-white px-4 py-2 rounded-xl text-xs font-semibold transition-all active:scale-95"
                                             >
                                                 <MessageSquare className="w-3.5 h-3.5" />
                                                 Chat com Cliente
@@ -2445,7 +2446,7 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                             <button
                                                 onClick={() => handleCancelReservation(myExistingProposal.id, 'programmer')}
                                                 disabled={cancellingReserve}
-                                                className="inline-flex items-center gap-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 px-3 py-2 rounded-xl text-xs font-bold transition-colors"
+                                                className="min-h-[44px] sm:min-h-0 inline-flex items-center gap-1.5 bg-red-500/10 hover:bg-red-500/20 text-[#DC2626] dark:text-[#EF4444] border border-red-500/25 px-3 py-2 rounded-xl text-xs font-semibold transition-colors"
                                                 title="Se o cliente demorar para pagar, você pode liberar o pedido para não ficar preso"
                                             >
                                                 <X className="w-3.5 h-3.5" />
@@ -2455,24 +2456,24 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                     </div>
                                 ) : null
                             ) : myExistingProposal.status === 'contraproposta' && myExistingProposal.counter_amount ? (
-                                <div className="mb-6 bg-[#FFAE00]/15 border-2 border-[#FFAE00] p-5 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-[0_0_30px_rgba(255,174,0,0.15)] animate-in slide-in-from-top-2 duration-300">
+                                <div className="mb-6 bg-[#2563EB]/10 border-2 border-[#2563EB]/40 p-5 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-in slide-in-from-top-2 duration-300">
                                     <div className="flex items-start sm:items-center gap-3">
-                                        <div className="w-12 h-12 rounded-2xl bg-[#FFAE00]/20 text-[#FFAE00] flex items-center justify-center shrink-0 border border-[#FFAE00]/30 shadow-inner">
+                                        <div className="w-12 h-12 rounded-2xl bg-[#2563EB]/15 text-[#2563EB] dark:text-[#60A5FA] flex items-center justify-center shrink-0 border border-[#2563EB]/25">
                                             <Handshake className="w-6 h-6" />
                                         </div>
                                         <div>
                                             <div className="flex items-center gap-2 mb-1">
-                                                <span className="text-[11px] font-black uppercase tracking-wider bg-[#FFAE00] text-black px-2.5 py-0.5 rounded-full shadow-sm">
+                                                <span className="text-[11px] font-bold uppercase tracking-wider bg-[#2563EB] text-white px-2.5 py-0.5 rounded-full">
                                                     Contraproposta Recebida
                                                 </span>
-                                                <span className="text-xs text-gray-400">
+                                                <span className="text-xs text-[var(--text-secondary)]">
                                                     Sua proposta inicial: R$ {myExistingProposal.amount?.toFixed(2)}
                                                 </span>
                                             </div>
-                                            <p className="text-base font-bold text-white leading-snug">
-                                                O cliente ofereceu <strong className="text-[#FFAE00] text-lg">R$ {Number(myExistingProposal.counter_amount).toFixed(2)}</strong> para fechar este trabalho!
+                                            <p className="text-base font-bold text-[var(--text-primary)] leading-snug">
+                                                O cliente ofereceu <strong className="text-[#2563EB] dark:text-[#60A5FA] text-lg">R$ {Number(myExistingProposal.counter_amount).toFixed(2)}</strong> para fechar este trabalho!
                                             </p>
-                                            <p className="text-xs text-gray-300 mt-1">
+                                            <p className="text-xs text-[var(--text-secondary)] mt-1">
                                                 Ao aceitar a oferta, o valor da sua proposta será atualizado para <strong>R$ {Number(myExistingProposal.counter_amount).toFixed(2)}</strong> e o cliente poderá pagar.
                                             </p>
                                         </div>
@@ -2480,14 +2481,14 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                     <div className="flex items-center gap-2 self-stretch sm:self-center shrink-0 flex-wrap">
                                         <button
                                             onClick={() => handleProgrammerResponse(myExistingProposal.id, 'accept_counter', myExistingProposal)}
-                                            className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 bg-[#FFAE00] hover:bg-yellow-400 text-black px-5 py-3 rounded-xl text-xs font-black transition-all hover:scale-105 active:scale-95 shadow-lg shadow-[#FFAE00]/20"
+                                            className="flex-1 sm:flex-none min-h-[48px] sm:min-h-[42px] inline-flex items-center justify-center gap-2 bg-[#2563EB] hover:bg-[#1D4ED8] text-white px-5 py-3 rounded-xl text-xs font-semibold transition-all active:scale-95"
                                         >
                                             <Check className="w-4 h-4" />
                                             Aceitar Oferta (R$ {Number(myExistingProposal.counter_amount).toFixed(2)})
                                         </button>
                                         <button
                                             onClick={() => handleProgrammerResponse(myExistingProposal.id, 'reject_counter', myExistingProposal)}
-                                            className="inline-flex items-center justify-center gap-1.5 border border-white/10 hover:border-white/20 text-gray-400 hover:text-white px-3 py-3 rounded-xl text-xs font-bold transition-colors hover:bg-white/5 active:scale-95"
+                                            className="min-h-[44px] sm:min-h-[42px] inline-flex items-center justify-center gap-1.5 border border-[var(--border-glass)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] px-3 py-3 rounded-xl text-xs font-semibold transition-colors hover:bg-[var(--btn-glass-bg)] active:scale-95"
                                             title="Recusar contraproposta e manter seu valor original"
                                         >
                                             <X className="w-4 h-4" />
@@ -2495,7 +2496,7 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                         </button>
                                         <button
                                             onClick={() => handleNegotiate(myExistingProposal.id)}
-                                            className="inline-flex items-center justify-center gap-1.5 bg-[#1A1D23] hover:bg-white/5 text-gray-300 px-4 py-3 rounded-xl text-xs font-bold border border-white/10 transition-colors"
+                                            className="min-h-[44px] sm:min-h-[42px] inline-flex items-center justify-center gap-1.5 bg-[var(--bg-surface-elevated)] hover:bg-[var(--btn-glass-bg)] text-[var(--text-primary)] px-4 py-3 rounded-xl text-xs font-semibold border border-[var(--border-hairline)] transition-colors"
                                         >
                                             <MessageSquare className="w-4 h-4" />
                                             Chat
@@ -2503,17 +2504,17 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                     </div>
                                 </div>
                             ) : (
-                                <div className="mb-6 bg-yellow-500/10 border border-yellow-500/30 p-4 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-lg">
+                                <div className="mb-6 bg-[var(--bg-surface-elevated)] border border-[var(--border-hairline)] p-4 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                                     <div className="flex items-center gap-3">
-                                        <div className="w-9 h-9 rounded-full bg-yellow-500/20 text-yellow-400 flex items-center justify-center shrink-0">
+                                        <div className="w-9 h-9 rounded-full bg-[#2563EB]/15 text-[#2563EB] dark:text-[#60A5FA] flex items-center justify-center shrink-0">
                                             <Clock className="w-5 h-5" />
                                         </div>
                                         <div>
-                                            <p className="text-sm font-bold text-white flex items-center gap-1.5">
+                                            <p className="text-sm font-bold text-[var(--text-primary)] flex items-center gap-1.5">
                                                 Você já enviou uma proposta para este pedido
                                             </p>
-                                            <p className="text-xs text-gray-300 mt-0.5">
-                                                Valor oferecido: <strong className="text-yellow-400">R$ {myExistingProposal.amount?.toFixed(2)}</strong> • Prazo: <strong>{myExistingProposal.deadline_text || 'A combinar'}</strong>
+                                            <p className="text-xs text-[var(--text-secondary)] mt-0.5">
+                                                Valor oferecido: <strong className="text-[#2563EB] dark:text-[#60A5FA]">R$ {myExistingProposal.amount?.toFixed(2)}</strong> • Prazo: <strong>{myExistingProposal.deadline_text || 'A combinar'}</strong>
                                             </p>
                                         </div>
                                     </div>
@@ -2523,14 +2524,14 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                                 setEditProposalAmount(myExistingProposal.amount?.toString() || '')
                                                 setShowEditProposalModal(true)
                                             }}
-                                            className="inline-flex items-center gap-1.5 bg-[#1F2430] hover:bg-[#282F3E] text-yellow-400 border border-yellow-500/30 px-3.5 py-2 rounded-xl text-xs font-bold transition-all active:scale-95 shadow-sm"
+                                            className="min-h-[44px] sm:min-h-0 inline-flex items-center gap-1.5 bg-[var(--bg-surface)] hover:bg-[var(--btn-glass-bg)] text-[#2563EB] dark:text-[#60A5FA] border border-[#2563EB]/30 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all active:scale-95"
                                         >
                                             <DollarSign className="w-3.5 h-3.5" />
                                             Ajustar Valor
                                         </button>
                                         <button
                                             onClick={() => handleNegotiate(myExistingProposal.id)}
-                                            className="inline-flex items-center gap-2 bg-[#FFAE00] hover:bg-yellow-400 text-black px-4 py-2 rounded-xl text-xs font-black transition-all hover:scale-105 active:scale-95 shrink-0 shadow-md"
+                                            className="min-h-[44px] sm:min-h-0 inline-flex items-center gap-2 bg-[#2563EB] hover:bg-[#1D4ED8] text-white px-4 py-2 rounded-xl text-xs font-semibold transition-all active:scale-95 shrink-0"
                                         >
                                             <MessageSquare className="w-3.5 h-3.5" />
                                             Abrir Chat da Proposta
@@ -2541,11 +2542,11 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                         )}
 
                         {!isOwner && isJobLocked && !hasAlreadySentProposal && (
-                            <div className="mb-6 bg-blue-500/10 border border-blue-500/30 p-4 rounded-xl flex items-center gap-3">
-                                <Handshake className="w-5 h-5 text-[#FFAE00] shrink-0" />
+                            <div className="mb-6 bg-[#2563EB]/10 border border-[#2563EB]/25 p-4 rounded-xl flex items-center gap-3">
+                                <Handshake className="w-5 h-5 text-[#2563EB] dark:text-[#60A5FA] shrink-0" />
                                 <div>
-                                    <p className="text-sm font-bold text-white">Negócio Fechado • Em Produção</p>
-                                    <p className="text-xs text-gray-400">Este pedido já fechou proposta com outro profissional e está em produção. Não está mais aceitando novas propostas.</p>
+                                    <p className="text-sm font-bold text-[var(--text-primary)]">Negócio Fechado • Em Produção</p>
+                                    <p className="text-xs text-[var(--text-secondary)]">Este pedido já fechou proposta com outro profissional e está em produção. Não está mais aceitando novas propostas.</p>
                                 </div>
                             </div>
                         )}
@@ -2553,49 +2554,49 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                         {isOwner ? (
                             <div className="flex gap-4 overflow-x-auto pb-2 snap-x custom-scrollbar">
                             {proposals.length === 0 ? (
-                                <div className="w-full text-center py-6 text-gray-500 text-sm">Nenhuma proposta enviada.</div>
+                                <div className="w-full text-center py-6 text-[var(--text-secondary)] text-sm">Nenhuma proposta enviada.</div>
                             ) : (
                                 proposals.map((proposal: any) => (
-                                    <div key={proposal.id} id={`proposal-card-${proposal.id}`} className={`min-w-[290px] max-w-[340px] shrink-0 bg-[#12151C] rounded-2xl border p-4 snap-start transition-all ${negotiatingProposalId === proposal.id ? 'border-[#F5A623] shadow-[0_0_15px_rgba(245,166,35,0.15)]' : 'border-white/[0.07] hover:border-white/20'}`}>
-                                        <div className="flex flex-col mb-3 bg-[#181C26] p-3 rounded-xl border border-white/[0.07] relative shadow-sm">
+                                    <div key={proposal.id} id={`proposal-card-${proposal.id}`} className={`min-w-[290px] max-w-[340px] shrink-0 bg-[var(--bg-surface-elevated)] rounded-2xl border p-4 snap-start transition-all ${negotiatingProposalId === proposal.id ? 'border-[#2563EB] dark:border-[#3B82F6]' : 'border-[var(--border-hairline)] hover:border-[var(--border-glass)]'}`}>
+                                        <div className="flex flex-col mb-3 bg-[var(--bg-surface)] p-3 rounded-xl border border-[var(--border-hairline)] relative shadow-sm">
                                             <div className="flex items-center gap-3 mb-3">
-                                                <div className="w-10 h-10 rounded-full bg-black/40 border border-white/10 overflow-hidden relative shadow-sm shrink-0">
+                                                <div className="w-10 h-10 rounded-full bg-[var(--bg-surface-elevated)] border border-[var(--border-hairline)] overflow-hidden relative shrink-0 flex items-center justify-center">
                                                     {proposal.users?.avatar_url ? (
                                                         <img src={proposal.users.avatar_url} className="w-full h-full object-cover" alt=""/>
-                                                    ) : <User className="w-5 h-5 m-auto text-gray-500 mt-2.5"/>}
+                                                    ) : <User className="w-5 h-5 text-[var(--text-secondary)]"/>}
                                                 </div>
                                                 <div className="flex-1 min-w-0 pr-2">
-                                                    <div className="text-sm font-bold text-white leading-tight truncate">
+                                                    <div className="text-sm font-bold text-[var(--text-primary)] leading-tight truncate">
                                                         {proposal.users?.name || 'Profissional'} 
                                                     </div>
                                                     {proposal.users?.reviews_count && proposal.users.reviews_count > 0 && proposal.users?.rating ? (
                                                         <div className="flex items-center gap-1 mt-0.5">
-                                                            <Star className="w-3 h-3 text-[#F5A623] fill-[#F5A623]" />
-                                                            <span className="text-white text-xs font-bold">{Number(proposal.users.rating).toFixed(1)}</span>
-                                                            <span className="text-[10px] text-gray-500">({proposal.users.reviews_count})</span>
+                                                            <Star className="w-3 h-3 text-[#2563EB] fill-[#2563EB] dark:text-[#60A5FA] dark:fill-[#60A5FA]" />
+                                                            <span className="text-[var(--text-primary)] text-xs font-bold">{Number(proposal.users.rating).toFixed(1)}</span>
+                                                            <span className="text-[10px] text-[var(--text-secondary)]">({proposal.users.reviews_count})</span>
                                                         </div>
                                                     ) : (
                                                         <div className="flex items-center gap-1 mt-0.5">
-                                                            <span className="text-[10px] text-gray-500 font-medium">Novo profissional</span>
+                                                            <span className="text-[10px] text-[var(--text-secondary)] font-medium">Novo profissional</span>
                                                         </div>
                                                     )}
-                                                    <p className="text-[10px] text-gray-500 uppercase tracking-wider font-mono mt-0.5">#{proposal.id.split('-')[0]}</p>
+                                                    <p className="text-[10px] text-[var(--text-secondary)] uppercase tracking-wider font-mono mt-0.5">#{proposal.id.split('-')[0]}</p>
                                                 </div>
                                             </div>
-                                            <div className="flex justify-between items-center bg-[#0B0D11] p-2.5 rounded-lg border border-white/[0.07]">
-                                                <p className="text-lg font-black text-[#F5A623] leading-none tracking-tight">R$ {proposal.amount.toFixed(2)}</p>
-                                                <p className="text-[10px] text-gray-400 flex items-center gap-1 font-medium bg-[#181C26] px-2 py-1 rounded-md border border-white/[0.07]"><Clock className="w-3 h-3 text-[#F5A623]"/> {proposal.deadline_text}</p>
+                                            <div className="flex justify-between items-center bg-[var(--bg-primary)] p-2.5 rounded-lg border border-[var(--border-hairline)]">
+                                                <p className="text-lg font-bold text-[#2563EB] dark:text-[#60A5FA] leading-none tracking-tight">R$ {proposal.amount.toFixed(2)}</p>
+                                                <p className="text-[10px] text-[var(--text-secondary)] flex items-center gap-1 font-medium bg-[var(--bg-surface)] px-2 py-1 rounded-md border border-[var(--border-hairline)]"><Clock className="w-3 h-3 text-[#2563EB] dark:text-[#60A5FA]"/> {proposal.deadline_text}</p>
                                             </div>
                                         </div>
 
                                         {/* Mensagem da Proposta Legível e Expansível no Mobile */}
-                                        <div className="mt-2 mb-3 bg-[#0B0D11] p-3 rounded-xl border border-white/[0.08]">
+                                        <div className="mt-2 mb-3 bg-[var(--bg-primary)] p-3 rounded-xl border border-[var(--border-hairline)]">
                                             <div className="flex items-center justify-between mb-1">
-                                                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1">
-                                                    <MessageSquare className="w-3 h-3 text-[#F5A623]" /> Mensagem do Programador
+                                                <span className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-wider flex items-center gap-1">
+                                                    <MessageSquare className="w-3 h-3 text-[#2563EB] dark:text-[#60A5FA]" /> Mensagem do Programador
                                                 </span>
                                             </div>
-                                            <div className="text-xs text-gray-300 leading-relaxed whitespace-pre-wrap break-words">
+                                            <div className="text-xs text-[var(--text-primary)] leading-relaxed whitespace-pre-wrap break-words">
                                                 {proposal.message ? (
                                                     expandedProposalMessages[proposal.id] || proposal.message.length <= 110 ? (
                                                         <span>&ldquo;{proposal.message}&rdquo;</span>
@@ -2605,20 +2606,20 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                                             <button 
                                                                 type="button"
                                                                 onClick={() => setExpandedProposalMessages(prev => ({ ...prev, [proposal.id]: true }))}
-                                                                className="text-[#F5A623] hover:underline font-bold ml-1.5 inline-block text-[11px]"
+                                                                className="text-[#2563EB] dark:text-[#60A5FA] hover:underline font-bold ml-1.5 inline-block text-[11px]"
                                                             >
                                                                 Ler tudo
                                                             </button>
                                                         </>
                                                     )
                                                 ) : (
-                                                    <span className="text-gray-500 italic">Sem mensagem adicional.</span>
+                                                    <span className="text-[var(--text-secondary)] italic">Sem mensagem adicional.</span>
                                                 )}
                                                 {expandedProposalMessages[proposal.id] && proposal.message && proposal.message.length > 110 && (
                                                     <button 
                                                         type="button"
                                                         onClick={() => setExpandedProposalMessages(prev => ({ ...prev, [proposal.id]: false }))}
-                                                        className="text-gray-400 hover:text-white font-bold text-[11px] block mt-1"
+                                                        className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] font-bold text-[11px] block mt-1"
                                                     >
                                                         Recolher
                                                     </button>
@@ -2632,21 +2633,21 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                                     <div className="grid grid-cols-2 gap-2">
                                                         <button 
                                                             onClick={() => setConfirmAcceptModal(proposal.id)} 
-                                                            className="bg-gradient-to-r from-[#FFB703] to-[#FB8500] hover:brightness-110 text-black text-xs font-black py-2.5 rounded-xl transition-all shadow-md shadow-[#FFB703]/10 flex items-center justify-center gap-1.5 active:scale-95"
+                                                            className="min-h-[48px] sm:min-h-[42px] bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-semibold py-2.5 rounded-xl transition-all flex items-center justify-center gap-1.5 active:scale-95"
                                                         >
-                                                            <Zap className="w-3.5 h-3.5 fill-black"/> Pagar Agora
+                                                            <Zap className="w-3.5 h-3.5"/> Pagar Agora
                                                         </button>
                                                         <button 
                                                             onClick={() => handleNegotiate(proposal.id)} 
-                                                            className={`border text-xs font-bold py-2.5 rounded-xl transition-colors flex items-center justify-center gap-1 relative ${negotiatingProposalId === proposal.id ? 'bg-white/10 text-white border-white/20' : 'border-white/[0.07] text-gray-400 hover:text-white'}`}
+                                                            className={`min-h-[44px] sm:min-h-[42px] border text-xs font-semibold py-2.5 rounded-xl transition-colors flex items-center justify-center gap-1 relative ${negotiatingProposalId === proposal.id ? 'bg-[#2563EB]/12 text-[#2563EB] dark:text-[#60A5FA] border-[#2563EB]/30' : 'bg-[var(--bg-surface)] border-[var(--border-hairline)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
                                                         >
                                                             <MessageSquare className="w-3.5 h-3.5"/> {negotiatingProposalId === proposal.id ? 'Fechar Chat' : 'Abrir Chat'}
-                                                            {unreadCounts[proposal.id] > 0 && <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white shadow-lg animate-bounce">{unreadCounts[proposal.id]}</span>}
+                                                            {unreadCounts[proposal.id] > 0 && <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-[#DC2626] text-[9px] font-bold text-white shadow-sm">{unreadCounts[proposal.id]}</span>}
                                                         </button>
                                                     </div>
                                                     <button 
                                                         onClick={() => setActiveCounterProposalId(activeCounterProposalId === proposal.id ? null : proposal.id)}
-                                                        className={`w-full text-xs font-black py-2 rounded-xl border transition-all flex items-center justify-center gap-1.5 ${activeCounterProposalId === proposal.id ? 'bg-[#FFAE00]/20 text-[#FFAE00] border-[#FFAE00]/40' : 'bg-white/5 hover:bg-white/10 text-yellow-400 border-yellow-500/25 hover:border-yellow-500/40'}`}
+                                                        className={`w-full min-h-[44px] sm:min-h-0 text-xs font-semibold py-2 rounded-xl border transition-all flex items-center justify-center gap-1.5 ${activeCounterProposalId === proposal.id ? 'bg-[#2563EB]/15 text-[#2563EB] dark:text-[#60A5FA] border-[#2563EB]/40' : 'bg-[var(--btn-glass-bg)] hover:bg-[#2563EB]/10 text-[#2563EB] dark:text-[#60A5FA] border-[#2563EB]/25 hover:border-[#2563EB]/40'}`}
                                                     >
                                                         <Handshake className="w-3.5 h-3.5"/> {activeCounterProposalId === proposal.id ? 'Fechar Contraproposta' : 'Fazer Contraproposta'}
                                                     </button>
@@ -2654,31 +2655,31 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                             )}
 
                                             {!isOwner && currentUser?.id === proposal.criador_id && (
-                                                <button onClick={() => handleNegotiate(proposal.id)} className={`w-full border text-xs font-bold py-2 rounded-lg transition-colors flex items-center justify-center gap-1 relative ${negotiatingProposalId === proposal.id ? 'bg-[#FFAE00]/10 text-[#FFAE00] border-[#FFAE00]/30' : 'border-white/10 text-gray-400 hover:text-[#FFAE00]'}`}>
+                                                <button onClick={() => handleNegotiate(proposal.id)} className={`w-full min-h-[44px] sm:min-h-0 border text-xs font-semibold py-2 rounded-lg transition-colors flex items-center justify-center gap-1 relative ${negotiatingProposalId === proposal.id ? 'bg-[#2563EB]/12 text-[#2563EB] dark:text-[#60A5FA] border-[#2563EB]/30' : 'border-[var(--border-hairline)] text-[var(--text-secondary)] hover:text-[#2563EB] dark:hover:text-[#60A5FA]'}`}>
                                                     <MessageSquare className="w-3.5 h-3.5"/> {negotiatingProposalId === proposal.id ? 'Fechar Chat' : 'Abrir Chat'}
-                                                    {unreadCounts[proposal.id] > 0 && <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white shadow-lg animate-bounce">{unreadCounts[proposal.id]}</span>}
+                                                    {unreadCounts[proposal.id] > 0 && <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-[#DC2626] text-[9px] font-bold text-white shadow-sm">{unreadCounts[proposal.id]}</span>}
                                                 </button>
                                             )}
 
                                             {/* Painel de Contraproposta no Card */}
                                             {isOwner && activeCounterProposalId === proposal.id && proposal.status === 'pendente' && (
-                                                <div className="p-3 bg-[#181C26] border border-[#FFAE00]/30 rounded-xl flex flex-col gap-2 shadow-lg animate-in slide-in-from-top duration-200">
+                                                <div className="p-3 bg-[var(--bg-surface)] border border-[#2563EB]/30 rounded-xl flex flex-col gap-2 shadow-lg animate-in slide-in-from-top duration-200">
                                                     <div className="flex items-center justify-between">
-                                                        <p className="text-[11px] font-black text-white uppercase tracking-wider flex items-center gap-1">
-                                                            <Handshake className="w-3.5 h-3.5 text-[#FFAE00]"/> Sua Contraproposta
+                                                        <p className="text-[11px] font-bold text-[var(--text-primary)] uppercase tracking-wider flex items-center gap-1">
+                                                            <Handshake className="w-3.5 h-3.5 text-[#2563EB] dark:text-[#60A5FA]"/> Sua Contraproposta
                                                         </p>
-                                                        <span className="text-[10px] text-gray-400">Atual: R$ {proposal.amount.toFixed(2)}</span>
+                                                        <span className="text-[10px] text-[var(--text-secondary)]">Atual: R$ {proposal.amount.toFixed(2)}</span>
                                                     </div>
                                                     <div className="flex gap-2">
                                                         <div className="relative flex-1">
-                                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs font-black">R$</span>
+                                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-secondary)] text-xs font-bold">R$</span>
                                                             <input 
                                                                 type="number" 
                                                                 step="0.01"
                                                                 min="1"
                                                                 inputMode="decimal"
                                                                 placeholder="0,00" 
-                                                                className="w-full bg-[#0B0D11] border border-white/10 text-sm font-bold pl-8 pr-2.5 py-2 rounded-lg text-white focus:border-[#FFAE00] outline-none" 
+                                                                className="w-full bg-[var(--bg-primary)] border border-[var(--border-hairline)] text-sm font-bold pl-8 pr-2.5 py-2 rounded-lg text-[var(--text-primary)] focus:border-[#2563EB] dark:focus:border-[#3B82F6] outline-none" 
                                                                 value={counterAmount}
                                                                 onChange={(e) => setCounterAmount(e.target.value)}
                                                             />
@@ -2686,25 +2687,25 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                                         <button 
                                                             onClick={() => submitCounterProposal(proposal.id)} 
                                                             disabled={!counterAmount || submittingCounter} 
-                                                            className="bg-[#FFAE00] hover:bg-yellow-400 text-black text-xs font-black px-4 py-2 rounded-lg disabled:opacity-50 transition-all whitespace-nowrap active:scale-95 shadow flex items-center justify-center gap-1.5 cursor-pointer"
+                                                            className="min-h-[44px] sm:min-h-0 bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-semibold px-4 py-2 rounded-lg disabled:opacity-50 transition-all whitespace-nowrap active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer"
                                                         >
                                                             {submittingCounter && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                                                             {submittingCounter ? 'Enviando...' : 'Enviar'}
                                                         </button>
                                                     </div>
                                                     <div className="flex items-center gap-1.5 pt-0.5 flex-wrap">
-                                                        <span className="text-[10px] text-gray-400">Atalhos:</span>
+                                                        <span className="text-[10px] text-[var(--text-secondary)]">Atalhos:</span>
                                                         <button 
                                                             type="button"
                                                             onClick={() => setCounterAmount((proposal.amount * 0.9).toFixed(2))}
-                                                            className="text-[10px] bg-white/5 hover:bg-white/10 text-gray-300 px-2 py-0.5 rounded border border-white/10"
+                                                            className="min-h-[36px] sm:min-h-0 text-[10px] bg-[var(--btn-glass-bg)] hover:bg-[#2563EB]/10 text-[var(--text-primary)] px-2.5 py-1.5 sm:py-1 rounded border border-[var(--border-hairline)]"
                                                         >
                                                             -10% (R$ {(proposal.amount * 0.9).toFixed(2)})
                                                         </button>
                                                         <button 
                                                             type="button"
                                                             onClick={() => setCounterAmount((proposal.amount * 0.85).toFixed(2))}
-                                                            className="text-[10px] bg-white/5 hover:bg-white/10 text-gray-300 px-2 py-0.5 rounded border border-white/10"
+                                                            className="min-h-[36px] sm:min-h-0 text-[10px] bg-[var(--btn-glass-bg)] hover:bg-[#2563EB]/10 text-[var(--text-primary)] px-2.5 py-1.5 sm:py-1 rounded border border-[var(--border-hairline)]"
                                                         >
                                                             -15% (R$ {(proposal.amount * 0.85).toFixed(2)})
                                                         </button>
@@ -2714,9 +2715,9 @@ function JobDetailClient({ jobId }: { jobId: string }) {
 
                                             {proposal.status === 'aceita' && (
                                                 <div className="flex flex-col gap-2">
-                                                    <div className="w-full text-center py-2 bg-green-500/10 text-green-500 text-xs font-bold rounded-lg border border-green-500/20 uppercase tracking-wider">Aceita</div>
+                                                    <div className="w-full text-center py-2 bg-[#0D9488]/10 text-[#0F766E] dark:text-[#14B8A6] text-xs font-bold rounded-lg border border-[#0D9488]/25 uppercase tracking-wider">Aceita</div>
                                                     {isOwner && job.status === 'aberto' && (
-                                                        <button onClick={() => { window.location.href = `/checkout/${proposal.id}` }} className="w-full bg-[#FFAE00] text-black text-xs font-bold py-2 rounded-lg transition-colors flex items-center justify-center gap-1 hover:brightness-110 cursor-pointer">
+                                                        <button onClick={() => { window.location.href = `/checkout/${proposal.id}` }} className="w-full min-h-[44px] bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-semibold py-2 rounded-lg transition-colors flex items-center justify-center gap-1 cursor-pointer">
                                                             <DollarSign className="w-3 h-3"/> Continuar Pagamento
                                                         </button>
                                                     )}
@@ -2724,21 +2725,21 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                             )}
 
                                             {!isOwner && proposal.status === 'contraproposta' && proposal.criador_id === currentUser?.id && (
-                                                <div className="p-3 bg-[#FFAE00]/10 border border-[#FFAE00]/30 rounded-xl mt-2">
-                                                    <p className="text-xs font-bold text-[#FFAE00] mb-2 flex items-center gap-1.5">
+                                                <div className="p-3 bg-[#2563EB]/10 border border-[#2563EB]/25 rounded-xl mt-2">
+                                                    <p className="text-xs font-bold text-[#2563EB] dark:text-[#60A5FA] mb-2 flex items-center gap-1.5">
                                                         <Handshake className="w-3.5 h-3.5"/> Oferta do Cliente: R$ {Number(proposal.counter_amount).toFixed(2)}
                                                     </p>
                                                     <div className="flex gap-2">
                                                         <button 
                                                             onClick={() => handleProgrammerResponse(proposal.id, 'accept_counter', proposal)} 
-                                                            className="flex-1 bg-[#FFAE00] hover:bg-yellow-400 text-black text-xs font-black py-2 rounded-lg transition-all shadow flex items-center justify-center gap-1 active:scale-95"
+                                                            className="flex-1 min-h-[44px] sm:min-h-0 bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-semibold py-2 rounded-lg transition-all flex items-center justify-center gap-1 active:scale-95"
                                                         >
                                                             <Check className="w-3.5 h-3.5" />
                                                             Aceitar Oferta (R$ {Number(proposal.counter_amount).toFixed(2)})
                                                         </button>
                                                         <button 
                                                             onClick={() => handleProgrammerResponse(proposal.id, 'reject_counter', proposal)} 
-                                                            className="border border-white/10 hover:border-white/20 text-gray-400 hover:text-white text-xs py-2 px-3 rounded-lg hover:bg-white/5 transition-colors flex items-center gap-1 active:scale-95"
+                                                            className="min-h-[44px] sm:min-h-0 border border-[var(--border-glass)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] text-xs py-2 px-3 rounded-lg hover:bg-[var(--btn-glass-bg)] transition-colors flex items-center gap-1 active:scale-95"
                                                         >
                                                             <X className="w-3.5 h-3.5" />
                                                             Recusar
@@ -2749,13 +2750,13 @@ function JobDetailClient({ jobId }: { jobId: string }) {
 
                                             {isOwner && proposal.status === 'contraproposta' && (
                                                 <div className="flex flex-col gap-2 mt-2">
-                                                    <div className="p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg text-center">
-                                                        <p className="text-[10px] text-yellow-500 font-bold uppercase tracking-wider mb-1"><Clock className="w-3 h-3 inline mr-1"/> Aguardando Resposta</p>
-                                                        <p className="text-xs text-gray-300">Você ofereceu <strong>R$ {Number(proposal.counter_amount).toFixed(2)}</strong></p>
+                                                    <div className="p-3 bg-[#2563EB]/10 border border-[#2563EB]/25 rounded-lg text-center">
+                                                        <p className="text-[10px] text-[#2563EB] dark:text-[#60A5FA] font-bold uppercase tracking-wider mb-1"><Clock className="w-3 h-3 inline mr-1"/> Aguardando Resposta</p>
+                                                        <p className="text-xs text-[var(--text-primary)]">Você ofereceu <strong>R$ {Number(proposal.counter_amount).toFixed(2)}</strong></p>
                                                     </div>
-                                                    <button onClick={() => handleNegotiate(proposal.id)} className={`w-full border text-xs font-bold py-2 rounded-lg transition-colors flex items-center justify-center gap-1 relative ${negotiatingProposalId === proposal.id ? 'bg-white/10 text-white border-white/20' : 'border-white/10 text-gray-400 hover:text-white'}`}>
+                                                    <button onClick={() => handleNegotiate(proposal.id)} className={`w-full min-h-[44px] sm:min-h-0 border text-xs font-semibold py-2 rounded-lg transition-colors flex items-center justify-center gap-1 relative ${negotiatingProposalId === proposal.id ? 'bg-[#2563EB]/12 text-[#2563EB] dark:text-[#60A5FA] border-[#2563EB]/30' : 'border-[var(--border-hairline)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}>
                                                         <MessageSquare className="w-3 h-3"/> {negotiatingProposalId === proposal.id ? 'Fechar Chat' : 'Abrir Chat'}
-                                                        {unreadCounts[proposal.id] > 0 && <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white shadow-lg animate-bounce">{unreadCounts[proposal.id]}</span>}
+                                                        {unreadCounts[proposal.id] > 0 && <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-[#DC2626] text-[9px] font-bold text-white shadow-sm">{unreadCounts[proposal.id]}</span>}
                                                     </button>
                                                 </div>
                                             )}
@@ -2765,17 +2766,17 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                 )}
                             </div>
                         ) : (
-                            <div className="bg-[#12151C] border border-white/[0.07] rounded-2xl p-6 text-center flex flex-col items-center justify-center gap-2.5">
-                                <div className="w-10 h-10 rounded-full bg-[#FFAE00]/10 border border-[#FFAE00]/20 flex items-center justify-center text-[#FFAE00]">
+                            <div className="bg-[var(--bg-surface-elevated)] border border-[var(--border-hairline)] rounded-2xl p-6 text-center flex flex-col items-center justify-center gap-2.5">
+                                <div className="w-10 h-10 rounded-full bg-[#2563EB]/10 border border-[#2563EB]/25 flex items-center justify-center text-[#2563EB] dark:text-[#60A5FA]">
                                     <Lock className="w-5 h-5" />
                                 </div>
-                                <p className="text-sm font-bold text-white">
+                                <p className="text-sm font-bold text-[var(--text-primary)]">
                                     {proposals.length === 0 
                                         ? 'Nenhuma proposta recebida até o momento' 
                                         : `${proposals.length} ${proposals.length === 1 ? 'proposta recebida' : 'propostas recebidas'}`
                                     }
                                 </p>
-                                <p className="text-xs text-gray-400 max-w-md leading-relaxed">
+                                <p className="text-xs text-[var(--text-secondary)] max-w-md leading-relaxed">
                                     {proposals.length === 0 
                                         ? 'Seja o primeiro a enviar uma proposta de orçamento para este pedido!' 
                                         : 'As propostas e valores são confidenciais e visíveis exclusivamente para o cliente deste pedido.'
@@ -2790,7 +2791,7 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                 {negotiatingProposalId && (
                     <div 
                         id="negotiation-chat-section" 
-                        className="fixed inset-0 z-50 md:static md:z-auto h-[100dvh] md:h-[560px] w-full bg-[#111b21] md:border md:border-white/10 md:rounded-2xl overflow-hidden shadow-2xl md:mt-4 md:mb-8 animate-in slide-in-from-bottom-4 fade-in duration-300"
+                        className="fixed inset-0 z-50 md:static md:z-auto h-[100dvh] md:h-[560px] w-full bg-[var(--bg-primary)] md:border md:border-[var(--border-hairline)] md:rounded-2xl overflow-hidden shadow-2xl md:mt-4 md:mb-8 animate-in slide-in-from-bottom-4 fade-in duration-300"
                     >
                         <div className="h-full">
                             <NegotiationChat
@@ -2826,28 +2827,28 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                 {/* MODAL PARA O PROGRAMADOR AJUSTAR O VALOR DA SUA PROPOSTA */}
                 {showEditProposalModal && myExistingProposal && (
                     <div 
-                        className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[100] p-4 animate-in fade-in duration-200"
+                        className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[100] p-4 animate-in fade-in duration-200"
                         onClick={() => setShowEditProposalModal(false)}
                     >
                         <div 
-                            className="bg-[#1A1D23] border border-[#FFAE00]/30 p-6 md:p-8 rounded-2xl w-full max-w-sm shadow-[0_0_50px_rgba(255,174,0,0.15)] animate-in zoom-in-95 duration-200 relative"
+                            className="bg-[var(--bg-surface)] border border-[var(--border-hairline)] p-6 md:p-8 rounded-2xl w-full max-w-sm shadow-2xl animate-in zoom-in-95 duration-200 relative"
                             onClick={e => e.stopPropagation()}
                         >
                             <button
                                 onClick={() => setShowEditProposalModal(false)}
-                                className="absolute top-4 right-4 text-gray-400 hover:text-white p-1 rounded-lg hover:bg-white/5 transition-colors"
+                                className="absolute top-3 right-3 min-w-[44px] min-h-[44px] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] rounded-lg hover:bg-[var(--btn-glass-bg)] transition-colors"
                             >
                                 <X className="w-5 h-5" />
                             </button>
-                            <div className="w-12 h-12 bg-[#FFAE00]/20 rounded-xl flex items-center justify-center mb-4 border border-[#FFAE00]/30">
-                                <DollarSign className="w-6 h-6 text-[#FFAE00]" />
+                            <div className="w-12 h-12 bg-[#2563EB]/15 rounded-xl flex items-center justify-center mb-4 border border-[#2563EB]/25">
+                                <DollarSign className="w-6 h-6 text-[#2563EB] dark:text-[#60A5FA]" />
                             </div>
-                            <h3 className="text-lg font-black text-white mb-1">Ajustar Valor da Proposta</h3>
-                            <p className="text-xs text-gray-300 mb-4 leading-relaxed">
-                                Valor atual: <strong className="text-yellow-400">R$ {myExistingProposal.amount?.toFixed(2)}</strong>. Digite o novo valor acordado para fechar este trabalho:
+                            <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-1">Ajustar Valor da Proposta</h3>
+                            <p className="text-xs text-[var(--text-secondary)] mb-4 leading-relaxed">
+                                Valor atual: <strong className="text-[#2563EB] dark:text-[#60A5FA]">R$ {myExistingProposal.amount?.toFixed(2)}</strong>. Digite o novo valor acordado para fechar este trabalho:
                             </p>
                             <div className="relative mb-5">
-                                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-black">R$</span>
+                                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--text-secondary)] text-sm font-bold">R$</span>
                                 <input 
                                     type="number"
                                     step="0.01"
@@ -2855,20 +2856,20 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                     placeholder="0,00"
                                     value={editProposalAmount}
                                     onChange={e => setEditProposalAmount(e.target.value)}
-                                    className="w-full bg-[#0F1115] border border-white/10 rounded-xl pl-10 pr-4 py-3 text-base text-white font-bold focus:border-[#FFAE00] outline-none"
+                                    className="w-full bg-[var(--bg-surface-elevated)] border border-[var(--border-hairline)] rounded-xl pl-10 pr-4 py-3 text-base text-[var(--text-primary)] font-bold focus:border-[#2563EB] dark:focus:border-[#3B82F6] outline-none"
                                 />
                             </div>
                             <div className="flex gap-2">
                                 <button
                                     onClick={handleProgrammerAdjustProposal}
                                     disabled={savingEditProposal || !editProposalAmount}
-                                    className="flex-1 bg-[#FFAE00] hover:bg-yellow-400 text-black font-black text-xs py-3 rounded-xl transition-all shadow-md shadow-[#FFAE00]/20 disabled:opacity-50 active:scale-95"
+                                    className="flex-1 min-h-[48px] bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-semibold text-xs py-3 rounded-xl transition-all disabled:opacity-50 active:scale-95"
                                 >
                                     {savingEditProposal ? 'Salvando...' : 'Confirmar Novo Valor'}
                                 </button>
                                 <button
                                     onClick={() => setShowEditProposalModal(false)}
-                                    className="border border-white/10 text-gray-400 hover:text-white text-xs px-4 py-3 rounded-xl hover:bg-white/5 transition-colors"
+                                    className="min-h-[48px] border border-[var(--border-glass)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] text-xs px-4 py-3 rounded-xl hover:bg-[var(--btn-glass-bg)] transition-colors"
                                 >
                                     Cancelar
                                 </button>
@@ -2879,19 +2880,19 @@ function JobDetailClient({ jobId }: { jobId: string }) {
 
                 {/* SUCCESS MODAL */}
                 {showSuccessModal && (
-                    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[100] p-4 animate-in fade-in duration-300">
-                        <div className="bg-[#1A1D23] border border-green-500/30 p-8 rounded-2xl w-full max-w-md text-center shadow-[0_0_50px_rgba(34,197,94,0.15)] animate-in zoom-in-95 duration-300">
-                            <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-6 shadow-[0_0_30px_rgba(34,197,94,0.3)]">
-                                <CheckCircle className="w-10 h-10 text-green-400" />
+                    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[100] p-4 animate-in fade-in duration-300">
+                        <div className="bg-[var(--bg-surface)] border border-[var(--border-hairline)] p-8 rounded-2xl w-full max-w-md text-center shadow-2xl animate-in zoom-in-95 duration-300">
+                            <div className="w-20 h-20 bg-[#0D9488]/15 rounded-full flex items-center justify-center mx-auto mb-6 border border-[#0D9488]/25">
+                                <CheckCircle className="w-10 h-10 text-[#0F766E] dark:text-[#14B8A6]" />
                             </div>
-                            <h3 className="text-3xl font-black text-white mb-2">Matriz Enviada com Sucesso!</h3>
-                            <p className="text-gray-400 text-sm mb-8 leading-relaxed">
+                            <h3 className="text-3xl font-semibold text-[var(--text-primary)] mb-2">Matriz Enviada com Sucesso!</h3>
+                            <p className="text-[var(--text-secondary)] text-sm mb-8 leading-relaxed">
                                 Parabéns pelo trabalho! O comprador já foi notificado.<br/><br/>
-                                <strong className="text-white">O pagamento será liberado</strong> automaticamente em <strong>24 horas</strong> caso o cliente não solicite revisões, ou imediatamente após a avaliação.
+                                <strong className="text-[var(--text-primary)]">O pagamento será liberado</strong> automaticamente em <strong>24 horas</strong> caso o cliente não solicite revisões, ou imediatamente após a avaliação.
                             </p>
                             <button 
                                 onClick={() => window.location.reload()}
-                                className="w-full bg-green-500 text-white font-bold py-4 rounded-xl hover:bg-green-600 transition-colors shadow-lg shadow-green-500/20"
+                                className="w-full min-h-[48px] bg-[#0D9488] text-white font-semibold py-4 rounded-xl hover:bg-[#0F766E] transition-colors"
                             >
                                 Entendi, fechar
                             </button>
@@ -2902,48 +2903,48 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                 {/* CONFIRM ACCEPT MODAL */}
                 {confirmAcceptModal && (
                     <div 
-                        className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[100] p-4 animate-in fade-in duration-200"
+                        className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[100] p-4 animate-in fade-in duration-200"
                         onClick={handleCloseConfirmAccept}
                     >
                         <div 
-                            className="bg-[#1A1D23] border border-[#FFAE00]/30 p-6 md:p-8 rounded-2xl w-full max-w-md text-center shadow-[0_0_50px_rgba(255,174,0,0.15)] animate-in zoom-in-95 duration-200 relative"
+                            className="bg-[var(--bg-surface)] border border-[var(--border-hairline)] p-6 md:p-8 rounded-2xl w-full max-w-md text-center shadow-2xl animate-in zoom-in-95 duration-200 relative"
                             onClick={e => e.stopPropagation()}
                         >
                             <button
                                 onClick={handleCloseConfirmAccept}
-                                className="absolute top-4 right-4 text-gray-400 hover:text-white p-1 rounded-lg hover:bg-white/5 transition-colors"
+                                className="absolute top-3 right-3 min-w-[44px] min-h-[44px] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] rounded-lg hover:bg-[var(--btn-glass-bg)] transition-colors"
                             >
                                 <X className="w-5 h-5" />
                             </button>
-                            <div className="w-16 h-16 bg-[#FFAE00]/20 rounded-full flex items-center justify-center mx-auto mb-6 shadow-[0_0_30px_rgba(255,174,0,0.3)]">
-                                <DollarSign className="w-8 h-8 text-[#FFAE00]" />
+                            <div className="w-16 h-16 bg-[#2563EB]/15 rounded-full flex items-center justify-center mx-auto mb-6 border border-[#2563EB]/25">
+                                <DollarSign className="w-8 h-8 text-[#2563EB] dark:text-[#60A5FA]" />
                             </div>
-                            <h3 className="text-2xl font-black text-white mb-2">Ir para o Pagamento?</h3>
-                            <p className="text-gray-400 text-sm mb-8 leading-relaxed">
+                            <h3 className="text-2xl font-semibold text-[var(--text-primary)] mb-2">Ir para o Pagamento?</h3>
+                            <p className="text-[var(--text-secondary)] text-sm mb-8 leading-relaxed">
                                 Você está prestes a fechar negócio com este programador. O valor ficará retido com segurança até que a matriz seja entregue e aprovada por você.
                             </p>
                             <div className="flex gap-3">
                                 <button 
                                     onClick={handleCloseConfirmAccept}
                                     disabled={acceptingProposal}
-                                    className="flex-1 bg-white/5 border border-white/10 text-white font-bold py-3.5 rounded-xl hover:bg-white/10 transition-colors disabled:opacity-50"
+                                    className="flex-1 min-h-[48px] bg-[var(--btn-glass-bg)] border border-[var(--border-glass)] text-[var(--text-primary)] font-semibold py-3.5 rounded-xl hover:border-[#2563EB]/40 transition-colors disabled:opacity-50"
                                 >
                                     Cancelar
                                 </button>
                                 <button 
                                     onClick={() => handleAcceptProposal(confirmAcceptModal)}
                                     disabled={acceptingProposal}
-                                    className="flex-1 bg-[#FFAE00] text-black font-black py-3.5 rounded-xl hover:brightness-110 active:scale-95 transition-all shadow-lg shadow-[#FFAE00]/20 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                                    className="flex-1 min-h-[48px] bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-semibold py-3.5 rounded-xl active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                                 >
                                     {acceptingProposal ? (
                                         <>
-                                            <Loader2 className="w-4 h-4 animate-spin text-black" />
+                                            <Loader2 className="w-4 h-4 animate-spin text-white" />
                                             <span>Indo para Pagamento...</span>
                                         </>
                                     ) : (
                                         <>
                                             <span>Pagar Agora</span>
-                                            <Zap className="w-4 h-4 fill-black" />
+                                            <Zap className="w-4 h-4" />
                                         </>
                                     )}
                                 </button>
@@ -2954,40 +2955,40 @@ function JobDetailClient({ jobId }: { jobId: string }) {
 
                 {/* REVISION REQUEST MODAL */}
                 {showRevisionModal && (
-                    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[100] p-4 animate-in fade-in duration-200">
-                        <div className="bg-[#1A1D23] border border-yellow-500/30 p-6 md:p-8 rounded-2xl w-full max-w-lg shadow-[0_0_50px_rgba(234,179,8,0.15)] relative">
+                    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[100] p-4 animate-in fade-in duration-200">
+                        <div className="bg-[var(--bg-surface)] border border-[var(--border-hairline)] p-6 md:p-8 rounded-2xl w-full max-w-lg shadow-2xl relative">
                             <button
                                 onClick={() => setShowRevisionModal(false)}
-                                className="absolute top-4 right-4 text-gray-400 hover:text-white p-1 rounded-lg hover:bg-white/5 transition-colors"
+                                className="absolute top-3 right-3 min-w-[44px] min-h-[44px] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] rounded-lg hover:bg-[var(--btn-glass-bg)] transition-colors"
                             >
                                 <X className="w-5 h-5" />
                             </button>
 
                             <div className="flex items-center gap-3 mb-6">
-                                <div className="w-12 h-12 bg-yellow-500/20 rounded-xl border border-yellow-500/30 flex items-center justify-center shrink-0">
-                                    <Wrench className="w-6 h-6 text-yellow-400" />
+                                <div className="w-12 h-12 bg-[#2563EB]/15 rounded-xl border border-[#2563EB]/25 flex items-center justify-center shrink-0">
+                                    <Wrench className="w-6 h-6 text-[#2563EB] dark:text-[#60A5FA]" />
                                 </div>
                                 <div>
-                                    <h3 className="text-xl font-black text-white">Solicitar Ajuste na Matriz</h3>
-                                    <p className="text-xs text-gray-400 mt-0.5">Descreva o que aconteceu no teste para o programador corrigir.</p>
+                                    <h3 className="text-xl font-semibold text-[var(--text-primary)]">Solicitar Ajuste na Matriz</h3>
+                                    <p className="text-xs text-[var(--text-secondary)] mt-0.5">Descreva o que aconteceu no teste para o programador corrigir.</p>
                                 </div>
                             </div>
 
                             <div className="space-y-4">
                                 <div>
-                                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">
+                                    <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider mb-2">
                                         O que precisa ser ajustado? *
                                     </label>
                                     <textarea
                                         value={revisionNotes}
                                         onChange={e => setRevisionNotes(e.target.value)}
                                         placeholder="Ex: No teste em tecido piquet, o ponto da letra ficou muito denso e repuxou. Precisa reduzir um pouco os pontos e aumentar o contorno em 2mm..."
-                                        className="w-full bg-[#0F1115] border border-white/10 rounded-xl p-3.5 text-sm text-gray-200 focus:border-yellow-500/50 min-h-[120px]"
+                                        className="w-full bg-[var(--bg-surface-elevated)] border border-[var(--border-hairline)] rounded-xl p-3.5 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]/70 focus:outline-none focus:border-[#2563EB] dark:focus:border-[#3B82F6] min-h-[120px]"
                                     />
                                 </div>
 
                                 <div>
-                                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">
+                                    <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider mb-2">
                                         Foto do teste / defeito (opcional, mas recomendado)
                                     </label>
                                     <input
@@ -2999,9 +3000,9 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                     />
                                     <label
                                         htmlFor="revision-photo-input"
-                                        className="flex items-center gap-3 bg-[#0F1115] border border-white/10 hover:border-yellow-500/30 rounded-xl p-3.5 cursor-pointer text-xs text-gray-300 transition-colors"
+                                        className="flex items-center gap-3 bg-[var(--bg-surface-elevated)] border border-[var(--border-hairline)] hover:border-[#2563EB]/40 rounded-xl p-3.5 cursor-pointer text-xs text-[var(--text-primary)] transition-colors"
                                     >
-                                        <Camera className="w-5 h-5 text-yellow-400 shrink-0" />
+                                        <Camera className="w-5 h-5 text-[#2563EB] dark:text-[#60A5FA] shrink-0" />
                                         <span className="truncate">
                                             {revisionPhoto ? `Arquivo selecionado: ${revisionPhoto.name}` : 'Clique para anexar foto do bordado com defeito'}
                                         </span>
@@ -3012,7 +3013,7 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                     <button
                                         type="button"
                                         onClick={() => setShowRevisionModal(false)}
-                                        className="flex-1 bg-white/5 border border-white/10 text-gray-400 font-bold py-3.5 rounded-xl hover:bg-white/10 transition-colors text-xs"
+                                        className="flex-1 min-h-[48px] bg-[var(--btn-glass-bg)] border border-[var(--border-glass)] text-[var(--text-primary)] font-semibold py-3.5 rounded-xl hover:border-[#2563EB]/40 transition-colors text-xs"
                                     >
                                         Cancelar
                                     </button>
@@ -3020,11 +3021,11 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                         type="button"
                                         disabled={submittingRevision}
                                         onClick={handleRequestRevision}
-                                        className="flex-1 bg-yellow-500 hover:bg-yellow-400 text-black font-black py-3.5 rounded-xl transition-all shadow-lg shadow-yellow-500/20 disabled:opacity-50 flex items-center justify-center gap-2 text-xs"
+                                        className="flex-1 min-h-[48px] bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-semibold py-3.5 rounded-xl transition-all disabled:opacity-50 flex items-center justify-center gap-2 text-xs"
                                     >
                                         {submittingRevision ? (
                                             <>
-                                                <div className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" />
+                                                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                                                 Enviando Ajuste...
                                             </>
                                         ) : (
@@ -3043,32 +3044,32 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                 {/* Modal de Confirmação — Cancelar/Excluir Pedido */}
                 {showCancelModal && (
                     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-                        <div className="bg-[#12151C] border border-white/10 rounded-2xl p-6 max-w-md w-full shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+                        <div className="bg-[var(--bg-surface)] border border-[var(--border-hairline)] rounded-2xl p-6 max-w-md w-full shadow-2xl animate-in fade-in zoom-in-95 duration-200">
                             <div className="flex items-center gap-3 mb-4">
-                                <div className="w-12 h-12 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center shrink-0">
-                                    <Trash2 className="w-6 h-6 text-red-400" />
+                                <div className="w-12 h-12 rounded-xl bg-red-500/10 border border-red-500/25 flex items-center justify-center shrink-0">
+                                    <Trash2 className="w-6 h-6 text-[#DC2626] dark:text-[#EF4444]" />
                                 </div>
                                 <div>
-                                    <h3 className="text-lg font-extrabold text-white">Excluir Pedido Definitivamente</h3>
-                                    <p className="text-xs text-gray-400">Esta ação apagará o pedido do banco de dados</p>
+                                    <h3 className="text-lg font-semibold text-[var(--text-primary)]">Excluir Pedido Definitivamente</h3>
+                                    <p className="text-xs text-[var(--text-secondary)]">Esta ação apagará o pedido do banco de dados</p>
                                 </div>
                             </div>
 
-                            <div className="bg-red-500/5 border border-red-500/15 rounded-xl p-4 mb-5">
-                                <p className="text-sm text-gray-300 leading-relaxed">
-                                    Tem certeza que deseja apagar o pedido <strong className="text-white">&quot;{job?.title}&quot;</strong>?
+                            <div className="bg-red-500/8 border border-red-500/20 rounded-xl p-4 mb-5">
+                                <p className="text-sm text-[var(--text-primary)] leading-relaxed">
+                                    Tem certeza que deseja apagar o pedido <strong>&quot;{job?.title}&quot;</strong>?
                                 </p>
-                                <ul className="mt-3 space-y-1.5 text-xs text-gray-400">
+                                <ul className="mt-3 space-y-1.5 text-xs text-[var(--text-secondary)]">
                                     <li className="flex items-start gap-2">
-                                        <AlertCircle className="w-3.5 h-3.5 text-red-400 shrink-0 mt-0.5" />
+                                        <AlertCircle className="w-3.5 h-3.5 text-[#DC2626] dark:text-[#EF4444] shrink-0 mt-0.5" />
                                         O pedido será apagado permanentemente do banco de dados
                                     </li>
                                     <li className="flex items-start gap-2">
-                                        <AlertCircle className="w-3.5 h-3.5 text-red-400 shrink-0 mt-0.5" />
+                                        <AlertCircle className="w-3.5 h-3.5 text-[#DC2626] dark:text-[#EF4444] shrink-0 mt-0.5" />
                                         Cobranças pendentes serão canceladas no Asaas
                                     </li>
                                     <li className="flex items-start gap-2">
-                                        <AlertCircle className="w-3.5 h-3.5 text-red-400 shrink-0 mt-0.5" />
+                                        <AlertCircle className="w-3.5 h-3.5 text-[#DC2626] dark:text-[#EF4444] shrink-0 mt-0.5" />
                                         Propostas vinculadas serão removidas
                                     </li>
                                 </ul>
@@ -3079,7 +3080,7 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                     type="button"
                                     onClick={() => setShowCancelModal(false)}
                                     disabled={cancelling}
-                                    className="flex-1 bg-white/5 border border-white/10 text-gray-400 font-bold py-3 rounded-xl hover:bg-white/10 transition-colors text-sm disabled:opacity-50"
+                                    className="flex-1 min-h-[48px] bg-[var(--btn-glass-bg)] border border-[var(--border-glass)] text-[var(--text-primary)] font-semibold py-3 rounded-xl hover:border-[#2563EB]/40 transition-colors text-sm disabled:opacity-50"
                                 >
                                     Voltar
                                 </button>
@@ -3087,7 +3088,7 @@ function JobDetailClient({ jobId }: { jobId: string }) {
                                     type="button"
                                     onClick={handleCancelJob}
                                     disabled={cancelling}
-                                    className="flex-1 bg-red-500 hover:bg-red-600 text-white font-black py-3 rounded-xl transition-all shadow-lg shadow-red-500/20 disabled:opacity-50 flex items-center justify-center gap-2 text-sm"
+                                    className="flex-1 min-h-[48px] bg-[#DC2626] hover:bg-[#B91C1C] text-white font-semibold py-3 rounded-xl transition-all disabled:opacity-50 flex items-center justify-center gap-2 text-sm"
                                 >
                                     {cancelling ? (
                                         <>

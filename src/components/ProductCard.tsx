@@ -2,7 +2,6 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { Download, ShoppingCart, Star } from 'lucide-react'
 
-// Using format price helper or simple inline format
 const formatPrice = (price: number) => {
     return new Intl.NumberFormat('pt-BR', {
         style: 'currency',
@@ -11,6 +10,7 @@ const formatPrice = (price: number) => {
 }
 
 export default function ProductCard({ product }: { product: any }) {
+    const imageUrl = typeof product?.image_url === 'string' ? product.image_url.trim() : ''
     const normalizedFormats: string[] = Array.from(
         new Set<string>(
             (Array.isArray(product?.formats) ? product.formats : [])
@@ -22,34 +22,59 @@ export default function ProductCard({ product }: { product: any }) {
     return (
         <Link
             href={`/marketplace/${product.id}`}
-            className="bg-[#1A1D23] border border-gray-800 hover:border-[#FFAE00]/50 rounded-2xl overflow-hidden transition-all duration-300 hover:shadow-[0_0_30px_rgba(255,174,0,0.1)] group flex flex-col h-full relative cursor-pointer"
+            className="bg-[var(--bg-surface)] border border-[var(--border-hairline)] hover:border-[var(--border-glass)] rounded-2xl overflow-hidden transition-all duration-200 group flex flex-col h-full relative cursor-pointer interactive-card"
         >
-            {/* Image Container */}
-            <div className="relative w-full h-48 bg-[#0F1115] overflow-hidden">
-                <Image
-                    src={product.image_url || '/brand/icon-dark.png'}
-                    alt={product.title}
-                    fill
-                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 300px"
-                    className="object-cover object-center group-hover:scale-110 transition-transform duration-500"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#1A1D23] via-transparent to-transparent opacity-80" />
+            {/* Image Container (4:3 standardized) */}
+            <div className="relative w-full aspect-[4/3] bg-[var(--bg-surface-elevated)] overflow-hidden">
+                {imageUrl ? (
+                    <Image
+                        src={imageUrl}
+                        alt={product.title}
+                        fill
+                        unoptimized={imageUrl.toLowerCase().endsWith('.svg')}
+                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 300px"
+                        className="object-cover object-center group-hover:scale-105 transition-transform duration-500"
+                    />
+                ) : (
+                    <>
+                        <img
+                            src="/brand/v2/logo-bg-dark.svg"
+                            alt={product.title}
+                            width={720}
+                            height={720}
+                            decoding="async"
+                            className="hidden dark:block w-full h-full object-cover object-center select-none group-hover:scale-105 transition-transform duration-500"
+                        />
+                        <img
+                            src="/brand/v2/logo-bg-light.svg"
+                            alt={product.title}
+                            width={720}
+                            height={720}
+                            decoding="async"
+                            className="block dark:hidden w-full h-full object-cover object-center select-none group-hover:scale-105 transition-transform duration-500"
+                        />
+                    </>
+                )}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-transparent" />
 
                 {/* Bundle Badge */}
                 {product.is_bundle && (
-                    <div className="absolute top-3 left-3 bg-[#FFAE00] text-[#0F1115] text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-md shadow-md">
+                    <div className="absolute top-3 left-3 bg-[#0F766E] text-white text-[11px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-md">
                         Pacote ({product.items_count || 2} Matrizes)
                     </div>
                 )}
 
                 <div className="absolute bottom-3 left-3 flex flex-wrap gap-1">
                     {normalizedFormats.slice(0, 3).map((fmt) => (
-                        <span key={fmt} className="bg-[#0F1115]/80 backdrop-blur-sm border border-white/10 text-xs font-bold px-2 py-0.5 rounded text-gray-300">
+                        <span
+                            key={fmt}
+                            className="bg-black/75 backdrop-blur-sm border border-white/15 text-[11px] font-medium px-2 py-0.5 rounded text-white"
+                        >
                             .{fmt}
                         </span>
                     ))}
                     {normalizedFormats.length > 3 && (
-                        <span className="bg-[#0F1115]/80 backdrop-blur-sm border border-white/10 text-xs font-bold px-2 py-0.5 rounded text-[#FFAE00]">
+                        <span className="bg-black/75 backdrop-blur-sm border border-white/15 text-[11px] font-semibold px-2 py-0.5 rounded text-[#60A5FA]">
                             +{normalizedFormats.length - 3}
                         </span>
                     )}
@@ -57,34 +82,46 @@ export default function ProductCard({ product }: { product: any }) {
             </div>
 
             {/* Content Container */}
-            <div className="p-5 flex flex-col flex-1">
-                <h3 className="text-lg font-bold text-[#F3F4F6] mb-1 line-clamp-1 group-hover:text-[#FFAE00] transition-colors">{product.title}</h3>
-                
+            <div className="p-4 sm:p-5 flex flex-col flex-1">
+                <h3 className="text-base sm:text-lg font-semibold text-[var(--text-primary)] mb-1 line-clamp-1 group-hover:text-[#2563EB] dark:group-hover:text-[#60A5FA] transition-colors">
+                    {product.title}
+                </h3>
+
                 {/* Seller Info */}
                 <div className="flex items-center gap-2 mb-3">
                     {product.seller?.avatar_url ? (
-                        <img src={product.seller.avatar_url} alt={product.seller.name} loading="lazy" decoding="async" className="w-5 h-5 rounded-full object-cover" />
+                        <img
+                            src={product.seller.avatar_url}
+                            alt={product.seller.name}
+                            loading="lazy"
+                            decoding="async"
+                            className="w-5 h-5 rounded-full object-cover border border-[var(--border-hairline)]"
+                        />
                     ) : (
-                        <div className="w-5 h-5 rounded-full bg-gray-700 flex items-center justify-center">
-                            <Star className="w-3 h-3 text-gray-500" />
+                        <div className="w-5 h-5 rounded-full bg-[var(--bg-surface-elevated)] border border-[var(--border-hairline)] flex items-center justify-center">
+                            <Star className="w-3 h-3 text-[var(--text-secondary)]" />
                         </div>
                     )}
-                    <span className="text-xs text-gray-400 truncate">Vendido por <span className="text-gray-300">{product.seller?.name || 'Programador'}</span></span>
+                    <span className="text-xs text-[var(--text-secondary)] truncate">
+                        Por <span className="text-[var(--text-primary)] font-medium">{product.seller?.name || 'Programador'}</span>
+                    </span>
                 </div>
 
                 {/* Price and Action Row */}
-                <div className="mt-auto flex items-center justify-between pt-4 border-t border-gray-800">
+                <div className="mt-auto flex items-center justify-between pt-3.5 border-t border-[var(--border-hairline)]">
                     <div className="flex items-end gap-1">
                         {product.price > 0 ? (
-                            <span className="text-2xl font-black text-[#FFAE00] leading-none mb-0.5">{formatPrice(product.price)}</span>
+                            <span className="text-xl sm:text-2xl font-bold text-[var(--text-primary)] leading-none">
+                                {formatPrice(product.price)}
+                            </span>
                         ) : (
-                            <span className="text-xl font-black text-green-400 uppercase tracking-widest bg-green-500/10 px-2 py-1 rounded inline-flex items-center gap-1">
-                                <Download className="w-4 h-4" /> Grátis
+                            <span className="text-sm font-semibold text-[#0F766E] dark:text-[#14B8A6] uppercase tracking-wider bg-[#0D9488]/10 px-2.5 py-1 rounded-md inline-flex items-center gap-1">
+                                <Download className="w-3.5 h-3.5" /> Grátis
                             </span>
                         )}
                     </div>
-                    
-                    <span className="bg-[#FFAE00] group-hover:bg-yellow-400 text-[#0F1115] p-2.5 rounded-xl font-bold transition-all shadow-lg shadow-[#FFAE00]/20 flex items-center justify-center">
+
+                    <span className="bg-[#2563EB] group-hover:bg-[#1D4ED8] text-white p-2.5 rounded-lg font-semibold transition-colors flex items-center justify-center">
                         <ShoppingCart className="w-4 h-4" />
                     </span>
                 </div>

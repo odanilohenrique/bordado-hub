@@ -218,7 +218,7 @@ export default function MarketplaceProductPage() {
                 if (result.status === 'paid') {
                     setPaymentStatus('paid')
                     setDownloadUrl(result.downloadUrl)
-                    toast.success('🎉 Pagamento confirmado! Seu download foi liberado.')
+                    toast.success('Pagamento confirmado! Seu download foi liberado.')
                     if (pollingRef.current) clearInterval(pollingRef.current)
                 }
             } catch (err) {
@@ -286,13 +286,12 @@ export default function MarketplaceProductPage() {
     }
 
     const gallery = useMemo<string[]>(() => {
-        if (!product) return ['/brand/icon-dark.png']
+        if (!product) return []
         const cover = typeof product.image_url === 'string' ? product.image_url.trim() : ''
         const extras = Array.isArray(product.image_urls)
             ? product.image_urls.map((u: unknown) => (typeof u === 'string' ? u.trim() : '')).filter(Boolean)
             : []
-        const deduped = Array.from(new Set([cover, ...extras].filter(Boolean)))
-        return deduped.length > 0 ? deduped : ['/brand/icon-dark.png']
+        return Array.from(new Set([cover, ...extras].filter(Boolean)))
     }, [product])
 
     const normalizedFormats = useMemo<string[]>(() => {
@@ -308,18 +307,18 @@ export default function MarketplaceProductPage() {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-[#0B0D11] flex items-center justify-center">
-                <Loader2 className="w-8 h-8 text-[#FFAE00] animate-spin" />
+            <div className="min-h-[60vh] flex items-center justify-center">
+                <Loader2 className="w-8 h-8 text-[#2563EB] dark:text-[#60A5FA] animate-spin" />
             </div>
         )
     }
 
     if (fetchError && !product) {
         return (
-            <div className="min-h-screen bg-[#0B0D11] text-white flex flex-col items-center justify-center p-4 text-center space-y-4">
-                <AlertCircle className="w-12 h-12 text-red-400" />
-                <h1 className="text-xl font-bold">Erro ao carregar matriz</h1>
-                <p className="text-sm text-gray-400 max-w-md">{fetchError}</p>
+            <div className="min-h-[60vh] text-[var(--text-primary)] flex flex-col items-center justify-center p-4 text-center space-y-4">
+                <AlertCircle className="w-12 h-12 text-[#DC2626] dark:text-[#EF4444]" />
+                <h1 className="text-xl font-semibold">Erro ao carregar matriz</h1>
+                <p className="text-sm text-[var(--text-secondary)] max-w-md">{fetchError}</p>
                 <div className="flex flex-wrap items-center justify-center gap-3">
                     <button
                         type="button"
@@ -328,13 +327,13 @@ export default function MarketplaceProductPage() {
                             setLoading(true)
                             setRetryCount((c) => c + 1)
                         }}
-                        className="min-h-[48px] inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-[#FFAE00] text-[#0F1115] font-bold text-sm hover:brightness-110 transition-all"
+                        className="min-h-[48px] inline-flex items-center gap-2 px-5 py-3 rounded-lg bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-semibold text-sm transition-colors cursor-pointer"
                     >
                         <RefreshCw className="w-4 h-4" /> Tentar novamente
                     </button>
                     <Link
                         href="/marketplace"
-                        className="min-h-[48px] inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-white/5 border border-white/10 text-gray-200 font-bold text-sm hover:bg-white/10 transition-colors"
+                        className="min-h-[48px] inline-flex items-center gap-2 px-5 py-3 rounded-lg bg-[var(--btn-glass-bg)] border border-[var(--border-glass)] text-[var(--text-primary)] font-semibold text-sm hover:border-[#2563EB]/40 dark:hover:border-[#3B82F6]/40 transition-colors"
                     >
                         <ArrowLeft className="w-4 h-4" /> Voltar ao Marketplace
                     </Link>
@@ -345,10 +344,10 @@ export default function MarketplaceProductPage() {
 
     if (!product) {
         return (
-            <div className="min-h-screen bg-[#0B0D11] text-white flex flex-col items-center justify-center p-4">
-                <AlertCircle className="w-12 h-12 text-red-500 mb-3" />
-                <h1 className="text-xl font-bold">Matriz não encontrada</h1>
-                <Link href="/marketplace" className="mt-4 text-[#FFAE00] hover:underline flex items-center gap-2">
+            <div className="min-h-[60vh] text-[var(--text-primary)] flex flex-col items-center justify-center p-4">
+                <AlertCircle className="w-12 h-12 text-[#DC2626] dark:text-[#EF4444] mb-3" />
+                <h1 className="text-xl font-semibold">Matriz não encontrada</h1>
+                <Link href="/marketplace" className="mt-4 min-h-[44px] px-4 text-[#2563EB] dark:text-[#60A5FA] hover:underline inline-flex items-center gap-2 font-medium">
                     <ArrowLeft className="w-4 h-4" /> Voltar ao Marketplace
                 </Link>
             </div>
@@ -357,8 +356,8 @@ export default function MarketplaceProductPage() {
 
     const displayedImage = activeImage && gallery.includes(activeImage)
         ? activeImage
-        : (gallery[0] || '/brand/icon-dark.png')
-    const activePhotoIndex = Math.max(0, gallery.indexOf(displayedImage))
+        : (gallery[0] || null)
+    const activePhotoIndex = displayedImage ? Math.max(0, gallery.indexOf(displayedImage)) : 0
 
     const isOwnProduct = Boolean(
         product && (
@@ -369,12 +368,12 @@ export default function MarketplaceProductPage() {
     )
 
     return (
-        <div className="min-h-screen bg-[#0B0D11] text-white py-8 px-4 sm:px-6 lg:px-8">
+        <div className="py-2 sm:py-4">
             <div className="max-w-6xl mx-auto">
                 {/* Back Link */}
                 <Link 
                     href="/marketplace" 
-                    className="inline-flex items-center gap-2 text-sm text-gray-400 hover:text-white mb-6 transition-colors"
+                    className="min-h-[44px] inline-flex items-center gap-2 text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] mb-4 transition-colors"
                 >
                     <ArrowLeft className="w-4 h-4" /> Voltar para o Marketplace
                 </Link>
@@ -382,23 +381,45 @@ export default function MarketplaceProductPage() {
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
                     {/* Coluna Esquerda: Preview da Imagem e Galeria */}
                     <div className="lg:col-span-7 space-y-4">
-                        <div className="relative aspect-square w-full rounded-2xl overflow-hidden bg-[#161920] border border-white/10 shadow-2xl">
-                            <Image 
-                                src={displayedImage} 
-                                alt={product.title} 
-                                fill 
-                                sizes="(max-width: 1024px) 100vw, 60vw"
-                                priority
-                                className="object-cover object-center"
-                            />
+                        <div className="relative aspect-square w-full rounded-2xl overflow-hidden bg-[var(--bg-surface-elevated)] border border-[var(--border-hairline)]">
+                            {displayedImage ? (
+                                <Image 
+                                    src={displayedImage} 
+                                    alt={product.title} 
+                                    fill 
+                                    unoptimized={displayedImage.toLowerCase().endsWith('.svg')}
+                                    sizes="(max-width: 1024px) 100vw, 60vw"
+                                    priority
+                                    className="object-cover object-center"
+                                />
+                            ) : (
+                                <>
+                                    <img
+                                        src="/brand/v2/logo-bg-dark.svg"
+                                        alt={product.title}
+                                        width={720}
+                                        height={720}
+                                        decoding="async"
+                                        className="hidden dark:block w-full h-full object-cover object-center select-none"
+                                    />
+                                    <img
+                                        src="/brand/v2/logo-bg-light.svg"
+                                        alt={product.title}
+                                        width={720}
+                                        height={720}
+                                        decoding="async"
+                                        className="block dark:hidden w-full h-full object-cover object-center select-none"
+                                    />
+                                </>
+                            )}
                             {product.is_bundle && (
-                                <div className="absolute top-4 left-4 bg-gradient-to-r from-[#FFAE00] to-amber-500 text-black font-extrabold text-xs uppercase tracking-wider px-3 py-1.5 rounded-lg shadow-lg flex items-center gap-1.5">
+                                <div className="absolute top-4 left-4 bg-[#0F766E] text-white font-semibold text-xs uppercase tracking-wider px-3 py-1.5 rounded-lg flex items-center gap-1.5">
                                     <Package className="w-3.5 h-3.5" />
                                     Pacote ({product.items_count} Matrizes)
                                 </div>
                             )}
                             {gallery.length > 1 && (
-                                <div className="absolute bottom-4 right-4 bg-black/75 backdrop-blur-sm border border-white/15 text-white text-xs font-bold px-3 py-1 rounded-full">
+                                <div className="absolute bottom-4 right-4 bg-black/75 backdrop-blur-sm border border-white/15 text-white text-xs font-semibold px-3 py-1 rounded-full">
                                     {activePhotoIndex + 1}/{gallery.length}
                                 </div>
                             )}
@@ -414,16 +435,17 @@ export default function MarketplaceProductPage() {
                                             type="button"
                                             onClick={() => setActiveImage(url)}
                                             aria-label={`Ver foto ${idx + 1} de ${gallery.length}`}
-                                            className={`relative aspect-square min-h-[48px] rounded-xl overflow-hidden border transition-all bg-[#161920] ${
+                                            className={`relative aspect-square min-h-[48px] rounded-xl overflow-hidden border transition-colors bg-[var(--bg-surface-elevated)] cursor-pointer ${
                                                 isActive
-                                                    ? 'border-[#FFAE00] ring-2 ring-[#FFAE00]/30 opacity-100'
-                                                    : 'border-white/10 opacity-70 hover:opacity-100'
+                                                    ? 'border-[#2563EB] ring-2 ring-[#2563EB]/30 opacity-100'
+                                                    : 'border-[var(--border-hairline)] opacity-70 hover:opacity-100'
                                             }`}
                                         >
                                             <Image
                                                 src={url}
                                                 alt={`${product.title} - foto ${idx + 1}`}
                                                 fill
+                                                unoptimized={url.toLowerCase().endsWith('.svg')}
                                                 sizes="96px"
                                                 className="object-cover object-center"
                                             />
@@ -434,17 +456,17 @@ export default function MarketplaceProductPage() {
                         )}
 
                         {/* Formatos incluídos */}
-                        <div className="bg-[#12151C] border border-white/5 rounded-xl p-4">
-                            <p className="text-xs uppercase tracking-wider text-gray-400 font-semibold mb-2">Formatos Disponíveis no Download:</p>
+                        <div className="bg-[var(--bg-surface)] border border-[var(--border-hairline)] rounded-xl p-4">
+                            <p className="text-xs uppercase tracking-wider text-[var(--text-secondary)] font-semibold mb-2">Formatos Disponíveis no Download:</p>
                             <div className="flex flex-wrap gap-2">
                                 {normalizedFormats.length > 0 ? (
                                     normalizedFormats.map((fmt) => (
-                                        <span key={fmt} className="bg-white/5 border border-white/10 px-3 py-1 rounded-lg text-sm font-bold text-[#FFAE00]">
+                                        <span key={fmt} className="bg-[var(--bg-surface-elevated)] border border-[var(--border-hairline)] px-3 py-1 rounded-lg text-sm font-semibold text-[#2563EB] dark:text-[#60A5FA]">
                                             .{fmt}
                                         </span>
                                     ))
                                 ) : (
-                                    <span className="text-sm text-gray-400">.PES, .DST, .JEF</span>
+                                    <span className="text-sm text-[var(--text-secondary)]">.PES, .DST, .JEF</span>
                                 )}
                             </div>
                         </div>
@@ -452,67 +474,67 @@ export default function MarketplaceProductPage() {
 
                     {/* Coluna Direita: Detalhes, Vendedor e Compra */}
                     <div className="lg:col-span-5 space-y-6">
-                        <div className="bg-[#12151C] border border-white/5 rounded-2xl p-6 sm:p-8 space-y-6 shadow-xl">
+                        <div className="bg-[var(--bg-surface)] border border-[var(--border-hairline)] rounded-2xl p-6 sm:p-8 space-y-6">
                             <div>
                                 <div className="flex items-center gap-2 mb-2">
-                                    <span className="text-xs font-semibold px-2.5 py-1 rounded-md bg-[#FFAE00]/10 text-[#FFAE00] border border-[#FFAE00]/20 uppercase">
+                                    <span className="text-xs font-semibold px-2.5 py-1 rounded-md bg-[#2563EB]/10 text-[#2563EB] dark:text-[#60A5FA] border border-[#2563EB]/25 uppercase">
                                         {product.category || 'Geral'}
                                     </span>
-                                    <span className="text-xs text-gray-400 flex items-center gap-1">
-                                        <Sparkles className="w-3.5 h-3.5 text-[#FFAE00]" />
+                                    <span className="text-xs text-[var(--text-secondary)] flex items-center gap-1">
+                                        <Sparkles className="w-3.5 h-3.5 text-[#2563EB] dark:text-[#60A5FA]" />
                                         {product.sales_count || 0} {product.sales_count === 1 ? 'venda' : 'vendas'}
                                     </span>
                                 </div>
-                                <h1 className="text-2xl sm:text-3xl font-black text-white leading-tight">
+                                <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-[var(--text-primary)] leading-tight">
                                     {product.title}
                                 </h1>
                             </div>
 
                             {/* Preço */}
-                            <div className="pt-2 border-t border-white/5">
-                                <span className="text-xs uppercase tracking-wider text-gray-400 font-medium">Preço à vista via PIX</span>
-                                <div className="text-4xl font-black text-[#FFAE00] mt-1">
+                            <div className="pt-2 border-t border-[var(--border-hairline)]">
+                                <span className="text-xs uppercase tracking-wider text-[var(--text-secondary)] font-medium">Preço à vista via PIX</span>
+                                <div className="text-4xl font-bold text-[var(--text-primary)] mt-1">
                                     {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(product.price))}
                                 </div>
                             </div>
 
                             {/* Vendedor */}
-                            <div className="pt-4 border-t border-white/5">
+                            <div className="pt-4 border-t border-[var(--border-hairline)]">
                                 <Link 
                                     href={`/loja/${product.seller_id}`}
-                                    className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] border border-white/5 transition-all group"
+                                    className="flex items-center gap-3 p-3 rounded-xl bg-[var(--bg-surface-elevated)] hover:border-[var(--border-glass)] border border-[var(--border-hairline)] transition-colors group"
                                 >
                                     {product.seller?.avatar_url ? (
-                                        <img src={product.seller.avatar_url} alt={product.seller.name} loading="lazy" decoding="async" className="w-10 h-10 rounded-full object-cover border border-white/10" />
+                                        <img src={product.seller.avatar_url} alt={product.seller.name} loading="lazy" decoding="async" className="w-10 h-10 rounded-full object-cover border border-[var(--border-hairline)]" />
                                     ) : (
-                                        <div className="w-10 h-10 rounded-full bg-[#FFAE00]/20 text-[#FFAE00] font-bold flex items-center justify-center">
+                                        <div className="w-10 h-10 rounded-full bg-[#2563EB]/15 text-[#2563EB] dark:text-[#60A5FA] font-semibold flex items-center justify-center">
                                             {product.seller?.name?.[0]?.toUpperCase() || 'P'}
                                         </div>
                                     )}
                                     <div className="flex-1 min-w-0">
-                                        <p className="text-xs text-gray-400">Criado e vendido por</p>
-                                        <p className="text-sm font-bold text-white group-hover:text-[#FFAE00] transition-colors truncate">
+                                        <p className="text-xs text-[var(--text-secondary)]">Criado e vendido por</p>
+                                        <p className="text-sm font-semibold text-[var(--text-primary)] group-hover:text-[#2563EB] dark:group-hover:text-[#60A5FA] transition-colors truncate">
                                             {product.seller?.name || 'Programador BordadoHub'}
                                         </p>
                                     </div>
-                                    <Store className="w-4 h-4 text-gray-500 group-hover:text-[#FFAE00] transition-colors" />
+                                    <Store className="w-4 h-4 text-[var(--text-secondary)] group-hover:text-[#2563EB] dark:group-hover:text-[#60A5FA] transition-colors" />
                                 </Link>
                             </div>
 
                             {/* Bloco de Ação: Download (se pago) ou Checkout PIX */}
                             {paymentStatus === 'paid' ? (
-                                <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-5 space-y-4 text-center">
-                                    <div className="w-12 h-12 bg-green-500/20 rounded-full flex items-center justify-center mx-auto text-green-400">
+                                <div className="bg-[#0D9488]/10 border border-[#0D9488]/30 rounded-xl p-5 space-y-4 text-center">
+                                    <div className="w-12 h-12 bg-[#0D9488]/15 rounded-full flex items-center justify-center mx-auto text-[#0F766E] dark:text-[#14B8A6]">
                                         <CheckCircle className="w-6 h-6" />
                                     </div>
                                     <div>
-                                        <h3 className="text-base font-bold text-green-400">Matriz Liberada!</h3>
-                                        <p className="text-xs text-gray-300 mt-1">Seu pagamento foi confirmado. Baixe os arquivos agora.</p>
+                                        <h3 className="text-base font-semibold text-[#0F766E] dark:text-[#14B8A6]">Matriz Liberada!</h3>
+                                        <p className="text-xs text-[var(--text-secondary)] mt-1">Seu pagamento foi confirmado. Baixe os arquivos agora.</p>
                                     </div>
                                     <button
                                         onClick={handleDownloadSecure}
                                         disabled={isDownloading}
-                                        className="w-full py-3.5 px-4 bg-green-500 hover:bg-green-400 disabled:opacity-50 text-black font-extrabold rounded-xl transition-all shadow-lg shadow-green-500/20 flex items-center justify-center gap-2 cursor-pointer"
+                                        className="w-full min-h-[48px] py-3.5 px-4 bg-[#0D9488] hover:bg-[#0F766E] disabled:opacity-50 text-white font-semibold rounded-lg transition-colors flex items-center justify-center gap-2 cursor-pointer"
                                     >
                                         {isDownloading ? (
                                             <>
@@ -528,17 +550,17 @@ export default function MarketplaceProductPage() {
                                     </button>
                                 </div>
                             ) : paymentStatus === 'pending' && pixData ? (
-                                <div className="bg-[#0B0D11] border border-[#FFAE00]/30 rounded-xl p-5 space-y-4">
+                                <div className="bg-[var(--bg-surface-elevated)] border border-[#2563EB]/30 rounded-xl p-5 space-y-4">
                                     <div className="text-center space-y-1">
-                                        <div className="flex items-center justify-center gap-1.5 text-xs font-bold text-[#FFAE00]">
+                                        <div className="flex items-center justify-center gap-1.5 text-xs font-semibold text-[#2563EB] dark:text-[#60A5FA]">
                                             <Clock className="w-4 h-4 animate-spin" />
                                             Aguardando pagamento PIX...
                                         </div>
-                                        <p className="text-xs text-gray-400">Escaneie o QR Code ou copie o código abaixo</p>
+                                        <p className="text-xs text-[var(--text-secondary)]">Escaneie o QR Code ou copie o código abaixo</p>
                                     </div>
 
-                                    {/* QR Code Img */}
-                                    <div className="bg-white p-3 rounded-xl mx-auto w-48 h-48 flex items-center justify-center shadow-lg">
+                                    {/* QR Code Img (fundo branco fixo para leitura por câmera em ambos os temas) */}
+                                    <div className="bg-white p-3 rounded-xl mx-auto w-48 h-48 flex items-center justify-center border border-[var(--border-hairline)]">
                                         <img 
                                             src={`data:image/png;base64,${pixData.qrCode}`} 
                                             alt="QR Code PIX" 
@@ -549,23 +571,23 @@ export default function MarketplaceProductPage() {
                                     {/* Copia e Cola */}
                                     <button
                                         onClick={handleCopyPix}
-                                        className="w-full py-2.5 px-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-xs font-semibold text-gray-200 flex items-center justify-center gap-2 transition-colors"
+                                        className="w-full min-h-[44px] py-2.5 px-3 bg-[var(--btn-glass-bg)] hover:border-[var(--border-glass)] border border-[var(--border-hairline)] rounded-lg text-xs font-semibold text-[var(--text-primary)] flex items-center justify-center gap-2 transition-colors cursor-pointer"
                                     >
-                                        {copied ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4 text-[#FFAE00]" />}
+                                        {copied ? <Check className="w-4 h-4 text-[#0F766E] dark:text-[#14B8A6]" /> : <Copy className="w-4 h-4 text-[#2563EB] dark:text-[#60A5FA]" />}
                                         {copied ? 'Código Copiado!' : 'Copiar Chave Copia e Cola'}
                                     </button>
 
-                                    <div className="text-[11px] text-gray-500 text-center">
+                                    <div className="text-[11px] text-[var(--text-secondary)] text-center">
                                         Assim que pagar no app do seu banco, esta página liberará o download automaticamente.
                                     </div>
                                 </div>
                             ) : isOwnProduct ? (
-                                <div className="bg-white/5 border border-white/10 rounded-xl p-4 text-center space-y-3">
-                                    <p className="text-xs text-gray-400">Esta matriz pertence à sua loja.</p>
+                                <div className="bg-[var(--bg-surface-elevated)] border border-[var(--border-hairline)] rounded-xl p-4 text-center space-y-3">
+                                    <p className="text-xs text-[var(--text-secondary)]">Esta matriz pertence à sua loja.</p>
                                     <div className="flex flex-col sm:flex-row items-center justify-center gap-2.5">
                                         <Link
                                             href={`/marketplace/vender?edit=${product.id}`}
-                                            className="w-full sm:w-auto min-h-[48px] px-4 py-2.5 rounded-xl bg-[#FFAE00] hover:brightness-110 text-[#0F1115] text-xs font-extrabold inline-flex items-center justify-center gap-2 transition-all"
+                                            className="w-full sm:w-auto min-h-[48px] px-4 py-2.5 rounded-lg bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-semibold inline-flex items-center justify-center gap-2 transition-colors"
                                         >
                                             <Pencil className="w-4 h-4" /> Editar Matriz
                                         </Link>
@@ -573,7 +595,7 @@ export default function MarketplaceProductPage() {
                                             type="button"
                                             onClick={handleDownloadSecure}
                                             disabled={isDownloading}
-                                            className="w-full sm:w-auto min-h-[48px] px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 disabled:opacity-50 border border-white/10 text-xs font-bold text-[#FFAE00] inline-flex items-center justify-center gap-2 transition-colors cursor-pointer"
+                                            className="w-full sm:w-auto min-h-[48px] px-4 py-2.5 rounded-lg bg-[var(--btn-glass-bg)] hover:border-[var(--border-glass)] disabled:opacity-50 border border-[var(--border-hairline)] text-xs font-semibold text-[#2563EB] dark:text-[#60A5FA] inline-flex items-center justify-center gap-2 transition-colors cursor-pointer"
                                         >
                                             {isDownloading ? (
                                                 <>
@@ -591,7 +613,7 @@ export default function MarketplaceProductPage() {
                             ) : (
                                 <div className="space-y-4">
                                     <div>
-                                        <label className="block text-xs font-medium text-gray-300 mb-1.5">
+                                        <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1.5">
                                             CPF ou CNPJ para emissão do PIX:
                                         </label>
                                         <input
@@ -599,14 +621,14 @@ export default function MarketplaceProductPage() {
                                             value={cpfCnpj}
                                             onChange={(e) => setCpfCnpj(e.target.value)}
                                             placeholder="000.000.000-00"
-                                            className="w-full px-3.5 py-2.5 bg-[#0B0D11] border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:border-[#FFAE00] transition-colors"
+                                            className="w-full min-h-[44px] px-3.5 py-2.5 bg-[var(--bg-surface-elevated)] border border-[var(--border-hairline)] rounded-lg text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]/60 text-sm focus:outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/25 transition-colors"
                                         />
                                     </div>
 
                                     <button
                                         onClick={handleBuyPix}
                                         disabled={isPurchasing}
-                                        className="w-full py-4 px-6 bg-gradient-to-r from-[#FFAE00] to-amber-500 hover:from-yellow-400 hover:to-[#FFAE00] text-black font-extrabold text-base rounded-xl transition-all shadow-xl shadow-[#FFAE00]/20 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        className="w-full min-h-[48px] py-4 px-6 bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-semibold text-base rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                                     >
                                         {isPurchasing ? (
                                             <>
@@ -621,8 +643,8 @@ export default function MarketplaceProductPage() {
                                         )}
                                     </button>
 
-                                    <div className="flex items-center justify-center gap-2 text-xs text-gray-400 pt-2">
-                                        <ShieldCheck className="w-4 h-4 text-green-400" />
+                                    <div className="flex items-center justify-center gap-2 text-xs text-[var(--text-secondary)] pt-2">
+                                        <ShieldCheck className="w-4 h-4 text-[#0F766E] dark:text-[#14B8A6]" />
                                         Entrega imediata e garantia BordadoHub
                                     </div>
                                 </div>
@@ -630,9 +652,9 @@ export default function MarketplaceProductPage() {
 
                             {/* Descrição */}
                             {product.description && (
-                                <div className="pt-4 border-t border-white/5">
-                                    <h3 className="text-xs uppercase tracking-wider text-gray-400 font-semibold mb-2">Descrição da Matriz:</h3>
-                                    <p className="text-sm text-gray-300 whitespace-pre-line leading-relaxed">
+                                <div className="pt-4 border-t border-[var(--border-hairline)]">
+                                    <h3 className="text-xs uppercase tracking-wider text-[var(--text-secondary)] font-semibold mb-2">Descrição da Matriz:</h3>
+                                    <p className="text-sm text-[var(--text-secondary)] whitespace-pre-line leading-relaxed">
                                         {product.description}
                                     </p>
                                 </div>

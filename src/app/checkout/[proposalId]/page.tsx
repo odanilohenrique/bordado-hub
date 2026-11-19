@@ -15,7 +15,7 @@ export default function Checkout() {
     const params = useParams()
     const proposalId = params?.proposalId as string
 
-    if (!proposalId) return <div className="min-h-screen bg-[#0F1115] flex items-center justify-center text-white">Carregando...</div>
+    if (!proposalId) return <div className="min-h-screen bg-[var(--bg-primary)] flex items-center justify-center text-[var(--text-primary)]">Carregando...</div>
 
     return <CheckoutClient proposalId={proposalId} />
 }
@@ -258,9 +258,9 @@ function CheckoutClient({ proposalId }: { proposalId: string }) {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-[#0F1115] flex flex-col items-center justify-center text-[#F3F4F6]">
-                <Loader2 className="w-10 h-10 text-[#FFAE00] animate-spin mb-4" />
-                <p className="text-gray-400">Carregando detalhes do checkout...</p>
+            <div className="min-h-screen bg-[var(--bg-primary)] flex flex-col items-center justify-center text-[var(--text-primary)]">
+                <Loader2 className="w-10 h-10 text-[#2563EB] dark:text-[#3B82F6] animate-spin mb-4" />
+                <p className="text-[var(--text-secondary)]">Carregando detalhes do checkout...</p>
             </div>
         )
     }
@@ -284,7 +284,7 @@ function CheckoutClient({ proposalId }: { proposalId: string }) {
     }
 
     return (
-        <div className="min-h-screen bg-[#0B0D11] py-12 px-4 sm:px-6 lg:px-8 text-slate-100">
+        <div className="min-h-screen bg-[var(--bg-primary)] py-8 sm:py-12 px-4 sm:px-6 lg:px-8 text-[var(--text-primary)]">
             <div className="max-w-xl mx-auto">
                 <button
                     onClick={() => {
@@ -294,58 +294,58 @@ function CheckoutClient({ proposalId }: { proposalId: string }) {
                             router.back()
                         }
                     }}
-                    className="inline-flex items-center gap-2 text-gray-400 hover:text-[#F5A623] text-sm mb-6 transition-colors font-medium"
+                    className="inline-flex items-center gap-2 min-h-[44px] px-1 text-[var(--text-secondary)] hover:text-[#2563EB] dark:hover:text-[#60A5FA] text-sm mb-4 transition-colors font-medium"
                 >
                     <ArrowLeft className="w-4 h-4" /> Voltar ao Pedido
                 </button>
 
-                <div className="bg-[#12151C] rounded-2xl border border-white/[0.07] shadow-2xl p-6 sm:p-8">
+                <div className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-hairline)] shadow-xl p-5 sm:p-8">
                     {/* Header */}
-                    <div className="flex items-center justify-between border-b border-white/[0.07] pb-6 mb-6">
+                    <div className="flex items-center justify-between border-b border-[var(--border-hairline)] pb-6 mb-6">
                         <div>
-                            <span className="text-xs uppercase tracking-widest text-[#F5A623] font-bold">Checkout Seguro</span>
-                            <h1 className="text-2xl font-black text-white mt-1">Pagamento</h1>
+                            <span className="text-xs uppercase tracking-widest text-[var(--cobalt-text)] font-bold">Checkout Seguro</span>
+                            <h1 className="text-2xl font-bold tracking-tight text-[var(--text-primary)] mt-1">Pagamento</h1>
                         </div>
-                        <div className="bg-[#181C26] p-3 rounded-xl border border-white/[0.07]">
-                            <Lock className="w-6 h-6 text-[#F5A623]" />
+                        <div className="bg-[var(--bg-surface-elevated)] p-3 rounded-xl border border-[var(--border-hairline)]">
+                            <Lock className="w-6 h-6 text-[var(--cobalt)]" />
                         </div>
                     </div>
 
                     {/* Order Summary */}
-                    <div className="bg-[#181C26] rounded-xl p-4 border border-white/[0.07] mb-6 space-y-3">
+                    <div className="bg-[var(--bg-surface-elevated)] rounded-xl p-4 border border-[var(--border-hairline)] mb-6 space-y-3">
                         <div>
-                            <h3 className="font-bold text-white text-base">{job?.title}</h3>
-                            <p className="text-xs text-gray-400">Programador: {proposal.criador?.name || 'Criador'}</p>
-                            <p className="text-xs text-gray-400">Prazo: {proposal.deadline_text}</p>
+                            <h3 className="font-bold text-[var(--text-primary)] text-base">{job?.title}</h3>
+                            <p className="text-xs text-[var(--text-secondary)]">Programador: {proposal.criador?.name || 'Criador'}</p>
+                            <p className="text-xs text-[var(--text-secondary)]">Prazo: {proposal.deadline_text}</p>
                         </div>
-                        <div className="border-t border-white/[0.07] pt-3 space-y-2 text-sm">
-                            <div className="flex justify-between text-gray-400">
+                        <div className="border-t border-[var(--border-hairline)] pt-3 space-y-2 text-sm">
+                            <div className="flex justify-between text-[var(--text-secondary)]">
                                 <span>Valor da Matriz:</span>
-                                <span className="font-semibold text-white">R$ {baseAmount.toFixed(2)}</span>
+                                <span className="font-semibold text-[var(--text-primary)]">R$ {baseAmount.toFixed(2)}</span>
                             </div>
                             {paymentMethod === 'pix' ? (
                                 <div className="flex justify-between items-center text-xs">
-                                    <span className="text-gray-400">Taxa de Processamento:</span>
-                                    <span className="text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">Grátis (PIX)</span>
+                                    <span className="text-[var(--text-secondary)]">Taxa de Processamento:</span>
+                                    <span className="text-[#0F766E] dark:text-[#14B8A6] font-bold bg-[#0D9488]/10 dark:bg-[#14B8A6]/15 px-2 py-0.5 rounded border border-[#0D9488]/25 dark:border-[#14B8A6]/30">Grátis (PIX)</span>
                                 </div>
                             ) : (
                                 <div className="flex justify-between items-center text-xs">
-                                    <span className="text-gray-400">Taxa do Cartão ({cardData.installmentCount}x • {((cardRate || 0.0299) * 100).toFixed(1).replace('.', ',')}% + R$0,49):</span>
-                                    <span className="text-amber-400 font-bold bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">+ R$ {cardFee.toFixed(2)}</span>
+                                    <span className="text-[var(--text-secondary)]">Taxa do Cartão ({cardData.installmentCount}x • {((cardRate || 0.0299) * 100).toFixed(1).replace('.', ',')}% + R$0,49):</span>
+                                    <span className="text-[#1D4ED8] dark:text-[#60A5FA] font-semibold bg-[#2563EB]/10 dark:bg-[#3B82F6]/15 px-2 py-0.5 rounded border border-[#2563EB]/25 dark:border-[#3B82F6]/30">+ R$ {cardFee.toFixed(2)}</span>
                                 </div>
                             )}
-                            <div className="flex justify-between text-base font-extrabold text-white border-t border-white/[0.07] pt-2">
+                            <div className="flex justify-between text-base font-extrabold text-[var(--text-primary)] border-t border-[var(--border-hairline)] pt-2">
                                 <span>Total a Pagar:</span>
-                                <span className="text-[#F5A623]">R$ {effectiveTotal.toFixed(2)}</span>
+                                <span className="text-[#2563EB] dark:text-[#60A5FA]">R$ {effectiveTotal.toFixed(2)}</span>
                             </div>
                         </div>
                     </div>
 
                     {/* Safe Escrow Notice */}
-                    <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4 mb-6 flex items-start gap-3">
-                        <ShieldCheck className="w-6 h-6 text-emerald-400 flex-shrink-0 mt-0.5" />
-                        <p className="text-xs text-emerald-300 leading-relaxed">
-                            <strong className="text-white">Garantia BordadoHUB:</strong> O valor pago fica sob custódia e só é repassado ao programador após a entrega e sua aprovação.
+                    <div className="bg-[#0D9488]/10 dark:bg-[#14B8A6]/10 border border-[#0D9488]/25 dark:border-[#14B8A6]/25 rounded-xl p-4 mb-6 flex items-start gap-3">
+                        <ShieldCheck className="w-6 h-6 text-[#0F766E] dark:text-[#14B8A6] flex-shrink-0 mt-0.5" />
+                        <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
+                            <strong className="text-[var(--text-primary)]">Garantia BordadoHUB:</strong> O valor pago fica sob custódia e só é repassado ao programador após a entrega e sua aprovação.
                         </p>
                     </div>
 
@@ -354,10 +354,10 @@ function CheckoutClient({ proposalId }: { proposalId: string }) {
                         <div className="flex gap-2 mb-6">
                             <button
                                 onClick={() => setPaymentMethod('pix')}
-                                className={`flex-1 py-3 px-4 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 ${
+                                className={`flex-1 min-h-[48px] py-3 px-4 rounded-xl text-sm transition-colors flex items-center justify-center gap-2 ${
                                     paymentMethod === 'pix'
-                                        ? 'bg-gradient-to-r from-[#FFB703] to-[#FB8500] text-black shadow-lg shadow-[#FFB703]/20 font-extrabold'
-                                        : 'bg-[#181C26] text-gray-400 border border-white/[0.07] hover:border-white/20'
+                                        ? 'bg-[#2563EB] text-white font-bold border border-[#2563EB]'
+                                        : 'bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-hairline)] hover:border-[var(--border-glass)] font-semibold'
                                 }`}
                             >
                                 <QrCode className="w-4 h-4" />
@@ -365,10 +365,10 @@ function CheckoutClient({ proposalId }: { proposalId: string }) {
                             </button>
                             <button
                                 onClick={() => setPaymentMethod('cartao')}
-                                className={`flex-1 py-3 px-4 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 ${
+                                className={`flex-1 min-h-[48px] py-3 px-4 rounded-xl text-sm transition-colors flex items-center justify-center gap-2 ${
                                     paymentMethod === 'cartao'
-                                        ? 'bg-gradient-to-r from-[#FFB703] to-[#FB8500] text-black shadow-lg shadow-[#FFB703]/20 font-extrabold'
-                                        : 'bg-[#181C26] text-gray-400 border border-white/[0.07] hover:border-white/20'
+                                        ? 'bg-[#2563EB] text-white font-bold border border-[#2563EB]'
+                                        : 'bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-hairline)] hover:border-[var(--border-glass)] font-semibold'
                                 }`}
                             >
                                 <CreditCard className="w-4 h-4" />
@@ -380,19 +380,19 @@ function CheckoutClient({ proposalId }: { proposalId: string }) {
                     {/* SUCCESS STATE */}
                     {isPaid ? (
                         <div className="text-center py-8 space-y-4 animate-in zoom-in-95">
-                            <div className="w-16 h-16 bg-green-500/20 text-green-400 rounded-full flex items-center justify-center mx-auto border border-green-500/30">
+                            <div className="w-16 h-16 bg-[#0D9488]/15 text-[#0F766E] dark:text-[#14B8A6] rounded-full flex items-center justify-center mx-auto border border-[#0D9488]/30 animate-success-pop">
                                 <CheckCircle2 className="w-10 h-10" />
                             </div>
-                            <h2 className="text-2xl font-extrabold text-white">Pagamento Confirmado!</h2>
-                            <p className="text-sm text-gray-300">
+                            <h2 className="text-2xl font-extrabold text-[var(--text-primary)]">Pagamento Confirmado!</h2>
+                            <p className="text-sm text-[var(--text-secondary)]">
                                 O programador já foi notificado para iniciar a produção da sua matriz!
                             </p>
-                            <p className="text-xs text-gray-500">Redirecionando para seus pedidos...</p>
+                            <p className="text-xs text-[var(--text-secondary)]">Redirecionando para seus pedidos...</p>
                         </div>
                     ) : pixData ? (
                         /* PIX DISPLAY STATE */
                         <div className="space-y-6 text-center animate-in fade-in">
-                            <div className="bg-white p-4 rounded-2xl inline-block mx-auto shadow-xl">
+                            <div className="bg-white p-4 rounded-2xl inline-block mx-auto border border-[var(--border-hairline)] shadow-md">
                                 <Image
                                     src={pixData.pixQrCode.startsWith('data:image')
                                         ? pixData.pixQrCode
@@ -405,17 +405,17 @@ function CheckoutClient({ proposalId }: { proposalId: string }) {
                             </div>
 
                             <div className="space-y-2">
-                                <label className="block text-xs font-semibold text-gray-400 uppercase">Copia e Cola PIX</label>
+                                <label className="block text-xs font-semibold text-[var(--text-secondary)] uppercase">Copia e Cola PIX</label>
                                 <div className="flex gap-2">
                                     <input
                                         type="text"
                                         readOnly
                                         value={pixData.pixCopyPaste}
-                                        className="w-full bg-[#0F1115] border border-gray-800 rounded-xl px-3 py-2.5 text-xs text-gray-400 font-mono truncate"
+                                        className="w-full min-h-[44px] bg-[var(--bg-surface-elevated)] border border-[var(--border-hairline)] rounded-xl px-3 py-2.5 text-xs text-[var(--text-primary)] font-mono truncate"
                                     />
                                     <button
                                         onClick={copyToClipboard}
-                                        className="bg-[#FFAE00] text-[#0F1115] hover:bg-yellow-400 font-bold px-4 py-2.5 rounded-xl flex items-center gap-2 text-xs transition-all flex-shrink-0"
+                                        className="min-h-[44px] bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-semibold px-4 py-2.5 rounded-xl flex items-center gap-2 text-xs transition-colors flex-shrink-0"
                                     >
                                         {copied ? <CheckCircle2 className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                                         {copied ? 'Copiado!' : 'Copiar'}
@@ -423,8 +423,8 @@ function CheckoutClient({ proposalId }: { proposalId: string }) {
                                 </div>
                             </div>
 
-                            <div className="flex items-center justify-center gap-2 text-xs text-gray-400 bg-[#0F1115] py-3 rounded-xl border border-gray-800">
-                                <Loader2 className="w-4 h-4 text-[#FFAE00] animate-spin" />
+                            <div className="flex items-center justify-center gap-2 text-xs text-[var(--text-secondary)] bg-[var(--bg-surface-elevated)] py-3 rounded-xl border border-[var(--border-hairline)]">
+                                <Loader2 className="w-4 h-4 text-[var(--cobalt)] animate-spin" />
                                 Aguardando confirmação do pagamento...
                             </div>
                         </div>
@@ -432,21 +432,21 @@ function CheckoutClient({ proposalId }: { proposalId: string }) {
                         /* PIX FORM */
                         <form onSubmit={handleGeneratePix} className="space-y-4 animate-in fade-in">
                             <div>
-                                <label className="block text-xs font-semibold text-gray-300 mb-1.5 uppercase">CPF ou CNPJ</label>
+                                <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5 uppercase">CPF ou CNPJ</label>
                                 <input
                                     type="text"
                                     required
                                     placeholder="000.000.000-00"
                                     value={cpfCnpj}
                                     onChange={(e) => setCpfCnpj(e.target.value)}
-                                    className="w-full bg-[#181C26] border border-white/[0.07] rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-[#F5A623] transition-all text-sm font-mono"
+                                    className="w-full min-h-[48px] bg-[var(--bg-surface-elevated)] border border-[var(--border-hairline)] rounded-xl px-4 py-3 text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]/60 focus:outline-none focus:border-[#2563EB] dark:focus:border-[#3B82F6] transition-colors text-sm font-mono"
                                 />
                             </div>
 
                             <button
                                 type="submit"
                                 disabled={processing}
-                                className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-[#FFB703] to-[#FB8500] hover:brightness-110 text-black font-extrabold py-4 px-6 rounded-xl transition-all shadow-lg shadow-[#FFB703]/20 disabled:opacity-50 text-base active:scale-95"
+                                className="w-full min-h-[48px] flex items-center justify-center gap-2 bg-[var(--btn-primary-bg)] hover:bg-[var(--btn-primary-hover)] text-[var(--btn-primary-text)] font-semibold py-3.5 px-6 rounded-lg transition-colors disabled:opacity-50 text-base active:scale-[0.99]"
                             >
                                 {processing ? (
                                     <><Loader2 className="w-5 h-5 animate-spin" /> Gerando PIX...</>
@@ -455,37 +455,37 @@ function CheckoutClient({ proposalId }: { proposalId: string }) {
                                 )}
                             </button>
 
-                            <p className="text-[11px] text-gray-500 text-center">PIX Instantâneo • Confirmação em segundos</p>
+                            <p className="text-[11px] text-[var(--text-secondary)] text-center">PIX Instantâneo • Confirmação em segundos</p>
                         </form>
                     ) : (
                         /* CREDIT CARD FORM */
                         <form onSubmit={handleCardPayment} className="space-y-4 animate-in fade-in">
                             <div>
-                                <label className="block text-xs font-semibold text-gray-300 mb-1.5 uppercase">CPF ou CNPJ</label>
+                                <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5 uppercase">CPF ou CNPJ</label>
                                 <input
                                     type="text"
                                     required
                                     placeholder="000.000.000-00"
                                     value={cpfCnpj}
                                     onChange={(e) => setCpfCnpj(e.target.value)}
-                                    className="w-full bg-[#0F1115] border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-[#FFAE00] transition-all text-sm font-mono"
+                                    className="w-full min-h-[48px] bg-[var(--bg-surface-elevated)] border border-[var(--border-hairline)] rounded-xl px-4 py-3 text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]/60 focus:outline-none focus:border-[#2563EB] dark:focus:border-[#3B82F6] transition-colors text-sm font-mono"
                                 />
                             </div>
 
                             <div>
-                                <label className="block text-xs font-semibold text-gray-300 mb-1.5 uppercase">Nome no Cartão</label>
+                                <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5 uppercase">Nome no Cartão</label>
                                 <input
                                     type="text"
                                     required
                                     placeholder="NOME COMO ESTÁ NO CARTÃO"
                                     value={cardData.holderName}
                                     onChange={(e) => handleCardChange('holderName', e.target.value.toUpperCase())}
-                                    className="w-full bg-[#0F1115] border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-[#FFAE00] transition-all text-sm uppercase"
+                                    className="w-full min-h-[48px] bg-[var(--bg-surface-elevated)] border border-[var(--border-hairline)] rounded-xl px-4 py-3 text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]/60 focus:outline-none focus:border-[#2563EB] dark:focus:border-[#3B82F6] transition-colors text-sm uppercase"
                                 />
                             </div>
 
                             <div>
-                                <label className="block text-xs font-semibold text-gray-300 mb-1.5 uppercase">Número do Cartão</label>
+                                <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5 uppercase">Número do Cartão</label>
                                 <input
                                     type="text"
                                     required
@@ -496,18 +496,18 @@ function CheckoutClient({ proposalId }: { proposalId: string }) {
                                         const v = e.target.value.replace(/\D/g, '').replace(/(.{4})/g, '$1 ').trim()
                                         handleCardChange('cardNumber', v)
                                     }}
-                                    className="w-full bg-[#0F1115] border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-[#FFAE00] transition-all text-sm font-mono tracking-wider"
+                                    className="w-full min-h-[48px] bg-[var(--bg-surface-elevated)] border border-[var(--border-hairline)] rounded-xl px-4 py-3 text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]/60 focus:outline-none focus:border-[#2563EB] dark:focus:border-[#3B82F6] transition-colors text-sm font-mono tracking-wider"
                                 />
                             </div>
 
                             <div className="grid grid-cols-3 gap-3">
                                 <div>
-                                    <label className="block text-xs font-semibold text-gray-300 mb-1.5 uppercase">Mês</label>
+                                    <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5 uppercase">Mês</label>
                                     <select
                                         required
                                         value={cardData.expiryMonth}
                                         onChange={(e) => handleCardChange('expiryMonth', e.target.value)}
-                                        className="w-full bg-[#0F1115] border border-gray-700 rounded-xl px-3 py-3 text-white focus:outline-none focus:border-[#FFAE00] transition-all text-sm"
+                                        className="w-full min-h-[48px] bg-[var(--bg-surface-elevated)] border border-[var(--border-hairline)] rounded-xl px-3 py-3 text-[var(--text-primary)] focus:outline-none focus:border-[#2563EB] dark:focus:border-[#3B82F6] transition-colors text-sm"
                                     >
                                         <option value="">MM</option>
                                         {Array.from({ length: 12 }, (_, i) => (
@@ -518,12 +518,12 @@ function CheckoutClient({ proposalId }: { proposalId: string }) {
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-semibold text-gray-300 mb-1.5 uppercase">Ano</label>
+                                    <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5 uppercase">Ano</label>
                                     <select
                                         required
                                         value={cardData.expiryYear}
                                         onChange={(e) => handleCardChange('expiryYear', e.target.value)}
-                                        className="w-full bg-[#0F1115] border border-gray-700 rounded-xl px-3 py-3 text-white focus:outline-none focus:border-[#FFAE00] transition-all text-sm"
+                                        className="w-full min-h-[48px] bg-[var(--bg-surface-elevated)] border border-[var(--border-hairline)] rounded-xl px-3 py-3 text-[var(--text-primary)] focus:outline-none focus:border-[#2563EB] dark:focus:border-[#3B82F6] transition-colors text-sm"
                                     >
                                         <option value="">AAAA</option>
                                         {Array.from({ length: 10 }, (_, i) => {
@@ -533,7 +533,7 @@ function CheckoutClient({ proposalId }: { proposalId: string }) {
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-semibold text-gray-300 mb-1.5 uppercase">CVV</label>
+                                    <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5 uppercase">CVV</label>
                                     <input
                                         type="text"
                                         required
@@ -541,14 +541,14 @@ function CheckoutClient({ proposalId }: { proposalId: string }) {
                                         placeholder="000"
                                         value={cardData.ccv}
                                         onChange={(e) => handleCardChange('ccv', e.target.value.replace(/\D/g, ''))}
-                                        className="w-full bg-[#0F1115] border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-[#FFAE00] transition-all text-sm font-mono text-center"
+                                        className="w-full min-h-[48px] bg-[var(--bg-surface-elevated)] border border-[var(--border-hairline)] rounded-xl px-4 py-3 text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]/60 focus:outline-none focus:border-[#2563EB] dark:focus:border-[#3B82F6] transition-colors text-sm font-mono text-center"
                                     />
                                 </div>
                             </div>
 
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                                 <div>
-                                    <label className="block text-xs font-semibold text-gray-300 mb-1.5 uppercase">CEP</label>
+                                    <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5 uppercase">CEP</label>
                                     <input
                                         type="text"
                                         required
@@ -556,40 +556,40 @@ function CheckoutClient({ proposalId }: { proposalId: string }) {
                                         placeholder="00000-000"
                                         value={cardData.postalCode}
                                         onChange={(e) => handleCardChange('postalCode', e.target.value)}
-                                        className="w-full bg-[#0F1115] border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-[#FFAE00] transition-all text-sm font-mono"
+                                        className="w-full min-h-[48px] bg-[var(--bg-surface-elevated)] border border-[var(--border-hairline)] rounded-xl px-4 py-3 text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]/60 focus:outline-none focus:border-[#2563EB] dark:focus:border-[#3B82F6] transition-colors text-sm font-mono"
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-semibold text-gray-300 mb-1.5 uppercase">Nº do Endereço</label>
+                                    <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5 uppercase">Nº do Endereço</label>
                                     <input
                                         type="text"
                                         required
                                         placeholder="Ex: 123 ou S/N"
                                         value={cardData.addressNumber}
                                         onChange={(e) => handleCardChange('addressNumber', e.target.value)}
-                                        className="w-full bg-[#0F1115] border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-[#FFAE00] transition-all text-sm font-mono"
+                                        className="w-full min-h-[48px] bg-[var(--bg-surface-elevated)] border border-[var(--border-hairline)] rounded-xl px-4 py-3 text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]/60 focus:outline-none focus:border-[#2563EB] dark:focus:border-[#3B82F6] transition-colors text-sm font-mono"
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-semibold text-gray-300 mb-1.5 uppercase">Telefone</label>
+                                    <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5 uppercase">Telefone</label>
                                     <input
                                         type="text"
                                         required
                                         placeholder="(00) 00000-0000"
                                         value={cardData.phone}
                                         onChange={(e) => handleCardChange('phone', e.target.value)}
-                                        className="w-full bg-[#0F1115] border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-[#FFAE00] transition-all text-sm font-mono"
+                                        className="w-full min-h-[48px] bg-[var(--bg-surface-elevated)] border border-[var(--border-hairline)] rounded-xl px-4 py-3 text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]/60 focus:outline-none focus:border-[#2563EB] dark:focus:border-[#3B82F6] transition-colors text-sm font-mono"
                                     />
                                 </div>
                             </div>
 
                             {/* Installments */}
                             <div>
-                                <label className="block text-xs font-semibold text-gray-300 mb-1.5 uppercase">Parcelas</label>
+                                <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5 uppercase">Parcelas</label>
                                 <select
                                     value={cardData.installmentCount}
                                     onChange={(e) => handleCardChange('installmentCount', Number(e.target.value))}
-                                    className="w-full bg-[#0F1115] border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#FFAE00] transition-all text-sm"
+                                    className="w-full min-h-[48px] bg-[var(--bg-surface-elevated)] border border-[var(--border-hairline)] rounded-xl px-4 py-3 text-[var(--text-primary)] focus:outline-none focus:border-[#2563EB] dark:focus:border-[#3B82F6] transition-colors text-sm"
                                 >
                                     {installmentOptions.map(opt => (
                                         <option key={opt.count} value={opt.count}>
@@ -597,7 +597,7 @@ function CheckoutClient({ proposalId }: { proposalId: string }) {
                                         </option>
                                     ))}
                                 </select>
-                                <p className="text-[10px] text-gray-500 mt-1">
+                                <p className="text-[10px] text-[var(--text-secondary)] mt-1">
                                     Taxa do cartão de R$ {cardFee.toFixed(2)} inclusa no valor total.
                                 </p>
                             </div>
@@ -605,7 +605,7 @@ function CheckoutClient({ proposalId }: { proposalId: string }) {
                             <button
                                 type="submit"
                                 disabled={processing}
-                                className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-[#FFB703] to-[#FB8500] hover:brightness-110 text-black font-extrabold py-4 px-6 rounded-xl transition-all shadow-lg shadow-[#FFB703]/20 disabled:opacity-50 text-base active:scale-95"
+                                className="w-full min-h-[48px] flex items-center justify-center gap-2 bg-[var(--btn-primary-bg)] hover:bg-[var(--btn-primary-hover)] text-[var(--btn-primary-text)] font-semibold py-3.5 px-6 rounded-lg transition-colors disabled:opacity-50 text-base active:scale-[0.99]"
                             >
                                 {processing ? (
                                     <><Loader2 className="w-5 h-5 animate-spin" /> Processando...</>
@@ -614,7 +614,7 @@ function CheckoutClient({ proposalId }: { proposalId: string }) {
                                 )}
                             </button>
 
-                            <div className="flex items-center justify-center gap-2 text-[11px] text-gray-500">
+                            <div className="flex items-center justify-center gap-2 text-[11px] text-[var(--text-secondary)]">
                                 <Lock className="w-3 h-3" />
                                 Dados criptografados e processados pelo Asaas. O BordadoHub não armazena dados do seu cartão.
                             </div>

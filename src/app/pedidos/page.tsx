@@ -66,15 +66,15 @@ const formatPrice = (price: number) => {
 
 function PedidoCardSkeleton() {
     return (
-        <div className="bg-[#12151C] border border-white/[0.07] rounded-2xl overflow-hidden p-6 animate-pulse flex flex-col md:flex-row gap-6 mb-4">
-            <div className="w-full md:w-64 h-48 bg-white/5 rounded-xl shrink-0" />
+        <div className="bg-[var(--bg-surface)] border border-[var(--border-hairline)] rounded-2xl overflow-hidden p-6 animate-pulse flex flex-col md:flex-row gap-6 mb-4">
+            <div className="w-full md:w-64 h-48 bg-[var(--bg-surface-elevated)] rounded-xl shrink-0" />
             <div className="flex-1 flex flex-col justify-between space-y-4 py-2">
                 <div className="space-y-3">
-                    <div className="h-6 bg-white/5 rounded w-3/4" />
-                    <div className="h-4 bg-white/5 rounded w-1/3" />
+                    <div className="h-6 bg-[var(--bg-surface-elevated)] rounded w-3/4" />
+                    <div className="h-4 bg-[var(--bg-surface-elevated)] rounded w-1/3" />
                 </div>
-                <div className="h-4 bg-white/5 rounded w-full" />
-                <div className="h-10 bg-white/5 rounded-xl w-36" />
+                <div className="h-4 bg-[var(--bg-surface-elevated)] rounded w-full" />
+                <div className="h-10 bg-[var(--bg-surface-elevated)] rounded-xl w-36" />
             </div>
         </div>
     )
@@ -82,16 +82,16 @@ function PedidoCardSkeleton() {
 
 function MarketplacePurchaseSkeleton() {
     return (
-        <div className="bg-[#12151C] border border-white/[0.07] rounded-2xl p-5 md:p-6 animate-pulse flex flex-col md:flex-row gap-5 items-start md:items-center justify-between mb-4">
+        <div className="bg-[var(--bg-surface)] border border-[var(--border-hairline)] rounded-2xl p-5 md:p-6 animate-pulse flex flex-col md:flex-row gap-5 items-start md:items-center justify-between mb-4">
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full md:w-auto">
-                <div className="w-20 h-20 md:w-24 md:h-24 rounded-xl bg-white/5 shrink-0" />
+                <div className="w-20 h-20 md:w-24 md:h-24 rounded-xl bg-[var(--bg-surface-elevated)] shrink-0" />
                 <div className="space-y-3 flex-1">
-                    <div className="h-5 bg-white/5 rounded w-48" />
-                    <div className="h-4 bg-white/5 rounded w-32" />
-                    <div className="h-3 bg-white/5 rounded w-24" />
+                    <div className="h-5 bg-[var(--bg-surface-elevated)] rounded w-48" />
+                    <div className="h-4 bg-[var(--bg-surface-elevated)] rounded w-32" />
+                    <div className="h-3 bg-[var(--bg-surface-elevated)] rounded w-24" />
                 </div>
             </div>
-            <div className="w-full md:w-40 h-10 bg-white/5 rounded-xl shrink-0" />
+            <div className="w-full md:w-40 h-10 bg-[var(--bg-surface-elevated)] rounded-xl shrink-0" />
         </div>
     )
 }
@@ -466,10 +466,10 @@ export default function PedidosPage() {
             {/* Header */}
             <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-6">
                 <div>
-                    <h2 className="text-3xl font-extrabold text-[#F8FAFC] tracking-tight">
+                    <h2 className="text-3xl font-bold text-[var(--text-primary)] tracking-tight">
                         {activeTab === 'jobs' ? 'Matrizes que Encomendei' : 'Minhas Compras do Marketplace'}
                     </h2>
-                    <p className="text-gray-400 text-sm mt-1">
+                    <p className="text-[var(--text-secondary)] text-sm mt-1">
                         {activeTab === 'jobs' 
                             ? 'Acompanhe o andamento das suas encomendas sob medida e aprove suas matrizes com garantia'
                             : 'Acesse e baixe todas as matrizes profissionais adquiridas na loja oficial'}
@@ -480,15 +480,15 @@ export default function PedidosPage() {
                     {activeTab === 'jobs' ? (
                         <Link
                             href="/jobs/new"
-                            className="inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-gradient-to-r from-[#FFB703] to-[#FB8500] hover:brightness-110 text-black rounded-2xl transition-all font-extrabold text-sm shadow-md shadow-[#F5A623]/20 hover:scale-[1.02] active:scale-95 whitespace-nowrap"
+                            className="min-h-[48px] inline-flex items-center justify-center gap-2 px-5 py-3 bg-[var(--btn-primary-bg)] hover:bg-[var(--btn-primary-hover)] text-[var(--btn-primary-text)] rounded-lg transition-colors font-semibold text-sm whitespace-nowrap"
                         >
-                            <Plus className="w-4 h-4 stroke-[3]" />
+                            <Plus className="w-4 h-4 stroke-[2.5]" />
                             Novo Pedido
                         </Link>
                     ) : (
                         <Link
                             href="/marketplace"
-                            className="inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-gradient-to-r from-[#FFB703] to-[#FB8500] hover:brightness-110 text-black rounded-2xl transition-all font-extrabold text-sm shadow-md shadow-[#F5A623]/20 hover:scale-[1.02] active:scale-95 whitespace-nowrap"
+                            className="min-h-[48px] inline-flex items-center justify-center gap-2 px-5 py-3 bg-[var(--btn-primary-bg)] hover:bg-[var(--btn-primary-hover)] text-[var(--btn-primary-text)] rounded-lg transition-colors font-semibold text-sm whitespace-nowrap"
                         >
                             <Store className="w-4 h-4" />
                             Explorar Loja
@@ -498,19 +498,19 @@ export default function PedidosPage() {
             </div>
 
             {/* Main Tabs Switcher */}
-            <div className="flex bg-[#12151C] p-1.5 rounded-2xl border border-white/[0.08] mb-8 gap-2 w-full sm:w-auto overflow-x-auto">
+            <div className="flex bg-[var(--bg-surface)] p-1.5 rounded-xl border border-[var(--border-hairline)] mb-8 gap-2 w-full sm:w-auto overflow-x-auto">
                 <button
                     type="button"
                     onClick={() => handleTabChange('jobs')}
-                    className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-xs sm:text-sm transition-all whitespace-nowrap ${
+                    className={`min-h-[44px] flex-1 sm:flex-initial flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg text-xs sm:text-sm transition-colors whitespace-nowrap ${
                         activeTab === 'jobs'
-                            ? 'bg-gradient-to-r from-[#FFB703] to-[#FB8500] text-black font-extrabold shadow-md shadow-[#F5A623]/20'
-                            : 'text-gray-400 hover:text-white font-semibold'
+                            ? 'bg-[#2563EB] text-white font-semibold'
+                            : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] font-semibold'
                     }`}
                 >
                     <span>Encomendas Sob Medida</span>
                     <span className={`px-2 py-0.5 rounded-full text-xs ${
-                        activeTab === 'jobs' ? 'bg-black/20 text-black font-black' : 'bg-white/10 text-gray-300 font-semibold'
+                        activeTab === 'jobs' ? 'bg-white/20 text-white font-bold' : 'bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] font-semibold'
                     }`}>
                         {jobs.length}
                     </span>
@@ -518,16 +518,16 @@ export default function PedidosPage() {
                 <button
                     type="button"
                     onClick={() => handleTabChange('marketplace')}
-                    className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-xs sm:text-sm transition-all whitespace-nowrap ${
+                    className={`min-h-[44px] flex-1 sm:flex-initial flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg text-xs sm:text-sm transition-colors whitespace-nowrap ${
                         activeTab === 'marketplace'
-                            ? 'bg-gradient-to-r from-[#FFB703] to-[#FB8500] text-black font-extrabold shadow-md shadow-[#F5A623]/20'
-                            : 'text-gray-400 hover:text-white font-semibold'
+                            ? 'bg-[#2563EB] text-white font-semibold'
+                            : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] font-semibold'
                     }`}
                 >
                     <ShoppingBag className="w-4 h-4" />
                     <span>Minhas Compras</span>
                     <span className={`px-2 py-0.5 rounded-full text-xs ${
-                        activeTab === 'marketplace' ? 'bg-black/20 text-black font-black' : 'bg-white/10 text-gray-300 font-semibold'
+                        activeTab === 'marketplace' ? 'bg-white/20 text-white font-bold' : 'bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] font-semibold'
                     }`}>
                         {marketplaceOrders.length}
                     </span>
@@ -539,13 +539,13 @@ export default function PedidosPage() {
                 <div>
                     {/* Filter bar for jobs */}
                     <div className="flex items-center gap-2 mb-6">
-                        <div className="flex p-1 bg-[#12151C] rounded-2xl border border-white/[0.07]">
+                        <div className="flex flex-wrap p-1 bg-[var(--bg-surface)] rounded-xl border border-[var(--border-hairline)] gap-1">
                             <button
                                 type="button"
                                 onClick={() => setFilter('all')}
-                                className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-medium transition-all ${filter === 'all'
-                                    ? 'bg-gradient-to-r from-[#FFB703] to-[#FB8500] text-black font-extrabold shadow-md shadow-[#F5A623]/20'
-                                    : 'text-gray-400 hover:text-white'
+                                className={`min-h-[44px] sm:min-h-[38px] px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-colors ${filter === 'all'
+                                    ? 'bg-[#2563EB] text-white'
+                                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                                     }`}
                             >
                                 Todos
@@ -553,9 +553,9 @@ export default function PedidosPage() {
                             <button
                                 type="button"
                                 onClick={() => setFilter('aberto')}
-                                className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-medium transition-all ${filter === 'aberto'
-                                    ? 'bg-gradient-to-r from-[#FFB703] to-[#FB8500] text-black font-extrabold shadow-md shadow-[#F5A623]/20'
-                                    : 'text-gray-400 hover:text-white'
+                                className={`min-h-[44px] sm:min-h-[38px] px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-colors ${filter === 'aberto'
+                                    ? 'bg-[#2563EB] text-white'
+                                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                                     }`}
                             >
                                 Aguardando
@@ -563,9 +563,9 @@ export default function PedidosPage() {
                             <button
                                 type="button"
                                 onClick={() => setFilter('em_progresso')}
-                                className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-medium transition-all ${filter === 'em_progresso'
-                                    ? 'bg-gradient-to-r from-[#FFB703] to-[#FB8500] text-black font-extrabold shadow-md shadow-[#F5A623]/20'
-                                    : 'text-gray-400 hover:text-white'
+                                className={`min-h-[44px] sm:min-h-[38px] px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-colors ${filter === 'em_progresso'
+                                    ? 'bg-[#2563EB] text-white'
+                                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                                     }`}
                             >
                                 Em Produção
@@ -580,55 +580,55 @@ export default function PedidosPage() {
                             <PedidoCardSkeleton />
                         </div>
                     ) : jobsError && jobs.length === 0 ? (
-                        <div className="bg-[#12151C] border border-red-500/20 rounded-2xl p-10 text-center">
-                            <AlertCircle className="w-10 h-10 text-red-400 mx-auto mb-3 opacity-80" />
-                            <p className="text-gray-200 font-bold text-base">{jobsError}</p>
+                        <div className="bg-[var(--bg-surface)] border border-[#DC2626]/25 dark:border-[#EF4444]/25 rounded-2xl p-10 text-center">
+                            <AlertCircle className="w-10 h-10 text-[#DC2626] dark:text-[#F87171] mx-auto mb-3 opacity-90" />
+                            <p className="text-[var(--text-primary)] font-bold text-base">{jobsError}</p>
                             <button
                                 type="button"
                                 onClick={() => setRetryTick((t) => t + 1)}
-                                className="mt-4 inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[#FFB703] to-[#FB8500] hover:brightness-110 text-black font-extrabold text-sm rounded-xl transition-all shadow-md"
+                                className="mt-4 min-h-[48px] inline-flex items-center justify-center gap-2 px-5 py-3 bg-[var(--btn-primary-bg)] hover:bg-[var(--btn-primary-hover)] text-[var(--btn-primary-text)] font-semibold text-sm rounded-lg transition-colors"
                             >
                                 <RefreshCw className="w-4 h-4" />
                                 Tentar novamente
                             </button>
                         </div>
                     ) : jobs.length === 0 ? (
-                        <div className="bg-[#12151C] border border-white/[0.07] rounded-2xl p-12 text-center">
-                            <div className="bg-[#F5A623]/10 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 border border-[#F5A623]/20">
-                                <Inbox className="w-10 h-10 text-[#F5A623]" />
+                        <div className="bg-[var(--bg-surface)] border border-[var(--border-hairline)] rounded-2xl p-12 text-center">
+                            <div className="bg-[#2563EB]/10 dark:bg-[#3B82F6]/15 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 border border-[#2563EB]/25 dark:border-[#3B82F6]/30">
+                                <Inbox className="w-10 h-10 text-[#1D4ED8] dark:text-[#60A5FA]" />
                             </div>
-                            <h3 className="text-xl font-bold text-[#F8FAFC] mb-2">
+                            <h3 className="text-xl font-bold text-[var(--text-primary)] mb-2">
                                 Nenhum pedido ainda
                             </h3>
-                            <p className="text-gray-400 mb-6 max-w-md mx-auto text-sm">
+                            <p className="text-[var(--text-secondary)] mb-6 max-w-md mx-auto text-sm">
                                 Você ainda não criou nenhum pedido de matriz. Comece agora e receba orçamentos de programadores profissionais!
                             </p>
                             <Link
                                 href="/jobs/new"
-                                className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-[#FFB703] to-[#FB8500] hover:brightness-110 text-black rounded-2xl transition-all font-extrabold text-sm shadow-lg shadow-[#F5A623]/20"
+                                className="min-h-[48px] inline-flex items-center justify-center gap-2 px-6 py-3 bg-[var(--btn-primary-bg)] hover:bg-[var(--btn-primary-hover)] text-[var(--btn-primary-text)] rounded-lg transition-colors font-semibold text-sm"
                             >
-                                <Plus className="w-4 h-4 stroke-[3]" />
+                                <Plus className="w-4 h-4 stroke-[2.5]" />
                                 Criar Primeiro Pedido
                             </Link>
                         </div>
                     ) : (
                         <div className="grid gap-4">
                             {jobs.filter(j => filter === 'all' ? true : j.status === filter).length === 0 ? (
-                                <div className="text-center py-20 bg-[#12151C] rounded-2xl border border-white/[0.07]">
-                                    <p className="text-gray-400 text-sm">Nenhum pedido encontrado nesta categoria.</p>
+                                <div className="text-center py-20 bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-hairline)]">
+                                    <p className="text-[var(--text-secondary)] text-sm">Nenhum pedido encontrado nesta categoria.</p>
                                 </div>
                             ) : (
                                 jobs.filter(j => filter === 'all' ? true : j.status === filter).map((job) => (
                                     <div key={job.id} className="space-y-0">
                                         {/* Direct Request Banner */}
                                         {job.target_programmer_id && (
-                                            <div className="flex items-center gap-2 bg-purple-950/40 border border-purple-500/30 border-b-0 rounded-t-2xl px-4 py-2">
-                                                <span className="text-purple-300 text-xs font-bold uppercase tracking-wider flex items-center gap-1.5">
+                                            <div className="flex items-center gap-2 bg-[#2563EB]/10 dark:bg-[#3B82F6]/15 border border-[#2563EB]/25 dark:border-[#3B82F6]/30 border-b-0 rounded-t-2xl px-4 py-2">
+                                                <span className="text-[#1D4ED8] dark:text-[#60A5FA] text-xs font-bold uppercase tracking-wider flex items-center gap-1.5">
                                                     <Target className="w-3.5 h-3.5" />
                                                     Solicitação Direta
                                                 </span>
-                                                <span className="text-purple-400 text-xs">→</span>
-                                                <span className="text-white text-sm font-semibold">
+                                                <span className="text-[var(--text-secondary)] text-xs">→</span>
+                                                <span className="text-[var(--text-primary)] text-sm font-semibold">
                                                     {job.target_programmer?.name ?? `Programador (ID: ${String(job.target_programmer_id).slice(0, 8)}...)`}
                                                 </span>
                                             </div>
@@ -659,13 +659,13 @@ export default function PedidosPage() {
                             <MarketplacePurchaseSkeleton />
                         </div>
                     ) : ordersError && marketplaceOrders.length === 0 ? (
-                        <div className="bg-[#12151C] border border-red-500/20 rounded-2xl p-10 text-center">
-                            <AlertCircle className="w-10 h-10 text-red-400 mx-auto mb-3 opacity-80" />
-                            <p className="text-gray-200 font-bold text-base">{ordersError}</p>
+                        <div className="bg-[var(--bg-surface)] border border-[#DC2626]/25 dark:border-[#EF4444]/25 rounded-2xl p-10 text-center">
+                            <AlertCircle className="w-10 h-10 text-[#DC2626] dark:text-[#F87171] mx-auto mb-3 opacity-90" />
+                            <p className="text-[var(--text-primary)] font-bold text-base">{ordersError}</p>
                             <button
                                 type="button"
                                 onClick={() => setRetryTick((t) => t + 1)}
-                                className="mt-4 inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[#FFB703] to-[#FB8500] hover:brightness-110 text-black font-extrabold text-sm rounded-xl transition-all shadow-md"
+                                className="mt-4 min-h-[48px] inline-flex items-center justify-center gap-2 px-5 py-3 bg-[var(--btn-primary-bg)] hover:bg-[var(--btn-primary-hover)] text-[var(--btn-primary-text)] font-semibold text-sm rounded-lg transition-colors"
                             >
                                 <RefreshCw className="w-4 h-4" />
                                 Tentar novamente
@@ -673,19 +673,19 @@ export default function PedidosPage() {
                         </div>
                     ) : marketplaceOrders.length === 0 ? (
                         /* Empty State matching T2-F04-03 requirements */
-                        <div className="bg-[#12151C] border border-white/[0.07] rounded-2xl p-12 text-center">
-                            <div className="bg-[#F5A623]/10 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 border border-[#F5A623]/20 text-[#F5A623]">
+                        <div className="bg-[var(--bg-surface)] border border-[var(--border-hairline)] rounded-2xl p-12 text-center">
+                            <div className="bg-[#2563EB]/10 dark:bg-[#3B82F6]/15 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 border border-[#2563EB]/25 dark:border-[#3B82F6]/30 text-[#1D4ED8] dark:text-[#60A5FA]">
                                 <ShoppingBag className="w-10 h-10" />
                             </div>
-                            <h3 className="text-xl font-bold text-[#F8FAFC] mb-2">
+                            <h3 className="text-xl font-bold text-[var(--text-primary)] mb-2">
                                 Nenhuma matriz comprada ainda
                             </h3>
-                            <p className="text-gray-400 mb-6 max-w-md mx-auto text-sm leading-relaxed">
+                            <p className="text-[var(--text-secondary)] mb-6 max-w-md mx-auto text-sm leading-relaxed">
                                 Você ainda não comprou nenhuma matriz pronta na nossa loja. Explore centenas de matrizes profissionais prontas para bordar!
                             </p>
                             <Link
                                 href="/marketplace"
-                                className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-[#FFB703] to-[#FB8500] hover:brightness-110 text-black rounded-2xl transition-all font-extrabold text-sm shadow-lg shadow-[#F5A623]/20 hover:scale-[1.02] active:scale-95"
+                                className="min-h-[48px] inline-flex items-center justify-center gap-2 px-6 py-3 bg-[var(--btn-primary-bg)] hover:bg-[var(--btn-primary-hover)] text-[var(--btn-primary-text)] rounded-lg transition-colors font-semibold text-sm"
                             >
                                 <Store className="w-4 h-4" />
                                 Explorar Loja de Matrizes
@@ -704,20 +704,20 @@ export default function PedidosPage() {
                                 return (
                                     <div 
                                         key={order.id}
-                                        className="bg-[#12151C] border border-white/[0.07] hover:border-[#FFAE00]/40 rounded-2xl p-5 md:p-6 transition-all duration-200 flex flex-col md:flex-row gap-5 items-start md:items-center justify-between group shadow-lg"
+                                        className="bg-[var(--bg-surface)] border border-[var(--border-hairline)] hover:border-[#2563EB]/40 dark:hover:border-[#3B82F6]/40 rounded-2xl p-5 md:p-6 transition-colors duration-200 flex flex-col md:flex-row gap-5 items-start md:items-center justify-between group shadow-sm"
                                     >
                                         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 flex-1">
                                             {/* Thumbnail */}
-                                            <div className="w-20 h-20 md:w-24 md:h-24 rounded-xl overflow-hidden bg-[#161920] border border-white/10 shrink-0 relative aspect-square">
+                                            <div className="w-20 h-20 md:w-24 md:h-24 rounded-xl overflow-hidden bg-[var(--bg-surface-elevated)] border border-[var(--border-hairline)] shrink-0 relative aspect-square">
                                                 {product?.image_url ? (
                                                     <img 
                                                         src={product.image_url} 
                                                         alt={title}
-                                                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                                        className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300"
                                                     />
                                                 ) : (
-                                                    <div className="w-full h-full flex items-center justify-center text-gray-500 bg-white/5">
-                                                        <FileCode className="w-8 h-8 text-[#FFAE00]/60" />
+                                                    <div className="w-full h-full flex items-center justify-center text-[var(--cobalt)] bg-[var(--bg-surface-elevated)]">
+                                                        <FileCode className="w-8 h-8" />
                                                     </div>
                                                 )}
                                             </div>
@@ -725,18 +725,18 @@ export default function PedidosPage() {
                                             {/* Product & Order Details */}
                                             <div className="space-y-2 flex-1">
                                                 <div className="flex flex-wrap items-center gap-2">
-                                                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-[#FFAE00]/10 text-[#FFAE00] border border-[#FFAE00]/25">
+                                                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#2563EB]/10 dark:bg-[#3B82F6]/15 text-[#1D4ED8] dark:text-[#60A5FA] border border-[#2563EB]/25 dark:border-[#3B82F6]/30">
                                                         <Store className="w-3 h-3" />
                                                         Loja Oficial
                                                     </span>
 
-                                                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/25">
+                                                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#0D9488]/10 dark:bg-[#14B8A6]/15 text-[#0F766E] dark:text-[#14B8A6] border border-[#0D9488]/25 dark:border-[#14B8A6]/30">
                                                         <CheckCircle2 className="w-3 h-3" />
                                                         Acesso Vitalício
                                                     </span>
 
                                                     {product?.is_bundle && (
-                                                        <span className="bg-[#FFAE00] text-[#0F1115] text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md shadow-sm">
+                                                        <span className="bg-[#2563EB] text-white text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md">
                                                             Pacote ({product.items_count || 2} itens)
                                                         </span>
                                                     )}
@@ -744,14 +744,14 @@ export default function PedidosPage() {
 
                                                 <Link 
                                                     href={`/marketplace/${order.product_id}`}
-                                                    className="block text-base md:text-lg font-extrabold text-white group-hover:text-[#FFAE00] transition-colors line-clamp-1"
+                                                    className="block text-base md:text-lg font-bold text-[var(--text-primary)] group-hover:text-[#2563EB] dark:group-hover:text-[#60A5FA] transition-colors line-clamp-1"
                                                 >
                                                     {title}
                                                 </Link>
 
-                                                <div className="flex flex-wrap items-center gap-3 text-xs text-gray-400">
+                                                <div className="flex flex-wrap items-center gap-3 text-xs text-[var(--text-secondary)]">
                                                     {order.seller?.name && (
-                                                        <span>Vendido por <strong className="text-gray-300">{order.seller.name}</strong></span>
+                                                        <span>Vendido por <strong className="text-[var(--text-primary)]">{order.seller.name}</strong></span>
                                                     )}
                                                     <span>•</span>
                                                     <span>Adquirido em {new Date(order.created_at).toLocaleDateString('pt-BR')}</span>
@@ -762,7 +762,7 @@ export default function PedidosPage() {
                                                     {formats.map((fmt) => (
                                                         <span 
                                                             key={fmt} 
-                                                            className="bg-white/5 border border-white/10 text-gray-300 font-mono text-[10px] font-bold px-2 py-0.5 rounded"
+                                                            className="bg-[var(--bg-surface-elevated)] border border-[var(--border-hairline)] text-[var(--text-primary)] font-mono text-[10px] font-bold px-2 py-0.5 rounded"
                                                         >
                                                             .{fmt.toUpperCase().replace('.', '')}
                                                         </span>
@@ -772,10 +772,10 @@ export default function PedidosPage() {
                                         </div>
 
                                         {/* Actions Column */}
-                                        <div className="flex flex-row md:flex-col items-center md:items-end justify-between w-full md:w-auto gap-3 pt-3 md:pt-0 border-t md:border-t-0 border-white/5">
+                                        <div className="flex flex-row md:flex-col items-center md:items-end justify-between w-full md:w-auto gap-3 pt-3 md:pt-0 border-t md:border-t-0 border-[var(--border-hairline)]">
                                             <div className="text-left md:text-right">
-                                                <span className="text-[11px] text-gray-400 block font-medium">Valor pago</span>
-                                                <span className="text-emerald-400 font-black text-base md:text-lg">
+                                                <span className="text-[11px] text-[var(--text-secondary)] block font-medium">Valor pago</span>
+                                                <span className="text-[#0F766E] dark:text-[#14B8A6] font-extrabold text-base md:text-lg">
                                                     {formatPrice(order.amount)}
                                                 </span>
                                             </div>
@@ -785,11 +785,11 @@ export default function PedidosPage() {
                                                     type="button"
                                                     disabled={isDownloading}
                                                     onClick={() => handleDownloadMatrix(order.product_id, title)}
-                                                    className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[#FFB703] to-[#FB8500] hover:brightness-110 text-black font-extrabold text-xs md:text-sm rounded-xl shadow-md shadow-[#F5A623]/20 transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-50 whitespace-nowrap"
+                                                    className="min-h-[48px] inline-flex items-center justify-center gap-2 px-5 py-3 bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-semibold text-xs md:text-sm rounded-lg transition-colors active:scale-[0.99] disabled:opacity-50 whitespace-nowrap"
                                                 >
                                                     {isDownloading ? (
                                                         <>
-                                                            <Loader2 className="w-4 h-4 animate-spin text-black" />
+                                                            <Loader2 className="w-4 h-4 animate-spin text-white" />
                                                             <span>Baixando...</span>
                                                         </>
                                                     ) : (
@@ -802,7 +802,7 @@ export default function PedidosPage() {
 
                                                 <Link
                                                     href={`/marketplace/${order.product_id}`}
-                                                    className="p-2.5 bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white border border-white/10 rounded-xl transition-colors"
+                                                    className="min-w-[44px] min-h-[44px] inline-flex items-center justify-center bg-[var(--bg-surface-elevated)] hover:border-[var(--border-glass)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-hairline)] rounded-lg transition-colors"
                                                     title="Ver matriz no marketplace"
                                                 >
                                                     <ExternalLink className="w-4 h-4" />
@@ -820,23 +820,23 @@ export default function PedidosPage() {
             {/* Modal de Confirmação para Excluir Pedido Sob Medida */}
             {jobToDelete && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div className="bg-[#12151C] border border-white/10 rounded-2xl p-6 max-w-md w-full shadow-2xl animate-in zoom-in-95 duration-200">
+                    <div className="bg-[var(--bg-surface)] border border-[var(--border-hairline)] rounded-2xl p-6 max-w-md w-full shadow-2xl animate-in zoom-in-95 duration-200">
                         <div className="flex items-center gap-3 mb-4">
-                            <div className="w-12 h-12 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center shrink-0">
-                                <Trash2 className="w-6 h-6 text-red-400" />
+                            <div className="w-12 h-12 rounded-xl bg-[#DC2626]/10 border border-[#DC2626]/25 flex items-center justify-center shrink-0">
+                                <Trash2 className="w-6 h-6 text-[#DC2626] dark:text-[#EF4444]" />
                             </div>
                             <div>
-                                <h3 className="text-lg font-extrabold text-white">Excluir Pedido</h3>
-                                <p className="text-xs text-gray-400">Esta ação não poderá ser desfeita</p>
+                                <h3 className="text-lg font-bold text-[var(--text-primary)]">Excluir Pedido</h3>
+                                <p className="text-xs text-[var(--text-secondary)]">Esta ação não poderá ser desfeita</p>
                             </div>
                         </div>
 
-                        <div className="bg-red-500/5 border border-red-500/15 rounded-xl p-4 mb-5">
-                            <p className="text-sm text-gray-300 leading-relaxed">
-                                Tem certeza que deseja apagar o pedido <strong className="text-white">&quot;{jobToDelete.title}&quot;</strong>?
+                        <div className="bg-[#DC2626]/5 border border-[#DC2626]/20 rounded-xl p-4 mb-5">
+                            <p className="text-sm text-[var(--text-secondary)] leading-relaxed">
+                                Tem certeza que deseja apagar o pedido <strong className="text-[var(--text-primary)]">&quot;{jobToDelete.title}&quot;</strong>?
                             </p>
-                            <p className="text-xs text-gray-400 mt-2 flex items-center gap-1.5">
-                                <AlertCircle className="w-3.5 h-3.5 text-red-400 shrink-0" />
+                            <p className="text-xs text-[var(--text-secondary)] mt-2 flex items-center gap-1.5">
+                                <AlertCircle className="w-3.5 h-3.5 text-[#DC2626] dark:text-[#EF4444] shrink-0" />
                                 Ele será removido permanentemente do banco de dados e do seu painel.
                             </p>
                         </div>
@@ -846,7 +846,7 @@ export default function PedidosPage() {
                                 type="button"
                                 onClick={() => setJobToDelete(null)}
                                 disabled={isDeleting}
-                                className="flex-1 bg-white/5 border border-white/10 text-gray-400 font-bold py-3 rounded-xl hover:bg-white/10 transition-colors text-sm disabled:opacity-50"
+                                className="flex-1 min-h-[48px] bg-[var(--bg-surface-elevated)] border border-[var(--border-hairline)] text-[var(--text-primary)] font-semibold py-3 rounded-lg hover:border-[var(--border-glass)] transition-colors text-sm disabled:opacity-50"
                             >
                                 Voltar
                             </button>
@@ -854,7 +854,7 @@ export default function PedidosPage() {
                                 type="button"
                                 onClick={handleConfirmDelete}
                                 disabled={isDeleting}
-                                className="flex-1 bg-red-500 hover:bg-red-600 text-white font-black py-3 rounded-xl transition-all shadow-lg shadow-red-500/20 disabled:opacity-50 flex items-center justify-center gap-2 text-sm"
+                                className="flex-1 min-h-[48px] bg-[#DC2626] hover:bg-[#B91C1C] text-white font-semibold py-3 rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2 text-sm"
                             >
                                 {isDeleting ? (
                                     <>

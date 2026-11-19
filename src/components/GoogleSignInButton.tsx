@@ -57,10 +57,10 @@ export default function GoogleSignInButton({ mode = 'signin', text }: GoogleSign
             type="button"
             onClick={handleGoogleSignIn}
             disabled={loading}
-            className="w-full flex justify-center items-center gap-3 px-4 py-3 border border-gray-700 rounded-xl shadow-sm bg-[#0F1115] hover:bg-[#181C26] active:scale-[0.99] text-sm font-semibold text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#FFAE00]/50 transition-all disabled:opacity-50 cursor-pointer"
+            className="w-full min-h-[48px] flex justify-center items-center gap-3 px-4 py-3 border border-[var(--border-glass)] rounded-lg bg-[var(--bg-surface-elevated)] hover:bg-[var(--btn-glass-bg)] hover:border-[#2563EB]/40 dark:hover:border-[#3B82F6]/40 text-sm font-semibold text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[#2563EB] dark:focus:ring-[#3B82F6] transition-colors disabled:opacity-50 cursor-pointer"
         >
             {loading ? (
-                <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                <div className="w-5 h-5 border-2 border-[#2563EB]/25 border-t-[#2563EB] dark:border-[#60A5FA]/25 dark:border-t-[#60A5FA] rounded-full animate-spin" />
             ) : (
                 <svg className="h-5 w-5 shrink-0" aria-hidden="true" viewBox="0 0 24 24">
                     <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />

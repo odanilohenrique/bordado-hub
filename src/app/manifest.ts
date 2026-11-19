@@ -7,8 +7,8 @@ export default function manifest(): MetadataRoute.Manifest {
     description: 'Marketplace e encomendas de matrizes de bordado computadorizado com download imediato e segurança.',
     start_url: '/',
     display: 'standalone',
-    background_color: '#0B0D11',
-    theme_color: '#FFAE00',
+    background_color: '#0A0F1D',
+    theme_color: '#2563EB',
     orientation: 'portrait',
     scope: '/',
     icons: [
@@ -19,7 +19,7 @@ export default function manifest(): MetadataRoute.Manifest {
         purpose: 'any',
       },
       {
-        src: '/brand/icon-dark.png',
+        src: '/icon.png',
         sizes: '512x512',
         type: 'image/png',
         purpose: 'any',

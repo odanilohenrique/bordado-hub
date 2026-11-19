@@ -3,10 +3,11 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
-import Hero from '@/components/Hero'
-import Categories from '@/components/Categories'
-import HowItWorks from '@/components/HowItWorks'
-import Testimonials from '@/components/Testimonials'
+import HeroSection from '@/components/home/HeroSection'
+import TrustLogowall from '@/components/home/TrustLogowall'
+import MarketplaceShowcase from '@/components/home/MarketplaceShowcase'
+import EnginesCaseCards from '@/components/home/EnginesCaseCards'
+import FinalCta from '@/components/home/FinalCta'
 import Footer from '@/components/Footer'
 
 export default function Home() {
@@ -45,9 +46,9 @@ export default function Home() {
   // Feedback visual enquanto processa confirmação de autenticação ou checa sessão
   if (isProcessingAuth || user) {
     return (
-      <div className="min-h-screen bg-[#0F1115] flex flex-col items-center justify-center text-center px-4">
-        <div className="w-12 h-12 border-4 border-[#FFAE00]/20 border-t-[#FFAE00] rounded-full animate-spin mb-4" />
-        <p className="text-gray-300 font-semibold text-sm">
+      <div className="min-h-screen bg-[var(--bg-primary)] flex flex-col items-center justify-center text-center px-4">
+        <div className="w-11 h-11 border-4 border-[#2563EB]/20 border-t-[#2563EB] dark:border-[#3B82F6]/20 dark:border-t-[#3B82F6] rounded-full animate-spin mb-4" />
+        <p className="text-[var(--text-secondary)] font-semibold text-sm">
           {isProcessingAuth ? 'Confirmando seu e-mail e preparando sua conta...' : 'Carregando sua conta...'}
         </p>
       </div>
@@ -55,11 +56,12 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0F1115]">
-      <Hero />
-      <Categories />
-      <HowItWorks />
-      <Testimonials />
+    <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)]">
+      <HeroSection />
+      <TrustLogowall />
+      <MarketplaceShowcase />
+      <EnginesCaseCards />
+      <FinalCta />
       <Footer />
     </div>
   )

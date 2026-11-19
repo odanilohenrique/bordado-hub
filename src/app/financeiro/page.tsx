@@ -544,19 +544,19 @@ export default function FinancialDashboard() {
     return (
         <div className="space-y-8 pb-24 sm:pb-12">
             {/* Header Principal */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-800 pb-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[var(--border-hairline)] pb-6">
                 <div>
-                    <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight flex items-center gap-3">
-                        <Wallet className="w-8 h-8 text-[#FFAE00]" />
+                    <h1 className="text-2xl sm:text-3xl font-bold text-[var(--text-primary)] tracking-tight flex items-center gap-3">
+                        <Wallet className="w-8 h-8 text-[var(--cobalt)]" />
                         Painel Financeiro
                     </h1>
-                    <p className="text-sm text-gray-400 mt-1">
+                    <p className="text-sm text-[var(--text-secondary)] mt-1">
                         Acompanhe seu faturamento acumulado, valores em custódia e histórico de produções
                     </p>
                 </div>
 
                 <div className="flex items-center gap-2">
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-green-500/10 text-green-400 border border-green-500/20">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-[#0D9488]/10 dark:bg-[#14B8A6]/15 text-[#0F766E] dark:text-[#14B8A6] border border-[#0D9488]/25 dark:border-[#14B8A6]/30">
                         <ShieldCheck className="w-3.5 h-3.5" />
                         Custódia Segura BordadoHUB
                     </span>
@@ -566,115 +566,115 @@ export default function FinancialDashboard() {
             {/* Grid dos Cards de Indicadores (KPIs) */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {/* 1. Total Faturado */}
-                <div className="bg-[#12151C] border border-white/[0.07] hover:border-emerald-500/30 rounded-2xl p-5 shadow-lg transition-all group">
+                <div className="bg-[var(--bg-surface)] border border-[var(--border-hairline)] hover:border-[#0D9488]/40 rounded-2xl p-5 shadow-sm transition-colors group">
                     <div className="flex items-center justify-between mb-3">
-                        <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">
+                        <span className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">
                             Total Faturado
                         </span>
-                        <div className="w-9 h-9 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+                        <div className="w-9 h-9 rounded-xl bg-[#0D9488]/10 dark:bg-[#14B8A6]/15 border border-[#0D9488]/25 flex items-center justify-center text-[#0F766E] dark:text-[#14B8A6]">
                             <TrendingUp className="w-4 h-4" />
                         </div>
                     </div>
-                    <div className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+                    <div className="text-2xl sm:text-3xl font-bold text-[var(--text-primary)] tracking-tight">
                         R$ {metrics.totalEarned.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </div>
-                    <p className="text-[11px] text-gray-400 mt-2 flex items-center gap-1">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                    <p className="text-[11px] text-[var(--text-secondary)] mt-2 flex items-center gap-1">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-[#0F766E] dark:text-[#14B8A6]" />
                         {metrics.totalOrders} {metrics.totalOrders === 1 ? 'pedido finalizado' : 'pedidos finalizados'}
                     </p>
                 </div>
 
                 {/* 2. Saldo em Garantia (Custódia) */}
-                <div className="bg-[#12151C] border border-white/[0.07] hover:border-[#F5A623]/30 rounded-2xl p-5 shadow-lg transition-all group">
+                <div className="bg-[var(--bg-surface)] border border-[var(--border-hairline)] hover:border-[#2563EB]/40 rounded-2xl p-5 shadow-sm transition-colors group">
                     <div className="flex items-center justify-between mb-3">
-                        <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">
+                        <span className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">
                             Saldo em Custódia
                         </span>
-                        <div className="w-9 h-9 rounded-xl bg-[#F5A623]/10 border border-[#F5A623]/20 flex items-center justify-center text-[#F5A623]">
+                        <div className="w-9 h-9 rounded-xl bg-[#2563EB]/10 dark:bg-[#3B82F6]/15 border border-[#2563EB]/25 flex items-center justify-center text-[#1D4ED8] dark:text-[#60A5FA]">
                             <Clock className="w-4 h-4" />
                         </div>
                     </div>
-                    <div className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+                    <div className="text-2xl sm:text-3xl font-bold text-[var(--text-primary)] tracking-tight">
                         R$ {metrics.totalInEscrow.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </div>
-                    <p className="text-[11px] text-gray-400 mt-2 flex items-center gap-1">
-                        <ShieldCheck className="w-3.5 h-3.5 text-[#F5A623]" />
+                    <p className="text-[11px] text-[var(--text-secondary)] mt-2 flex items-center gap-1">
+                        <ShieldCheck className="w-3.5 h-3.5 text-[#1D4ED8] dark:text-[#60A5FA]" />
                         {metrics.inProductionOrders} {metrics.inProductionOrders === 1 ? 'pedido em produção' : 'pedidos em produção'}
                     </p>
                 </div>
 
                 {/* 3. Ticket Médio por Matriz */}
-                <div className="bg-[#12151C] border border-white/[0.07] hover:border-cyan-500/30 rounded-2xl p-5 shadow-lg transition-all group">
+                <div className="bg-[var(--bg-surface)] border border-[var(--border-hairline)] hover:border-[var(--border-glass)] rounded-2xl p-5 shadow-sm transition-colors group">
                     <div className="flex items-center justify-between mb-3">
-                        <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">
+                        <span className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">
                             Ticket Médio
                         </span>
-                        <div className="w-9 h-9 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400">
+                        <div className="w-9 h-9 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-hairline)] flex items-center justify-center text-[#2563EB] dark:text-[#60A5FA]">
                             <BarChart3 className="w-4 h-4" />
                         </div>
                     </div>
-                    <div className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+                    <div className="text-2xl sm:text-3xl font-bold text-[var(--text-primary)] tracking-tight">
                         R$ {metrics.avgTicket.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </div>
-                    <p className="text-[11px] text-gray-400 mt-2">
+                    <p className="text-[11px] text-[var(--text-secondary)] mt-2">
                         Ganho médio líquido por matriz entregue
                     </p>
                 </div>
 
                 {/* 4. Matrizes Entregues */}
-                <div className="bg-[#12151C] border border-white/[0.07] hover:border-indigo-500/30 rounded-2xl p-5 shadow-lg transition-all group">
+                <div className="bg-[var(--bg-surface)] border border-[var(--border-hairline)] hover:border-[#0D9488]/40 rounded-2xl p-5 shadow-sm transition-colors group">
                     <div className="flex items-center justify-between mb-3">
-                        <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">
+                        <span className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">
                             Matrizes Entregues
                         </span>
-                        <div className="w-9 h-9 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
+                        <div className="w-9 h-9 rounded-xl bg-[#0D9488]/10 dark:bg-[#14B8A6]/15 border border-[#0D9488]/25 flex items-center justify-center text-[#0F766E] dark:text-[#14B8A6]">
                             <Package className="w-4 h-4" />
                         </div>
                     </div>
-                    <div className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+                    <div className="text-2xl sm:text-3xl font-bold text-[var(--text-primary)] tracking-tight">
                         {metrics.totalCompletedMatrices}
                     </div>
-                    <p className="text-[11px] text-gray-400 mt-2 flex items-center gap-1">
-                        <Check className="w-3.5 h-3.5 text-indigo-400" />
+                    <p className="text-[11px] text-[var(--text-secondary)] mt-2 flex items-center gap-1">
+                        <Check className="w-3.5 h-3.5 text-[#0F766E] dark:text-[#14B8A6]" />
                         100% aprovadas pelos compradores
                     </p>
                 </div>
             </div>
 
             {/* Card de Configuração de Chave PIX para Repasses */}
-            <div className="bg-[#1A1D23] border border-white/10 rounded-xl p-5 sm:p-6 shadow-md">
+            <div className="bg-[var(--bg-surface)] border border-[var(--border-hairline)] rounded-xl p-5 sm:p-6 shadow-sm">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div className="flex items-start sm:items-center gap-3.5">
-                        <div className="w-11 h-11 rounded-xl bg-[#FFAE00]/10 border border-[#FFAE00]/20 flex items-center justify-center text-[#FFAE00] shrink-0 mt-0.5 sm:mt-0">
+                        <div className="w-11 h-11 rounded-xl bg-[#2563EB]/10 dark:bg-[#3B82F6]/15 border border-[#2563EB]/25 flex items-center justify-center text-[#1D4ED8] dark:text-[#60A5FA] shrink-0 mt-0.5 sm:mt-0">
                             <QrCode className="w-5 h-5" />
                         </div>
                         <div>
                             <div className="flex items-center gap-2">
-                                <h3 className="text-sm sm:text-base font-bold text-white">Chave PIX para Recebimento de Repasses</h3>
+                                <h3 className="text-sm sm:text-base font-bold text-[var(--text-primary)]">Chave PIX para Recebimento de Repasses</h3>
                                 {profile?.pix_key && !isEditingPix && (
-                                    <span className="bg-green-500/20 text-green-400 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border border-green-500/30">
+                                    <span className="bg-[#0D9488]/10 dark:bg-[#14B8A6]/15 text-[#0F766E] dark:text-[#14B8A6] text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border border-[#0D9488]/25 dark:border-[#14B8A6]/30">
                                         Ativa
                                     </span>
                                 )}
                             </div>
-                            <p className="text-xs text-gray-400 mt-0.5">
+                            <p className="text-xs text-[var(--text-secondary)] mt-0.5">
                                 Os valores de matrizes aprovadas são transferidos para esta chave via PIX
                             </p>
                         </div>
                     </div>
 
                     {!isEditingPix ? (
-                        <div className="flex items-center gap-3">
-                            <div className="bg-[#0F1115] border border-white/5 rounded-lg px-3.5 py-2 text-xs font-mono text-gray-200">
+                        <div className="flex flex-wrap sm:flex-nowrap items-center gap-3">
+                            <div className="bg-[var(--bg-surface-elevated)] border border-[var(--border-hairline)] rounded-lg px-3.5 py-2.5 text-xs font-mono text-[var(--text-primary)]">
                                 {profile?.pix_key ? (
                                     <span>
-                                        <span className="text-gray-500 uppercase font-sans mr-2 text-[10px] font-bold">
+                                        <span className="text-[var(--text-secondary)] uppercase font-sans mr-2 text-[10px] font-bold">
                                             {profile.pix_key_type || 'PIX'}:
                                         </span>
                                         {profile.pix_key}
                                     </span>
                                 ) : (
-                                    <span className="text-amber-400 flex items-center gap-1.5 font-sans font-medium">
+                                    <span className="text-[#1D4ED8] dark:text-[#60A5FA] flex items-center gap-1.5 font-sans font-medium">
                                         <AlertCircle className="w-3.5 h-3.5" />
                                         Nenhuma chave cadastrada
                                     </span>
@@ -682,9 +682,9 @@ export default function FinancialDashboard() {
                             </div>
                             <button
                                 onClick={() => setIsEditingPix(true)}
-                                className="inline-flex items-center gap-1.5 px-3 py-2 bg-[#0F1115] hover:bg-white/5 text-gray-300 hover:text-white rounded-lg border border-white/10 text-xs font-semibold transition-colors"
+                                className="min-h-[44px] inline-flex items-center gap-1.5 px-3.5 py-2 bg-[var(--bg-surface-elevated)] hover:border-[var(--border-glass)] text-[var(--text-primary)] rounded-lg border border-[var(--border-hairline)] text-xs font-semibold transition-colors"
                             >
-                                <Edit2 className="w-3.5 h-3.5 text-[#FFAE00]" />
+                                <Edit2 className="w-3.5 h-3.5 text-[var(--cobalt)]" />
                                 {profile?.pix_key ? 'Alterar' : 'Cadastrar Chave'}
                             </button>
                         </div>
@@ -693,7 +693,7 @@ export default function FinancialDashboard() {
                             <select
                                 value={pixKeyType}
                                 onChange={e => setPixKeyType(e.target.value)}
-                                className="bg-[#0F1115] border border-gray-700 rounded-lg px-2.5 py-2 text-xs text-gray-200 focus:outline-none focus:border-[#FFAE00]"
+                                className="min-h-[44px] bg-[var(--bg-surface-elevated)] border border-[var(--border-hairline)] rounded-lg px-2.5 py-2 text-xs text-[var(--text-primary)] focus:outline-none focus:border-[#2563EB] dark:focus:border-[#3B82F6]"
                             >
                                 <option value="cpf">CPF</option>
                                 <option value="cnpj">CNPJ</option>
@@ -708,13 +708,13 @@ export default function FinancialDashboard() {
                                 value={pixKey}
                                 onChange={e => setPixKey(e.target.value)}
                                 placeholder="Digite sua chave PIX..."
-                                className="bg-[#0F1115] border border-gray-700 rounded-lg px-3 py-2 text-xs text-gray-200 placeholder-gray-500 focus:outline-none focus:border-[#FFAE00] w-48 sm:w-60"
+                                className="min-h-[44px] bg-[var(--bg-surface-elevated)] border border-[var(--border-hairline)] rounded-lg px-3 py-2 text-xs text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]/60 focus:outline-none focus:border-[#2563EB] dark:focus:border-[#3B82F6] w-48 sm:w-60"
                             />
 
                             <button
                                 type="submit"
                                 disabled={savingPix}
-                                className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#FFAE00] hover:bg-yellow-400 text-black rounded-lg text-xs font-bold transition-all disabled:opacity-50"
+                                className="min-h-[44px] inline-flex items-center gap-1.5 px-4 py-2 bg-[#2563EB] hover:bg-[#1D4ED8] text-white rounded-lg text-xs font-semibold transition-colors disabled:opacity-50"
                             >
                                 <Save className="w-3.5 h-3.5" />
                                 {savingPix ? 'Salvando...' : 'Salvar'}
@@ -723,7 +723,7 @@ export default function FinancialDashboard() {
                             <button
                                 type="button"
                                 onClick={() => setIsEditingPix(false)}
-                                className="p-2 bg-[#0F1115] hover:bg-white/5 text-gray-400 rounded-lg border border-white/10 transition-colors"
+                                className="min-w-[44px] min-h-[44px] inline-flex items-center justify-center bg-[var(--bg-surface-elevated)] hover:border-[var(--border-glass)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] rounded-lg border border-[var(--border-hairline)] transition-colors"
                                 title="Cancelar"
                             >
                                 <X className="w-4 h-4" />
@@ -734,37 +734,37 @@ export default function FinancialDashboard() {
             </div>
 
             {/* Seção da Tabela de Histórico Financeiro */}
-            <div className="bg-[#1A1D23] border border-white/10 rounded-xl overflow-hidden shadow-lg">
+            <div className="bg-[var(--bg-surface)] border border-[var(--border-hairline)] rounded-xl overflow-hidden shadow-sm">
                 {/* Barra de Ferramentas / Filtros */}
-                <div className="p-4 sm:p-5 border-b border-white/5 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                <div className="p-4 sm:p-5 border-b border-[var(--border-hairline)] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
                     {/* Tabs de Filtro */}
-                    <div className="flex items-center gap-1.5 bg-[#0F1115] p-1 rounded-lg border border-white/5 shrink-0">
+                    <div className="flex flex-wrap sm:flex-nowrap items-center gap-1.5 bg-[var(--bg-surface-elevated)] p-1 rounded-lg border border-[var(--border-hairline)] shrink-0">
                         <button
                             onClick={() => setStatusFilter('todos')}
-                            className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${
+                            className={`min-h-[44px] sm:min-h-[36px] px-3 py-2 sm:py-1.5 rounded-md text-xs font-bold transition-colors ${
                                 statusFilter === 'todos'
-                                    ? 'bg-[#1A1D23] text-white shadow'
-                                    : 'text-gray-400 hover:text-white'
+                                    ? 'bg-[var(--bg-surface)] text-[var(--text-primary)] border border-[var(--border-hairline)] shadow-xs'
+                                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                             }`}
                         >
                             Todas ({records.length})
                         </button>
                         <button
                             onClick={() => setStatusFilter('liberado')}
-                            className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${
+                            className={`min-h-[44px] sm:min-h-[36px] px-3 py-2 sm:py-1.5 rounded-md text-xs font-bold transition-colors ${
                                 statusFilter === 'liberado'
-                                    ? 'bg-green-500/20 text-green-400 border border-green-500/30 shadow'
-                                    : 'text-gray-400 hover:text-green-400'
+                                    ? 'bg-[#0D9488]/15 text-[#0F766E] dark:text-[#14B8A6] border border-[#0D9488]/30'
+                                    : 'text-[var(--text-secondary)] hover:text-[#0F766E] dark:hover:text-[#14B8A6]'
                             }`}
                         >
                             Liberadas ({records.filter(r => r.status === 'liberado').length})
                         </button>
                         <button
                             onClick={() => setStatusFilter('custodia')}
-                            className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${
+                            className={`min-h-[44px] sm:min-h-[36px] px-3 py-2 sm:py-1.5 rounded-md text-xs font-bold transition-colors ${
                                 statusFilter === 'custodia'
-                                    ? 'bg-[#FFAE00]/20 text-[#FFAE00] border border-[#FFAE00]/30 shadow'
-                                    : 'text-gray-400 hover:text-[#FFAE00]'
+                                    ? 'bg-[#2563EB]/15 text-[#1D4ED8] dark:text-[#60A5FA] border border-[#2563EB]/30'
+                                    : 'text-[var(--text-secondary)] hover:text-[#1D4ED8] dark:hover:text-[#60A5FA]'
                             }`}
                         >
                             Em Custódia ({records.filter(r => r.status === 'custodia').length})
@@ -773,13 +773,13 @@ export default function FinancialDashboard() {
 
                     {/* Busca por Nome do Pedido ou Cliente */}
                     <div className="relative flex-1 sm:max-w-xs">
-                        <Search className="w-4 h-4 text-gray-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                        <Search className="w-4 h-4 text-[var(--text-secondary)] absolute left-3 top-1/2 -translate-y-1/2" />
                         <input
                             type="text"
                             value={searchTerm}
                             onChange={e => setSearchTerm(e.target.value)}
                             placeholder="Buscar por pedido ou cliente..."
-                            className="w-full bg-[#0F1115] border border-white/10 rounded-lg pl-9 pr-3 py-1.5 text-xs text-gray-200 placeholder-gray-500 focus:outline-none focus:border-[#FFAE00]"
+                            className="min-h-[44px] sm:min-h-[36px] w-full bg-[var(--bg-surface-elevated)] border border-[var(--border-hairline)] rounded-lg pl-9 pr-3 py-2 sm:py-1.5 text-xs text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]/60 focus:outline-none focus:border-[#2563EB] dark:focus:border-[#3B82F6]"
                         />
                     </div>
                 </div>
@@ -787,20 +787,20 @@ export default function FinancialDashboard() {
                 {/* Tabela de Transações */}
                 {loading && records.length === 0 ? (
                     <div className="p-8 space-y-3">
-                        <div className="h-10 bg-white/5 rounded-lg animate-pulse" />
-                        <div className="h-10 bg-white/5 rounded-lg animate-pulse" />
-                        <div className="h-10 bg-white/5 rounded-lg animate-pulse" />
+                        <div className="h-10 bg-[var(--bg-surface-elevated)] rounded-lg animate-pulse" />
+                        <div className="h-10 bg-[var(--bg-surface-elevated)] rounded-lg animate-pulse" />
+                        <div className="h-10 bg-[var(--bg-surface-elevated)] rounded-lg animate-pulse" />
                     </div>
                 ) : fetchError && records.length === 0 ? (
                     <div className="py-14 text-center px-4">
-                        <AlertCircle className="w-10 h-10 mx-auto mb-3 text-red-400 opacity-80" />
-                        <p className="text-sm font-bold text-gray-200">{fetchError}</p>
+                        <AlertCircle className="w-10 h-10 mx-auto mb-3 text-[#DC2626] dark:text-[#F87171] opacity-90" />
+                        <p className="text-sm font-bold text-[var(--text-primary)]">{fetchError}</p>
                         <button
                             type="button"
                             onClick={() => setRetryTick((t) => t + 1)}
-                            className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-[#FFAE00] hover:bg-yellow-400 text-black text-xs font-bold rounded-lg transition-colors shadow"
+                            className="mt-4 min-h-[48px] inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-[var(--btn-primary-bg)] hover:bg-[var(--btn-primary-hover)] text-[var(--btn-primary-text)] text-xs sm:text-sm font-semibold rounded-lg transition-colors"
                         >
-                            <RefreshCw className="w-3.5 h-3.5" />
+                            <RefreshCw className="w-4 h-4" />
                             Tentar novamente
                         </button>
                     </div>
@@ -810,7 +810,7 @@ export default function FinancialDashboard() {
                         <div className="hidden md:block overflow-x-auto">
                             <table className="w-full text-left border-collapse">
                                 <thead>
-                                    <tr className="border-b border-white/5 bg-[#0F1115]/50 text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+                                    <tr className="border-b border-[var(--border-hairline)] bg-[var(--bg-surface-elevated)] text-[11px] font-bold text-[var(--text-secondary)] uppercase tracking-wider">
                                         <th className="py-3 px-4">Data</th>
                                         <th className="py-3 px-4">Pedido / Matriz</th>
                                         <th className="py-3 px-4">Comprador</th>
@@ -820,15 +820,15 @@ export default function FinancialDashboard() {
                                         <th className="py-3 px-4 text-center">Ação</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-white/5 text-xs">
+                                <tbody className="divide-y divide-[var(--border-hairline)] text-xs">
                                     {filteredRecords.map(rec => {
                                         const action = getFinancialActionLink(rec)
                                         return (
-                                            <tr key={rec.id} className="hover:bg-white/[0.02] transition-colors group">
+                                            <tr key={rec.id} className="hover:bg-[var(--bg-surface-elevated)]/60 transition-colors group">
                                                 {/* Data */}
-                                                <td className="py-3.5 px-4 text-gray-400 whitespace-nowrap">
+                                                <td className="py-3.5 px-4 text-[var(--text-secondary)] whitespace-nowrap">
                                                     <div className="flex items-center gap-1.5 font-mono text-[11px]">
-                                                        <Calendar className="w-3 h-3 text-gray-500" />
+                                                        <Calendar className="w-3 h-3 text-[var(--text-secondary)]" />
                                                         {formatDate(rec.created_at)}
                                                     </div>
                                                 </td>
@@ -837,23 +837,23 @@ export default function FinancialDashboard() {
                                                 <td className="py-3.5 px-4 max-w-[260px]">
                                                     <div className="flex items-center gap-1.5 mb-1 flex-wrap">
                                                         {rec.type === 'marketplace' ? (
-                                                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-[#FFAE00]/10 text-[#FFAE00] border border-[#FFAE00]/25">
+                                                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-[#2563EB]/10 text-[#1D4ED8] dark:bg-[#3B82F6]/15 dark:text-[#60A5FA] border border-[#2563EB]/25 dark:border-[#3B82F6]/30">
                                                                 <ShoppingBag className="w-2.5 h-2.5" />
                                                                 Loja
                                                             </span>
                                                         ) : (
-                                                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-cyan-500/10 text-cyan-400 border border-cyan-500/25">
+                                                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-[#0D9488]/10 text-[#0F766E] dark:bg-[#14B8A6]/15 dark:text-[#14B8A6] border border-[#0D9488]/25 dark:border-[#14B8A6]/30">
                                                                 <Layers className="w-2.5 h-2.5" />
                                                                 Sob Medida
                                                             </span>
                                                         )}
                                                         {rec.items_count > 1 && (
-                                                            <span className="text-[10px] text-gray-400 font-medium bg-white/5 px-1.5 py-0.5 rounded border border-white/5">
+                                                            <span className="text-[10px] text-[var(--text-secondary)] font-medium bg-[var(--bg-surface-elevated)] px-1.5 py-0.5 rounded border border-[var(--border-hairline)]">
                                                                 Kit com {rec.items_count} matrizes
                                                             </span>
                                                         )}
                                                     </div>
-                                                    <div className="font-semibold text-white truncate text-xs sm:text-sm hover:text-gray-200 transition-colors" title={rec.title}>
+                                                    <div className="font-semibold text-[var(--text-primary)] truncate text-xs sm:text-sm transition-colors" title={rec.title}>
                                                         {rec.title}
                                                     </div>
                                                 </td>
@@ -865,23 +865,23 @@ export default function FinancialDashboard() {
                                                             <img 
                                                                 src={rec.client_avatar} 
                                                                 alt={rec.client_name} 
-                                                                className="w-7 h-7 rounded-full object-cover border border-white/10 shrink-0" 
+                                                                className="w-7 h-7 rounded-full object-cover border border-[var(--border-hairline)] shrink-0" 
                                                             />
                                                         ) : (
-                                                            <div className="w-7 h-7 rounded-full bg-gray-800 border border-white/10 flex items-center justify-center text-[11px] text-gray-300 font-bold shrink-0">
+                                                            <div className="w-7 h-7 rounded-full bg-[var(--bg-surface-elevated)] border border-[var(--border-hairline)] flex items-center justify-center text-[11px] text-[var(--text-primary)] font-bold shrink-0">
                                                                 {rec.client_name?.charAt(0)?.toUpperCase() || 'C'}
                                                             </div>
                                                         )}
                                                         <div className="flex flex-col min-w-0">
-                                                            <span className="font-bold text-white text-xs truncate max-w-[150px]" title={rec.client_name}>
+                                                            <span className="font-bold text-[var(--text-primary)] text-xs truncate max-w-[150px]" title={rec.client_name}>
                                                                 {rec.client_name}
                                                             </span>
                                                             {rec.client_email ? (
-                                                                <span className="text-[10px] text-gray-400 font-mono truncate max-w-[150px]" title={rec.client_email}>
+                                                                <span className="text-[10px] text-[var(--text-secondary)] font-mono truncate max-w-[150px]" title={rec.client_email}>
                                                                     {rec.client_email}
                                                                 </span>
                                                             ) : (
-                                                                <span className="text-[10px] text-gray-500 italic">
+                                                                <span className="text-[10px] text-[var(--text-secondary)] italic">
                                                                     Cliente BordadoHUB
                                                                 </span>
                                                             )}
@@ -890,16 +890,16 @@ export default function FinancialDashboard() {
                                                 </td>
 
                                                 {/* Método */}
-                                                <td className="py-3.5 px-4 text-gray-400 whitespace-nowrap">
+                                                <td className="py-3.5 px-4 text-[var(--text-secondary)] whitespace-nowrap">
                                                     <div className="flex items-center gap-1.5">
                                                         {rec.payment_method?.includes('cartao') ? (
                                                             <>
-                                                                <CreditCard className="w-3.5 h-3.5 text-blue-400" />
+                                                                <CreditCard className="w-3.5 h-3.5 text-[#2563EB] dark:text-[#60A5FA]" />
                                                                 <span>Cartão</span>
                                                             </>
                                                         ) : (
                                                             <>
-                                                                <QrCode className="w-3.5 h-3.5 text-green-400" />
+                                                                <QrCode className="w-3.5 h-3.5 text-[#0F766E] dark:text-[#14B8A6]" />
                                                                 <span>PIX</span>
                                                             </>
                                                         )}
@@ -909,12 +909,12 @@ export default function FinancialDashboard() {
                                                 {/* Status do Repasse */}
                                                 <td className="py-3.5 px-4 whitespace-nowrap">
                                                     {rec.status === 'liberado' ? (
-                                                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-green-500/10 text-green-400 border border-green-500/20">
+                                                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#0D9488]/10 dark:bg-[#14B8A6]/15 text-[#0F766E] dark:text-[#14B8A6] border border-[#0D9488]/25 dark:border-[#14B8A6]/30">
                                                             <CheckCircle2 className="w-3 h-3" />
                                                             Liberado via PIX
                                                         </span>
                                                     ) : (
-                                                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#FFAE00]/10 text-[#FFAE00] border border-[#FFAE00]/20">
+                                                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#2563EB]/10 dark:bg-[#3B82F6]/15 text-[#1D4ED8] dark:text-[#60A5FA] border border-[#2563EB]/25 dark:border-[#3B82F6]/30">
                                                             <Clock className="w-3 h-3" />
                                                             Em Custódia
                                                         </span>
@@ -923,7 +923,7 @@ export default function FinancialDashboard() {
 
                                                 {/* Valor Líquido */}
                                                 <td className="py-3.5 px-4 text-right whitespace-nowrap font-mono">
-                                                    <div className={`text-sm font-extrabold ${rec.status === 'liberado' ? 'text-emerald-400' : 'text-gray-200'}`}>
+                                                    <div className={`text-sm font-extrabold ${rec.status === 'liberado' ? 'text-[#0F766E] dark:text-[#14B8A6]' : 'text-[var(--text-primary)]'}`}>
                                                         R$ {rec.net_amount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                                     </div>
                                                 </td>
@@ -932,11 +932,11 @@ export default function FinancialDashboard() {
                                                 <td className="py-3.5 px-4 text-center whitespace-nowrap">
                                                     <Link
                                                         href={action.href}
-                                                        className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-bold text-gray-300 hover:text-[#FFAE00] bg-white/[0.03] hover:bg-[#FFAE00]/10 border border-white/5 hover:border-[#FFAE00]/30 transition-all group/btn"
+                                                        className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-bold text-[var(--text-primary)] hover:text-[#1D4ED8] dark:hover:text-[#60A5FA] bg-[var(--bg-surface-elevated)] hover:bg-[#2563EB]/10 border border-[var(--border-hairline)] hover:border-[#2563EB]/30 transition-colors group/btn"
                                                         title={action.tooltip}
                                                     >
                                                         <span>{action.label}</span>
-                                                        <ArrowUpRight className="w-3.5 h-3.5 text-gray-400 group-hover/btn:text-[#FFAE00] transition-colors" />
+                                                        <ArrowUpRight className="w-3.5 h-3.5 text-[var(--text-secondary)] group-hover/btn:text-[#1D4ED8] dark:group-hover/btn:text-[#60A5FA] transition-colors" />
                                                     </Link>
                                                 </td>
                                             </tr>
@@ -947,69 +947,69 @@ export default function FinancialDashboard() {
                         </div>
 
                         {/* Mobile Cards (block md:hidden) */}
-                        <div className="block md:hidden divide-y divide-white/5">
+                        <div className="block md:hidden divide-y divide-[var(--border-hairline)]">
                             {filteredRecords.map(rec => {
                                 const action = getFinancialActionLink(rec)
                                 return (
-                                    <div key={rec.id} className="p-4 space-y-3 hover:bg-white/[0.02] transition-colors">
+                                    <div key={rec.id} className="p-4 space-y-3 hover:bg-[var(--bg-surface-elevated)]/60 transition-colors">
                                         {/* Linha Superior: Badges e Data */}
                                         <div className="flex items-center justify-between gap-2">
                                             <div className="flex items-center gap-1.5 flex-wrap">
                                                 {rec.type === 'marketplace' ? (
-                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-[#FFAE00]/10 text-[#FFAE00] border border-[#FFAE00]/25">
+                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-[#2563EB]/10 text-[#1D4ED8] dark:bg-[#3B82F6]/15 dark:text-[#60A5FA] border border-[#2563EB]/25 dark:border-[#3B82F6]/30">
                                                         <ShoppingBag className="w-3 h-3" />
                                                         Loja
                                                     </span>
                                                 ) : (
-                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-cyan-500/10 text-cyan-400 border border-cyan-500/25">
+                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-[#0D9488]/10 text-[#0F766E] dark:bg-[#14B8A6]/15 dark:text-[#14B8A6] border border-[#0D9488]/25 dark:border-[#14B8A6]/30">
                                                         <Layers className="w-3 h-3" />
                                                         Sob Medida
                                                     </span>
                                                 )}
                                                 {rec.items_count > 1 && (
-                                                    <span className="text-[10px] text-gray-400 font-medium bg-white/5 px-1.5 py-0.5 rounded border border-white/5">
+                                                    <span className="text-[10px] text-[var(--text-secondary)] font-medium bg-[var(--bg-surface-elevated)] px-1.5 py-0.5 rounded border border-[var(--border-hairline)]">
                                                         Kit com {rec.items_count} matrizes
                                                     </span>
                                                 )}
                                             </div>
 
-                                            <div className="flex items-center gap-1 font-mono text-[11px] text-gray-400 shrink-0">
-                                                <Calendar className="w-3 h-3 text-gray-500" />
+                                            <div className="flex items-center gap-1 font-mono text-[11px] text-[var(--text-secondary)] shrink-0">
+                                                <Calendar className="w-3 h-3 text-[var(--text-secondary)]" />
                                                 {formatDate(rec.created_at)}
                                             </div>
                                         </div>
 
                                         {/* Título do Pedido ou Matriz */}
-                                        <h4 className="text-sm font-bold text-white leading-snug line-clamp-2">
+                                        <h4 className="text-sm font-bold text-[var(--text-primary)] leading-snug line-clamp-2">
                                             {rec.title}
                                         </h4>
 
                                         {/* Bloco Comprador & Status */}
-                                        <div className="flex items-center justify-between gap-2 pt-2 border-t border-white/5">
+                                        <div className="flex items-center justify-between gap-2 pt-2 border-t border-[var(--border-hairline)]">
                                             <div className="flex items-center gap-2.5 min-w-0">
                                                 {rec.client_avatar ? (
-                                                    <img src={rec.client_avatar} alt="" className="w-6 h-6 rounded-full object-cover border border-white/10 shrink-0" />
+                                                    <img src={rec.client_avatar} alt="" className="w-6 h-6 rounded-full object-cover border border-[var(--border-hairline)] shrink-0" />
                                                 ) : (
-                                                    <div className="w-6 h-6 rounded-full bg-gray-800 border border-white/10 flex items-center justify-center text-[10px] text-gray-300 font-bold shrink-0">
+                                                    <div className="w-6 h-6 rounded-full bg-[var(--bg-surface-elevated)] border border-[var(--border-hairline)] flex items-center justify-center text-[10px] text-[var(--text-primary)] font-bold shrink-0">
                                                         {rec.client_name?.charAt(0)?.toUpperCase() || 'C'}
                                                     </div>
                                                 )}
                                                 <div className="flex flex-col min-w-0">
-                                                    <span className="text-xs font-bold text-white truncate max-w-[150px]">{rec.client_name}</span>
+                                                    <span className="text-xs font-bold text-[var(--text-primary)] truncate max-w-[150px]">{rec.client_name}</span>
                                                     {rec.client_email && (
-                                                        <span className="text-[10px] text-gray-400 font-mono truncate max-w-[150px]">{rec.client_email}</span>
+                                                        <span className="text-[10px] text-[var(--text-secondary)] font-mono truncate max-w-[150px]">{rec.client_email}</span>
                                                     )}
                                                 </div>
                                             </div>
 
                                             <div className="text-right shrink-0">
                                                 {rec.status === 'liberado' ? (
-                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-500/10 text-green-400 border border-green-500/20">
+                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#0D9488]/10 dark:bg-[#14B8A6]/15 text-[#0F766E] dark:text-[#14B8A6] border border-[#0D9488]/25 dark:border-[#14B8A6]/30">
                                                         <CheckCircle2 className="w-3 h-3" />
                                                         Liberado
                                                     </span>
                                                 ) : (
-                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#FFAE00]/10 text-[#FFAE00] border border-[#FFAE00]/20">
+                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#2563EB]/10 dark:bg-[#3B82F6]/15 text-[#1D4ED8] dark:text-[#60A5FA] border border-[#2563EB]/25 dark:border-[#3B82F6]/30">
                                                         <Clock className="w-3 h-3" />
                                                         Custódia
                                                     </span>
@@ -1020,18 +1020,18 @@ export default function FinancialDashboard() {
                                         {/* Linha Inferior: Valor Líquido e Botão de Ação (Área de toque 44px) */}
                                         <div className="flex items-center justify-between gap-3 pt-2">
                                             <div>
-                                                <div className={`text-base font-black font-mono ${rec.status === 'liberado' ? 'text-emerald-400' : 'text-gray-200'}`}>
+                                                <div className={`text-base font-extrabold font-mono ${rec.status === 'liberado' ? 'text-[#0F766E] dark:text-[#14B8A6]' : 'text-[var(--text-primary)]'}`}>
                                                     R$ {rec.net_amount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                                 </div>
                                             </div>
 
                                             <Link
                                                 href={action.href}
-                                                className="inline-flex items-center gap-1 px-3.5 py-2.5 rounded-xl text-xs font-bold text-gray-200 bg-white/5 hover:bg-[#FFAE00]/10 border border-white/10 hover:border-[#FFAE00]/30 transition-all shrink-0 min-h-[44px]"
+                                                className="inline-flex items-center gap-1 px-3.5 py-2.5 rounded-xl text-xs font-bold text-[var(--text-primary)] bg-[var(--bg-surface-elevated)] hover:bg-[#2563EB]/10 border border-[var(--border-hairline)] hover:border-[#2563EB]/30 transition-colors shrink-0 min-h-[44px]"
                                                 title={action.tooltip}
                                             >
                                                 <span>{action.label}</span>
-                                                <ArrowUpRight className="w-4 h-4 text-[#FFAE00]" />
+                                                <ArrowUpRight className="w-4 h-4 text-[var(--cobalt-text)]" />
                                             </Link>
                                         </div>
                                     </div>
@@ -1040,17 +1040,17 @@ export default function FinancialDashboard() {
                         </div>
                     </div>
                 ) : (
-                    <div className="py-16 text-center text-gray-500 px-4">
-                        <FileText className="w-10 h-10 mx-auto mb-3 opacity-30 text-gray-400" />
-                        <p className="text-sm font-bold text-gray-300">Nenhum registro financeiro encontrado</p>
-                        <p className="text-xs text-gray-500 mt-1 max-w-sm mx-auto">
+                    <div className="py-16 text-center text-[var(--text-secondary)] px-4">
+                        <FileText className="w-10 h-10 mx-auto mb-3 opacity-40 text-[var(--text-secondary)]" />
+                        <p className="text-sm font-bold text-[var(--text-primary)]">Nenhum registro financeiro encontrado</p>
+                        <p className="text-xs text-[var(--text-secondary)] mt-1 max-w-sm mx-auto">
                             {searchTerm || statusFilter !== 'todos'
                                 ? 'Nenhum resultado corresponde aos filtros selecionados.'
                                 : 'Quando você enviar propostas aceitas e concluir matrizes, todo o seu histórico financeiro aparecerá aqui.'}
                         </p>
                         <Link
                             href="/jobs"
-                            className="inline-flex items-center gap-1.5 mt-4 px-4 py-2 bg-[#FFAE00] hover:bg-yellow-400 text-black text-xs font-bold rounded-lg transition-colors shadow"
+                            className="min-h-[48px] inline-flex items-center justify-center gap-1.5 mt-4 px-5 py-3 bg-[var(--btn-primary-bg)] hover:bg-[var(--btn-primary-hover)] text-[var(--btn-primary-text)] text-xs sm:text-sm font-semibold rounded-lg transition-colors"
                         >
                             Ver Pedidos Abertos no Feed
                         </Link>

@@ -98,7 +98,7 @@ export default function GlobalNotificationAlert() {
                     (payload) => {
                         if (!isMounted) return
                         const newNotification = payload.new as Notification
-                        
+
                         // Only show popup alert if allowed (e.g. first chat message or system alert)
                         if (shouldShowPopup(newNotification)) {
                             currentAlertIdRef.current = newNotification.id
@@ -217,93 +217,82 @@ export default function GlobalNotificationAlert() {
 
     return (
         <div className="fixed top-4 right-4 sm:top-6 sm:right-6 z-50 max-w-sm w-[calc(100vw-2rem)] pointer-events-none">
-            {/* Card com pointer-events-auto para permitir interação apenas no alerta, sem bloquear o restante do site */}
-            <div className="relative w-full bg-[#1A1D23] border border-[#FFAE00] rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.8),0_0_30px_rgba(255,174,0,0.25)] pointer-events-auto transform transition-all duration-500 scale-100 flex flex-col pt-6 pb-2 overflow-hidden animate-bounce-in">
-                
-                {/* Glow bar at top */}
-                <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#FFAE00] to-yellow-300 animate-pulse"></div>
-                
-                {/* Close Button */}
-                <button 
+            {/* Matte DS 2.0 Notification Card */}
+            <div className="relative w-full bg-[var(--bg-surface)] border border-[#2563EB]/35 dark:border-[#3B82F6]/35 rounded-2xl shadow-xl pointer-events-auto flex flex-col pt-6 pb-2 overflow-hidden animate-in fade-in slide-in-from-top-3 duration-200">
+                {/* Matte Cobalt-to-Teal Top Bar */}
+                <div
+                    className="absolute top-0 left-0 right-0 h-1"
+                    style={{ background: 'linear-gradient(90deg, #2563EB 0%, #0D9488 100%)' }}
+                />
+
+                {/* Close Button (>=44x44px) */}
+                <button
                     type="button"
                     onClick={closeAlert}
-                    className="absolute top-3 right-3 text-gray-400 hover:text-white bg-gray-800/50 hover:bg-gray-700/50 rounded-full p-1.5 transition-colors z-10"
+                    className="absolute top-2 right-2 min-w-[44px] min-h-[44px] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-elevated)] rounded-lg transition-colors z-10 cursor-pointer"
+                    aria-label="Fechar alerta"
                 >
                     <X className="w-5 h-5" />
                 </button>
 
                 {/* Content */}
-                <div className="px-6 flex items-start gap-4">
-                    <div className="flex-shrink-0 bg-[#FFAE00]/20 p-3 rounded-full border border-[#FFAE00]/40 shadow-[0_0_15px_rgba(255,174,0,0.4)]">
+                <div className="px-6 pr-12 flex items-start gap-3.5">
+                    <div className="flex-shrink-0 bg-[#2563EB]/10 dark:bg-[#3B82F6]/15 p-2.5 rounded-xl border border-[#2563EB]/25 dark:border-[#3B82F6]/25">
                         {isCounterAccepted ? (
-                            <Zap className="w-6 h-6 text-[#FFAE00] animate-bounce" />
+                            <Zap className="w-5 h-5 text-[#0F766E] dark:text-[#14B8A6]" />
                         ) : (
-                            <Bell className="w-6 h-6 text-[#FFAE00] animate-wiggle" />
+                            <Bell className="w-5 h-5 text-[#2563EB] dark:text-[#60A5FA]" />
                         )}
                     </div>
-                    <div className="flex-1 mt-1">
-                        <h3 className="text-lg font-bold text-white leading-tight mb-1">
+                    <div className="flex-1 min-w-0">
+                        <h3 className="text-base font-semibold text-[var(--text-primary)] leading-tight mb-1">
                             {currentAlert.title}
                         </h3>
-                        <p className="text-gray-300 text-sm leading-snug">
+                        <p className="text-[var(--text-secondary)] text-sm leading-snug">
                             {currentAlert.message}
                         </p>
                     </div>
                 </div>
 
                 {/* Action Area */}
-                <div className="px-6 mt-6 mb-4">
+                <div className="px-6 mt-5 mb-3">
                     {isCounterAccepted && payProposalId ? (
                         <div className="flex flex-col gap-2 w-full">
-                            <button 
+                            <button
                                 type="button"
                                 onClick={() => handleNavigate(`/checkout/${payProposalId}`)}
-                                className="flex items-center justify-center gap-2 w-full bg-[#FFAE00] hover:bg-[#FFB92E] text-[#0F1115] font-black py-3 rounded-xl transition-transform active:scale-95 uppercase tracking-wide text-xs shadow-lg shadow-[#FFAE00]/20 cursor-pointer"
+                                className="flex items-center justify-center gap-2 w-full bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-semibold min-h-[44px] py-2.5 rounded-lg transition-colors text-xs uppercase tracking-wide cursor-pointer"
                             >
-                                <Zap className="w-4 h-4 fill-black" /> Pagar Agora
+                                <Zap className="w-4 h-4" /> Pagar Agora
                             </button>
                             {currentAlert.link_url && (
-                                <button 
+                                <button
                                     type="button"
                                     onClick={() => handleNavigate(currentAlert.link_url!)}
-                                    className="flex items-center justify-center gap-1.5 w-full bg-white/5 hover:bg-white/10 text-gray-300 font-semibold py-2.5 rounded-xl text-xs transition-colors border border-white/10 cursor-pointer"
+                                    className="flex items-center justify-center gap-1.5 w-full bg-[var(--btn-glass-bg)] hover:bg-[var(--bg-surface-elevated)] text-[var(--text-primary)] font-medium min-h-[44px] py-2.5 rounded-lg text-xs transition-colors border border-[var(--border-hairline)] cursor-pointer"
                                 >
                                     Ver Detalhes do Pedido <ExternalLink className="w-3.5 h-3.5" />
                                 </button>
                             )}
                         </div>
                     ) : currentAlert.link_url ? (
-                        <button 
+                        <button
                             type="button"
                             onClick={() => handleNavigate(currentAlert.link_url!)}
-                            className="flex items-center justify-center gap-2 w-full bg-[#FFAE00] hover:bg-[#FFB92E] text-[#0F1115] font-bold py-3.5 rounded-xl transition-transform active:scale-95 uppercase tracking-wide text-sm shadow-lg shadow-[#FFAE00]/20 cursor-pointer"
+                            className="flex items-center justify-center gap-2 w-full bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-semibold min-h-[44px] py-2.5 rounded-lg transition-colors text-sm cursor-pointer"
                         >
-                            Ver Detalhes <ExternalLink className="w-4 h-4 ml-1" />
+                            Ver Detalhes <ExternalLink className="w-4 h-4" />
                         </button>
                     ) : (
-                        <button 
+                        <button
                             type="button"
                             onClick={closeAlert}
-                            className="w-full bg-gray-800 hover:bg-gray-700 text-white font-semibold py-3 rounded-xl transition-colors cursor-pointer"
+                            className="w-full bg-[var(--bg-surface-elevated)] hover:opacity-90 text-[var(--text-primary)] font-semibold min-h-[44px] py-2.5 rounded-lg border border-[var(--border-hairline)] transition-colors cursor-pointer"
                         >
                             Entendi
                         </button>
                     )}
                 </div>
-
-                <style dangerouslySetInnerHTML={{__html: `
-                    @keyframes bounce-in {
-                        0% { transform: translateY(-50px) scale(0.9); opacity: 0; }
-                        50% { transform: translateY(10px) scale(1.02); opacity: 1; }
-                        100% { transform: translateY(0) scale(1); opacity: 1; }
-                    }
-                    @keyframes wiggle {
-                        0%, 100% { transform: rotate(-10deg); }
-                        50% { transform: rotate(10deg); }
-                    }
-                    .animate-bounce-in { animation: bounce-in 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
-                    .animate-wiggle { animation: wiggle 0.5s ease-in-out infinite; }
-                `}} />
             </div>
         </div>
     )

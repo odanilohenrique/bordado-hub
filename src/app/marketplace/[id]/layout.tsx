@@ -18,9 +18,9 @@ const FALLBACK_METADATA: Metadata = {
         type: 'website',
         images: [
             {
-                url: 'https://bordadohub.com/brand/icon-dark.png',
-                width: 1082,
-                height: 1082,
+                url: 'https://bordadohub.com/brand/v2/og-image.png',
+                width: 1200,
+                height: 630,
                 alt: 'BordadoHub Marketplace',
             }
         ],
@@ -29,7 +29,7 @@ const FALLBACK_METADATA: Metadata = {
         card: 'summary_large_image',
         title: 'Matriz de Bordado no Marketplace | BordadoHub',
         description: 'Explore e compre matrizes de bordado computadorizado prontas para download imediato nos formatos PES, DST, JEF e mais no BordadoHub.',
-        images: ['https://bordadohub.com/brand/icon-dark.png'],
+        images: ['https://bordadohub.com/brand/v2/og-image.png'],
     },
 }
 
@@ -111,7 +111,7 @@ export async function generateMetadata(
 
         const description = `${bundleInfo}${cleanDesc}Formatos inclusos: ${formatsList}. Criado por ${sellerName}. Compre por ${formattedPrice} via PIX com download imediato no BordadoHub!`
 
-        const rawImageUrl = product.image_url || '/brand/icon-dark.png'
+        const rawImageUrl = product.image_url || '/brand/v2/og-image.png'
         const absoluteImageUrl = rawImageUrl.startsWith('http')
             ? rawImageUrl
             : `https://bordadohub.com${rawImageUrl.startsWith('/') ? '' : '/'}${rawImageUrl}`

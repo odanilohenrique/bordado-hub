@@ -212,42 +212,42 @@ export default function CreatorDashboard() {
     return (
         <div className="space-y-8">
             {/* Dashboard Header */}
-            <div className="bg-gradient-to-r from-green-500/10 to-transparent border border-green-500/20 rounded-xl p-6">
+            <div className="bg-gradient-to-r from-[#2563EB]/10 to-transparent border border-[#2563EB]/25 dark:border-[#3B82F6]/25 rounded-xl p-5 sm:p-6">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div className="flex items-center gap-4">
-                        <div className="bg-green-500/20 p-3 rounded-xl shrink-0">
-                            <Briefcase className="w-7 h-7 text-green-400" />
+                        <div className="bg-[#2563EB]/15 p-3 rounded-xl shrink-0">
+                            <Briefcase className="w-7 h-7 text-[#2563EB] dark:text-[#60A5FA]" />
                         </div>
                         <div>
-                            <h1 className="text-2xl font-black text-white">Minha Produção</h1>
-                            <p className="text-gray-400 text-sm mt-0.5">Gerencie suas matrizes e acompanhe cada etapa do trabalho</p>
+                            <h1 className="text-2xl font-bold tracking-tight text-[var(--text-primary)]">Minha Produção</h1>
+                            <p className="text-[var(--text-secondary)] text-sm mt-0.5">Gerencie suas matrizes e acompanhe cada etapa do trabalho</p>
                         </div>
                     </div>
 
                     <div className="flex flex-wrap items-center gap-2">
                         {inRevision.length > 0 && (
-                            <span className="flex items-center gap-1.5 text-xs font-bold bg-yellow-500/10 text-yellow-400 px-3 py-1.5 rounded-full border border-yellow-500/30 animate-pulse">
+                            <span className="flex items-center gap-1.5 text-xs font-bold bg-[#DC2626]/10 text-[#DC2626] dark:text-[#F87171] px-3 py-1.5 rounded-full border border-[#DC2626]/25">
                                 <Wrench className="w-3.5 h-3.5" /> {inRevision.length} em revisão
                             </span>
                         )}
                         {inProduction.length > 0 && (
-                            <span className="flex items-center gap-1.5 text-xs font-bold bg-blue-500/10 text-blue-400 px-3 py-1.5 rounded-full border border-blue-500/30">
+                            <span className="flex items-center gap-1.5 text-xs font-bold bg-[#2563EB]/10 dark:bg-[#3B82F6]/15 text-[#1D4ED8] dark:text-[#60A5FA] px-3 py-1.5 rounded-full border border-[#2563EB]/25 dark:border-[#3B82F6]/30">
                                 <Clock className="w-3.5 h-3.5" /> {inProduction.length} em produção
                             </span>
                         )}
                         {delivered.length > 0 && (
-                            <span className="flex items-center gap-1.5 text-xs font-bold bg-emerald-500/10 text-emerald-400 px-3 py-1.5 rounded-full border border-emerald-500/30">
+                            <span className="flex items-center gap-1.5 text-xs font-bold bg-[#0D9488]/10 dark:bg-[#14B8A6]/15 text-[#0F766E] dark:text-[#14B8A6] px-3 py-1.5 rounded-full border border-[#0D9488]/25 dark:border-[#14B8A6]/30">
                                 <Package className="w-3.5 h-3.5" /> {delivered.length} entregue{delivered.length > 1 ? 's' : ''}
                             </span>
                         )}
                         {completed.length > 0 && (
-                            <span className="flex items-center gap-1.5 text-xs font-bold bg-gray-800 text-gray-300 px-3 py-1.5 rounded-full border border-white/10">
-                                <CheckCircle className="w-3.5 h-3.5 text-green-400" /> {completed.length} finalizada{completed.length > 1 ? 's' : ''}
+                            <span className="flex items-center gap-1.5 text-xs font-bold bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] px-3 py-1.5 rounded-full border border-[var(--border-hairline)]">
+                                <CheckCircle className="w-3.5 h-3.5 text-[#0F766E] dark:text-[#14B8A6]" /> {completed.length} finalizada{completed.length > 1 ? 's' : ''}
                             </span>
                         )}
                         <Link
                             href="/financeiro"
-                            className="inline-flex items-center gap-2 bg-[#FFAE00]/10 hover:bg-[#FFAE00]/20 text-[#FFAE00] border border-[#FFAE00]/30 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all shadow-sm ml-auto"
+                            className="min-h-[44px] inline-flex items-center gap-2 bg-[#2563EB]/10 dark:bg-[#3B82F6]/15 hover:bg-[#2563EB]/20 dark:hover:bg-[#3B82F6]/25 text-[#1D4ED8] dark:text-[#60A5FA] border border-[#2563EB]/25 dark:border-[#3B82F6]/30 px-4 py-2 rounded-lg text-xs font-semibold transition-colors ml-auto"
                         >
                             <Wallet className="w-3.5 h-3.5" />
                             Painel Financeiro
@@ -258,31 +258,31 @@ export default function CreatorDashboard() {
 
             {loading && totalActive === 0 ? (
                 <div className="space-y-4">
-                    <div className="h-28 bg-[#12151C] border border-white/[0.07] rounded-2xl animate-pulse" />
-                    <div className="h-28 bg-[#12151C] border border-white/[0.07] rounded-2xl animate-pulse" />
+                    <div className="h-28 bg-[var(--bg-surface)] border border-[var(--border-hairline)] rounded-2xl animate-pulse" />
+                    <div className="h-28 bg-[var(--bg-surface)] border border-[var(--border-hairline)] rounded-2xl animate-pulse" />
                 </div>
             ) : fetchError && totalActive === 0 ? (
-                <div className="bg-[#12151C] border border-red-500/20 rounded-2xl p-10 text-center">
-                    <div className="bg-red-500/10 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-red-500/20">
-                        <AlertCircle className="w-8 h-8 text-red-400" />
+                <div className="bg-[var(--bg-surface)] border border-[#DC2626]/25 rounded-2xl p-10 text-center">
+                    <div className="bg-[#DC2626]/10 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-[#DC2626]/25">
+                        <AlertCircle className="w-8 h-8 text-[#DC2626] dark:text-[#F87171]" />
                     </div>
-                    <h3 className="text-lg font-bold text-white mb-2">{fetchError}</h3>
+                    <h3 className="text-lg font-bold text-[var(--text-primary)] mb-2">{fetchError}</h3>
                     <button
                         type="button"
                         onClick={() => setRetryTick((t) => t + 1)}
-                        className="mt-4 inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[#FFB703] to-[#FB8500] hover:brightness-110 text-black font-extrabold text-sm rounded-xl transition-all shadow-md"
+                        className="mt-4 min-h-[48px] inline-flex items-center justify-center gap-2 px-5 py-3 bg-[var(--btn-primary-bg)] hover:bg-[var(--btn-primary-hover)] text-[var(--btn-primary-text)] font-semibold text-sm rounded-lg transition-colors"
                     >
                         <RefreshCw className="w-4 h-4" />
                         Tentar novamente
                     </button>
                 </div>
             ) : totalActive === 0 && (
-                <div className="bg-[#12151C] border border-white/[0.07] rounded-2xl p-12 text-center">
-                    <div className="bg-emerald-500/10 w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-6 border border-emerald-500/20">
-                        <Briefcase className="w-10 h-10 text-emerald-400" />
+                <div className="bg-[var(--bg-surface)] border border-[var(--border-hairline)] rounded-2xl p-12 text-center">
+                    <div className="bg-[#2563EB]/10 dark:bg-[#3B82F6]/15 w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-6 border border-[#2563EB]/25 dark:border-[#3B82F6]/30">
+                        <Briefcase className="w-10 h-10 text-[#1D4ED8] dark:text-[#60A5FA]" />
                     </div>
-                    <h3 className="text-xl font-bold text-white mb-2">Nenhum trabalho em andamento</h3>
-                    <p className="text-gray-400 text-sm mb-2 max-w-md mx-auto">
+                    <h3 className="text-xl font-bold text-[var(--text-primary)] mb-2">Nenhum trabalho em andamento</h3>
+                    <p className="text-[var(--text-secondary)] text-sm mb-2 max-w-md mx-auto">
                         Você não tem matrizes em produção no momento. Explore as oportunidades no feed de pedidos para enviar propostas!
                     </p>
                 </div>
@@ -292,21 +292,21 @@ export default function CreatorDashboard() {
             {inRevision.length > 0 && (
                 <section>
                     <div className="flex items-center gap-3 mb-4">
-                        <div className="bg-yellow-500/20 p-2.5 rounded-xl border border-yellow-500/30">
-                            <Wrench className="w-5 h-5 text-yellow-400 animate-pulse" />
+                        <div className="bg-[#DC2626]/10 p-2.5 rounded-xl border border-[#DC2626]/25">
+                            <Wrench className="w-5 h-5 text-[#DC2626] dark:text-[#F87171]" />
                         </div>
                         <div>
-                            <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                            <h2 className="text-lg font-bold text-[var(--text-primary)] flex items-center gap-2">
                                 Revisão Solicitada pelo Cliente
-                                <span className="bg-yellow-500 text-black text-[10px] px-2 py-0.5 rounded-full font-black animate-pulse">{inRevision.length}</span>
+                                <span className="bg-[#DC2626] text-white text-[10px] px-2 py-0.5 rounded-full font-bold">{inRevision.length}</span>
                             </h2>
-                            <p className="text-yellow-400/80 text-xs">O comprador testou a matriz e solicitou ajustes. Envie a versão corrigida.</p>
+                            <p className="text-[#DC2626] dark:text-[#F87171] text-xs">O comprador testou a matriz e solicitou ajustes. Envie a versão corrigida.</p>
                         </div>
                     </div>
                     <div className="grid gap-4">
                         {inRevision.map((job) => (
-                            <div key={`rev-${job.id}`} className="relative border border-yellow-500/40 rounded-xl overflow-hidden shadow-[0_0_20px_rgba(234,179,8,0.12)]">
-                                <div className="absolute -left-3 top-4 bottom-4 w-1 bg-yellow-500 rounded-full z-10 animate-pulse"></div>
+                            <div key={`rev-${job.id}`} className="relative border border-[#DC2626]/35 rounded-xl overflow-hidden">
+                                <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#DC2626] z-10"></div>
                                 <JobCard job={job} viewerRole="programmer" />
                             </div>
                         ))}
@@ -318,21 +318,21 @@ export default function CreatorDashboard() {
             {inProduction.length > 0 && (
                 <section>
                     <div className="flex items-center gap-3 mb-4">
-                        <div className="bg-blue-500/20 p-2.5 rounded-xl border border-blue-500/30">
-                            <Clock className="w-5 h-5 text-blue-400" />
+                        <div className="bg-[#2563EB]/10 dark:bg-[#3B82F6]/15 p-2.5 rounded-xl border border-[#2563EB]/25 dark:border-[#3B82F6]/30">
+                            <Clock className="w-5 h-5 text-[#1D4ED8] dark:text-[#60A5FA]" />
                         </div>
                         <div>
-                            <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                            <h2 className="text-lg font-bold text-[var(--text-primary)] flex items-center gap-2">
                                 Em Produção
-                                <span className="bg-blue-500 text-white text-[10px] px-2 py-0.5 rounded-full font-black">{inProduction.length}</span>
+                                <span className="bg-[#2563EB] text-white text-[10px] px-2 py-0.5 rounded-full font-bold">{inProduction.length}</span>
                             </h2>
-                            <p className="text-gray-400 text-xs">Matrizes que você está digitalizando e precisa entregar</p>
+                            <p className="text-[var(--text-secondary)] text-xs">Matrizes que você está digitalizando e precisa entregar</p>
                         </div>
                     </div>
                     <div className="grid gap-4">
                         {inProduction.map((job) => (
-                            <div key={`prod-${job.id}`} className="relative border border-blue-500/30 rounded-xl overflow-hidden shadow-[0_0_15px_rgba(59,130,246,0.08)]">
-                                <div className="absolute -left-3 top-4 bottom-4 w-1 bg-blue-500 rounded-full z-10"></div>
+                            <div key={`prod-${job.id}`} className="relative border border-[#2563EB]/30 dark:border-[#3B82F6]/30 rounded-xl overflow-hidden">
+                                <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#2563EB] dark:bg-[#3B82F6] z-10"></div>
                                 <JobCard job={job} viewerRole="programmer" />
                             </div>
                         ))}
@@ -344,21 +344,21 @@ export default function CreatorDashboard() {
             {delivered.length > 0 && (
                 <section>
                     <div className="flex items-center gap-3 mb-4">
-                        <div className="bg-emerald-500/20 p-2.5 rounded-xl border border-emerald-500/30">
-                            <Package className="w-5 h-5 text-emerald-400" />
+                        <div className="bg-[#0D9488]/10 dark:bg-[#14B8A6]/15 p-2.5 rounded-xl border border-[#0D9488]/25 dark:border-[#14B8A6]/30">
+                            <Package className="w-5 h-5 text-[#0F766E] dark:text-[#14B8A6]" />
                         </div>
                         <div>
-                            <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                            <h2 className="text-lg font-bold text-[var(--text-primary)] flex items-center gap-2">
                                 Matrizes Entregues
-                                <span className="bg-emerald-500 text-white text-[10px] px-2 py-0.5 rounded-full font-black">{delivered.length}</span>
+                                <span className="bg-[#0D9488] text-white text-[10px] px-2 py-0.5 rounded-full font-bold">{delivered.length}</span>
                             </h2>
-                            <p className="text-gray-400 text-xs">Arquivos enviados. Aguardando o cliente testar e aprovar para liberação do PIX</p>
+                            <p className="text-[var(--text-secondary)] text-xs">Arquivos enviados. Aguardando o cliente testar e aprovar para liberação do PIX</p>
                         </div>
                     </div>
                     <div className="grid gap-4">
                         {delivered.map((job) => (
-                            <div key={`deliv-${job.id}`} className="relative border border-emerald-500/20 rounded-xl overflow-hidden shadow-[0_0_15px_rgba(16,185,129,0.05)]">
-                                <div className="absolute -left-3 top-4 bottom-4 w-1 bg-emerald-500 rounded-full z-10"></div>
+                            <div key={`deliv-${job.id}`} className="relative border border-[#0D9488]/30 dark:border-[#14B8A6]/30 rounded-xl overflow-hidden">
+                                <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#0D9488] dark:bg-[#14B8A6] z-10"></div>
                                 <JobCard job={job} viewerRole="programmer" />
                             </div>
                         ))}
@@ -370,21 +370,21 @@ export default function CreatorDashboard() {
             {completed.length > 0 && (
                 <section>
                     <div className="flex items-center gap-3 mb-4">
-                        <div className="bg-green-500/20 p-2.5 rounded-xl border border-green-500/30">
-                            <Award className="w-5 h-5 text-green-400" />
+                        <div className="bg-[#0D9488]/10 dark:bg-[#14B8A6]/15 p-2.5 rounded-xl border border-[#0D9488]/25 dark:border-[#14B8A6]/30">
+                            <Award className="w-5 h-5 text-[#0F766E] dark:text-[#14B8A6]" />
                         </div>
                         <div>
-                            <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                            <h2 className="text-lg font-bold text-[var(--text-primary)] flex items-center gap-2">
                                 Concluídas & Pagas
-                                <span className="bg-gray-700 text-gray-200 text-[10px] px-2 py-0.5 rounded-full font-bold">{completed.length}</span>
+                                <span className="bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] border border-[var(--border-hairline)] text-[10px] px-2 py-0.5 rounded-full font-bold">{completed.length}</span>
                             </h2>
-                            <p className="text-gray-400 text-xs">Matrizes aprovadas pelo cliente com pagamento transferido</p>
+                            <p className="text-[var(--text-secondary)] text-xs">Matrizes aprovadas pelo cliente com pagamento transferido</p>
                         </div>
                     </div>
                     <div className="grid gap-4">
                         {completed.map((job) => (
-                            <div key={`comp-${job.id}`} className="relative border border-gray-800 rounded-xl overflow-hidden opacity-90 hover:opacity-100 transition-opacity">
-                                <div className="absolute -left-3 top-4 bottom-4 w-1 bg-gray-600 rounded-full z-10"></div>
+                            <div key={`comp-${job.id}`} className="relative border border-[var(--border-hairline)] rounded-xl overflow-hidden opacity-95 hover:opacity-100 transition-opacity">
+                                <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#64748B] z-10"></div>
                                 <JobCard job={job} viewerRole="programmer" />
                             </div>
                         ))}
@@ -396,21 +396,21 @@ export default function CreatorDashboard() {
             {pendingProposals.length > 0 && (
                 <section>
                     <div className="flex items-center gap-3 mb-4">
-                        <div className="bg-yellow-500/20 p-2.5 rounded-xl border border-yellow-500/30">
-                            <Clock className="w-5 h-5 text-yellow-400" />
+                        <div className="bg-[var(--bg-surface-elevated)] p-2.5 rounded-xl border border-[var(--border-hairline)]">
+                            <Clock className="w-5 h-5 text-[var(--cobalt-text)]" />
                         </div>
                         <div>
-                            <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                            <h2 className="text-lg font-bold text-[var(--text-primary)] flex items-center gap-2">
                                 Propostas Enviadas
-                                <span className="bg-yellow-500 text-black text-[10px] px-2 py-0.5 rounded-full font-black">{pendingProposals.length}</span>
+                                <span className="bg-[var(--bg-surface-elevated)] text-[var(--text-primary)] border border-[var(--border-hairline)] text-[10px] px-2 py-0.5 rounded-full font-bold">{pendingProposals.length}</span>
                             </h2>
-                            <p className="text-gray-400 text-xs">Aguardando resposta do cliente no mural de pedidos</p>
+                            <p className="text-[var(--text-secondary)] text-xs">Aguardando resposta do cliente no mural de pedidos</p>
                         </div>
                     </div>
                     <div className="grid gap-4">
                         {pendingProposals.map((job) => (
-                            <div key={`pending-${job.id}`} className="relative border border-yellow-500/20 rounded-xl overflow-hidden">
-                                <div className="absolute -left-3 top-4 bottom-4 w-1 bg-yellow-500 rounded-full z-10"></div>
+                            <div key={`pending-${job.id}`} className="relative border border-[var(--border-hairline)] rounded-xl overflow-hidden">
+                                <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#3B82F6]/60 z-10"></div>
                                 <JobCard job={job} viewerRole="programmer" />
                             </div>
                         ))}
@@ -422,21 +422,21 @@ export default function CreatorDashboard() {
             {directRequests.length > 0 && (
                 <section>
                     <div className="flex items-center gap-3 mb-4">
-                        <div className="bg-purple-500/20 p-2.5 rounded-xl border border-purple-500/30">
-                            <Target className="w-5 h-5 text-purple-400" />
+                        <div className="bg-[#2563EB]/10 dark:bg-[#3B82F6]/15 p-2.5 rounded-xl border border-[#2563EB]/25 dark:border-[#3B82F6]/30">
+                            <Target className="w-5 h-5 text-[#1D4ED8] dark:text-[#60A5FA]" />
                         </div>
                         <div>
-                            <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                            <h2 className="text-lg font-bold text-[var(--text-primary)] flex items-center gap-2">
                                 Solicitações Diretas
-                                <span className="bg-purple-500 text-white text-[10px] px-2 py-0.5 rounded-full font-black animate-pulse">{directRequests.length}</span>
+                                <span className="bg-[#2563EB] text-white text-[10px] px-2 py-0.5 rounded-full font-bold">{directRequests.length}</span>
                             </h2>
-                            <p className="text-gray-400 text-xs">Clientes que escolheram você especificamente para o trabalho</p>
+                            <p className="text-[var(--text-secondary)] text-xs">Clientes que escolheram você especificamente para o trabalho</p>
                         </div>
                     </div>
                     <div className="grid gap-4">
                         {directRequests.map((job) => (
-                            <div key={`direct-${job.id}`} className="relative border border-purple-500/20 rounded-xl overflow-hidden">
-                                <div className="absolute -left-3 top-4 bottom-4 w-1 bg-purple-500 rounded-full z-10"></div>
+                            <div key={`direct-${job.id}`} className="relative border border-[#2563EB]/35 dark:border-[#3B82F6]/35 rounded-xl overflow-hidden">
+                                <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#2563EB] z-10"></div>
                                 <JobCard job={job} viewerRole="programmer" />
                             </div>
                         ))}

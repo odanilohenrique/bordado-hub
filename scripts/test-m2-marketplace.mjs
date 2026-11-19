@@ -306,7 +306,8 @@ test('ProductCard strips leading dots, uppercases, deduplicates formats, and fal
     verifyFileContent('src/components/ProductCard.tsx', {
         includes: [
             "replace(/^\\.+/, '').toUpperCase()",
-            "product.image_url || '/brand/icon-dark.png'",
+            '/brand/v2/logo-bg-dark.svg',
+            '/brand/v2/logo-bg-light.svg',
             'object-cover object-center',
         ],
     })
@@ -340,7 +341,7 @@ test('Marketplace [id] page fixes SSR hydration, aligns timers, renders multi-ph
 test('Marketplace [id] layout preserves Server Component & OpenGraph invariants with robust dot stripping', () => {
     verifyFileContent('src/app/marketplace/[id]/layout.tsx', {
         includes: [
-            "product.image_url || '/brand/icon-dark.png'",
+            "product.image_url || '/brand/v2/og-image.png'",
             "replace(/^\\.+/, '').toUpperCase()",
             'return <>{children}</>',
         ],

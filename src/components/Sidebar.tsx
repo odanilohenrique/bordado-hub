@@ -1,29 +1,30 @@
 'use client'
 
 import Link from 'next/link'
-import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
-import { 
-    LayoutDashboard, 
-    ShoppingBag, 
-    Palette, 
+import {
+    LayoutDashboard,
+    ShoppingBag,
+    Palette,
     Wallet,
-    Users, 
-    Store, 
+    Users,
+    Store,
     LogOut,
-    UserCircle
+    UserCircle,
 } from 'lucide-react'
 
 import { getCached, setCached } from '@/lib/clientCache'
 import { useAuth } from '@/contexts/AuthContext'
+import BrandLogo from '@/components/BrandLogo'
+import ThemeToggle from '@/components/ThemeToggle'
 
-export default function Sidebar({ initialUser, initialProfile }: { initialUser?: any, initialProfile?: any } = {}) {
+export default function Sidebar({ initialUser, initialProfile }: { initialUser?: any; initialProfile?: any } = {}) {
     const pathname = usePathname()
     const router = useRouter()
     const { user: authUser, profile: authProfile, profileId: authProfileId } = useAuth()
-    
+
     const user = authUser || initialUser || null
     const profile = authProfile || initialProfile || null
     const profileId = authProfileId || profile?.id || null
@@ -121,9 +122,7 @@ export default function Sidebar({ initialUser, initialProfile }: { initialUser?:
         { name: 'Marketplace', href: '/marketplace', icon: Store },
     ]
 
-    const clientNav = [
-        { name: 'Meus Pedidos', href: '/pedidos', icon: ShoppingBag },
-    ]
+    const clientNav = [{ name: 'Meus Pedidos', href: '/pedidos', icon: ShoppingBag }]
 
     const creatorNav = [
         { name: 'Minha Produção', href: '/producao', icon: Palette },
@@ -131,33 +130,37 @@ export default function Sidebar({ initialUser, initialProfile }: { initialUser?:
     ]
 
     return (
-        <div className="flex flex-col w-64 h-screen fixed left-0 top-0 bg-[#12151C] border-r border-white/[0.07] shrink-0 shadow-2xl z-50 overflow-y-auto hidden md:flex">
+        <div className="flex flex-col w-64 h-screen fixed left-0 top-0 bg-[var(--bg-surface)] border-r border-[var(--border-hairline)] shrink-0 z-50 overflow-y-auto hidden md:flex">
             {/* Logo */}
-            <div className="pt-6 pb-4 px-4 flex justify-center items-center">
-                <Link href={profile?.role === 'criador' ? '/jobs' : '/pedidos'} className="flex items-center justify-center group" title="Ir para o início">
-                    <Image
-                        src="/brand/logo-dark-grossa.png"
-                        alt="BordadoHub"
-                        width={140}
-                        height={61}
-                        className="h-10 w-auto object-contain transition-transform group-hover:scale-105"
-                        priority
-                    />
+            <div className="pt-6 pb-5 px-5 flex justify-start items-center">
+                <Link
+                    href={profile?.role === 'criador' ? '/jobs' : '/pedidos'}
+                    className="flex items-center"
+                    title="Ir para o início"
+                >
+                    <BrandLogo variant="horizontal" className="h-7 w-auto" priority />
                 </Link>
             </div>
 
             {/* User Profile Summary */}
-            <div className="px-5 mb-6 group cursor-pointer" onClick={() => router.push(profile ? `/profile/${profile.id}` : user ? `/profile/${user.id}` : '/login')}>
-                <div className="flex items-center gap-3 bg-[#181C26] p-3 rounded-xl border border-white/[0.07] group-hover:border-[#F5A623]/30 transition-all">
+            <div
+                className="px-4 mb-6 group cursor-pointer"
+                onClick={() => router.push(profile ? `/profile/${profile.id}` : user ? `/profile/${user.id}` : '/login')}
+            >
+                <div className="flex items-center gap-3 bg-[var(--bg-surface-elevated)] p-3 rounded-xl border border-[var(--border-hairline)] group-hover:border-[#2563EB]/35 dark:group-hover:border-[#3B82F6]/35 transition-colors">
                     {profile?.avatar_url ? (
-                        <img src={profile.avatar_url} alt={profile.name} className="w-10 h-10 rounded-full object-cover border border-[#F5A623]/20" />
+                        <img
+                            src={profile.avatar_url}
+                            alt={profile.name}
+                            className="w-10 h-10 rounded-full object-cover border border-[var(--border-glass)]"
+                        />
                     ) : (
-                        <div className="w-10 h-10 rounded-full bg-[#202533] flex items-center justify-center border border-white/[0.08]">
-                            <UserCircle className="w-6 h-6 text-gray-400" />
+                        <div className="w-10 h-10 rounded-full bg-[var(--bg-primary)] flex items-center justify-center border border-[var(--border-hairline)]">
+                            <UserCircle className="w-6 h-6 text-[var(--text-secondary)]" />
                         </div>
                     )}
                     <div className="overflow-hidden">
-                        <p className="text-sm font-bold text-white truncate">
+                        <p className="text-sm font-semibold text-[var(--text-primary)] truncate">
                             {profile?.name || user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Minha Conta'}
                         </p>
                     </div>
@@ -165,11 +168,10 @@ export default function Sidebar({ initialUser, initialProfile }: { initialUser?:
             </div>
 
             {/* Navigation Menus */}
-            <div className="flex-1 px-4 space-y-8">
-                
+            <div className="flex-1 px-4 space-y-7">
                 {/* Público */}
                 <div>
-                    <h3 className="px-2 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+                    <h3 className="px-2 text-[11px] font-semibold text-[var(--text-secondary)] uppercase tracking-wider mb-2.5">
                         Público
                     </h3>
                     <div className="space-y-1">
@@ -180,15 +182,19 @@ export default function Sidebar({ initialUser, initialProfile }: { initialUser?:
                                 <Link
                                     key={item.name}
                                     href={item.href}
-                                    className={`flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-all ${
-                                         isActive 
-                                             ? 'bg-[#F5A623]/10 text-[#F5A623] border border-[#F5A623]/25 shadow-sm' 
-                                             : 'text-gray-400 hover:text-white hover:bg-white/[0.04]'
-                                     }`}
-                                 >
-                                     <item.icon className={`w-5 h-5 ${isActive ? 'text-[#F5A623]' : 'text-gray-500'}`} />
-                                     {item.name}
-                                 </Link>
+                                    className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                                        isActive
+                                            ? 'bg-[#2563EB]/10 text-[#2563EB] dark:text-[#60A5FA] border border-[#2563EB]/25 dark:border-[#3B82F6]/30'
+                                            : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-elevated)]'
+                                    }`}
+                                >
+                                    <item.icon
+                                        className={`w-4 h-4 shrink-0 ${
+                                            isActive ? 'text-[#2563EB] dark:text-[#60A5FA]' : 'text-[var(--text-secondary)]'
+                                        }`}
+                                    />
+                                    {item.name}
+                                </Link>
                             )
                         })}
                     </div>
@@ -196,7 +202,7 @@ export default function Sidebar({ initialUser, initialProfile }: { initialUser?:
 
                 {/* Comprador */}
                 <div>
-                    <h3 className="px-2 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                    <h3 className="px-2 text-[11px] font-semibold text-[var(--text-secondary)] uppercase tracking-wider mb-2.5 flex items-center gap-2">
                         Sou Comprador
                     </h3>
                     <div className="space-y-1">
@@ -206,16 +212,20 @@ export default function Sidebar({ initialUser, initialProfile }: { initialUser?:
                                 <Link
                                     key={item.name}
                                     href={item.href}
-                                    className={`flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-all ${
-                                        isActive 
-                                            ? 'bg-white/10 text-white border border-white/15 shadow-sm' 
-                                            : 'text-gray-400 hover:text-white hover:bg-white/[0.04]'
+                                    className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                                        isActive
+                                            ? 'bg-[#2563EB]/10 text-[#2563EB] dark:text-[#60A5FA] border border-[#2563EB]/25 dark:border-[#3B82F6]/30'
+                                            : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-elevated)]'
                                     }`}
                                 >
-                                    <item.icon className={`w-5 h-5 ${isActive ? 'text-[#F5A623]' : 'text-gray-500'}`} />
+                                    <item.icon
+                                        className={`w-4 h-4 shrink-0 ${
+                                            isActive ? 'text-[#2563EB] dark:text-[#60A5FA]' : 'text-[var(--text-secondary)]'
+                                        }`}
+                                    />
                                     {item.name}
                                     {item.href === '/pedidos' && unreadNotifCount > 0 && (
-                                        <span className="ml-auto bg-[#F5A623] text-black text-[10px] font-black rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 animate-pulse">
+                                        <span className="ml-auto bg-[#2563EB] text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">
                                             {unreadNotifCount}
                                         </span>
                                     )}
@@ -227,7 +237,7 @@ export default function Sidebar({ initialUser, initialProfile }: { initialUser?:
 
                 {/* Programador */}
                 <div>
-                    <h3 className="px-2 text-xs font-semibold text-[#F5A623] uppercase tracking-wider mb-3 flex items-center gap-2">
+                    <h3 className="px-2 text-[11px] font-semibold text-[#0F766E] dark:text-[#14B8A6] uppercase tracking-wider mb-2.5 flex items-center gap-2">
                         Sou Programador
                     </h3>
                     <div className="space-y-1">
@@ -237,16 +247,20 @@ export default function Sidebar({ initialUser, initialProfile }: { initialUser?:
                                 <Link
                                     key={item.name}
                                     href={item.href}
-                                    className={`flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-all ${
-                                        isActive 
-                                            ? 'bg-[#F5A623]/10 text-[#F5A623] border border-[#F5A623]/25 shadow-sm' 
-                                            : 'text-gray-400 hover:text-[#F5A623] hover:bg-[#F5A623]/5'
+                                    className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                                        isActive
+                                            ? 'bg-[#0D9488]/10 text-[#0F766E] dark:text-[#14B8A6] border border-[#0D9488]/25 dark:border-[#14B8A6]/30'
+                                            : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-elevated)]'
                                     }`}
                                 >
-                                    <item.icon className={`w-5 h-5 shrink-0 ${isActive ? 'text-[#F5A623]' : 'text-gray-500'}`} />
+                                    <item.icon
+                                        className={`w-4 h-4 shrink-0 ${
+                                            isActive ? 'text-[#0F766E] dark:text-[#14B8A6]' : 'text-[var(--text-secondary)]'
+                                        }`}
+                                    />
                                     <span className="truncate">{item.name}</span>
                                     {item.href === '/producao' && revisionsCount > 0 && (
-                                        <span className="ml-auto shrink-0 whitespace-nowrap bg-amber-500 text-black font-black text-[10px] px-2 py-0.5 rounded-full shadow-sm tracking-tight">
+                                        <span className="ml-auto shrink-0 whitespace-nowrap bg-[#2563EB] text-white font-semibold text-[10px] px-2 py-0.5 rounded-full tracking-tight">
                                             {revisionsCount} {revisionsCount === 1 ? 'Ajuste' : 'Ajustes'}
                                         </span>
                                     )}
@@ -258,12 +272,14 @@ export default function Sidebar({ initialUser, initialProfile }: { initialUser?:
             </div>
 
             {/* Bottom Actions */}
-            <div className="p-4 mt-auto border-t border-white/[0.07]">
+            <div className="p-4 mt-auto border-t border-[var(--border-hairline)] space-y-2">
+                <ThemeToggle showLabel className="w-full justify-start" />
                 <button
+                    type="button"
                     onClick={handleLogout}
-                    className="flex w-full items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-400 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                    className="flex w-full items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--danger)] hover:bg-[var(--danger)]/10 transition-colors cursor-pointer"
                 >
-                    <LogOut className="w-5 h-5" />
+                    <LogOut className="w-4 h-4" />
                     Sair da conta
                 </button>
             </div>

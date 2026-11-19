@@ -449,10 +449,10 @@ function NewJobContent() {
 
     if (checkingAuth) {
         return (
-            <div className="min-h-screen bg-[#0F1115] flex items-center justify-center">
+            <div className="min-h-screen bg-[var(--bg-primary)] flex items-center justify-center">
                 <div className="text-center">
-                    <div className="w-16 h-16 border-4 border-[#FFAE00]/30 border-t-[#FFAE00] rounded-full animate-spin mx-auto mb-4" />
-                    <p className="text-gray-400">Verificando autenticação...</p>
+                    <div className="w-16 h-16 border-4 border-[#2563EB]/25 dark:border-[#3B82F6]/25 border-t-[#2563EB] dark:border-t-[#3B82F6] rounded-full animate-spin mx-auto mb-4" />
+                    <p className="text-[var(--text-secondary)]">Verificando autenticação...</p>
                 </div>
             </div>
         )
@@ -615,29 +615,29 @@ function NewJobContent() {
     }
 
     return (
-        <div className="min-h-screen bg-[#0B0D11] py-8 px-4 sm:px-6 lg:px-8">
+        <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)] py-8 px-4 sm:px-6 lg:px-8">
             <div className="max-w-3xl mx-auto">
                 {/* Header */}
                 <div className="text-center mb-8">
-                    <h1 className="text-3xl font-extrabold text-[#F8FAFC] tracking-tight">
+                    <h1 className="text-3xl font-semibold text-[var(--text-primary)] tracking-tight">
                         Solicitar Matriz de Bordado
                     </h1>
-                    <p className="mt-2 text-gray-400 text-sm">
+                    <p className="mt-2 text-[var(--text-secondary)] text-sm">
                         Preencha os detalhes da sua encomenda e receba orçamentos de programadores profissionais
                     </p>
                     {directProgrammerName && (
-                        <div className="mt-4 inline-flex items-center gap-2 bg-[#F5A623]/10 border border-[#F5A623]/30 rounded-full px-4 py-1.5 text-sm text-[#F5A623]">
+                        <div className="mt-4 inline-flex items-center gap-2 bg-[#2563EB]/10 border border-[#2563EB]/25 rounded-full px-4 py-1.5 text-sm text-[#2563EB] dark:text-[#60A5FA]">
                             <Sparkles className="w-4 h-4" />
                             <span>Enviando pedido direto para: <strong>{directProgrammerName}</strong></span>
                         </div>
                     )}
                 </div>
 
-                <form onSubmit={handleSubmit} className="bg-[#12151C] border border-white/[0.07] rounded-2xl p-5 sm:p-7 space-y-5 shadow-xl">
+                <form onSubmit={handleSubmit} className="bg-[var(--bg-surface)] border border-[var(--border-hairline)] rounded-2xl p-5 sm:p-7 space-y-5 shadow-xl">
                     {/* Título do Pedido */}
                     <div className="space-y-1.5">
-                        <label className="flex items-center gap-2 text-xs font-semibold text-gray-300">
-                            <FileText className="w-3.5 h-3.5 text-[#FFAE00]" />
+                        <label className="flex items-center gap-2 text-xs font-semibold text-[var(--text-primary)]">
+                            <FileText className="w-3.5 h-3.5 text-[#2563EB] dark:text-[#60A5FA]" />
                             Título do Pedido
                         </label>
                         <input
@@ -646,14 +646,14 @@ function NewJobContent() {
                             value={title}
                             onChange={e => setTitle(e.target.value)}
                             placeholder="Ex: Logo da Empresa no Peito e Costas, Brasão Escolar, etc."
-                            className="w-full bg-[#0F1115] border border-white/10 rounded-lg px-3.5 py-2.5 text-sm text-[#F3F4F6] placeholder-gray-500 focus:outline-none focus:border-[#FFAE00] transition-all"
+                            className="w-full bg-[var(--bg-surface-elevated)] border border-[var(--border-hairline)] rounded-lg px-3.5 py-2.5 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]/70 focus:outline-none focus:border-[#2563EB] dark:focus:border-[#3B82F6] transition-all"
                         />
                     </div>
 
                     {/* Descrição Detalhada */}
                     <div className="space-y-1.5">
-                        <label className="flex items-center gap-2 text-xs font-semibold text-gray-300">
-                            <FileText className="w-3.5 h-3.5 text-[#FFAE00]" />
+                        <label className="flex items-center gap-2 text-xs font-semibold text-[var(--text-primary)]">
+                            <FileText className="w-3.5 h-3.5 text-[#2563EB] dark:text-[#60A5FA]" />
                             Descrição Geral do Pedido
                         </label>
                         <textarea
@@ -662,14 +662,14 @@ function NewJobContent() {
                             value={description}
                             onChange={e => setDescription(e.target.value)}
                             placeholder="Descreva detalhes como cores desejadas, instruções especiais, máquina que você utiliza..."
-                            className="w-full bg-[#0F1115] border border-white/10 rounded-lg px-3.5 py-2.5 text-sm text-[#F3F4F6] placeholder-gray-500 focus:outline-none focus:border-[#FFAE00] transition-all resize-none"
+                            className="w-full bg-[var(--bg-surface-elevated)] border border-[var(--border-hairline)] rounded-lg px-3.5 py-2.5 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]/70 focus:outline-none focus:border-[#2563EB] dark:focus:border-[#3B82F6] transition-all resize-none"
                         />
                     </div>
 
                     {/* Formatos Desejados */}
                     <div className="space-y-2">
-                        <label className="flex items-center gap-2 text-xs font-semibold text-gray-300">
-                            <Package className="w-3.5 h-3.5 text-[#FFAE00]" />
+                        <label className="flex items-center gap-2 text-xs font-semibold text-[var(--text-primary)]">
+                            <Package className="w-3.5 h-3.5 text-[#2563EB] dark:text-[#60A5FA]" />
                             Formatos Desejados para Sua Máquina
                         </label>
 
@@ -682,10 +682,10 @@ function NewJobContent() {
                                         key={fmt}
                                         type="button"
                                         onClick={() => handleFormatToggle(fmt)}
-                                        className={`px-3 py-1.5 rounded-lg border text-xs font-bold transition-all flex items-center gap-1.5 ${
+                                        className={`min-h-[44px] sm:min-h-[36px] px-3.5 py-2 sm:py-1.5 rounded-lg border text-xs font-semibold transition-all flex items-center gap-1.5 ${
                                             isSelected
-                                                ? 'bg-[#FFAE00]/15 border-[#FFAE00] text-[#FFAE00] shadow-sm shadow-[#FFAE00]/10'
-                                                : 'bg-[#0F1115] border-white/10 text-gray-400 hover:border-white/20 hover:text-white'
+                                                ? 'bg-[#2563EB]/12 border-[#2563EB] dark:border-[#3B82F6] text-[#2563EB] dark:text-[#60A5FA]'
+                                                : 'bg-[var(--bg-surface-elevated)] border-[var(--border-hairline)] text-[var(--text-secondary)] hover:border-[var(--border-glass)] hover:text-[var(--text-primary)]'
                                         }`}
                                     >
                                         {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
@@ -698,17 +698,17 @@ function NewJobContent() {
                         {/* Formatos personalizados adicionados pelo usuário */}
                         {formats.filter(f => !PRESET_FORMATS.includes(f)).length > 0 && (
                             <div className="flex flex-wrap items-center gap-2 pt-1">
-                                <span className="text-[11px] text-gray-400">Outros formatos:</span>
+                                <span className="text-[11px] text-[var(--text-secondary)]">Outros formatos:</span>
                                 {formats.filter(f => !PRESET_FORMATS.includes(f)).map(fmt => (
                                     <span
                                         key={fmt}
-                                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#FFAE00]/15 border border-[#FFAE00] text-[#FFAE00] text-xs font-bold"
+                                        className="inline-flex items-center gap-1 min-h-[44px] sm:min-h-[32px] pl-3 pr-1 py-1 rounded-lg bg-[#2563EB]/12 border border-[#2563EB] dark:border-[#3B82F6] text-[#2563EB] dark:text-[#60A5FA] text-xs font-semibold"
                                     >
                                         {fmt}
                                         <button
                                             type="button"
                                             onClick={() => handleFormatToggle(fmt)}
-                                            className="hover:text-red-400 transition-colors p-0.5"
+                                            className="min-w-[36px] min-h-[36px] sm:min-w-0 sm:min-h-0 flex items-center justify-center hover:text-[#DC2626] dark:hover:text-[#EF4444] transition-colors p-1.5 sm:p-0.5 rounded"
                                             title={`Remover ${fmt}`}
                                         >
                                             <X className="w-3 h-3" />
@@ -731,13 +731,13 @@ function NewJobContent() {
                                     }
                                 }}
                                 placeholder="Outro formato (ex: .ART, .VIP, .PEC)"
-                                className="bg-[#0F1115] border border-white/10 focus:border-[#FFAE00] rounded-lg px-3.5 py-1.5 text-xs text-white placeholder-gray-500 focus:outline-none w-52 sm:w-60 uppercase"
+                                className="min-h-[44px] sm:min-h-[36px] bg-[var(--bg-surface-elevated)] border border-[var(--border-hairline)] focus:border-[#2563EB] dark:focus:border-[#3B82F6] rounded-lg px-3.5 py-2 sm:py-1.5 text-xs text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]/70 focus:outline-none w-52 sm:w-60 uppercase"
                             />
                             <button
                                 type="button"
                                 onClick={handleAddCustomFormat}
                                 disabled={!customFormatInput.trim()}
-                                className="px-3 py-1.5 bg-white/5 hover:bg-[#FFAE00]/10 text-gray-300 hover:text-[#FFAE00] border border-white/10 hover:border-[#FFAE00]/30 rounded-lg text-xs font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1"
+                                className="min-h-[44px] sm:min-h-[36px] px-3.5 py-2 sm:py-1.5 bg-[var(--btn-glass-bg)] hover:bg-[#2563EB]/10 text-[var(--text-primary)] hover:text-[#2563EB] dark:hover:text-[#60A5FA] border border-[var(--border-glass)] hover:border-[#2563EB]/30 rounded-lg text-xs font-semibold transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1"
                             >
                                 <Plus className="w-3 h-3" />
                                 Adicionar
@@ -749,13 +749,13 @@ function NewJobContent() {
                     {/* SEÇÃO PRINCIPAL: CARDS DE MATRIZES / APLICAÇÕES           */}
                     {/* ========================================================= */}
                     <div className="space-y-4 pt-2">
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 border-b border-gray-800 pb-3">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 border-b border-[var(--border-hairline)] pb-3">
                             <div>
-                                <label className="flex items-center gap-2 text-base font-bold text-white">
-                                    <Package className="w-4 h-4 text-[#FFAE00]" />
+                                <label className="flex items-center gap-2 text-base font-semibold text-[var(--text-primary)]">
+                                    <Package className="w-4 h-4 text-[#2563EB] dark:text-[#60A5FA]" />
                                     Matrizes do Pedido ({matrixItems.length} {matrixItems.length === 1 ? 'matriz' : 'matrizes'})
                                 </label>
-                                <p className="text-xs text-gray-400 mt-0.5">
+                                <p className="text-xs text-[var(--text-secondary)] mt-0.5">
                                     Informe o tamanho, tecido e a foto de cada matriz. Adicione mais tamanhos ou locais se precisar.
                                 </p>
                             </div>
@@ -765,14 +765,14 @@ function NewJobContent() {
                         <div className="space-y-4">
                             {matrixItems.map((item, index) => {
                                 return (
-                                    <div key={item.id} className="bg-[#0F1115] border border-amber-500/30 rounded-xl p-5 space-y-4 shadow-lg">
+                                    <div key={item.id} className="bg-[var(--bg-surface-elevated)] border border-[var(--border-hairline)] rounded-xl p-5 space-y-4">
                                         {/* Topo do Card */}
-                                        <div className="flex items-center justify-between border-b border-gray-800 pb-3">
+                                        <div className="flex items-center justify-between border-b border-[var(--border-hairline)] pb-3">
                                             <div className="flex items-center gap-2.5">
-                                                <span className="w-6 h-6 rounded-full bg-[#FFAE00] text-[#0F1115] font-black text-xs flex items-center justify-center">
+                                                <span className="w-6 h-6 rounded-full bg-[#2563EB] text-white font-bold text-xs flex items-center justify-center">
                                                     {index + 1}
                                                 </span>
-                                                <span className="font-bold text-white text-base">
+                                                <span className="font-semibold text-[var(--text-primary)] text-base">
                                                     Matriz {index + 1}
                                                 </span>
                                             </div>
@@ -781,7 +781,7 @@ function NewJobContent() {
                                                 <button
                                                     type="button"
                                                     onClick={() => removeMatrixItem(item.id)}
-                                                    className="text-xs text-red-400 hover:text-red-300 flex items-center gap-1 hover:bg-red-500/10 px-2.5 py-1 rounded-lg transition-colors border border-red-500/20"
+                                                    className="min-h-[44px] sm:min-h-0 text-xs text-[#DC2626] dark:text-[#EF4444] flex items-center gap-1 hover:bg-red-500/10 px-3 py-2 sm:py-1 rounded-lg transition-colors border border-red-500/25"
                                                 >
                                                     <Trash2 className="w-3.5 h-3.5" /> Remover Matriz
                                                 </button>
@@ -794,8 +794,8 @@ function NewJobContent() {
                                             <div className="space-y-3">
                                                 {/* 1. Tamanho Desejado (Obrigatório) */}
                                                 <div>
-                                                    <label className="text-xs font-semibold text-gray-300 block mb-1">
-                                                        Tamanho Desejado <span className="text-[#FFAE00]">*</span>
+                                                    <label className="text-xs font-semibold text-[var(--text-primary)] block mb-1">
+                                                        Tamanho Desejado <span className="text-[#2563EB] dark:text-[#60A5FA]">*</span>
                                                     </label>
                                                     <input
                                                         type="text"
@@ -803,74 +803,74 @@ function NewJobContent() {
                                                         placeholder="Ex: 10x10 cm, 8cm largura, maior possível..."
                                                         value={item.size}
                                                         onChange={(e) => updateMatrixItem(item.id, 'size', e.target.value)}
-                                                        className="w-full bg-[#1A1D23] border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-[#FFAE00]"
+                                                        className="w-full bg-[var(--bg-surface)] border border-[var(--border-hairline)] rounded-lg px-3 py-2.5 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]/70 focus:outline-none focus:border-[#2563EB] dark:focus:border-[#3B82F6]"
                                                     />
                                                 </div>
 
                                                 {/* 2. Tipo de Tecido (Digitável) */}
                                                 <div>
-                                                    <label className="text-xs font-semibold text-gray-300 block mb-1">
-                                                        Tipo de Tecido <span className="text-gray-500">(Opcional)</span>
+                                                    <label className="text-xs font-semibold text-[var(--text-primary)] block mb-1">
+                                                        Tipo de Tecido <span className="text-[var(--text-secondary)]">(Opcional)</span>
                                                     </label>
                                                     <input
                                                         type="text"
                                                         placeholder="Ex: malha piquet, algodão, toalha, jeans..."
                                                         value={item.fabric}
                                                         onChange={(e) => updateMatrixItem(item.id, 'fabric', e.target.value)}
-                                                        className="w-full bg-[#1A1D23] border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-[#FFAE00]"
+                                                        className="w-full bg-[var(--bg-surface)] border border-[var(--border-hairline)] rounded-lg px-3 py-2.5 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]/70 focus:outline-none focus:border-[#2563EB] dark:focus:border-[#3B82F6]"
                                                     />
                                                 </div>
 
                                                 {/* 3. Observação da Matriz */}
                                                 <div>
-                                                    <label className="text-xs font-semibold text-gray-300 block mb-1">
-                                                        Observação desta Matriz <span className="text-gray-500">(Opcional)</span>
+                                                    <label className="text-xs font-semibold text-[var(--text-primary)] block mb-1">
+                                                        Observação desta Matriz <span className="text-[var(--text-secondary)]">(Opcional)</span>
                                                     </label>
                                                     <textarea
                                                         rows={2}
                                                         placeholder="Ex: onde vai aplicar (peito, costas, manga, boné), cores preferidas, detalhes..."
                                                         value={item.notes}
                                                         onChange={(e) => updateMatrixItem(item.id, 'notes', e.target.value)}
-                                                        className="w-full bg-[#1A1D23] border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-[#FFAE00] resize-none"
+                                                        className="w-full bg-[var(--bg-surface)] border border-[var(--border-hairline)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]/70 focus:outline-none focus:border-[#2563EB] dark:focus:border-[#3B82F6] resize-none"
                                                     />
                                                 </div>
                                             </div>
 
                                             {/* Coluna 2: Upload da Foto Específica com Barra de Progresso */}
                                             <div>
-                                                <label className="text-xs font-semibold text-gray-300 block mb-1">
-                                                    Foto / Referência da Matriz {index + 1} <span className="text-[#FFAE00]">*</span>
+                                                <label className="text-xs font-semibold text-[var(--text-primary)] block mb-1">
+                                                    Foto / Referência da Matriz {index + 1} <span className="text-[#2563EB] dark:text-[#60A5FA]">*</span>
                                                 </label>
                                                 {item.previewUrl ? (
                                                     <div className="space-y-2">
-                                                        <div className="relative group rounded-lg overflow-hidden border border-[#FFAE00]/30 bg-black/40 h-[175px] flex items-center justify-center">
+                                                        <div className="relative group rounded-lg overflow-hidden border border-[#2563EB]/30 bg-[var(--bg-primary)] h-[175px] flex items-center justify-center">
                                                             <img src={item.previewUrl} alt={`Matriz ${index + 1}`} className="max-h-full max-w-full object-contain p-2" />
                                                             <button
                                                                 type="button"
                                                                 onClick={() => removeMatrixItemFile(item.id)}
-                                                                className="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white p-1.5 rounded-full shadow-lg transition-colors z-10"
+                                                                className="absolute top-2 right-2 min-w-[44px] min-h-[44px] sm:min-w-[32px] sm:min-h-[32px] flex items-center justify-center bg-[#DC2626] hover:bg-[#B91C1C] text-white p-1.5 rounded-full shadow-md transition-colors z-10"
                                                                 title="Trocar imagem"
                                                             >
                                                                 <Trash2 className="w-3.5 h-3.5" />
                                                             </button>
-                                                            <span className="absolute bottom-1 left-2 text-[10px] text-gray-400 truncate max-w-[85%] bg-black/70 px-2 py-0.5 rounded">
+                                                            <span className="absolute bottom-1 left-2 text-[10px] text-[#F8FAFC] truncate max-w-[85%] bg-[#0A0F1D]/80 px-2 py-0.5 rounded">
                                                                 {item.file?.name}
                                                             </span>
                                                         </div>
 
                                                         {/* BARRA DE CARREGAMENTO EM TEMPO REAL */}
                                                         {item.uploadStatus === 'uploading' && (
-                                                            <div className="bg-[#1A1D23] border border-amber-500/30 rounded-lg p-2.5 space-y-1.5 animate-pulse">
-                                                                <div className="flex items-center justify-between text-xs text-amber-400 font-semibold">
+                                                            <div className="bg-[var(--bg-surface)] border border-[#2563EB]/30 rounded-lg p-2.5 space-y-1.5">
+                                                                <div className="flex items-center justify-between text-xs text-[#2563EB] dark:text-[#60A5FA] font-semibold">
                                                                     <span className="flex items-center gap-1.5">
-                                                                        <div className="w-3.5 h-3.5 border-2 border-amber-400/30 border-t-amber-400 rounded-full animate-spin" />
+                                                                        <div className="w-3.5 h-3.5 border-2 border-[#2563EB]/30 border-t-[#2563EB] dark:border-[#60A5FA]/30 dark:border-t-[#60A5FA] rounded-full animate-spin" />
                                                                         Enviando foto da matriz...
                                                                     </span>
                                                                     <span>{item.uploadProgress}%</span>
                                                                 </div>
-                                                                <div className="w-full h-2 bg-gray-800 rounded-full overflow-hidden">
+                                                                <div className="w-full h-2 bg-[var(--border-hairline)] rounded-full overflow-hidden">
                                                                     <div
-                                                                        className="h-full bg-gradient-to-r from-amber-500 to-amber-400 rounded-full transition-all duration-300 ease-out"
+                                                                        className="h-full bg-[#2563EB] dark:bg-[#3B82F6] rounded-full transition-all duration-300 ease-out"
                                                                         style={{ width: `${Math.max(5, item.uploadProgress)}%` }}
                                                                     />
                                                                 </div>
@@ -878,17 +878,17 @@ function NewJobContent() {
                                                         )}
 
                                                         {item.uploadStatus === 'success' && (
-                                                            <div className="flex items-center justify-between py-1.5 px-3 bg-emerald-500/10 border border-emerald-500/30 rounded-lg text-emerald-400 text-xs">
+                                                            <div className="flex items-center justify-between py-1.5 px-3 bg-[#0D9488]/10 border border-[#0D9488]/30 rounded-lg text-[#0F766E] dark:text-[#14B8A6] text-xs">
                                                                 <span className="flex items-center gap-1.5 font-medium">
                                                                     <CheckCircle className="w-3.5 h-3.5 flex-shrink-0" />
                                                                     Imagem carregada com sucesso
                                                                 </span>
-                                                                <span className="text-[11px] font-bold text-emerald-500">100%</span>
+                                                                <span className="text-[11px] font-bold">100%</span>
                                                             </div>
                                                         )}
 
                                                         {item.uploadStatus === 'error' && (
-                                                            <div className="flex items-center justify-between py-1.5 px-3 bg-red-500/10 border border-red-500/30 rounded-lg text-red-400 text-xs">
+                                                            <div className="flex items-center justify-between py-1.5 px-3 bg-red-500/10 border border-red-500/30 rounded-lg text-[#DC2626] dark:text-[#EF4444] text-xs">
                                                                 <span className="flex items-center gap-1 text-[11px] truncate max-w-[170px]">
                                                                     <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
                                                                     {item.uploadError || 'Falha no envio'}
@@ -896,7 +896,7 @@ function NewJobContent() {
                                                                 <button
                                                                     type="button"
                                                                     onClick={() => item.file && uploadMatrixFile(item.id, item.file)}
-                                                                    className="px-2 py-0.5 bg-red-500/20 hover:bg-red-500/30 text-red-300 rounded text-[11px] font-bold transition-colors flex items-center gap-1"
+                                                                    className="min-h-[44px] sm:min-h-0 px-2.5 py-1.5 sm:py-0.5 bg-red-500/15 hover:bg-red-500/25 text-red-700 dark:text-red-300 rounded text-[11px] font-bold transition-colors flex items-center gap-1"
                                                                 >
                                                                     <RefreshCw className="w-3 h-3" />
                                                                     Tentar de novo
@@ -905,10 +905,10 @@ function NewJobContent() {
                                                         )}
                                                     </div>
                                                 ) : (
-                                                    <label className="flex flex-col items-center justify-center h-[175px] border border-dashed border-[#FFAE00]/30 hover:border-[#FFAE00] rounded-lg p-3.5 cursor-pointer bg-[#1A1D23]/50 hover:bg-[#FFAE00]/5 transition-all text-center group">
-                                                        <Upload className="w-5 h-5 text-[#FFAE00] group-hover:scale-110 transition-transform mb-1.5" />
-                                                        <span className="text-xs font-bold text-gray-200">Clique para enviar a foto desta matriz</span>
-                                                        <span className="text-[10px] text-gray-500 mt-1">PNG, JPG, BMP, PDF até 10MB</span>
+                                                    <label className="flex flex-col items-center justify-center h-[175px] border border-dashed border-[#2563EB]/35 hover:border-[#2563EB] dark:hover:border-[#3B82F6] rounded-lg p-3.5 cursor-pointer bg-[var(--bg-surface)] hover:bg-[#2563EB]/5 transition-all text-center group">
+                                                        <Upload className="w-5 h-5 text-[#2563EB] dark:text-[#60A5FA] group-hover:scale-110 transition-transform mb-1.5" />
+                                                        <span className="text-xs font-semibold text-[var(--text-primary)]">Clique para enviar a foto desta matriz</span>
+                                                        <span className="text-[10px] text-[var(--text-secondary)] mt-1">PNG, JPG, BMP, PDF até 10MB</span>
                                                         <input
                                                             type="file"
                                                             accept="image/*,application/pdf"
@@ -928,17 +928,17 @@ function NewJobContent() {
                         <button
                             type="button"
                             onClick={addMatrixItem}
-                            className="w-full py-2.5 border border-dashed border-[#FFAE00]/40 hover:border-[#FFAE00] bg-[#FFAE00]/5 hover:bg-[#FFAE00]/10 text-[#FFAE00] rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 active:scale-[0.99]"
+                            className="w-full min-h-[48px] sm:min-h-[42px] py-2.5 border border-dashed border-[#2563EB]/40 hover:border-[#2563EB] dark:hover:border-[#3B82F6] bg-[#2563EB]/5 hover:bg-[#2563EB]/10 text-[#2563EB] dark:text-[#60A5FA] rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1.5 active:scale-[0.99]"
                         >
                             <Plus className="w-3.5 h-3.5" />
                             Adicionar Outra Matriz ao Pedido (Kit)
                         </button>
 
                         {/* Fotos extras complementares (Opcional) */}
-                        <div className="space-y-2 pt-3 border-t border-gray-800">
-                            <label className="flex items-center gap-2 text-xs font-medium text-gray-400">
-                                <ImageIcon className="w-3.5 h-3.5 text-gray-400" />
-                                Fotos Adicionais ou Visão Geral <span className="text-gray-500">(Opcional)</span>
+                        <div className="space-y-2 pt-3 border-t border-[var(--border-hairline)]">
+                            <label className="flex items-center gap-2 text-xs font-medium text-[var(--text-secondary)]">
+                                <ImageIcon className="w-3.5 h-3.5 text-[var(--text-secondary)]" />
+                                Fotos Adicionais ou Visão Geral <span className="text-[var(--text-secondary)]">(Opcional)</span>
                             </label>
                             <div className="relative">
                                 <input
@@ -951,23 +951,23 @@ function NewJobContent() {
                                 />
                                 <label
                                     htmlFor="extra-images-upload"
-                                    className="flex items-center justify-center gap-2.5 w-full bg-[#0F1115] border border-dashed border-gray-700 rounded-lg px-4 py-2.5 cursor-pointer hover:border-gray-500 transition-all"
+                                    className="flex items-center justify-center gap-2.5 w-full bg-[var(--bg-surface-elevated)] border border-dashed border-[var(--border-glass)] rounded-lg px-4 py-3 cursor-pointer hover:border-[#2563EB]/50 transition-all"
                                 >
-                                    <Upload className="w-3.5 h-3.5 text-gray-400" />
-                                    <p className="text-gray-400 text-xs">Enviar fotos complementares (mockups, peça pronta, uniforme montado, etc.)</p>
+                                    <Upload className="w-3.5 h-3.5 text-[var(--text-secondary)]" />
+                                    <p className="text-[var(--text-secondary)] text-xs">Enviar fotos complementares (mockups, peça pronta, uniforme montado, etc.)</p>
                                 </label>
                             </div>
 
                             {extraImages.length > 0 && (
                                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5 mt-2">
                                     {extraImages.map((extra) => (
-                                        <div key={extra.id} className="relative group rounded-lg overflow-hidden border border-gray-700 bg-black/40 p-1.5 flex flex-col justify-between">
+                                        <div key={extra.id} className="relative group rounded-lg overflow-hidden border border-[var(--border-hairline)] bg-[var(--bg-surface-elevated)] p-1.5 flex flex-col justify-between">
                                             <div className="relative h-20 flex items-center justify-center overflow-hidden">
                                                 <img src={extra.previewUrl} alt="Extra" className="max-h-full max-w-full object-contain" />
                                                 <button
                                                     type="button"
                                                     onClick={() => removeExtraImage(extra.id)}
-                                                    className="absolute top-1 right-1 bg-red-600 hover:bg-red-700 text-white p-1 rounded-full shadow transition-colors z-10"
+                                                    className="absolute top-1 right-1 min-w-[44px] min-h-[44px] sm:min-w-[28px] sm:min-h-[28px] flex items-center justify-center bg-[#DC2626] hover:bg-[#B91C1C] text-white p-1 rounded-full shadow transition-colors z-10"
                                                     title="Remover"
                                                 >
                                                     <Trash2 className="w-3 h-3" />
@@ -977,13 +977,13 @@ function NewJobContent() {
                                             {/* Barra de progresso da foto extra */}
                                             {extra.uploadStatus === 'uploading' && (
                                                 <div className="w-full mt-1.5 px-0.5">
-                                                    <div className="flex items-center justify-between text-[10px] text-amber-400 font-semibold mb-0.5">
+                                                    <div className="flex items-center justify-between text-[10px] text-[#2563EB] dark:text-[#60A5FA] font-semibold mb-0.5">
                                                         <span>Enviando...</span>
                                                         <span>{extra.uploadProgress}%</span>
                                                     </div>
-                                                    <div className="w-full h-1.5 bg-gray-800 rounded-full overflow-hidden">
+                                                    <div className="w-full h-1.5 bg-[var(--border-hairline)] rounded-full overflow-hidden">
                                                         <div
-                                                            className="h-full bg-amber-400 transition-all duration-300"
+                                                            className="h-full bg-[#2563EB] dark:bg-[#3B82F6] transition-all duration-300"
                                                             style={{ width: `${Math.max(5, extra.uploadProgress)}%` }}
                                                         />
                                                     </div>
@@ -991,19 +991,19 @@ function NewJobContent() {
                                             )}
 
                                             {extra.uploadStatus === 'success' && (
-                                                <div className="flex items-center justify-center gap-1 text-[10px] text-emerald-400 font-medium py-0.5 mt-1 bg-emerald-500/10 rounded">
+                                                <div className="flex items-center justify-center gap-1 text-[10px] text-[#0F766E] dark:text-[#14B8A6] font-medium py-0.5 mt-1 bg-[#0D9488]/10 rounded">
                                                     <CheckCircle className="w-3 h-3" />
                                                     <span>Enviada</span>
                                                 </div>
                                             )}
 
                                             {extra.uploadStatus === 'error' && (
-                                                <div className="flex items-center justify-between text-[10px] text-red-400 py-0.5 mt-1 bg-red-500/10 rounded px-1">
+                                                <div className="flex items-center justify-between text-[10px] text-[#DC2626] dark:text-[#EF4444] py-0.5 mt-1 bg-red-500/10 rounded px-1">
                                                     <span className="truncate max-w-[55px]">Erro</span>
                                                     <button
                                                         type="button"
                                                         onClick={() => uploadExtraFile(extra.id, extra.file)}
-                                                        className="text-red-300 hover:underline flex items-center gap-0.5 font-bold"
+                                                        className="min-h-[44px] sm:min-h-0 px-1.5 py-1 sm:py-0 text-red-700 dark:text-red-300 hover:underline flex items-center gap-0.5 font-bold"
                                                     >
                                                         <RefreshCw className="w-2.5 h-2.5" /> Retentar
                                                     </button>
@@ -1017,25 +1017,25 @@ function NewJobContent() {
                     </div>
 
                     {/* Urgência */}
-                    <div className="space-y-1.5 pt-2 border-t border-gray-800">
-                        <label className="flex items-center gap-2 text-xs font-semibold text-gray-300">
-                            <Clock className="w-3.5 h-3.5 text-[#FFAE00]" />
+                    <div className="space-y-1.5 pt-2 border-t border-[var(--border-hairline)]">
+                        <label className="flex items-center gap-2 text-xs font-semibold text-[var(--text-primary)]">
+                            <Clock className="w-3.5 h-3.5 text-[#2563EB] dark:text-[#60A5FA]" />
                             Urgência
                         </label>
                         <select
                             value={urgency}
                             onChange={e => setUrgency(e.target.value)}
-                            className="w-full bg-[#0F1115] border border-white/10 rounded-lg px-3.5 py-2.5 text-sm text-[#F3F4F6] focus:outline-none focus:border-[#FFAE00] transition-all cursor-pointer"
+                            className="w-full bg-[var(--bg-surface-elevated)] border border-[var(--border-hairline)] rounded-lg px-3.5 py-2.5 text-sm text-[var(--text-primary)] focus:outline-none focus:border-[#2563EB] dark:focus:border-[#3B82F6] transition-all cursor-pointer"
                         >
-                            <option value="sem_pressa" className="bg-[#1A1D23]">Sem Pressa (Padrão - até 7 dias)</option>
-                            <option value="prazo_curto" className="bg-[#1A1D23]">Prazo Curto (3-5 dias)</option>
-                            <option value="urgente" className="bg-[#1A1D23]">Urgente (24 horas)</option>
+                            <option value="sem_pressa" className="bg-[var(--bg-surface)] text-[var(--text-primary)]">Sem Pressa (Padrão - até 7 dias)</option>
+                            <option value="prazo_curto" className="bg-[var(--bg-surface)] text-[var(--text-primary)]">Prazo Curto (3-5 dias)</option>
+                            <option value="urgente" className="bg-[var(--bg-surface)] text-[var(--text-primary)]">Urgente (24 horas)</option>
                         </select>
                     </div>
 
                     {/* Error Message */}
                     {error && (
-                        <div className="bg-red-500/10 border border-red-500/50 text-red-400 px-3.5 py-2.5 rounded-lg flex items-start gap-2.5">
+                        <div className="bg-red-500/10 border border-red-500/30 text-[#DC2626] dark:text-[#EF4444] px-3.5 py-2.5 rounded-lg flex items-start gap-2.5">
                             <Zap className="w-4 h-4 flex-shrink-0 mt-0.5" />
                             <p className="text-xs">{error}</p>
                         </div>
@@ -1045,28 +1045,28 @@ function NewJobContent() {
                     <div className="flex flex-col sm:flex-row gap-3 pt-3">
                         <Link
                             href="/"
-                            className="flex-1 flex items-center justify-center px-4 py-2.5 border border-white/10 hover:border-[#FFAE00]/30 text-gray-300 hover:text-white rounded-lg hover:bg-white/5 transition-all text-xs font-bold"
+                            className="flex-1 min-h-[48px] flex items-center justify-center px-4 py-2.5 bg-[var(--btn-glass-bg)] border border-[var(--border-glass)] hover:border-[#2563EB]/40 text-[var(--text-primary)] rounded-lg transition-all text-xs font-semibold"
                         >
                             Cancelar
                         </Link>
                         <button
                             type="submit"
                             disabled={loading || isAnyUploading || hasUnuploadedFiles || hasAnyError}
-                            className="flex-[2] flex items-center justify-center gap-2 px-4 py-3 bg-[#FFAE00] text-black rounded-lg hover:bg-[#D97706] transition-all text-sm font-black disabled:opacity-50 disabled:cursor-not-allowed shadow-md shadow-[#FFAE00]/20"
+                            className="flex-[2] min-h-[48px] flex items-center justify-center gap-2 px-4 py-3 bg-[var(--btn-primary-bg)] text-[var(--btn-primary-text)] rounded-lg hover:bg-[var(--btn-primary-hover)] transition-all text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             {loading ? (
                                 <>
-                                    <div className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" />
+                                    <div className="w-4 h-4 border-2 border-current/30 border-t-current rounded-full animate-spin" />
                                     <span>Publicando pedido...</span>
                                 </>
                             ) : isAnyUploading ? (
                                 <>
-                                    <div className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" />
+                                    <div className="w-4 h-4 border-2 border-current/30 border-t-current rounded-full animate-spin" />
                                     <span>Aguarde o envio das fotos...</span>
                                 </>
                             ) : hasAnyError ? (
                                 <>
-                                    <AlertCircle className="w-4 h-4 text-red-900" />
+                                    <AlertCircle className="w-4 h-4 text-[#DC2626] dark:text-[#EF4444]" />
                                     <span>Corrija as fotos com erro antes de enviar</span>
                                 </>
                             ) : (
@@ -1080,7 +1080,7 @@ function NewJobContent() {
                 </form>
 
                 {/* Info Footer */}
-                <div className="mt-8 text-center text-gray-500 text-sm">
+                <div className="mt-8 text-center text-[var(--text-secondary)] text-sm">
                     <p>Após enviar, você receberá propostas de programadores qualificados</p>
                 </div>
             </div>
@@ -1091,10 +1091,10 @@ function NewJobContent() {
 export default function NewJob() {
     return (
         <Suspense fallback={
-            <div className="min-h-screen bg-[#0F1115] flex items-center justify-center">
+            <div className="min-h-screen bg-[var(--bg-primary)] flex items-center justify-center">
                 <div className="text-center">
-                    <div className="w-16 h-16 border-4 border-[#FFAE00]/30 border-t-[#FFAE00] rounded-full animate-spin mx-auto mb-4" />
-                    <p className="text-gray-400">Carregando...</p>
+                    <div className="w-16 h-16 border-4 border-[#2563EB]/25 dark:border-[#3B82F6]/25 border-t-[#2563EB] dark:border-t-[#3B82F6] rounded-full animate-spin mx-auto mb-4" />
+                    <p className="text-[var(--text-secondary)]">Carregando...</p>
                 </div>
             </div>
         }>
