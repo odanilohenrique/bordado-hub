@@ -1965,6 +1965,12 @@ test('T5-DS2-REBRAND: Design System 2.0 (Dual-Theme, Zero Emojis/Âmbar, SVG/Mí
         excludes: ['still-']
     })
 
+    verifyFileExists('src/app/fonts/inter-latin-var.woff2', 20000)
+    verifyFileContent('src/app/layout.tsx', {
+        includes: ['next/font/local', 'inter-latin-var.woff2'],
+        excludes: ['next/font/google']
+    })
+
     const formatSvgs = fs.readdirSync('public/svg/formats').filter((f) => f.endsWith('.svg'))
     assert(formatSvgs.length >= 8, 'Devem existir ao menos 8 badges SVG de formatos')
     for (const svg of formatSvgs) {
