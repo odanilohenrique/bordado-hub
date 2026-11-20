@@ -50,6 +50,12 @@ function createStatefulMarketplaceMockSupabase(initialData = {}) {
             return this
         }
 
+        insert(row) {
+            this.op = 'insert'
+            this.insertRow = JSON.parse(JSON.stringify(row || {}))
+            return this
+        }
+
         _matchingRows() {
             const table = tables[this.tableName] || []
             return table.filter((row) => {
@@ -71,6 +77,12 @@ function createStatefulMarketplaceMockSupabase(initialData = {}) {
         }
 
         _execute() {
+            if (this.op === 'insert') {
+                const row = { id: `00000000-0000-4000-8000-${String((tables[this.tableName] || []).length + 1).padStart(12, '0')}`, ...this.insertRow }
+                tables[this.tableName] = tables[this.tableName] || []
+                tables[this.tableName].push(row)
+                return { data: [JSON.parse(JSON.stringify(row))], error: null }
+            }
             if (this.op === 'update') {
                 const matches = this._matchingRows()
                 for (const row of matches) {
@@ -127,6 +139,12 @@ let activeMockSupabase = null
 const projectRoot = process.cwd()
 const targetRouteAbsPath = path.resolve(projectRoot, 'src/app/api/marketplace/products/[id]/route.ts')
 const targetRouteUrl = pathToFileURL(targetRouteAbsPath).href
+const createRouteAbsPath = path.resolve(projectRoot, 'src/app/api/marketplace/products/route.ts')
+const createRouteUrl = pathToFileURL(createRouteAbsPath).href
+const transpiledRoutes = new Map([
+    [targetRouteUrl, targetRouteAbsPath],
+    [createRouteUrl, createRouteAbsPath],
+])
 
 registerHooks({
     resolve(specifier, context, nextResolve) {
@@ -165,14 +183,15 @@ registerHooks({
             `
             return { shortCircuit: true, format: 'module', source: code }
         }
-        if (url === targetRouteUrl) {
-            const tsSource = fs.readFileSync(targetRouteAbsPath, 'utf8')
+        if (transpiledRoutes.has(url)) {
+            const absPath = transpiledRoutes.get(url)
+            const tsSource = fs.readFileSync(absPath, 'utf8')
             const transpiled = ts.transpileModule(tsSource, {
                 compilerOptions: {
                     module: ts.ModuleKind.ESNext,
                     target: ts.ScriptTarget.ES2022,
                 },
-                fileName: targetRouteAbsPath,
+                fileName: absPath,
             })
             return { shortCircuit: true, format: 'module', source: transpiled.outputText }
         }
@@ -182,6 +201,8 @@ registerHooks({
 
 const routeModule = await import(targetRouteUrl)
 const { PATCH, DELETE } = routeModule
+const createRouteModule = await import(createRouteUrl)
+const { POST: CREATE_PRODUCT } = createRouteModule
 
 // ==============================================================================
 // 1. SQL MIGRATION & STORAGE RLS INVARIANTS
@@ -623,6 +644,119 @@ test('DELETE enforces Bearer auth, ownership, and performs soft-delete (is_activ
     const rows = db._dump('marketplace_products')
     assert.equal(rows.length, 1)
     assert.equal(rows[0].is_active, false)
+})
+
+// ==============================================================================
+// 5. T5-MKT-RLS-PUBLISH: Publicação via servidor (sem RLS do anon client)
+// ==============================================================================
+suite('M2.5 — T5-MKT-RLS-PUBLISH: POST /api/marketplace/products + upload assinado')
+
+function makeCreateReq({ token = null, body = null } = {}) {
+    const headers = new Headers({ 'Content-Type': 'application/json' })
+    if (token) headers.set('authorization', `Bearer ${token}`)
+    return new Request('http://localhost/api/marketplace/products', {
+        method: 'POST',
+        headers,
+        body: body !== null ? JSON.stringify(body) : undefined,
+    })
+}
+
+const validCreatePayload = () => ({
+    title: '  Leão Geométrico  ',
+    description: '  Matriz 10x10  ',
+    price: 19.9,
+    category: 'animais',
+    formats: ['.pes', 'DST', 'pes'],
+    image_url: 'https://abc.supabase.co/storage/v1/object/public/marketplace-previews/b.jpg',
+    image_urls: [
+        'https://abc.supabase.co/storage/v1/object/public/marketplace-previews/a.jpg',
+        'https://abc.supabase.co/storage/v1/object/public/marketplace-previews/b.jpg',
+    ],
+    file_url: `https://abc.supabase.co/storage/v1/object/public/marketplace-files/${SELLER_PROFILE_ID}/1_abc/leao.pes`,
+    storage_path: `${SELLER_PROFILE_ID}/1_abc/leao.pes`,
+    is_bundle: false,
+    items_count: 1,
+})
+
+test('Create: exige Bearer válido e bloqueia spoofing de seller_id', async () => {
+    setupMockDb()
+    assert.equal((await CREATE_PRODUCT(makeCreateReq({ body: validCreatePayload() }))).status, 401)
+    assert.equal((await CREATE_PRODUCT(makeCreateReq({ token: 'invalid_token', body: validCreatePayload() }))).status, 401)
+    const spoof = await CREATE_PRODUCT(makeCreateReq({
+        token: 'other_token',
+        body: { ...validCreatePayload(), seller_id: SELLER_PROFILE_ID },
+    }))
+    assert.equal(spoof.status, 403)
+    // Outro vendedor não pode apontar storage_path para a pasta do vendedor original
+    const stolenPath = await CREATE_PRODUCT(makeCreateReq({ token: 'other_token', body: validCreatePayload() }))
+    assert.equal(stolenPath.status, 403)
+})
+
+test('Create: rejeita preço < 5, formatos inválidos, blob URL, file_url divergente e bundle inválido', async () => {
+    setupMockDb()
+    const cases = [
+        { price: 4.99 },
+        { formats: [] },
+        { formats: ['bad!fmt'] },
+        { image_urls: ['blob:https://bordadohub.com/1'] },
+        { file_url: `https://abc.supabase.co/storage/v1/object/public/marketplace-files/${SELLER_PROFILE_ID}/outro.pes` },
+        { file_url: 'https://evil.example/marketplace-files/x.pes' },
+        { is_bundle: true, items_count: 1 },
+        { category: 'inexistente' },
+        { title: '   ' },
+    ]
+    for (const override of cases) {
+        const res = await CREATE_PRODUCT(makeCreateReq({ token: 'seller_token', body: { ...validCreatePayload(), ...override } }))
+        assert.equal(res.status, 400, `Esperado 400 para ${JSON.stringify(override)}, recebido ${res.status}`)
+    }
+})
+
+test('Create: grava com seller_id da sessão, capa primeiro, formatos normalizados e sem mass assignment', async () => {
+    const db = setupMockDb()
+    const res = await CREATE_PRODUCT(makeCreateReq({
+        token: 'seller_token',
+        body: { ...validCreatePayload(), sales_count: 9999, is_active: false },
+    }))
+    assert.equal(res.status, 201)
+    const json = await res.json()
+    assert.equal(json.success, true)
+    assert.ok(json.id)
+    const stored = db._dump('marketplace_products').find((p) => p.id === json.id)
+    assert.equal(stored.seller_id, SELLER_PROFILE_ID)
+    assert.equal(stored.title, 'Leão Geométrico')
+    assert.deepEqual(stored.formats, ['PES', 'DST'])
+    assert.equal(stored.image_url, validCreatePayload().image_url)
+    assert.equal(stored.image_urls[0], validCreatePayload().image_url)
+    assert.equal(stored.sales_count, 0)
+    assert.equal(stored.is_active, true)
+})
+
+test('Vender page e rota de upload: zero escrita direta do anon client em storage/marketplace_products', () => {
+    verifyFileContent('src/app/marketplace/vender/page.tsx', {
+        includes: [
+            "fetch('/api/marketplace/products'",
+            "fetch('/api/marketplace/upload'",
+            'uploadToSignedUrl',
+            'uploadMarketplaceAsset',
+        ],
+        excludes: [
+            ".from('marketplace_products')\n                    .insert(",
+            ".from('marketplace-previews')\n                    .upload(",
+            ".from('marketplace-files')\n                    .upload(",
+            '.insert({',
+        ],
+    })
+    verifyFileContent('src/app/api/marketplace/upload/route.ts', {
+        includes: [
+            'createServiceClient',
+            'createSignedUploadUrl',
+            "Bearer ",
+            "'marketplace-previews'",
+            "'marketplace-files'",
+            'BLOCKED_MATRIX_EXTS',
+            'MAX_MATRIX_BYTES = 30 * 1024 * 1024',
+        ],
+    })
 })
 
 await runner.run()

@@ -131,6 +131,46 @@ function toSafeStorageFileName(originalName: string): string {
     return cleanExt ? `${cleanBase}.${cleanExt}` : cleanBase
 }
 
+/**
+ * Envia um arquivo ao Storage do Marketplace sem depender do RLS do anon client:
+ * o servidor (/api/marketplace/upload, Service Role) valida sessão, tipo e tamanho,
+ * gera o caminho dentro da pasta do vendedor e devolve um token de upload assinado.
+ */
+async function uploadMarketplaceAsset(params: {
+    bucket: 'marketplace-previews' | 'marketplace-files'
+    file: Blob
+    fileName: string
+    contentType?: string
+    token: string
+}): Promise<{ publicUrl: string; storagePath: string }> {
+    const { bucket, file, fileName, contentType, token } = params
+
+    const signRes = await fetch('/api/marketplace/upload', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ bucket, fileName, fileSize: file.size, contentType: contentType || file.type || '' }),
+    })
+    const signData = await signRes.json().catch(() => ({}))
+    if (!signRes.ok || !signData?.token || !signData?.path) {
+        throw new Error(signData?.error || 'Não foi possível preparar o envio do arquivo.')
+    }
+
+    const { error: uploadErr } = await supabase.storage
+        .from(bucket)
+        .uploadToSignedUrl(signData.path, signData.token, file, {
+            upsert: false,
+            contentType: contentType || file.type || 'application/octet-stream',
+        })
+    if (uploadErr) {
+        throw new Error(uploadErr.message)
+    }
+
+    return { publicUrl: signData.publicUrl, storagePath: signData.path }
+}
+
 function isValidUuid(id: string | null): id is string {
     if (!id) return false
     return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)
@@ -713,6 +753,13 @@ function VenderMatrizContent() {
         setLoading(true)
 
         try {
+            // 0. Sessão obrigatória: todos os uploads e a gravação passam pelo servidor (Service Role)
+            const { data: { session: activeSession } } = await supabase.auth.getSession()
+            const accessToken = activeSession?.access_token
+            if (!accessToken) {
+                throw new Error('Sessão expirada. Faça login novamente para publicar.')
+            }
+
             // 1. Order photos with selected cover first
             const effectiveCoverId = photos.some((p) => p.id === coverId) ? coverId : photos[0].id
             const coverItem = photos.find((p) => p.id === effectiveCoverId) || photos[0]
@@ -732,24 +779,20 @@ function VenderMatrizContent() {
 
                 const safeExt = getSafeImageExtension(optimized as File)
                 const rand = Math.random().toString(36).slice(2, 8)
-                const imagePath = `${profile.id}/${Date.now()}_${idx}_${rand}_preview.${safeExt}`
+                const imageName = `${Date.now()}_${idx}_${rand}_preview.${safeExt}`
 
-                const { error: uploadImgErr } = await supabase.storage
-                    .from('marketplace-previews')
-                    .upload(imagePath, optimized, {
-                        upsert: false,
+                try {
+                    const { publicUrl } = await uploadMarketplaceAsset({
+                        bucket: 'marketplace-previews',
+                        file: optimized,
+                        fileName: imageName,
                         contentType: optimized.type || `image/${safeExt === 'jpg' ? 'jpeg' : safeExt}`,
+                        token: accessToken,
                     })
-
-                if (uploadImgErr) {
-                    throw new Error(`Falha no upload da foto ${idx + 1}: ${uploadImgErr.message}`)
+                    return publicUrl
+                } catch (uploadImgErr: any) {
+                    throw new Error(`Falha no upload da foto ${idx + 1}: ${uploadImgErr?.message || 'erro desconhecido'}`)
                 }
-
-                const { data: { publicUrl } } = supabase.storage
-                    .from('marketplace-previews')
-                    .getPublicUrl(imagePath)
-
-                return publicUrl
             }))
             const uploadedUrls = uploadedResults.filter((url): url is string => Boolean(url))
 
@@ -771,17 +814,15 @@ function VenderMatrizContent() {
                     }
                 }
 
-                const rand = Math.random().toString(36).slice(2, 8)
-                const folderPrefix = `${profile.id}/${Date.now()}_${rand}`
-                let filePath = ''
+                let uploadFileName = ''
                 let uploadPayload: File | Blob
-                let uploadOptions: { upsert: false; contentType?: string } = { upsert: false }
+                let uploadContentType: string | undefined
 
                 if (matrixFiles.length === 1) {
                     const singleFile = matrixFiles[0]
-                    const safeFileName = toSafeStorageFileName(singleFile.name)
-                    filePath = `${folderPrefix}/${safeFileName}`
+                    uploadFileName = toSafeStorageFileName(singleFile.name)
                     uploadPayload = singleFile
+                    uploadContentType = singleFile.type || 'application/octet-stream'
                 } else {
                     const bundleZip = new JSZip()
                     for (const f of matrixFiles) {
@@ -791,37 +832,31 @@ function VenderMatrizContent() {
                     const firstRawName = (matrixFiles[0].name.split(/[/\\]/).pop() || 'matrizes').trim()
                     const lastDot = firstRawName.lastIndexOf('.')
                     const firstBase = lastDot > 0 ? firstRawName.slice(0, lastDot) : firstRawName
-                    const safeZipName = toSafeStorageFileName(`${firstBase || 'matrizes'}.zip`)
-                    filePath = `${folderPrefix}/${safeZipName}`
+                    uploadFileName = toSafeStorageFileName(`${firstBase || 'matrizes'}.zip`)
                     uploadPayload = zipBlob
-                    uploadOptions = { upsert: false, contentType: 'application/zip' }
+                    uploadContentType = 'application/zip'
                 }
 
-                const { error: uploadFileErr } = await supabase.storage
-                    .from('marketplace-files')
-                    .upload(filePath, uploadPayload, uploadOptions)
-
-                if (uploadFileErr) {
-                    throw new Error(`Falha no upload do arquivo da matriz: ${uploadFileErr.message}`)
+                try {
+                    const { publicUrl: fileUrl, storagePath } = await uploadMarketplaceAsset({
+                        bucket: 'marketplace-files',
+                        file: uploadPayload,
+                        fileName: uploadFileName,
+                        contentType: uploadContentType,
+                        token: accessToken,
+                    })
+                    finalFileUrl = fileUrl
+                    finalStoragePath = storagePath
+                } catch (uploadFileErr: any) {
+                    throw new Error(`Falha no upload do arquivo da matriz: ${uploadFileErr?.message || 'erro desconhecido'}`)
                 }
-
-                const { data: { publicUrl: fileUrl } } = supabase.storage
-                    .from('marketplace-files')
-                    .getPublicUrl(filePath)
-
-                finalFileUrl = fileUrl
-                finalStoragePath = filePath
             }
 
             const finalItemsCount = isBundle ? Math.min(MAX_BUNDLE_ITEMS, Math.max(2, itemsCount)) : 1
 
             if (isEditMode && editIdParam) {
                 // 3a. Edit existing product via authenticated PATCH API
-                const { data: { session } } = await supabase.auth.getSession()
-                const token = session?.access_token
-                if (!token) {
-                    throw new Error('Sessão expirada. Faça login novamente para salvar alterações.')
-                }
+                const token = accessToken
 
                 const patchPayload: Record<string, any> = {
                     title: title.trim(),
@@ -861,11 +896,14 @@ function VenderMatrizContent() {
                     router.push(`/marketplace/${editIdParam}`)
                 }, 1000)
             } else {
-                // 3b. Insert new product record
-                const { data: insertedProduct, error: insertErr } = await supabase
-                    .from('marketplace_products')
-                    .insert({
-                        seller_id: profile.id,
+                // 3b. Insert new product record via authenticated server API (Service Role, sem RLS do anon client)
+                const createRes = await fetch('/api/marketplace/products', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${accessToken}`,
+                    },
+                    body: JSON.stringify({
                         title: title.trim(),
                         description: description.trim() || null,
                         price: numPrice,
@@ -877,15 +915,14 @@ function VenderMatrizContent() {
                         category,
                         is_bundle: isBundle,
                         items_count: finalItemsCount,
-                        sales_count: 0,
-                        is_active: true,
-                    })
-                    .select('id')
-                    .single()
+                    }),
+                })
 
-                if (insertErr) {
-                    throw new Error(`Erro ao salvar produto: ${insertErr.message}`)
+                const createData = await createRes.json().catch(() => ({}))
+                if (!createRes.ok || !createData?.id) {
+                    throw new Error(`Erro ao salvar produto: ${createData?.error || 'falha no servidor'}`)
                 }
+                const insertedProduct = { id: createData.id as string }
 
                 clearCache('marketplace_products')
                 setSuccessMessage('Matriz publicada com sucesso na sua lojinha!')
